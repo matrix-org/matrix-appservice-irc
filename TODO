@@ -1,0 +1,10 @@
+MX users dynamically joining IRC rooms on a server:
+- Storage: Dynamically tracked channels
+- Alias query -> Bot joins IRC room -> Adds to tracked channels list
+
+MX users dynamically PMing an IRC user on a server:
+ - Storage: Which room ID is the PM room for this tuple(mx,ircnick)
+ - User query -> Bot joins server, /whois <nick>, if nick is online, then YUP.
+ - Presence-like status for virtual mx user?
+ - onInvite for irc user, join virtual mx user.
+ - onMessage for PM room, mk virtual irc user then send.
