@@ -1,0 +1,19 @@
+ircService:
+  servers:
+    irc.example.com:
+      nick: "appservicebot"
+      expose:
+        channels: true
+        privateMessages: true
+      userPrefix: "@irc_"
+      rooms:
+        aliasPrefix: "#irc_"
+        mappings:
+          "#thepub": ["!kieouiJuedJoxtVdaG:localhost"]
+
+appService:
+  hs: "http://localhost:8008"
+  hsDomain: "localhost"
+  token: "1234567890"
+  as: "http://localhost:3500"
+  port: 3500

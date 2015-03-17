@@ -16,7 +16,9 @@
     "url": "https://github.com/Kegsay/matrix-appservice-irc/issues"
   },
   "dependencies": {
+    "fs": "0.0.2",
     "irc": "^0.3.9",
+    "js-yaml": "^3.2.7",
     "matrix-js-sdk": "0.0.1",
     "q": "^1.2.0"
   }
