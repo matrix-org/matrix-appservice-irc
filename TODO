@@ -1,7 +1,26 @@
+Absolutely required before this is functional:
+- Database: MongoDB storage for RoomStore.
+- Integration tests
+
+Really need to have for maintenance purposes:
 - Logging: files, rotation, consistent format
 - Stack traces: Check for .done(), prevent unhandled exceptions.
 - Models: Unified User object
-- Database: MongoDB storage for RoomStore.
-- Support for images/fallback body text.
-- Tests (integration first; unit later)
+- Unit tests
 
+Really need to avoid being flakey as hell:
+- Handle being kicked from IRC rooms (node irc supports auto-reconnects)
+- Handle being kicked from Matrix rooms
+- Handle being disconnected from the IRC network (bot and individual clients)
+- IRC Client rate limiting (node irc supports this)
+- Matrix rate limiting (M_LIMIT_EXCEEDED)
+- Handle nick clashes
+- Handle extreme nick lengths, charsets
+- Handle extreme message lengths, charsets
+
+Nice to haves:
+- Support for images/fallback body text.
+- Virtual Matrix user display name support
+- Coloured/formatted text
+- Bouncer support (connect to X as nick Y for this virtual user. Config file
+  only to prevent abuse.)
