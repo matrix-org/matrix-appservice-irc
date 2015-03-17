@@ -1,3 +1,10 @@
-MX users dynamically joining IRC rooms on a server:
-- Storage: Dynamically tracked channels
-- Alias query -> Bot joins IRC room -> Adds to tracked channels list
+- IRC users initiating PMs with virtual IRC users
+- Logging: files, rotation, consistent format
+- Stack traces: Check for .done(), prevent unhandled exceptions.
+- Models: Unified User object
+- Database: MongoDB storage for RoomStore.
+- Support for images/fallback body text.
+- Tests (integration first; unit later)
+- Stand alone service (so people just edit a YAML file, reduce scariness of
+  configuring a node app to get the AS to work)
+
