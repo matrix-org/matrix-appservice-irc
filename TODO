@@ -14,7 +14,7 @@ Really need to avoid being flakey as hell:
 - Handle being disconnected from the IRC network (bot and individual clients)
 - IRC Client rate limiting (node irc supports this)
 - Matrix rate limiting (M_LIMIT_EXCEEDED)
-- Handle nick clashes
+- Handle nick clashes (incl. alt nickname support on the bot)
 - Handle extreme nick lengths, charsets
 - Handle extreme message lengths, charsets
 
