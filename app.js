@@ -8,11 +8,11 @@ var fs = require("fs");
 var config = undefined;
 
 try {
-	config = yaml.safeLoad(fs.readFileSync('./config.yaml', 'utf8'));
+    config = yaml.safeLoad(fs.readFileSync('./config.yaml', 'utf8'));
 } 
 catch (e) {
-	console.error(e);
-	return;
+    console.error(e);
+    return;
 }
 
 irc.configure(config.ircService);
