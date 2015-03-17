@@ -35,10 +35,12 @@ ircService:  # configuration for the IRC service
         channels: true
         # pass PMs to virtual IRC clients to their real Matrix counterparts
         privateMessages: true
-      # the user ID prefix for virtual matrix users.
+      # Optional. The user ID prefix for virtual matrix users. Defaults to "@<SERVER_ADDR>_" e.g.
+      # @irc.example.com_
       userPrefix: "@irc_"
       rooms:
-        # the room alias prefix when joining channels dynamically by alias.
+        # Optional. The room alias prefix when joining channels dynamically by alias. Defaults to
+        # "#<SERVER_ADDR>_" e.g. #irc.example.com_
         aliasPrefix: "#irc_"
         mappings:
           # 1:many mappings from IRC channels to room IDs on this IRC server.
