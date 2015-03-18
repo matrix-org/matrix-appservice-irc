@@ -27,6 +27,8 @@ Configuration
 -------------
 ``` .yaml
 ircService:  # configuration for the IRC service
+  # The mongodb database URI to connect to.
+  databaseUri: "mongodb://localhost:27017/matrix-appservice-irc"
   servers:
     # the address of the server to connect to. You can have more than one.
     irc.example.com:  
