@@ -19,7 +19,7 @@ Quick Start
 - ``git clone`` this repository.
 - Run ``npm install``.
 - Install mongodb (e.g. ``apt-get install mongodb``)
-- Run a mongodb instance: ``mongod --dbpath=./data --port 27018``
+- Run a mongodb instance: ``mongod --dbpath=./data --port 27017``
 - Copy ``config.sample.yaml`` to ``config.yaml`` and configure it for your IRC server / home server.
 - Run it using ``node app.js``.
 
