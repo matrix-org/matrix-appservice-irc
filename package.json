@@ -23,5 +23,8 @@
     "matrix-js-sdk": "0.0.1",
     "mongodb": "^1.4.34",
     "q": "^1.2.0"
+  },
+  "devDependencies": {
+    "mockery": "^1.4.0"
   }
 }
