@@ -25,6 +25,6 @@
     "q": "^1.2.0"
   },
   "devDependencies": {
-    "mockery": "^1.4.0"
+    "proxyquire": "^1.4.0"
   }
 }
