@@ -1,5 +1,4 @@
 Absolutely required before this is functional:
-- Database: MongoDB storage for RoomStore.
 - Integration tests
 
 Really need to have for maintenance purposes:
