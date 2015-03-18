@@ -1,0 +1,9 @@
+These integration tests replace modules at the edges of the service, namely:
+ - AsapiController (Inbound Matrix Events)
+ - irc module (Inbound/Outbound IRC Events)
+ - matrix-js-sdk (Outbound Matrix Events)
+
+These tests *USE A LIVE DATABASE* pointed at:
+  mongodb://localhost:27017/matrix-appservice-irc-integration
+
+See the helper classes in /util for more info on the mocks.
