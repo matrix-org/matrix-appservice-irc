@@ -1,5 +1,3 @@
-Absolutely required before this is functional:
-- Integration tests
 
 Really need to have for maintenance purposes:
 - Logging: files, rotation, consistent format

@@ -4,7 +4,7 @@
   "description": "IRC Bridge for matrix-appservice",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jasmine-node spec --forceexit"
   },
   "repository": {
     "type": "git",
@@ -25,6 +25,7 @@
     "q": "^1.2.0"
   },
   "devDependencies": {
-    "proxyquire": "^1.4.0"
+    "proxyquire": "^1.4.0",
+    "jasmine-node": "^1.14.5"
   }
 }
