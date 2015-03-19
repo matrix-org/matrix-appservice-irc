@@ -62,10 +62,19 @@
     return d.promise;
  };
 
- module.exports._reset = function() {
-    dbDefer = null;
-    if (db) {
-        db.close();
-    }
-    db = null;
+ module.exports._reset = function(databaseUri) {
+    var d = q.defer();
+    module.exports.connectTo(databaseUri).then(function() {
+        return module.exports.delete("config", {});
+    }).then(function() {
+        return module.exports.delete("rooms", {});
+    }).done(function() {
+        dbDefer = null;
+        if (db) {
+            db.close();
+        }
+        db = null;
+        d.resolve();
+    });
+    return d.promise;
  };

@@ -7,6 +7,10 @@ module.exports.create = function() {
     var onFunctions = {
         // event type: [fn, fn]
     };
+    var resolvers = {
+        // user|alias : fn
+    };
+
     var asapiCtrl = {
         setUserQueryResolver: jasmine.createSpy("AsapiCtrl.setUserQueryResolver(fn)"),
         setAliasQueryResolver: jasmine.createSpy("AsapiCtrl.setAliasQueryResolver(fn)"),
@@ -21,12 +25,24 @@ module.exports.create = function() {
                 }
             }
         },
+        _query_alias: function(alias) {
+            return resolvers.alias(alias);
+        },
+        _query_user: function(user) {
+            return resolvers.user(user);
+        }
     };
     asapiCtrl.on.andCallFake(function(eventType, fn) {
         if (!onFunctions[eventType]) {
             onFunctions[eventType] = [];
         }
         onFunctions[eventType].push(fn);
+    });
+    asapiCtrl.setAliasQueryResolver.andCallFake(function(fn) {
+        resolvers.alias = fn;
+    });
+    asapiCtrl.setUserQueryResolver.andCallFake(function(fn) {
+        resolvers.user = fn;
     });
     return asapiCtrl;
 };

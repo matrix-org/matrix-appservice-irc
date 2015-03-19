@@ -83,7 +83,9 @@ function Client(addr, nick, opts) {
         }
         if (spy._invocations[key].callbacks.length > 0) { // already called
             spy._invocations[key].callbacks.forEach(function(fn) {
-                fn();
+                if (fn) {
+                    fn();
+                }
             });
             spy._invocations[key].callbacks = [];
             return q(obj);

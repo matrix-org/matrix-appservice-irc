@@ -49,14 +49,16 @@ describe("Initialisation", function() {
 
     var mockAsapiController = null;
 
-    beforeEach(function() {
+    beforeEach(function(done) {
         console.log(" === Initialisation Test Start === ");
         ircMock._reset();
         clientMock._reset();
-        dbHelper._reset();
+        dbHelper._reset(databaseUri).done(function() {
+            done();
+        });
         mockAsapiController = asapiMock.create();
         ircService = proxyquire("../../lib/irc-appservice.js", {
-            "matirx-js-sdk": clientMock,
+            "matrix-js-sdk": clientMock,
             "irc": ircMock
         });
     });

@@ -10,7 +10,7 @@ var ircMock = require("../util/irc-mock");
 ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
-
+var q = require("q");
 
 // s prefix for static test data, t prefix for test instance data
 var sDatabaseUri = "mongodb://localhost:27017/matrix-appservice-irc-integration";
@@ -51,7 +51,7 @@ var serviceConfig = {
 };
 
 
-describe("Matrix-to-IRC", function() {
+describe("Matrix-to-IRC (IRC not connected)", function() {
     var ircService = null;
     var mockAsapiController = null;
 
@@ -59,16 +59,17 @@ describe("Matrix-to-IRC", function() {
         console.log(" === Matrix-to-IRC Test Start === ");
         ircMock._reset();
         clientMock._reset();
-        dbHelper._reset();
         ircService = proxyquire("../../lib/irc-appservice.js", {
-            "matirx-js-sdk": clientMock,
+            "matrix-js-sdk": clientMock,
             "irc": ircMock
         });
         mockAsapiController = asapiMock.create();
 
         // do the init
-        ircService.configure(ircConfig);
-        ircService.register(mockAsapiController, serviceConfig).done(function() {
+        dbHelper._reset(sDatabaseUri).then(function() {
+            ircService.configure(ircConfig);
+            return ircService.register(mockAsapiController, serviceConfig);
+        }).done(function() {
             done();
         });
     });
@@ -163,6 +164,35 @@ describe("Matrix-to-IRC", function() {
 
     it("should join IRC channels when it receives special alias queries", 
     function(done) {
-        done();
+        var tChannel = "#foobar";
+        var tRoomId = "!newroom:id";
+        var tAliasLocalpart = sIrcServer + "_" + tChannel;
+        var tAlias = "#" + tAliasLocalpart + ":" + sHomeServerDomain;
+
+        // when we get the connect/join requests, accept them.
+        var joinedIrcChannel = false;
+        ircMock._findClientAsync(sIrcServer, sNick).then(function(client) {
+            return client._triggerConnect();
+        }).then(function(client) {
+            return client._triggerJoinFor(tChannel);
+        }).done(function() {
+            joinedIrcChannel = true;
+        });
+
+        // when we get the create room request, process it.
+        var sdk = clientMock._client();
+        sdk.createRoom.andCallFake(function(opts) {
+            expect(opts.room_alias_name).toEqual(tAliasLocalpart);
+            return q({
+                room_id: tRoomId
+            });
+        });
+        
+        mockAsapiController._query_alias(tAlias).done(function() {
+            if (joinedIrcChannel) {
+                done();
+            }
+        });
+
     });
 });
