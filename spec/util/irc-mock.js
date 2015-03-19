@@ -19,7 +19,24 @@ function Client(addr, nick, opts) {
     }
     generatedClients[addr][nick] = this;
 
+    // keep a list of the listeners
+    var listeners = {};
     this.addListener = jasmine.createSpy("Client.addListener(event, fn)");
+    this.addListener.andCallFake(function(event, fn) {
+        if (!listeners[event]) {
+            listeners[event] = [];
+        }
+        listeners[event].push(fn);
+    });
+    this._trigger = function (type, args) {
+        if (listeners[type]) {
+            listeners[type].forEach(function(listener) {
+                listener.apply(this, args);
+            });
+        }
+    };
+
+
     this.connect = jasmine.createSpy("Client.connect(fn)");
     this.whois = jasmine.createSpy("Client.whois(nick, fn)");
     this.join = jasmine.createSpy("Client.join(channel, fn)");

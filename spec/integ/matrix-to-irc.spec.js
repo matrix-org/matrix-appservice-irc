@@ -230,7 +230,7 @@ describe("Matrix-to-IRC (IRC not connected)", function() {
 
         globalPromise.done(function() {
             done();
-        });
+        }, function(){});
     });
 
     it("should join group chat rooms invited from matrix then leave them", 
