@@ -154,9 +154,15 @@ describe("IRC-to-Matrix PMing", function() {
     var mockAsapiController = null;
     var sdk = null;
 
-    var tFromNick = "mike";
+    var tRealIrcUserNick = "bob";
+    var tVirtualUserId = "@"+sIrcServer+"_"+tRealIrcUserNick+":"+sHomeServerDomain;
+
+    var tRealUserLocalpart = "alice";
+    var tRealUserId = "@"+tRealUserLocalpart+":anotherhomeserver";
+
+    var tCreatedRoomId = "!fehwfweF:fuiowehfwe";
+
     var tText = "ello ello ello";
-    var tUserId = "@"+sIrcServer+"_"+tFromNick+":"+sHomeServerDomain;
 
     beforeEach(function(done) {
         console.log(" === IRC-to-Matrix Test Start === ");
@@ -169,17 +175,88 @@ describe("IRC-to-Matrix PMing", function() {
         mockAsapiController = asapiMock.create();
         sdk = clientMock._client();
 
+        // add registration mock impl:
+        // registering should be for the REAL irc user
+        sdk.register.andCallFake(function(loginType, data) {
+            expect(loginType).toEqual("m.login.application_service");
+            expect(data).toEqual({
+                user: sIrcServer+"_"+tRealIrcUserNick
+            });
+            return q({
+                user_id: tVirtualUserId
+            });
+        });
+
         // do the init
         dbHelper._reset(sDatabaseUri).then(function() {
             ircService.configure(ircConfig);
             return ircService.register(mockAsapiController, serviceConfig);
-        }).done(function() {
+        }).then(function() {
+            // send a message in the linked room (so the service provisions a 
+            // virtual IRC user which the 'real' IRC users can speak to)
+            mockAsapiController._trigger("type:m.room.message", {
+                content: {
+                    body: "get me in",
+                    msgtype: "m.text"
+                },
+                user_id: tRealUserId,
+                room_id: sRoomId,
+                type: "m.room.message"
+            });
+            return ircMock._findClientAsync(sIrcServer, tRealUserLocalpart);
+        }).then(function(client) {
+            return client._triggerConnect();
+        }).then(function(client) {
+            return client._triggerJoinFor(sChannel);
+        }).done(function(client) {
             done();
         });
     });
 
-    it("should create a 1:1 matrix room when it receives a PM directed at a" +
-        " virtual user from a real IRC user", function(done) {
-        done();
+    it("should create a 1:1 matrix room and invite the real matrix user when " +
+    "it receives a PM directed at a virtual user from a real IRC user", 
+    function(done) {
+        var createRoomDefer = q.defer();
+        var inviteDefer = q.defer();
+        var sendMsgDefer = q.defer();
+        var promises = q.all([
+            createRoomDefer.promise, inviteDefer.promise, sendMsgDefer.promise
+        ]);
+        // mock create room impl
+        sdk.createRoom.andCallFake(function(opts) {
+            expect(opts.visibility).toEqual("private");
+            createRoomDefer.resolve();
+            return q({
+                room_id: tCreatedRoomId
+            });
+        });
+        // mock invite impl
+        sdk.invite.andCallFake(function(roomId, userId) {
+            expect(roomId).toEqual(tCreatedRoomId);
+            expect(userId).toEqual(tRealUserId);
+            inviteDefer.resolve();
+            return q({});
+        });
+        // mock send message impl
+        sdk.sendMessage.andCallFake(function(roomId, content) {
+            expect(roomId).toEqual(tCreatedRoomId);
+            expect(content).toEqual({
+                body: tText,
+                msgtype: "m.text"
+            });
+            sendMsgDefer.resolve();
+            return q({});
+        });
+
+        // test completes after all the matrix actions are done
+        promises.done(function() {
+            done();
+        });
+
+
+        // find the *VIRTUAL CLIENT* (not the bot) and send the irc message
+        ircMock._findClientAsync(sIrcServer, tRealUserLocalpart).done(function(client) {
+            client._trigger("message", [tRealIrcUserNick, tRealUserLocalpart, tText]);
+        });
     });
 });

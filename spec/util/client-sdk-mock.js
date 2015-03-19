@@ -27,6 +27,7 @@ module.exports._reset = function() {
         joinRoom: jasmine.createSpy("sdk.joinRoom(idOrAlias)"),
         sendMessage: jasmine.createSpy("sdk.sendMessage(roomId, content)"),
         roomState: jasmine.createSpy("sdk.roomState(roomId)"),
+        invite: jasmine.createSpy("sdk.invite(roomId, userId)"),
         leave: jasmine.createSpy("sdk.leave(roomId)")
     };
 };
