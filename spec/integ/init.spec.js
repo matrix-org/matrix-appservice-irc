@@ -65,18 +65,19 @@ describe("Initialisation", function() {
     function(done) {
         // do the init
         ircService.configure(ircConfig);
-        ircService.register(mockAsapiController, serviceConfig).done(function() {
+        ircService.register(mockAsapiController, serviceConfig).then(function() {
             var ircClient = ircMock._findClient(ircAddr, ircNick);
             expect(ircClient).toBeDefined();
             expect(ircClient.connect).toHaveBeenCalled();
             expect(ircClient.join).not.toHaveBeenCalled();
             // invoke the connect callback
-            ircClient.connect.calls[0].args[0]();
+            return ircClient._triggerConnect();
+        }).then(function(client) {
             // check it joins the right channel
-            expect(ircClient.join).toHaveBeenCalled();
-            expect(ircClient.join.calls[0].args[0]).toEqual(ircChannel);
+            expect(client.join).toHaveBeenCalled();
+            expect(client.join.calls[0].args[0]).toEqual(ircChannel);
             done();
-        });
+        }).done();
     });
 
     it("should register with the homeserver in the config and store the result", 
