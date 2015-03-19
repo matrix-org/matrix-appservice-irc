@@ -6,15 +6,14 @@ var generatedClients = {};
 
 function Client(addr, nick, opts) {
     generatedClients[addr+nick] = this;
-};
-Client.prototype = {
-    addListener: jasmine.createSpy("Client.addListener(event, fn)"),
-    connect: jasmine.createSpy("Client.connect(fn)"),
-    whois: jasmine.createSpy("Client.whois(nick, fn)"),
-    join: jasmine.createSpy("Client.join(channel, fn)"),
-    action: jasmine.createSpy("Client.action(channel, text)"),
-    ctcp: jasmine.createSpy("Client.ctcp(channel, kind, text)"),
-    say: jasmine.createSpy("Client.say(channel, text)")
+    console.log("GC: %s",Object.keys(generatedClients));
+    this.addListener = jasmine.createSpy("Client.addListener(event, fn)");
+    this.connect = jasmine.createSpy("Client.connect(fn)");
+    this.whois = jasmine.createSpy("Client.whois(nick, fn)");
+    this.join = jasmine.createSpy("Client.join(channel, fn)");
+    this.action = jasmine.createSpy("Client.action(channel, text)");
+    this.ctcp = jasmine.createSpy("Client.ctcp(channel, kind, text)");
+    this.say = jasmine.createSpy("Client.say(channel, text)");
 };
 
 module.exports.Client = Client;
