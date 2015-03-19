@@ -66,7 +66,7 @@ describe("Initialisation", function() {
         // do the init
         ircService.configure(ircConfig);
         ircService.register(mockAsapiController, serviceConfig).done(function() {
-            var ircClient = ircMock._find(ircAddr, ircNick);
+            var ircClient = ircMock._findClient(ircAddr, ircNick);
             expect(ircClient).toBeDefined();
             expect(ircClient.connect).toHaveBeenCalled();
             expect(ircClient.join).not.toHaveBeenCalled();
