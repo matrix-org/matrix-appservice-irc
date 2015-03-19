@@ -22,9 +22,11 @@ module.exports._reset = function() {
     suppliedConfig = null;
     mockClient = {
         credentials: {},
+        register: jasmine.createSpy("sdk.register(loginType, data)"),
         createRoom: jasmine.createSpy("sdk.createRoom(opts)"),
         joinRoom: jasmine.createSpy("sdk.joinRoom(idOrAlias)"),
         sendMessage: jasmine.createSpy("sdk.sendMessage(roomId, content)"),
+        roomState: jasmine.createSpy("sdk.roomState(roomId)"),
         leave: jasmine.createSpy("sdk.leave(roomId)")
     };
 };

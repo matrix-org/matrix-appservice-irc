@@ -44,7 +44,8 @@ function Client(addr, nick, opts) {
         if (!spy._invocations[key]) {
             spy._invocations[key] = {
                 callbacks: [],
-                defer: undefined
+                defer: undefined,
+                result: undefined
             }
         }
     };
@@ -58,7 +59,7 @@ function Client(addr, nick, opts) {
         
         if (spy._invocations[key].defer) {
             // a test is waiting on this to be called, so call it and resolve
-            fn();
+            fn(spy._invocations[key].result);
             spy._invocations[key].defer.resolve(obj);
         }
         else {
@@ -72,8 +73,11 @@ function Client(addr, nick, opts) {
     this.join.andCallFake(function(channel, fn) {
         storeCallbackAndMaybeInvoke(that, "join", channel, fn);
     });
+    this.whois.andCallFake(function(nick, fn) {
+        storeCallbackAndMaybeInvoke(that, "whois", nick, fn);
+    });
     
-    var trigger = function(obj, methodName, key) {
+    var trigger = function(obj, methodName, key, fnOut) {
         // if there is already a call to methodName, invoke their 'fn's and 
         // return a resolved defer.
         // else add a deferred on this methodName for the fake call to resolve.
@@ -84,7 +88,7 @@ function Client(addr, nick, opts) {
         if (spy._invocations[key].callbacks.length > 0) { // already called
             spy._invocations[key].callbacks.forEach(function(fn) {
                 if (fn) {
-                    fn();
+                    fn(fnOut);
                 }
             });
             spy._invocations[key].callbacks = [];
@@ -92,6 +96,7 @@ function Client(addr, nick, opts) {
         }
         else {
             spy._invocations[key].defer = q.defer();
+            spy._invocations[key].result = fnOut;
             return spy._invocations[key].defer.promise;
         }
     };
@@ -100,6 +105,12 @@ function Client(addr, nick, opts) {
     };
     this._triggerJoinFor = function(channel) {
         return trigger(that, "join", channel);
+    };
+    this._triggerWhois = function(nick, exists) {
+        return trigger(that, "whois", nick, {
+            user: (exists ? nick : undefined),
+            nick: nick
+        });
     };
 
     // invoke any waiting _findClientAsync calls
