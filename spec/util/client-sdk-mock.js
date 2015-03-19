@@ -23,4 +23,9 @@ module.exports._regenerate = function() {
 
 module.exports._client = function() {
     return mockClient;
-}
+};
+
+module.exports._reset = function() {
+    suppliedConfig = null;
+    mockClient = null;
+};

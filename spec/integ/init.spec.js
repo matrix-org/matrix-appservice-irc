@@ -1,14 +1,15 @@
 "use strict";
+// set up integration testing mocks
 var proxyquire =  require('proxyquire');
 var clientMock = require("../util/client-sdk-mock");
-clientMock["@global"] = true; // integration testing
+clientMock["@global"] = true; 
 var ircMock = require("../util/irc-mock");
-ircMock["@global"] = true; // integration testing
+ircMock["@global"] = true;
+var dbHelper = require("../util/db-helper");
+var asapiMock = require("../util/asapi-controller-mock");
 
-var ircService = proxyquire("../../lib/irc-appservice.js", {
-    "matirx-js-sdk": clientMock,
-    "irc": ircMock
-});
+var ircService = null;
+
 var ircConfig = {
     databaseUri: "mongodb://localhost:27017/matrix-appservice-irc-integration",
     servers: {
@@ -33,13 +34,7 @@ var serviceConfig = {
     as: "https://mywuvelyapplicationservicerunninganircbridgeyay.gome",
     port: 2
 };
-var mockAsapiController = {
-    setUserQueryResolver: function(fn) {},
-    setAliasQueryResolver: function(fn) {},
-    addRegexPattern: function(type, regex, exclusive){},
-    setHomeserverToken: function(token) {},
-    on: function(eventType, fn){}
-};
+var mockAsapiController = asapiMock.create();
 
 
 describe("Initialisation", function() {
@@ -49,18 +44,28 @@ describe("Initialisation", function() {
     var ircChannel = Object.keys(
         ircConfig.servers[Object.keys(ircConfig.servers)[0]].rooms.mappings
     )[0];
+    var databaseUri = ircConfig.databaseUri;
 
     beforeEach(function() {
-        
+        console.log(" === Integration Initialisation Test Start === ");
+        ircMock._reset();
+        clientMock._reset();
+        dbHelper._reset();
+        ircService = proxyquire("../../lib/irc-appservice.js", {
+            "matirx-js-sdk": clientMock,
+            "irc": ircMock
+        });
     });
 
     it("should connect to the IRC network and channel in the config", 
     function(done) {
+        // do the init
         ircService.configure(ircConfig);
         ircService.register(mockAsapiController, serviceConfig).done(function() {
             var ircClient = ircMock._find(ircAddr, ircNick);
             expect(ircClient).toBeDefined();
             expect(ircClient.connect).toHaveBeenCalled();
+            expect(ircClient.join).not.toHaveBeenCalled();
             // invoke the connect callback
             ircClient.connect.calls[0].args[0]();
             // check it joins the right channel
@@ -68,7 +73,34 @@ describe("Initialisation", function() {
             expect(ircClient.join.calls[0].args[0]).toEqual(ircChannel);
             done();
         });
+    });
 
-        
+    it("should register with the homeserver in the config and store the result", 
+    function(done) {
+        var hsToken = "some_hs_token";
+        var registerEventFn = null;
+        mockAsapiController.on.andCallFake(function(etype, fn) {
+            if (etype == "registered") {
+                registerEventFn = fn;
+            }
+        });
+
+        dbHelper.connectTo(databaseUri).then(function() {
+            // remove the registration info so it registers
+            return dbHelper.delete("config", {});
+        }).then(function() {
+            // do the init
+            ircService.configure(ircConfig);
+            return ircService.register(mockAsapiController, serviceConfig);
+        }).done(function() {
+            // not setting this means "please register"
+            expect(mockAsapiController.setHomeserverToken).not.toHaveBeenCalled();
+            // invoke the registered event
+            registerEventFn({
+                hsToken: hsToken,
+                namespaces: {}
+            });
+            done();
+        });
     });
 });

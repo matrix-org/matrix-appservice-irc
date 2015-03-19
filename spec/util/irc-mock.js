@@ -25,3 +25,7 @@ module.exports.Client = Client;
 module.exports._find = function(addr, nick) {
     return generatedClients[addr+nick];
 };
+
+module.exports._reset = function() {
+    generatedClients = {};
+};
