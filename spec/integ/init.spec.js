@@ -1,3 +1,6 @@
+/*
+ * Contains integration tests for all Startup-initiated events.
+ */
 "use strict";
 // set up integration testing mocks
 var proxyquire =  require('proxyquire');
@@ -34,8 +37,6 @@ var serviceConfig = {
     as: "https://mywuvelyapplicationservicerunninganircbridgeyay.gome",
     port: 2
 };
-var mockAsapiController = asapiMock.create();
-
 
 describe("Initialisation", function() {
     // rip this from the config
@@ -46,11 +47,14 @@ describe("Initialisation", function() {
     )[0];
     var databaseUri = ircConfig.databaseUri;
 
+    var mockAsapiController = null;
+
     beforeEach(function() {
-        console.log(" === Integration Initialisation Test Start === ");
+        console.log(" === Initialisation Test Start === ");
         ircMock._reset();
         clientMock._reset();
         dbHelper._reset();
+        mockAsapiController = asapiMock.create();
         ircService = proxyquire("../../lib/irc-appservice.js", {
             "matirx-js-sdk": clientMock,
             "irc": ircMock
@@ -78,12 +82,6 @@ describe("Initialisation", function() {
     it("should register with the homeserver in the config and store the result", 
     function(done) {
         var hsToken = "some_hs_token";
-        var registerEventFn = null;
-        mockAsapiController.on.andCallFake(function(etype, fn) {
-            if (etype == "registered") {
-                registerEventFn = fn;
-            }
-        });
 
         dbHelper.connectTo(databaseUri).then(function() {
             // remove the registration info so it registers
@@ -96,7 +94,7 @@ describe("Initialisation", function() {
             // not setting this means "please register"
             expect(mockAsapiController.setHomeserverToken).not.toHaveBeenCalled();
             // invoke the registered event
-            registerEventFn({
+            mockAsapiController._trigger("registered", {
                 hsToken: hsToken,
                 namespaces: {}
             });
