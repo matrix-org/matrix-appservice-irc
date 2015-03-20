@@ -2,14 +2,12 @@
 Really need to have for maintenance purposes:
 - Logging: files, rotation, consistent format
 - Stack traces: Check for .done(), prevent unhandled exceptions.
-- Models: Unified User object
+- Models: Unified User object, Message object, etc.
 - Unit tests
 
 Really need to avoid being flakey as hell:
-- Handle being kicked from IRC rooms (node irc supports auto-reconnects)
 - Handle being kicked from Matrix rooms
 - Handle being disconnected from the IRC network (bot and individual clients)
-- IRC Client rate limiting (node irc supports this)
 - Matrix rate limiting (M_LIMIT_EXCEEDED)
 - Handle nick clashes (incl. alt nickname support on the bot)
 - Handle extreme nick lengths, charsets
