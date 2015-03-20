@@ -4,7 +4,7 @@
   "description": "IRC Bridge for matrix-appservice",
   "main": "index.js",
   "scripts": {
-    "test": "jasmine-node spec --forceexit"
+    "test": "jasmine-node spec --forceexit --captureExceptions"
   },
   "repository": {
     "type": "git",

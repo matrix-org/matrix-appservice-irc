@@ -153,6 +153,32 @@ describe("Matrix-to-IRC (IRC not connected)", function() {
         });
     });
 
+    it("should bridge matrix topics as IRC topics", function(done) {
+        var tUserId = "@flibble:wibble";
+        var tIrcNick = "flibble";
+        var tTopic = "Topics are amazingz";
+        mockAsapiController._trigger("type:m.room.topic", {
+            content: {
+                topic: tTopic
+            },
+            user_id: tUserId,
+            room_id: sRoomId,
+            type: "m.room.topic"
+        });
+        ircMock._findClientAsync(sIrcServer, tIrcNick).then(function(client) {
+            return client._triggerConnect();
+        }).then(function(client) {
+            return client._triggerJoinFor(sChannel);
+        }).done(function(client) {
+            // check it sent the topic
+            expect(client.send).toHaveBeenCalled();
+            expect(client.send.calls[0].args[0]).toEqual("TOPIC");
+            expect(client.send.calls[0].args[1]).toEqual(sChannel);
+            expect(client.send.calls[0].args[2]).toEqual(tTopic);
+            done();
+        });
+    });
+
     it("should join 1:1 rooms invited from matrix", function(done) {
         var tUserId = "@flibble:wibble";
         var tIrcNick = "someone";

@@ -40,6 +40,7 @@ function Client(addr, nick, opts) {
     this.connect = jasmine.createSpy("Client.connect(fn)");
     this.whois = jasmine.createSpy("Client.whois(nick, fn)");
     this.join = jasmine.createSpy("Client.join(channel, fn)");
+    this.send = jasmine.createSpy("Client.send(command, args)");
     this.action = jasmine.createSpy("Client.action(channel, text)");
     this.ctcp = jasmine.createSpy("Client.ctcp(channel, kind, text)");
     this.say = jasmine.createSpy("Client.say(channel, text)");

@@ -145,6 +145,21 @@ describe("IRC-to-Matrix message bridging", function() {
             client._trigger("notice", [tFromNick, sChannel, tText]);
         });
     });
+
+    it("should bridge IRC topics as Matrix m.room.topic", 
+    function(done) {
+        var tTopic = "Topics are liek the best thing evarz!";
+        sdk.setRoomTopic.andCallFake(function(roomId, topic) {
+            expect(roomId).toEqual(sRoomId);
+            expect(topic).toEqual(tTopic);
+            done();
+            return q();
+        });
+
+        ircMock._findClientAsync(sIrcServer, sBotNick).done(function(client) {
+            client._trigger("topic", [sChannel, tTopic, tFromNick]);
+        });
+    });
 });
 
 
