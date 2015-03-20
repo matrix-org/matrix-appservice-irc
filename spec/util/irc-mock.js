@@ -11,6 +11,8 @@ var generatedClients = {
 var deferredsForClients = {
     // addr_nick: [Deferred, ...]
 };
+var EventEmitter = require('events').EventEmitter;
+module.exports._emitter = new EventEmitter();
 
 function Client(addr, nick, opts) {
     // store this instance so tests can grab it and manipulate it.
@@ -18,6 +20,7 @@ function Client(addr, nick, opts) {
         generatedClients[addr] = {};
     }
     generatedClients[addr][nick] = this;
+    var that = this;
 
     // keep a list of the listeners
     var listeners = {};
@@ -35,7 +38,8 @@ function Client(addr, nick, opts) {
             });
         }
     };
-
+    this.addr = addr;
+    this.nick = nick;
 
     this.connect = jasmine.createSpy("Client.connect(fn)");
     this.whois = jasmine.createSpy("Client.whois(nick, fn)");
@@ -44,6 +48,9 @@ function Client(addr, nick, opts) {
     this.action = jasmine.createSpy("Client.action(channel, text)");
     this.ctcp = jasmine.createSpy("Client.ctcp(channel, kind, text)");
     this.say = jasmine.createSpy("Client.say(channel, text)");
+    this.say.andCallFake(function(channel, text) {
+        module.exports._emitter.emit("say", that, channel, text);
+    });
 
     // wrap the spies so they can be used as Deferreds. This allows tests to do
     // things like client._triggerConnect().then(...) which will be resolved
@@ -84,7 +91,6 @@ function Client(addr, nick, opts) {
             spy._invocations[key].callbacks.push(fn);
         }
     };
-    var that = this;
     this.connect.andCallFake(function(fn) {
         storeCallbackAndMaybeInvoke(that, "connect", "_", fn);
     });

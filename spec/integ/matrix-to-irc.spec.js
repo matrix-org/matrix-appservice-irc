@@ -153,6 +153,41 @@ describe("Matrix-to-IRC (IRC not connected)", function() {
         });
     });
 
+    it("should bridge matrix images as IRC text with a URL", function(done) {
+        var tUserId = "@flibble:wibble";
+        var tIrcNick = "flibble";
+        var tBody = "the_image.jpg";
+        var tMxcSegment = "somedomain.com/somecontentid";
+        mockAsapiController._trigger("type:m.room.message", {
+            content: {
+                body: tBody,
+                url: "mxc://" + tMxcSegment,
+                msgtype: "m.image"
+            },
+            user_id: tUserId,
+            room_id: sRoomId,
+            type: "m.room.message"
+        });
+
+        ircMock._emitter.on("say", function(client, channel, text) {
+            expect(client.nick).toEqual(sBotNick);
+            expect(client.addr).toEqual(sIrcServer);
+            expect(channel).toEqual(sChannel);
+            // don't be too brittle when checking this, but I expect to see the
+            // image filename (body) and the http url.
+            expect(text.indexOf(tBody)).not.toEqual(-1);
+            expect(text.indexOf(tMxcSegment)).not.toEqual(-1);
+            done();
+        });
+
+        // NB: The *BOT* sends the message here.
+        ircMock._findClientAsync(sIrcServer, sBotNick).then(function(client) {
+            return client._triggerConnect();
+        }).then(function(client) {
+            return client._triggerJoinFor(sChannel);
+        }).done();
+    });
+
     it("should bridge matrix topics as IRC topics", function(done) {
         var tUserId = "@flibble:wibble";
         var tIrcNick = "flibble";
