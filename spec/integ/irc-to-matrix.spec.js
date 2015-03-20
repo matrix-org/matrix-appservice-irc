@@ -253,7 +253,6 @@ describe("IRC-to-Matrix PMing", function() {
             done();
         });
 
-
         // find the *VIRTUAL CLIENT* (not the bot) and send the irc message
         ircMock._findClientAsync(sIrcServer, tRealUserLocalpart).done(function(client) {
             client._trigger("message", [tRealIrcUserNick, tRealUserLocalpart, tText]);

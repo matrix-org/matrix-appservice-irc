@@ -209,7 +209,7 @@ describe("Matrix-to-IRC (IRC not connected)", function() {
         });
         sdk.roomState.andCallFake(function(roomId) {
             expect(roomId).toEqual(sRoomId);
-            roomStateDefer.resolve();
+            roomStateDefer.resolve({});
             return q([
             {
                 content: {membership: "join"},
