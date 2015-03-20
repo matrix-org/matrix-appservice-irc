@@ -18,8 +18,6 @@ Really need to avoid being flakey as hell:
   messages from IRC are sent to both rooms. Should only be the latest one.
 
 Nice to haves:
-- Support for images/fallback body text.
 - Virtual Matrix user display name support
-- Coloured/formatted text
 - Bouncer support (connect to X as nick Y for this virtual user. Config file
   only to prevent abuse.)
