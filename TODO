@@ -17,5 +17,10 @@ Really need to avoid being flakey as hell:
 
 Nice to haves:
 - Virtual Matrix user display name support
-- Bouncer support (connect to X as nick Y for this virtual user. Config file
-  only to prevent abuse.)
+- Bouncer support (When a Matrix user is bridged into IRC, create a 1:1 room
+  with Matrix user and AS bot, and say 'if you want to use a proper nick, send
+  back /nick TheNick', which then just proxies straight through to NickServ.
+  This DOES mean that the pass goes through the HS and through the AS, but this
+  is no worse than other IRC security. Since the AS bot created the room, it has
+  the power level and should redact the password event after submission. If 
+  there is better support which we can proxy through, we should provide it.)

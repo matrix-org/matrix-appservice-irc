@@ -22,7 +22,8 @@
     "matrix-appservice": "0.0.3",
     "matrix-js-sdk": "0.0.1",
     "mongodb": "^1.4.34",
-    "q": "^1.2.0"
+    "q": "^1.2.0",
+    "sanitize-html": "^1.6.1"
   },
   "devDependencies": {
     "proxyquire": "^1.4.0",
