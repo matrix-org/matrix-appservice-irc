@@ -1,6 +1,5 @@
 
 Really need to have for maintenance purposes:
-- Logging: files, rotation, consistent format
 - Stack traces: Check for .done(), prevent unhandled exceptions.
 - Models: Unified User object, Message object, etc.
 - Unit tests

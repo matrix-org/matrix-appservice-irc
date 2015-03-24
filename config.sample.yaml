@@ -11,6 +11,13 @@ ircService:
         aliasPrefix: "#irc_"
         mappings:
           "#thepub": ["!kieouiJuedJoxtVdaG:localhost"]
+  logging:
+    level: "debug"
+    logfile: "debug.log"
+    errfile: "errors.log"
+    toConsole: true
+    maxFileSizeBytes: 134217728 # 128 MB
+    maxFiles: 5
 
 appService:
   hs: "http://localhost:8008"
