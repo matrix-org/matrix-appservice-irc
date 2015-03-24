@@ -51,6 +51,19 @@ ircService:  # configuration for the IRC service
         mappings:
           # 1:many mappings from IRC channels to room IDs on this IRC server.
           "#mychannel": ["!kieouiJuedJoxtVdaG:localhost"]
+   logging:
+     # Level to log on console/logfile. One of error|warn|info|debug
+     level: "debug"
+     # The file location to log to.
+     logfile: "debug.log"
+     # The file location to log errors to.
+     errfile: "errors.log"
+     # Whether to log to the console or not.
+     toConsole: true
+     # The max size each file can get to in bytes before a new file is created.
+     maxFileSizeBytes: 134217728
+     # The max number of files to keep. Files will be overwritten eventually due to rotations.
+     maxFiles: 5
 
 appService:
   # The URL to the home server for client-server API calls
