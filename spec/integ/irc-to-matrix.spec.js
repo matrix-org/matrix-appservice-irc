@@ -61,6 +61,14 @@ describe("IRC-to-Matrix message bridging", function() {
     var tText = "ello ello ello";
     var tUserId = "@"+sIrcServer+"_"+tFromNick+":"+sHomeServerDomain;
 
+    var checksum = function(str) {
+        var total = 0;
+        for (var i=0; i<str.length; i++) {
+            total += str.charCodeAt(i);
+        }
+        return total;
+    };
+
     beforeEach(function(done) {
         console.log(" === IRC-to-Matrix Test Start === ");
         ircMock._reset();
@@ -158,6 +166,43 @@ describe("IRC-to-Matrix message bridging", function() {
 
         ircMock._findClientAsync(sIrcServer, sBotNick).done(function(client) {
             client._trigger("topic", [sChannel, tTopic, tFromNick]);
+        });
+    });
+
+    it("should bridge IRC formatted text as Matrix's org.matrix.custom.html", 
+    function(done) {
+        var tIrcFormattedText = "This text is \u0002bold\u000f and this is "+
+            "\u001funderlined\u000f and this is \u000303green\u000f. Finally, "+
+            "this is a \u0002\u001f\u000303mix of all three";
+        var tHtmlCloseTags = "</b></u></font>"; // any order allowed
+        var tHtmlMain = "This text is <b>bold</b> and this is <u>underlined</u> "+
+            'and this is <font color="green">green</font>. Finally, '+
+            'this is a <b><u><font color="green">mix of all three';
+        var tHtml = tHtmlMain + tHtmlCloseTags;
+        var tFallback = "This text is bold and this is underlined and this is "+
+            "green. Finally, this is a mix of all three";
+        sdk.sendMessage.andCallFake(function(roomId, content) {
+            expect(roomId).toEqual(sRoomId);
+            // more readily expose non-printing character errors (looking at
+            // you \u000f)
+            expect(content.body.length).toEqual(tFallback.length);
+            expect(content.body).toEqual(tFallback);
+            expect(content.format).toEqual("org.matrix.custom.html");
+            expect(content.msgtype).toEqual("m.text");
+            expect(content.formatted_body.indexOf(tHtmlMain)).toEqual(0);
+            // we allow any order of close tags here, so just do a checksum on
+            // the remainder
+            expect(
+                checksum(content.formatted_body.substring(tHtmlMain.length))
+            ).toEqual(
+                checksum(tHtmlCloseTags)
+            );
+            done();
+            return q();
+        });
+
+        ircMock._findClientAsync(sIrcServer, sBotNick).done(function(client) {
+            client._trigger("message", [tFromNick, sChannel, tIrcFormattedText]);
         });
     });
 });
