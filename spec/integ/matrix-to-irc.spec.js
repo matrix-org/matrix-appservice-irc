@@ -138,6 +138,42 @@ describe("Matrix-to-IRC (IRC not connected)", function() {
         });
     });
 
+    it("should bridge escaped HTML matrix messages as unescaped HTML", 
+    function(done) {
+        var tUserId = "@flibble:wibble";
+        var tIrcNick = "flibble";
+        var tFormattedBody = "<p>this is a &quot;test&quot; &amp; some _ mo!re"+
+        " fun ch@racters... are &lt; included &gt; here.</p>";
+        var tFallback = "this is a \"test\" & some _ mo!re fun ch@racters... "+
+        "are < included > here.";
+        var tIrcBody = "this is a \"test\" & some _ mo!re fun ch@racters... "+
+        "are < included > here.";
+        mockAsapiController._trigger("type:m.room.message", {
+            content: {
+                body: tFallback,
+                format: "org.matrix.custom.html",
+                formatted_body: tFormattedBody,
+                msgtype: "m.text"
+            },
+            user_id: tUserId,
+            room_id: sRoomId,
+            type: "m.room.message"
+        });
+        ircMock._findClientAsync(sIrcServer, tIrcNick).then(function(client) {
+            return client._triggerConnect();
+        }).then(function(client) {
+            return client._triggerJoinFor(sChannel);
+        }).done(function(client) {
+            // check it sent the message
+            expect(client.say).toHaveBeenCalled();
+            expect(client.say.calls[0].args[0]).toEqual(sChannel);
+            var ircText = client.say.calls[0].args[1];
+            expect(ircText.length).toEqual(tIrcBody.length);
+            expect(ircText).toEqual(tIrcBody);
+            done();
+        });
+    });
+
     it("should bridge matrix emotes as IRC actions", function(done) {
         var tUserId = "@flibble:wibble";
         var tIrcNick = "flibble";
