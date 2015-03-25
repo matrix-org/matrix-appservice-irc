@@ -1,7 +1,7 @@
 
 Really need to have for maintenance purposes:
 - Stack traces: Check for .done(), prevent unhandled exceptions.
-- Models: Unified User object, Message object, etc.
+- Models: Unified User object, Room object
 - Unit tests
 
 Really need to avoid being flakey as hell:
