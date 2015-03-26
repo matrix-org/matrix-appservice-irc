@@ -50,8 +50,7 @@ var serviceConfig = {
     port: sPort
 };
 
-
-describe("Matrix-to-IRC (IRC not connected)", function() {
+describe("Matrix-to-IRC message bridging", function() {
     var ircService = null;
     var mockAsapiController = null;
 
@@ -286,91 +285,6 @@ describe("Matrix-to-IRC (IRC not connected)", function() {
             expect(client.send.calls[0].args[2]).toEqual(tTopic);
             done();
         });
-    });
-
-    it("should join 1:1 rooms invited from matrix", function(done) {
-        var tUserId = "@flibble:wibble";
-        var tIrcNick = "someone";
-        var tUserLocalpart = sIrcServer+"_"+tIrcNick;
-        var tIrcUserId = "@"+tUserLocalpart+":"+sHomeServerDomain;
-
-        // there's a number of actions we want this to do, so track them to make
-        // sure they are all called.
-        var whoisDefer = q.defer();
-        var registerDefer = q.defer();
-        var joinRoomDefer = q.defer();
-        var roomStateDefer = q.defer();
-        var globalPromise = q.all([
-            whoisDefer.promise, registerDefer.promise, joinRoomDefer.promise,
-            roomStateDefer.promise
-        ]);
-
-        // get the ball rolling
-        mockAsapiController._trigger("type:m.room.member", {
-            content: {
-                membership: "invite"
-            },
-            state_key: tIrcUserId,
-            user_id: tUserId,
-            room_id: sRoomId,
-            type: "m.room.member"
-        });
-
-        // when it queries whois, say they exist
-        ircMock._findClientAsync(sIrcServer, sBotNick).then(function(client) {
-            return client._triggerConnect();
-        }).then(function(client) {
-            return client._triggerWhois(tIrcNick, true);
-        }).done(function() {
-            whoisDefer.resolve();
-        });
-
-        // when it tries to register, join the room and get state, accept them
-        var sdk = clientMock._client();
-        sdk.register.andCallFake(function(loginType, data) {
-            expect(loginType).toEqual("m.login.application_service");
-            expect(data).toEqual({
-                user: tUserLocalpart
-            });
-            registerDefer.resolve();
-            return q({
-                user_id: tIrcUserId
-            });
-        });
-        sdk.joinRoom.andCallFake(function(roomId) {
-            expect(roomId).toEqual(sRoomId);
-            joinRoomDefer.resolve();
-            return q({});
-        });
-        sdk.roomState.andCallFake(function(roomId) {
-            expect(roomId).toEqual(sRoomId);
-            roomStateDefer.resolve({});
-            return q([
-            {
-                content: {membership: "join"},
-                user_id: tIrcUserId,
-                state_key: tIrcUserId,
-                room_id: sRoomId,
-                type: "m.room.member"
-            },
-            {
-                content: {membership: "join"},
-                user_id: tUserId,
-                state_key: tUserId,
-                room_id: sRoomId,
-                type: "m.room.member"
-            }
-            ]);
-        });
-
-        globalPromise.done(function() {
-            done();
-        }, function(){});
-    });
-
-    it("should join group chat rooms invited from matrix then leave them", 
-    function(done) {
-        done();
     });
 
     it("should join IRC channels when it receives special alias queries", 

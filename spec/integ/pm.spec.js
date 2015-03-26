@@ -50,6 +50,115 @@ var serviceConfig = {
     port: sPort
 };
 
+describe("Matrix-to-IRC PMing", function() {
+    var ircService = null;
+    var mockAsapiController = null;
+
+    beforeEach(function(done) {
+        console.log(" === PM Matrix-to-IRC Test Start === ");
+        ircMock._reset();
+        clientMock._reset();
+        ircService = proxyquire("../../lib/irc-appservice.js", {
+            "matrix-js-sdk": clientMock,
+            "irc": ircMock
+        });
+        mockAsapiController = asapiMock.create();
+
+        // do the init
+        dbHelper._reset(sDatabaseUri).then(function() {
+            ircService.configure(ircConfig);
+            return ircService.register(mockAsapiController, serviceConfig);
+        }).done(function() {
+            done();
+        });
+    });
+
+    it("should join 1:1 rooms invited from matrix", function(done) {
+        var tUserId = "@flibble:wibble";
+        var tIrcNick = "someone";
+        var tUserLocalpart = sIrcServer+"_"+tIrcNick;
+        var tIrcUserId = "@"+tUserLocalpart+":"+sHomeServerDomain;
+
+        // there's a number of actions we want this to do, so track them to make
+        // sure they are all called.
+        var whoisDefer = q.defer();
+        var registerDefer = q.defer();
+        var joinRoomDefer = q.defer();
+        var roomStateDefer = q.defer();
+        var globalPromise = q.all([
+            whoisDefer.promise, registerDefer.promise, joinRoomDefer.promise,
+            roomStateDefer.promise
+        ]);
+
+        // get the ball rolling
+        mockAsapiController._trigger("type:m.room.member", {
+            content: {
+                membership: "invite"
+            },
+            state_key: tIrcUserId,
+            user_id: tUserId,
+            room_id: sRoomId,
+            type: "m.room.member"
+        });
+
+        // when it queries whois, say they exist
+        ircMock._findClientAsync(sIrcServer, sBotNick).then(function(client) {
+            return client._triggerConnect();
+        }).then(function(client) {
+            return client._triggerWhois(tIrcNick, true);
+        }).done(function() {
+            whoisDefer.resolve();
+        });
+
+        // when it tries to register, join the room and get state, accept them
+        var sdk = clientMock._client();
+        sdk.register.andCallFake(function(loginType, data) {
+            expect(loginType).toEqual("m.login.application_service");
+            expect(data).toEqual({
+                user: tUserLocalpart
+            });
+            registerDefer.resolve();
+            return q({
+                user_id: tIrcUserId
+            });
+        });
+        sdk.joinRoom.andCallFake(function(roomId) {
+            expect(roomId).toEqual(sRoomId);
+            joinRoomDefer.resolve();
+            return q({});
+        });
+        sdk.roomState.andCallFake(function(roomId) {
+            expect(roomId).toEqual(sRoomId);
+            roomStateDefer.resolve({});
+            return q([
+            {
+                content: {membership: "join"},
+                user_id: tIrcUserId,
+                state_key: tIrcUserId,
+                room_id: sRoomId,
+                type: "m.room.member"
+            },
+            {
+                content: {membership: "join"},
+                user_id: tUserId,
+                state_key: tUserId,
+                room_id: sRoomId,
+                type: "m.room.member"
+            }
+            ]);
+        });
+
+        globalPromise.done(function() {
+            done();
+        }, function(){});
+    });
+
+    it("should join group chat rooms invited from matrix then leave them", 
+    function(done) {
+        done();
+    });
+});
+
 describe("IRC-to-Matrix PMing", function() {
     var ircService = null;
     var mockAsapiController = null;
