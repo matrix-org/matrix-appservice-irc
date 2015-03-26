@@ -3,16 +3,22 @@
  */
 "use strict";
 var q = require("q");
-var generatedClients = {
-    // addr: {
-    //    nick: Client
-    // }
-};
-var deferredsForClients = {
-    // addr_nick: [Deferred, ...]
-};
 var EventEmitter = require('events').EventEmitter;
-module.exports._emitter = new EventEmitter();
+
+var generatedClients;
+var deferredsForClients;
+
+module.exports._reset = function() {
+    generatedClients = {
+        // addr: {
+        //    nick: Client
+        // }
+    };
+    deferredsForClients = {
+        // addr_nick: [Deferred, ...]
+    };
+    module.exports._emitter = new EventEmitter();
+};
 
 function Client(addr, nick, opts) {
     // store this instance so tests can grab it and manipulate it.
@@ -169,8 +175,4 @@ module.exports._findClient = function(addr, nick) {
         return;
     }
     return generatedClients[addr][nick];
-};
-
-module.exports._reset = function() {
-    generatedClients = {};
 };
