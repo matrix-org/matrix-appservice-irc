@@ -3,6 +3,7 @@ Really need to have for maintenance purposes:
 - Stack traces: Check for .done(), prevent unhandled exceptions.
 - Models: Room object
 - Unit tests
+- Alternative backend to mongodb
 
 Really need to avoid being flakey as hell:
 - Handle being kicked from Matrix rooms
@@ -11,8 +12,6 @@ Really need to avoid being flakey as hell:
 - Handle nick clashes (incl. alt nickname support on the bot)
 - Handle extreme nick lengths, charsets
 - Handle extreme message lengths, charsets
-- If you have a PM chat with someone then start a new chat with them (PM),
-  messages from IRC are sent to both rooms. Should only be the latest one.
 
 Nice to haves:
 - Virtual Matrix user display name support
