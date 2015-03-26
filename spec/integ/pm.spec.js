@@ -54,6 +54,11 @@ describe("Matrix-to-IRC PMing", function() {
     var ircService = null;
     var mockAsapiController = null;
 
+    var tUserId = "@flibble:wibble";
+    var tIrcNick = "someone";
+    var tUserLocalpart = sIrcServer+"_"+tIrcNick;
+    var tIrcUserId = "@"+tUserLocalpart+":"+sHomeServerDomain;
+
     beforeEach(function(done) {
         console.log(" === PM Matrix-to-IRC Test Start === ");
         ircMock._reset();
@@ -74,11 +79,6 @@ describe("Matrix-to-IRC PMing", function() {
     });
 
     it("should join 1:1 rooms invited from matrix", function(done) {
-        var tUserId = "@flibble:wibble";
-        var tIrcNick = "someone";
-        var tUserLocalpart = sIrcServer+"_"+tIrcNick;
-        var tIrcUserId = "@"+tUserLocalpart+":"+sHomeServerDomain;
-
         // there's a number of actions we want this to do, so track them to make
         // sure they are all called.
         var whoisDefer = q.defer();
@@ -155,7 +155,102 @@ describe("Matrix-to-IRC PMing", function() {
 
     it("should join group chat rooms invited from matrix then leave them", 
     function(done) {
-        done();
+        // there's a number of actions we want this to do, so track them to make
+        // sure they are all called.
+        var whoisDefer = q.defer();
+        var registerDefer = q.defer();
+        var joinRoomDefer = q.defer();
+        var sendMessageDefer = q.defer();
+        var leaveRoomDefer = q.defer();
+        var roomStateDefer = q.defer();
+        var globalPromise = q.all([
+            whoisDefer.promise, registerDefer.promise, joinRoomDefer.promise,
+            roomStateDefer.promise, leaveRoomDefer.promise, 
+            sendMessageDefer.promise
+        ]);
+
+        // get the ball rolling
+        mockAsapiController._trigger("type:m.room.member", {
+            content: {
+                membership: "invite"
+            },
+            state_key: tIrcUserId,
+            user_id: tUserId,
+            room_id: sRoomId,
+            type: "m.room.member"
+        });
+
+        // when it queries whois, say they exist
+        ircMock._findClientAsync(sIrcServer, sBotNick).then(function(client) {
+            return client._triggerConnect();
+        }).then(function(client) {
+            return client._triggerWhois(tIrcNick, true);
+        }).done(function() {
+            whoisDefer.resolve();
+        });
+
+        // when it tries to register, join the room and get state, accept them
+        var sdk = clientMock._client();
+        sdk.register.andCallFake(function(loginType, data) {
+            expect(loginType).toEqual("m.login.application_service");
+            expect(data).toEqual({
+                user: tUserLocalpart
+            });
+            registerDefer.resolve();
+            return q({
+                user_id: tIrcUserId
+            });
+        });
+        // when it tries to join, accept it
+        sdk.joinRoom.andCallFake(function(roomId) {
+            expect(roomId).toEqual(sRoomId);
+            joinRoomDefer.resolve();
+            return q({});
+        });
+        // see if it sends a message (it should, to say it doesn't do group chat)
+        sdk.sendMessage.andCallFake(function(roomId, content) {
+            expect(roomId).toEqual(sRoomId);
+            sendMessageDefer.resolve();
+            return q({});
+        });
+        // when it tries to leave, accept it
+        sdk.leave.andCallFake(function(roomId) {
+            expect(roomId).toEqual(sRoomId);
+            leaveRoomDefer.resolve();
+            return q({});
+        });
+        sdk.roomState.andCallFake(function(roomId) {
+            expect(roomId).toEqual(sRoomId);
+            roomStateDefer.resolve({});
+            return q([
+            {
+                content: {membership: "join"},
+                user_id: tIrcUserId,
+                state_key: tIrcUserId,
+                room_id: sRoomId,
+                type: "m.room.member"
+            },
+            {
+                content: {membership: "join"},
+                user_id: tUserId,
+                state_key: tUserId,
+                room_id: sRoomId,
+                type: "m.room.member"
+            },
+            // Group chat, so >2 users!
+            {
+                content: {membership: "join"},
+                user_id: "@someone:else",
+                state_key: "@someone:else",
+                room_id: sRoomId,
+                type: "m.room.member"
+            }
+            ]);
+        });
+
+        globalPromise.done(function() {
+            done();
+        }, function(){});
     });
 });
 
