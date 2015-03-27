@@ -11,46 +11,7 @@ ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
 var q = require("q");
-
-// s prefix for static test data, t prefix for test instance data
-var sDatabaseUri = "mongodb://localhost:27017/matrix-appservice-irc-integration";
-var sIrcServer = "irc.example";
-var sBotNick = "a_nick";
-var sChannel = "#coffee";
-var sRoomId = "!foo:bar";
-var sRoomMapping = {};
-sRoomMapping[sChannel] = [sRoomId];
-var sHomeServerUrl = "https://some.home.server.goeshere";
-var sHomeServerDomain = "some.home.server";
-var sAppServiceToken = "it's a secret";
-var sAppServiceUrl = "https://mywuvelyappservicerunninganircbridgeyay.gome";
-var sPort = 2;
-
-
-// set up config
-var ircConfig = {
-    databaseUri: sDatabaseUri,
-    servers: {}
-};
-ircConfig.servers[sIrcServer] = {
-    nick: sBotNick,
-    expose: {
-        channels: true,
-        privateMessages: true
-    },
-    rooms: {
-        mappings: sRoomMapping
-    }
-}
-var serviceConfig = {
-    hs: sHomeServerUrl,
-    hsDomain: sHomeServerDomain,
-    token: sAppServiceToken,
-    as: sAppServiceUrl,
-    port: sPort
-};
-
-
+var appConfig = require("../util/config-mock");
 
 describe("IRC-to-Matrix message bridging", function() {
     var ircService = null;
@@ -59,7 +20,7 @@ describe("IRC-to-Matrix message bridging", function() {
 
     var tFromNick = "mike";
     var tText = "ello ello ello";
-    var tUserId = "@"+sIrcServer+"_"+tFromNick+":"+sHomeServerDomain;
+    var tUserId = "@"+appConfig.ircServer+"_"+tFromNick+":"+appConfig.homeServerDomain;
 
     var checksum = function(str) {
         var total = 0;
@@ -82,20 +43,15 @@ describe("IRC-to-Matrix message bridging", function() {
 
         // add registration mock impl:
         // registering should be for the irc user
-        sdk.register.andCallFake(function(loginType, data) {
-            expect(loginType).toEqual("m.login.application_service");
-            expect(data).toEqual({
-                user: sIrcServer+"_"+tFromNick
-            });
-            return q({
-                user_id: tUserId
-            });
+        sdk._onHttpRegister({
+            expectLocalpart: appConfig.ircServer+"_"+tFromNick, 
+            returnUserId: tUserId
         });
 
         // do the init
-        dbHelper._reset(sDatabaseUri).then(function() {
-            ircService.configure(ircConfig);
-            return ircService.register(mockAsapiController, serviceConfig);
+        dbHelper._reset(appConfig.databaseUri).then(function() {
+            ircService.configure(appConfig.ircConfig);
+            return ircService.register(mockAsapiController, appConfig.serviceConfig);
         }).done(function() {
             done();
         });
@@ -104,7 +60,7 @@ describe("IRC-to-Matrix message bridging", function() {
     it("should bridge IRC text as Matrix message's m.text", 
     function(done) {
         sdk.sendMessage.andCallFake(function(roomId, content) {
-            expect(roomId).toEqual(sRoomId);
+            expect(roomId).toEqual(appConfig.roomId);
             expect(content).toEqual({
                 body: tText,
                 msgtype: "m.text"
@@ -113,15 +69,16 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(sIrcServer, sBotNick).done(function(client) {
-            client._trigger("message", [tFromNick, sChannel, tText]);
+        ircMock._findClientAsync(appConfig.ircServer, appConfig.botNick).done(
+        function(client) {
+            client._trigger("message", [tFromNick, appConfig.channel, tText]);
         });
     });
 
     it("should bridge IRC actions as Matrix message's m.emote", 
     function(done) {
         sdk.sendMessage.andCallFake(function(roomId, content) {
-            expect(roomId).toEqual(sRoomId);
+            expect(roomId).toEqual(appConfig.roomId);
             expect(content).toEqual({
                 body: tText,
                 msgtype: "m.emote"
@@ -130,9 +87,9 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(sIrcServer, sBotNick).done(function(client) {
+        ircMock._findClientAsync(appConfig.ircServer, appConfig.botNick).done(function(client) {
             client._trigger("ctcp-privmsg", 
-                [tFromNick, sChannel, "ACTION "+tText]
+                [tFromNick, appConfig.channel, "ACTION "+tText]
             );
         });
     });
@@ -140,7 +97,7 @@ describe("IRC-to-Matrix message bridging", function() {
     it("should bridge IRC notices as Matrix message's m.notice", 
     function(done) {
         sdk.sendMessage.andCallFake(function(roomId, content) {
-            expect(roomId).toEqual(sRoomId);
+            expect(roomId).toEqual(appConfig.roomId);
             expect(content).toEqual({
                 body: tText,
                 msgtype: "m.notice"
@@ -149,8 +106,8 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(sIrcServer, sBotNick).done(function(client) {
-            client._trigger("notice", [tFromNick, sChannel, tText]);
+        ircMock._findClientAsync(appConfig.ircServer, appConfig.botNick).done(function(client) {
+            client._trigger("notice", [tFromNick, appConfig.channel, tText]);
         });
     });
 
@@ -158,14 +115,14 @@ describe("IRC-to-Matrix message bridging", function() {
     function(done) {
         var tTopic = "Topics are liek the best thing evarz!";
         sdk.setRoomTopic.andCallFake(function(roomId, topic) {
-            expect(roomId).toEqual(sRoomId);
+            expect(roomId).toEqual(appConfig.roomId);
             expect(topic).toEqual(tTopic);
             done();
             return q();
         });
 
-        ircMock._findClientAsync(sIrcServer, sBotNick).done(function(client) {
-            client._trigger("topic", [sChannel, tTopic, tFromNick]);
+        ircMock._findClientAsync(appConfig.ircServer, appConfig.botNick).done(function(client) {
+            client._trigger("topic", [appConfig.channel, tTopic, tFromNick]);
         });
     });
 
@@ -182,7 +139,7 @@ describe("IRC-to-Matrix message bridging", function() {
         var tFallback = "This text is bold and this is underlined and this is "+
             "green. Finally, this is a mix of all three";
         sdk.sendMessage.andCallFake(function(roomId, content) {
-            expect(roomId).toEqual(sRoomId);
+            expect(roomId).toEqual(appConfig.roomId);
             // more readily expose non-printing character errors (looking at
             // you \u000f)
             expect(content.body.length).toEqual(tFallback.length);
@@ -201,8 +158,8 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(sIrcServer, sBotNick).done(function(client) {
-            client._trigger("message", [tFromNick, sChannel, tIrcFormattedText]);
+        ircMock._findClientAsync(appConfig.ircServer, appConfig.botNick).done(function(client) {
+            client._trigger("message", [tFromNick, appConfig.channel, tIrcFormattedText]);
         });
     });
 });

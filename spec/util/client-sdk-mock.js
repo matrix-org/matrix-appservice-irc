@@ -2,6 +2,7 @@
  * Mock replacement for 'matrix-js-sdk'.
  */
 "use strict";
+var q = require("q");
 var suppliedConfig = null;
 var mockClient = {};
 
@@ -30,5 +31,21 @@ module.exports._reset = function() {
         setRoomTopic: jasmine.createSpy("sdk.setRoomTopic(roomId, topic)"),
         invite: jasmine.createSpy("sdk.invite(roomId, userId)"),
         leave: jasmine.createSpy("sdk.leave(roomId)")
+    };
+
+    // Helper to succeed sdk registration calls.
+    mockClient._onHttpRegister = function(params) {
+        mockClient.register.andCallFake(function(loginType, data) {
+            expect(loginType).toEqual("m.login.application_service");
+            expect(data).toEqual({
+                user: params.expectLocalpart
+            });
+            if (params.andResolve) {
+                params.andResolve.resolve();
+            }
+            return q({
+                user_id: params.returnUserId
+            });
+        });
     };
 };

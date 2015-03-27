@@ -112,15 +112,10 @@ describe("Matrix-to-IRC PMing", function() {
 
         // when it tries to register, join the room and get state, accept them
         var sdk = clientMock._client();
-        sdk.register.andCallFake(function(loginType, data) {
-            expect(loginType).toEqual("m.login.application_service");
-            expect(data).toEqual({
-                user: tUserLocalpart
-            });
-            registerDefer.resolve();
-            return q({
-                user_id: tIrcUserId
-            });
+        sdk._onHttpRegister({
+            expectLocalpart: tUserLocalpart,
+            returnUserId: tIrcUserId,
+            andResolve: registerDefer
         });
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual(sRoomId);
@@ -191,16 +186,12 @@ describe("Matrix-to-IRC PMing", function() {
 
         // when it tries to register, join the room and get state, accept them
         var sdk = clientMock._client();
-        sdk.register.andCallFake(function(loginType, data) {
-            expect(loginType).toEqual("m.login.application_service");
-            expect(data).toEqual({
-                user: tUserLocalpart
-            });
-            registerDefer.resolve();
-            return q({
-                user_id: tIrcUserId
-            });
+        sdk._onHttpRegister({
+            expectLocalpart: tUserLocalpart,
+            returnUserId: tIrcUserId,
+            andResolve: registerDefer
         });
+
         // when it tries to join, accept it
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual(sRoomId);
@@ -282,14 +273,9 @@ describe("IRC-to-Matrix PMing", function() {
 
         // add registration mock impl:
         // registering should be for the REAL irc user
-        sdk.register.andCallFake(function(loginType, data) {
-            expect(loginType).toEqual("m.login.application_service");
-            expect(data).toEqual({
-                user: sIrcServer+"_"+tRealIrcUserNick
-            });
-            return q({
-                user_id: tVirtualUserId
-            });
+        sdk._onHttpRegister({
+            expectLocalpart: sIrcServer+"_"+tRealIrcUserNick, 
+            returnUserId: tVirtualUserId
         });
 
         // do the init
