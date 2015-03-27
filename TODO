@@ -1,6 +1,5 @@
 
 Really need to have for maintenance purposes:
-- Stack traces: Check for .done(), prevent unhandled exceptions.
 - Models: Room object
 - Unit tests
 - Alternative backend to mongodb
