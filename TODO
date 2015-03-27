@@ -1,7 +1,18 @@
-
-Really need to have for maintenance purposes:
-- Unit tests
-- Alternative backend to mongodb
+- Make integration tests less incomprehensible
+- Add more tests for more edgey stuff (like the flakey section)
+- Add more tests for different configuration options
+- Some people may want to have dynamic channel joining but only for authed
+  users on that irc network/some other auth eg CAS/OAuth2. We should support
+  this. For these 'secure' channels, they are invite only and not published,
+  and are joined by PMing the AS? E.g:
+   >> Start chat: @irc.example.com_gateway_admin:homeserver.com (xxx: clashes with the nick space)
+   >> "/join #foo"
+   << "To join this channel, you need to auth via XXX. Go to <url>."
+   >> Click url -> Does OAuth/CAS dance, gets redirect back, then AS sends:
+   << "You have been authorised as 'your name'. Type '/join <channel>' to join."
+   >> "/join #foo"
+   << AS sends invite for this user.
+ Auth dance ties together the trusted 3p service and the user ID doing the auth.
 
 Really need to avoid being flakey as hell:
 - Handle being kicked from Matrix rooms
@@ -13,6 +24,8 @@ Really need to avoid being flakey as hell:
 
 Nice to haves:
 - Virtual Matrix user display name support
+- Unit tests
+- Alternative backends to mongodb
 - Bouncer support (When a Matrix user is bridged into IRC, create a 1:1 room
   with Matrix user and AS bot, and say 'if you want to use a proper nick, send
   back /nick TheNick', which then just proxies straight through to NickServ.
