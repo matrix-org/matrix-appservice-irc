@@ -51,8 +51,17 @@ function Client(addr, nick, opts) {
     this.whois = jasmine.createSpy("Client.whois(nick, fn)");
     this.join = jasmine.createSpy("Client.join(channel, fn)");
     this.send = jasmine.createSpy("Client.send(command, args)");
+    this.send.andCallFake(function(command, a,b,c,d) {
+        module.exports._emitter.emit("send", that, command, a,b,c,d);
+    });
     this.action = jasmine.createSpy("Client.action(channel, text)");
+    this.action.andCallFake(function(channel, text) {
+        module.exports._emitter.emit("action", that, channel, text);
+    });
     this.ctcp = jasmine.createSpy("Client.ctcp(channel, kind, text)");
+    this.ctcp.andCallFake(function(channel, kind, text) {
+        module.exports._emitter.emit("ctcp", that, channel, kind, text);
+    });
     this.say = jasmine.createSpy("Client.say(channel, text)");
     this.say.andCallFake(function(channel, text) {
         module.exports._emitter.emit("say", that, channel, text);
