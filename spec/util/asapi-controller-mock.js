@@ -17,6 +17,7 @@ module.exports.create = function() {
         addRegexPattern: jasmine.createSpy("AsapiCtrl.addRegexPattern(type, regex, exclusive)"),
         getRegexNamespaces: jasmine.createSpy("AsapiCtrl.getRegexNamespaces()"),
         setHomeserverToken: jasmine.createSpy("AsapiCtrl.setHomeserverToken(tok)"),
+        setLogger: function(){},
         on: jasmine.createSpy("AsapiCtrl.on(eventType, fn)"),
         _trigger: function(eventType, content) {
             if (onFunctions[eventType]) {
