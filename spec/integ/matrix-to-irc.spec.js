@@ -253,6 +253,10 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
+        ircMock._findClientAsync(sIrcServer, tIrcNick).then(function(client) {
+            return client._triggerConnect();
+        });
+
         // NB: The *BOT* sends the message here.
         ircMock._findClientAsync(sIrcServer, sBotNick).then(function(client) {
             return client._triggerConnect();
