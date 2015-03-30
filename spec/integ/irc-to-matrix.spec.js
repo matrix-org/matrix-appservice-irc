@@ -53,6 +53,10 @@ describe("IRC-to-Matrix message bridging", function() {
             returnUserId: tUserId
         });
 
+        ircMock._letNickJoinChannel(
+            roomMapping.server, roomMapping.botNick, roomMapping.channel
+        );
+
         // do the init
         dbHelper._reset(appConfig.databaseUri).then(function() {
             ircService.configure(appConfig.ircConfig);

@@ -205,13 +205,10 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        // NB: The *BOT* sends the message here.
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
-            return client._triggerConnect();
-        }).then(function(client) {
-            return client._triggerJoinFor(roomMapping.channel);
-        }).done();
+        // NB: The *BOT* sends the message here, so let it connect.
+        ircMock._letNickJoinChannel(
+            roomMapping.server, roomMapping.botNick, roomMapping.channel
+        );
     });
 
     it("should bridge matrix topics as IRC topics", function(done) {

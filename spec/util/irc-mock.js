@@ -185,3 +185,11 @@ module.exports._findClient = function(addr, nick) {
     }
     return generatedClients[addr][nick];
 };
+
+module.exports._letNickJoinChannel = function(server, nick, channel) {
+    return module.exports._findClientAsync(server, nick).then(function(client) {
+        return client._triggerConnect();
+    }).then(function(client) {
+        return client._triggerJoinFor(channel);
+    });
+};
