@@ -44,6 +44,8 @@ ircService:  # configuration for the IRC service
       # Optional. The user ID prefix for virtual matrix users. Defaults to "@<SERVER_ADDR>_" e.g.
       # @irc.example.com_
       userPrefix: "@irc_"
+      # Optional. The IRC nick prefix for virtual IRC users. Defaults to "M-" e.g. "M-Alice"
+      nickPrefix: "mx-"
       rooms:
         # Optional. The room alias prefix when joining channels dynamically by alias. Defaults to
         # "#<SERVER_ADDR>_" e.g. #irc.example.com_

@@ -224,8 +224,8 @@ describe("IRC-to-Matrix PMing", function() {
     var tVirtualUserId = "@"+roomMapping.server+"_"+tRealIrcUserNick+":"+
                           appConfig.homeServerDomain;
 
-    var tRealUserLocalpart = "alice";
-    var tRealUserId = "@"+tRealUserLocalpart+":anotherhomeserver";
+    var tRealMatrixUserNick = "M-alice";
+    var tRealUserId = "@alice:anotherhomeserver";
 
     var tCreatedRoomId = "!fehwfweF:fuiowehfwe";
 
@@ -268,7 +268,7 @@ describe("IRC-to-Matrix PMing", function() {
                 type: "m.room.message"
             });
             return ircMock._letNickJoinChannel(
-                roomMapping.server, tRealUserLocalpart, roomMapping.channel
+                roomMapping.server, tRealMatrixUserNick, roomMapping.channel
             );
         }).done(function() {
             done();
@@ -316,10 +316,10 @@ describe("IRC-to-Matrix PMing", function() {
         });
 
         // find the *VIRTUAL CLIENT* (not the bot) and send the irc message
-        ircMock._findClientAsync(roomMapping.server, tRealUserLocalpart).done(
+        ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick).done(
         function(client) {
             client._trigger(
-                "message", [tRealIrcUserNick, tRealUserLocalpart, tText]
+                "message", [tRealIrcUserNick, tRealMatrixUserNick, tText]
             );
         });
     });

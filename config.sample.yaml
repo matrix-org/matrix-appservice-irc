@@ -7,6 +7,7 @@ ircService:
         channels: true
         privateMessages: true
       userPrefix: "@irc_"
+      nickPrefix: "M-"
       rooms:
         aliasPrefix: "#irc_"
         mappings:

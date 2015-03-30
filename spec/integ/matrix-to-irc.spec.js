@@ -23,7 +23,7 @@ describe("Matrix-to-IRC message bridging", function() {
 
     var testUser = {
         id: "@flibble:wibble",
-        nick: "flibble"
+        nick: "M-flibble"
     };
 
     beforeEach(function(done) {
@@ -229,40 +229,6 @@ describe("Matrix-to-IRC message bridging", function() {
             expect(channel).toEqual(roomMapping.channel);
             expect(data).toEqual(testTopic);
             done();
-        });
-    });
-
-    it("should join IRC channels when it receives special alias queries", 
-    function(done) {
-        var tChannel = "#foobar";
-        var tRoomId = "!newroom:id";
-        var tAliasLocalpart = roomMapping.server + "_" + tChannel;
-        var tAlias = "#" + tAliasLocalpart + ":" + appConfig.homeServerDomain;
-
-        // when we get the connect/join requests, accept them.
-        var joinedIrcChannel = false;
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
-            return client._triggerConnect();
-        }).then(function(client) {
-            return client._triggerJoinFor(tChannel);
-        }).done(function() {
-            joinedIrcChannel = true;
-        });
-
-        // when we get the create room request, process it.
-        var sdk = clientMock._client();
-        sdk.createRoom.andCallFake(function(opts) {
-            expect(opts.room_alias_name).toEqual(tAliasLocalpart);
-            return q({
-                room_id: tRoomId
-            });
-        });
-        
-        mockAsapiController._query_alias(tAlias).done(function() {
-            if (joinedIrcChannel) {
-                done();
-            }
         });
     });
 });
