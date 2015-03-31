@@ -23,7 +23,14 @@ Quick Start
 - Run a mongodb instance: ``mongod --dbpath=./data --port 27017``
 - Optional: Run the tests by running ``npm test``.
 - Copy ``config.sample.yaml`` to ``config.yaml`` and configure it for your IRC server / home server.
-- Run it using ``node app.js``.
+- Generate the registration YAML using ``node app.js --generate-registration``. The output needs to be
+  listed in the ``homeserver.yaml`` config file:
+
+  ```
+  app_service_config_files: ["appservice-registration-irc.yaml"]
+  ```
+  
+- Run the app service using ``node app.js``.
 
 Configuration
 -------------
@@ -72,6 +79,8 @@ appService:
   hs: "http://localhost:8008"
   # The 'domain' part for user IDs
   hsDomain: "localhost"
+  # The desired home server token to validate incoming requests
+  hsToken: "10d028eb17ab2cdef857290842b48"
   # The application service token set for this home server
   token: "1234567890"
   # The webhook URL for the home server to hit on new events
