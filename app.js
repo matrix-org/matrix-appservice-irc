@@ -1,13 +1,17 @@
+"use strict";
+var crc = require("crc");
+var crypto = require("crypto");
+var yaml = require("js-yaml");
+var fs = require("fs");
+
 // when invoked with 'node app.js', make an AS with just the IRC service.
 var appservice = require("matrix-appservice");
 var irc = require("./lib/irc-appservice.js");
 
-// load the config file
-var yaml = require("js-yaml");
-var fs = require("fs");
 var config = undefined;
 var generateRegistration = process.argv[2] == "--generate-registration";
 
+// load the config file
 try {
     config = yaml.safeLoad(fs.readFileSync('./config.yaml', 'utf8'));
 } 
@@ -19,6 +23,13 @@ irc.configure(config.ircService);
 
 config.appService.service = irc;
 config.appService.generateRegistration = generateRegistration;
+
+// assign the HS token now: this involves CRCing the config.yaml to avoid
+// people changing that file but not updating the home server config.
+var checksum = crc.crc32(JSON.stringify(config)).toString(16);
+var randomPart = crypto.randomBytes(32).toString('hex');
+config.appService.hsToken = randomPart + "_" + checksum;
+
 appservice.registerServices([config.appService]);
 
 if (generateRegistration) {
@@ -41,7 +52,7 @@ if (generateRegistration) {
             console.log('       app_service_config_files: '+
                 '["appservice-registration-irc.yaml"]');
             console.log(" "+Array(74).join("="));
-            process.exit(code=0);
+            process.exit(0);
         });
     });
 }
