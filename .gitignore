@@ -1,5 +1,6 @@
 config.yaml
 data
+appservice-registration-irc.yaml
 
 # Logs
 logs
