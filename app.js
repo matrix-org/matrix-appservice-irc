@@ -18,7 +18,7 @@ catch (e) {
 irc.configure(config.ircService);
 
 config.appService.service = irc;
-config.appService.shouldStartup = !generateRegistration;
+config.appService.generateRegistration = generateRegistration;
 appservice.registerServices([config.appService]);
 
 if (generateRegistration) {

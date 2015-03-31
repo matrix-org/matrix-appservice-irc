@@ -33,6 +33,7 @@ var ircConfig = {
 var serviceConfig = {
     hs: "https://some.home.server.goeshere",
     hsDomain: "some.home.server",
+    hsToken: "foobar",
     token: "it's a secret",
     as: "https://mywuvelyapplicationservicerunninganircbridgeyay.gome",
     port: 2

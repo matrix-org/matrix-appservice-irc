@@ -3,6 +3,7 @@ module.exports = {
     databaseUri: "mongodb://localhost:27017/matrix-appservice-irc-integration",
     homeServerUrl: "https://some.home.server.goeshere",
     homeServerDomain: "some.home.server",
+    homeServerToken: "foobar",
     appServiceToken: "it's a secret",
     appServiceUrl: "https://mywuvelyappservicerunninganircbridgeyay.gome",
     port: 2
@@ -41,6 +42,7 @@ module.exports.ircConfig.servers[roomMapping.server].rooms.mappings[
 module.exports.serviceConfig = {
     hs: module.exports.homeServerUrl,
     hsDomain: module.exports.homeServerDomain,
+    hsToken: module.exports.homeServerToken,
     token: module.exports.appServiceToken,
     as: module.exports.appServiceUrl,
     port: module.exports.port
