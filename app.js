@@ -31,7 +31,16 @@ if (generateRegistration) {
                 console.error("Failed to write registration file: %s", e);
                 return;
             }
-            console.log("Generated registration file located at: %s", fname);
+            console.log(" "+Array(74).join("="));
+            console.log("   Generated registration file located at:");
+            console.log("       %s", fname);
+            console.log("");
+            console.log("   This file should be added to the destination home "+
+                "server configuration");
+            console.log("   file (e.g. 'homeserver.yaml'):");
+            console.log('       app_service_config_files: '+
+                '["appservice-registration-irc.yaml"]');
+            console.log(" "+Array(74).join("="));
             process.exit(code=0);
         });
     });
