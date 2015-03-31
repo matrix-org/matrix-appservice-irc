@@ -19,6 +19,7 @@ catch (e) {
     console.error(e);
     return;
 }
+var checksum = crc.crc32(JSON.stringify(config)).toString(16);
 irc.configure(config.ircService);
 
 config.appService.service = irc;
@@ -26,9 +27,8 @@ config.appService.generateRegistration = generateRegistration;
 
 // assign the HS token now: this involves CRCing the config.yaml to avoid
 // people changing that file but not updating the home server config.
-var checksum = crc.crc32(JSON.stringify(config)).toString(16);
 var randomPart = crypto.randomBytes(32).toString('hex');
-config.appService.hsToken = randomPart + "_" + checksum;
+config.appService.hsToken = randomPart + "_c" + checksum;
 
 appservice.registerServices([config.appService]);
 
