@@ -46,9 +46,13 @@ if (generateRegistration) {
             console.log("   Generated registration file located at:");
             console.log("       %s", fname);
             console.log("");
-            console.log("   This file should be added to the destination home "+
-                "server configuration");
-            console.log("   file (e.g. 'homeserver.yaml'):");
+            console.log("   The HS token this service looks for has been"+
+                " updated. You MUST update");
+            console.log("   the HS even if config.yaml was not modified."+
+                " This file MUST be added");
+            console.log("   to the destination home "+
+                "server configuration file (e.g. 'homeserver.yaml'):");
+            console.log("");
             console.log('       app_service_config_files: '+
                 '["appservice-registration-irc.yaml"]');
             console.log(" "+Array(74).join("="));
