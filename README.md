@@ -79,8 +79,6 @@ appService:
   hs: "http://localhost:8008"
   # The 'domain' part for user IDs
   hsDomain: "localhost"
-  # The desired home server token to validate incoming requests
-  hsToken: "10d028eb17ab2cdef857290842b48"
   # The application service token set for this home server
   token: "1234567890"
   # The webhook URL for the home server to hit on new events
