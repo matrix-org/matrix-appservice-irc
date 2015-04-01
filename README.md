@@ -42,7 +42,11 @@ ircService:  # configuration for the IRC service
     # the address of the server to connect to. You can have more than one.
     irc.example.com:  
       # the nickname of the AS bot which listens in on rooms
-      nick: "appservicebot"  
+      nick: "appservicebot"
+      # the port to connect on. (Optional)
+      port: 6697
+      # whether to use SSL or not (default: false)
+      ssl: true
       expose:
         # allow people to dynamically join other channels not on the list of 'mappings' below.
         channels: true
