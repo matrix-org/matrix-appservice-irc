@@ -29,6 +29,7 @@ module.exports._reset = function() {
         sendMessage: jasmine.createSpy("sdk.sendMessage(roomId, content)"),
         roomState: jasmine.createSpy("sdk.roomState(roomId)"),
         setRoomTopic: jasmine.createSpy("sdk.setRoomTopic(roomId, topic)"),
+        setDisplayName: jasmine.createSpy("sdk.setDisplayName(name)"),
         invite: jasmine.createSpy("sdk.invite(roomId, userId)"),
         leave: jasmine.createSpy("sdk.leave(roomId)")
     };
@@ -40,12 +41,15 @@ module.exports._reset = function() {
             expect(data).toEqual({
                 user: params.expectLocalpart
             });
-            if (params.andResolve) {
-                params.andResolve.resolve();
-            }
             return q({
                 user_id: params.returnUserId
             });
+        });
+        mockClient.setDisplayName.andCallFake(function(name) {
+            if (params.andResolve) {
+                params.andResolve.resolve();
+            }
+            return q({});
         });
     };
 };

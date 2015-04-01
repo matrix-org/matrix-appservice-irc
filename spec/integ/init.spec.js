@@ -82,27 +82,4 @@ describe("Initialisation", function() {
             done();
         }).done();
     });
-
-    it("should register with the homeserver in the config and store the result", 
-    function(done) {
-        var hsToken = "some_hs_token";
-
-        dbHelper.connectTo(databaseUri).then(function() {
-            // remove the registration info so it registers
-            return dbHelper.delete("config", {});
-        }).then(function() {
-            // do the init
-            ircService.configure(ircConfig);
-            return ircService.register(mockAsapiController, serviceConfig);
-        }).done(function() {
-            // not setting this means "please register"
-            expect(mockAsapiController.setHomeserverToken).not.toHaveBeenCalled();
-            // invoke the registered event
-            mockAsapiController._trigger("registered", {
-                hsToken: hsToken,
-                namespaces: {}
-            });
-            done();
-        });
-    });
 });

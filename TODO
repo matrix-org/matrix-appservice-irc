@@ -23,7 +23,6 @@ Really need to avoid being flakey as hell:
 - Handle extreme message lengths, charsets
 
 Nice to haves:
-- Virtual Matrix user display name support
 - Unit tests
 - Alternative backends to mongodb
 - Bouncer support (When a Matrix user is bridged into IRC, create a 1:1 room
