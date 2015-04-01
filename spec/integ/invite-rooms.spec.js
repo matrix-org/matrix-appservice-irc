@@ -23,6 +23,11 @@ describe("Invite-only rooms", function() {
         id: "@flibble:wibble",
         nick: "flibble"
     };
+    var testIrcUser = {
+        localpart: roomMapping.server+"_foobar",
+        id: "@"+roomMapping.server+"_foobar:"+appConfig.homeServerDomain,
+        nick: "foobar"
+    };
 
     beforeEach(function(done) {
         console.log(" === Invite Rooms Test Start === ");
@@ -83,6 +88,87 @@ describe("Invite-only rooms", function() {
             if (joinedRoom) {
                 done();
             }
+        });
+    });
+
+    it("should be joined by a virtual IRC user if the bot invited them, "+
+        "regardless of the number of people in the room.", 
+    function(done) {
+        // FIXME: It shouldn't be treated this as a purely virtual IRC user,
+        // given the bot is inviting them.
+
+        // when it queries whois, say they exist
+        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
+        function(client) {
+            return client._triggerConnect();
+        }).then(function(client) {
+            return client._triggerWhois(testIrcUser.nick, true);
+        }).done();
+
+        var sdk = clientMock._client();
+        // if it tries to register, accept.
+        sdk._onHttpRegister({
+            expectLocalpart: testIrcUser.localpart,
+            returnUserId: testIrcUser.id
+        });
+
+        var joinedRoom = false;
+        sdk.joinRoom.andCallFake(function(roomId) {
+            expect(roomId).toEqual(roomMapping.roomId);
+            joinedRoom = true;
+            return q({});
+        });
+
+        var leftRoom = false;
+        sdk.leave.andCallFake(function(roomId) {
+            expect(roomId).toEqual(roomMapping.roomId);
+            leftRoom = true;
+            return q({});
+        });
+
+        var askedForRoomState = false;
+        sdk.roomState.andCallFake(function(roomId) {
+            expect(roomId).toEqual(roomMapping.roomId);
+            askedForRoomState = true;
+            return q([
+            {
+                content: {membership: "join"},
+                user_id: botUserId,
+                state_key: botUserId,
+                room_id: roomMapping.roomId,
+                type: "m.room.member"
+            },
+            {
+                content: {membership: "join"},
+                user_id: testIrcUser.id,
+                state_key: testIrcUser.id,
+                room_id: roomMapping.roomId,
+                type: "m.room.member"
+            },
+            // Group chat, so >2 users!
+            {
+                content: {membership: "join"},
+                user_id: "@someone:else",
+                state_key: "@someone:else",
+                room_id: roomMapping.roomId,
+                type: "m.room.member"
+            }
+            ]);
+        });
+
+        mockAsapiController._trigger("type:m.room.member", {
+            content: {
+                membership: "invite",
+            },
+            state_key: testIrcUser.id,
+            user_id: botUserId,
+            room_id: roomMapping.roomId,
+            type: "m.room.member"
+        }).then(function() {
+            expect(joinedRoom).toBe(true);
+            expect(leftRoom).toBe(false);
+            expect(askedForRoomState).toBe(true);
+            done();
         });
     });
 });
