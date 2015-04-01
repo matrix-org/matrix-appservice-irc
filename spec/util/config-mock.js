@@ -4,6 +4,7 @@ module.exports = {
     homeServerUrl: "https://some.home.server.goeshere",
     homeServerDomain: "some.home.server",
     homeServerToken: "foobar",
+    botLocalpart: "monkey",
     appServiceToken: "it's a secret",
     appServiceUrl: "https://mywuvelyappservicerunninganircbridgeyay.gome",
     port: 2
@@ -44,6 +45,7 @@ module.exports.serviceConfig = {
     hsDomain: module.exports.homeServerDomain,
     hsToken: module.exports.homeServerToken,
     token: module.exports.appServiceToken,
+    localpart: module.exports.botLocalpart,
     as: module.exports.appServiceUrl,
     port: module.exports.port
 };

@@ -2,6 +2,7 @@
  * Mock replacement for AsapiController
  */
 "use strict";
+var q = require("q");
 
 module.exports.create = function() {
     var onFunctions = {
@@ -20,11 +21,16 @@ module.exports.create = function() {
         setLogger: function(){},
         on: jasmine.createSpy("AsapiCtrl.on(eventType, fn)"),
         _trigger: function(eventType, content) {
+            var promises = [];
             if (onFunctions[eventType]) {
                 for (var i=0; i<onFunctions[eventType].length; i++) {
-                    onFunctions[eventType][i](content);
+                    promises.push(onFunctions[eventType][i](content));
                 }
             }
+            if (promises.length === 1) {
+                return promises[0];
+            }
+            return q.all(promises);
         },
         _query_alias: function(alias) {
             return resolvers.alias(alias);
