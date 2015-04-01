@@ -28,7 +28,7 @@ config.appService.generateRegistration = generateRegistration;
 // assign the HS token now: this involves CRCing the config.yaml to avoid
 // people changing that file but not updating the home server config.
 var randomPart = crypto.randomBytes(32).toString('hex');
-config.appService.hsToken = randomPart + "_c" + checksum;
+config.appService.hsToken = randomPart + "_crc" + checksum;
 
 appservice.registerServices([config.appService]);
 
