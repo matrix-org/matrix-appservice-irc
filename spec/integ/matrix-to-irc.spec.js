@@ -211,6 +211,37 @@ describe("Matrix-to-IRC message bridging", function() {
         );
     });
 
+    it("should bridge matrix files as IRC text with a URL", function(done) {
+        var tBody = "a_file.apk";
+        var tMxcSegment = "somedomain.com/somecontentid";
+        mockAsapiController._trigger("type:m.room.message", {
+            content: {
+                body: tBody,
+                url: "mxc://" + tMxcSegment,
+                msgtype: "m.file"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+
+        ircMock._emitter.on("say", function(client, channel, text) {
+            expect(client.nick).toEqual(roomMapping.botNick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            // don't be too brittle when checking this, but I expect to see the
+            // filename (body) and the http url.
+            expect(text.indexOf(tBody)).not.toEqual(-1);
+            expect(text.indexOf(tMxcSegment)).not.toEqual(-1);
+            done();
+        });
+
+        // NB: The *BOT* sends the message here, so let it connect.
+        ircMock._letNickJoinChannel(
+            roomMapping.server, roomMapping.botNick, roomMapping.channel
+        );
+    });
+
     it("should bridge matrix topics as IRC topics", function(done) {
         var testTopic = "Topics are amazingz";
         mockAsapiController._trigger("type:m.room.topic", {
