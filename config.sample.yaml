@@ -3,6 +3,12 @@ ircService:
   servers:
     irc.example.com:
       nick: "appservicebot"
+      # not yet implemented
+      auth:
+        type: "cas"
+        url: "https://cas.example.com"
+        redirect: "https://appservice.com"
+      # ===================
       expose:
         channels: true
         privateMessages: true
