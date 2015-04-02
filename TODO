@@ -1,6 +1,12 @@
-- Make integration tests less incomprehensible
+Perf:
+- Cache whether the virtual matrix user was made, else we needless roundtrip
+  and get M_USER_IN_USE errors.
+
+Tests:
 - Add more tests for more edgey stuff (like the flakey section)
 - Add more tests for different configuration options
+
+Auth:
 - Some people may want to have dynamic channel joining but only for authed
   users on that irc network/some other auth eg CAS/OAuth2. We should support
   this. For these 'secure' channels, they are invite only and not published,
@@ -14,7 +20,7 @@
    << AS sends invite for this user.
  Auth dance ties together the trusted 3p service and the user ID doing the auth.
 
-Really need to avoid being flakey as hell:
+Flakey:
 - Handle being kicked from Matrix rooms
 - Handle being disconnected from the IRC network (bot and individual clients)
 - Matrix rate limiting (M_LIMIT_EXCEEDED)
