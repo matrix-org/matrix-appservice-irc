@@ -36,3 +36,6 @@ Nice to haves:
   is no worse than other IRC security. Since the AS bot created the room, it has
   the power level and should redact the password event after submission. If 
   there is better support which we can proxy through, we should provide it.)
+
+Nick:
+Ideally we should be using the display name of the mx user and not the user id. This means we need to strip bad characters and handle representing long nicks. Could do something like win95 style LONGNA~1. We should use the irc username field to set the user id which cant change and is set on irc client login. 
