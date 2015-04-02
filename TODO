@@ -1,7 +1,3 @@
-Perf:
-- Cache whether the virtual matrix user was made, else we needless roundtrip
-  and get M_USER_IN_USE errors.
-
 Tests:
 - Add more tests for more edgey stuff (like the flakey section)
 - Add more tests for different configuration options
@@ -26,7 +22,6 @@ Flakey:
 - Matrix rate limiting (M_LIMIT_EXCEEDED)
 - Handle nick clashes (incl. alt nickname support on the bot)
 - Handle extreme nick lengths, charsets
-- Handle extreme message lengths, charsets
 
 Nice to haves:
 - Unit tests
