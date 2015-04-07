@@ -28,7 +28,6 @@ Flakey:
 
 Nice to haves:
 - Unit tests
-- Alternative backends to mongodb
 - Bouncer support (When a Matrix user is bridged into IRC, create a 1:1 room
   with Matrix user and AS bot, and say 'if you want to use a proper nick, send
   back /nick TheNick', which then just proxies straight through to NickServ.
@@ -38,4 +37,7 @@ Nice to haves:
   there is better support which we can proxy through, we should provide it.)
 
 Nick:
-Ideally we should be using the display name of the mx user and not the user id. This means we need to strip bad characters and handle representing long nicks. Could do something like win95 style LONGNA~1. We should use the irc username field to set the user id which cant change and is set on irc client login. 
+Ideally we should be using the display name of the mx user and not the user id.
+This means we need to strip bad characters and handle representing long nicks.
+Could do something like win95 style LONGNA~1. We should use the irc username
+field to set the user id which cant change and is set on irc client login. 

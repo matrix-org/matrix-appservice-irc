@@ -18,9 +18,6 @@ Quick Start
 -----------
 - ``git clone`` this repository.
 - Run ``npm install``.
-- Install mongodb (e.g. ``apt-get install mongodb``)
-- Make a ``data`` folder to dump database files into (this will be ``.gitignore``d).
-- Run a mongodb instance: ``mongod --dbpath=./data --port 27017``
 - Optional: Run the tests by running ``npm test``.
 - Copy ``config.sample.yaml`` to ``config.yaml`` and configure it for your IRC server / home server.
 - Generate the registration YAML using ``node app.js --generate-registration``. The output needs to be
@@ -36,8 +33,8 @@ Configuration
 -------------
 ``` .yaml
 ircService:  # configuration for the IRC service
-  # The mongodb database URI to connect to.
-  databaseUri: "mongodb://localhost:27017/matrix-appservice-irc"
+  # The nedb database URI to connect to.
+  databaseUri: "nedb://db_folder_name"
   servers:
     # the address of the server to connect to. You can have more than one.
     irc.example.com:  
