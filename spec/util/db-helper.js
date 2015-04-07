@@ -1,80 +1,54 @@
 /*
- * Helper class for checking MongoDB state
+ * Helper class for cleaning nedb state
  */
  "use strict";
  var q = require("q");
- var MongoClient = require("mongodb").MongoClient;
+ var Datastore = require("nedb");
 
- var dbDefer = null;
- var db = null;
-
- module.exports.connectTo = function(databaseUri) {
-    if (db) {
-        return q(db);
-    }
-    if (dbDefer) {
-        return dbDefer.promise;
-    }
-    dbDefer = q.defer();
-
-    MongoClient.connect(databaseUri, {
-        server: {
-            auto_reconnect: true,
-            poolSize: 4,
-            socketOptions: {
-                connectTimeoutMS: 3000
-            }
-        }
-    }, function(err, dbInst) {
+ var deleteDb = function(db, query) {
+    var defer = q.defer();
+    db.remove(query, {multi:true}, function(err, docs) {
         if (err) {
-            dbDefer.reject(err);
-        } else {
-            db = dbInst;
-            dbDefer.resolve(db);
+            defer.reject(err);
+            return;
         }
+        defer.resolve(docs);
     });
-    return dbDefer.promise;
- };
-
- module.exports.select = function(collectionName, query) {
-    var d = q.defer();
-    db.collection(collectionName).find(query).toArray(function(err, docs) {
-        if (err) {
-            d.reject(err);
-        }
-        else {
-            d.resolve(docs);
-        }
-    });
-    return d.promise;
- };
-
- module.exports.delete = function(collectionName, query) {
-    var d = q.defer();
-    db.collection(collectionName).remove(query, function(err, docs) {
-        if (err) {
-            d.reject(err);
-        }
-        else {
-            d.resolve(docs);
-        }
-    });
-    return d.promise;
+    return defer.promise;
  };
 
  module.exports._reset = function(databaseUri) {
     var d = q.defer();
-    module.exports.connectTo(databaseUri).then(function() {
-        return module.exports.delete("config", {});
-    }).then(function() {
-        return module.exports.delete("rooms", {});
-    }).done(function() {
-        dbDefer = null;
-        if (db) {
-            db.close();
+    if (databaseUri.indexOf("nedb://") !== 0) {
+        return q.reject("Must be nedb:// URI");
+    }
+    var baseDbName = databaseUri.substring("nedb://".length);
+
+    var configWiped, roomsWiped = false;
+
+    var roomsDb = new Datastore({
+        filename: baseDbName + "/rooms.db",
+        autoload: true,
+        onload: function() {
+            deleteDb(roomsDb, {}).done(function() {
+                roomsWiped = true;
+                if (configWiped && roomsWiped) {
+                    d.resolve();
+                }
+            })
         }
-        db = null;
-        d.resolve();
+    });
+    var configDb = new Datastore({
+        filename: baseDbName + "/config.db",
+        autoload: true,
+        onload: function() {
+            deleteDb(configDb, {}).done(function() {
+                configWiped = true;
+                if (configWiped && roomsWiped) {
+                    d.resolve();
+                }
+            })
+        }
     });
     return d.promise;
  };

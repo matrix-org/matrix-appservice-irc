@@ -14,7 +14,7 @@ var asapiMock = require("../util/asapi-controller-mock");
 var ircService = null;
 
 var ircConfig = {
-    databaseUri: "mongodb://localhost:27017/matrix-appservice-irc-integration",
+    databaseUri: "nedb://spec-db",
     servers: {
         "irc.example": {
             nick: "a_nick",

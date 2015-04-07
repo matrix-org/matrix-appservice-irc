@@ -1,6 +1,6 @@
 
 module.exports = {
-    databaseUri: "mongodb://localhost:27017/matrix-appservice-irc-integration",
+    databaseUri: "nedb://spec-db",
     homeServerUrl: "https://some.home.server.goeshere",
     homeServerDomain: "some.home.server",
     homeServerToken: "foobar",
