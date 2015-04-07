@@ -16,7 +16,6 @@
     "url": "https://github.com/Kegsay/matrix-appservice-irc/issues"
   },
   "dependencies": {
-    "cas": "0.0.3",
     "crc": "^3.2.1",
     "extend": "^2.0.0",
     "fs": "0.0.2",
