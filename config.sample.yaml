@@ -1,5 +1,5 @@
 ircService:
-  databaseUri: "mongodb://localhost:27017/matrix-appservice-irc"
+  databaseUri: "nedb://data"
   servers:
     irc.example.com:
       nick: "appservicebot"
