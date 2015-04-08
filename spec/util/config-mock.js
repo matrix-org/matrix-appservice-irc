@@ -4,7 +4,7 @@ module.exports = {
     homeServerUrl: "https://some.home.server.goeshere",
     homeServerDomain: "some.home.server",
     homeServerToken: "foobar",
-    botLocalpart: "monkey",
+    botLocalpart: "monkeybot",
     appServiceToken: "it's a secret",
     appServiceUrl: "https://mywuvelyappservicerunninganircbridgeyay.gome",
     port: 2
