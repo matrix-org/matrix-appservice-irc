@@ -11,13 +11,15 @@ Auth:
    >> m.room.message => "/join #foo"
    << "To join this channel, you need to auth via <CAS|OAuth2>. Go to <auth url?service>."
    >> Click url -> Does OAuth/CAS dance, gets redirect back, on auth success/failure:
-   << "You have been authorised as 'username'. Type '/join <channel>' to join."
+   << "You have been authorised as 'username' for XXX days. Type '/join <channel>' to join."
                                          OR
    << "Authorisation failed."
    >> "/join #foo"
    << @appservice_username:homeserver.com sends invite for this user.
  Auth dance ties together the trusted 3p service and the user ID doing the auth. The auth
  stored on the AS is simply whether that user ID is an authorised user for that IRC network.
+ 
+ After the auth time expires, kick the real matrix user from all matrix rooms.
 
 Flakey:
 - Handle being kicked from Matrix rooms

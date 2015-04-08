@@ -8,6 +8,7 @@ ircService:
         type: "cas"
         url: "https://cas.example.com"
         redirect: "https://appservice.com"
+        lifetimeSecs: 7776000  # 90 days
       # ===================
       expose:
         channels: true
