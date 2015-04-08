@@ -7,7 +7,7 @@ ircService:
       auth:
         type: "cas"
         url: "https://cas.example.com"
-        redirect: "https://appservice.com"
+        redirect: "https://appservice.com/irc"  # will have /$TOKEN suffixed to it.
         lifetimeSecs: 7776000  # 90 days
       # ===================
       expose:
