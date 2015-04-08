@@ -167,7 +167,8 @@ describe("Invite-only rooms", function() {
         }).then(function() {
             expect(joinedRoom).toBe(true);
             expect(leftRoom).toBe(false);
-            expect(askedForRoomState).toBe(true);
+            // should go off the fact that the inviter was the bot
+            expect(askedForRoomState).toBe(false);
             done();
         });
     });
