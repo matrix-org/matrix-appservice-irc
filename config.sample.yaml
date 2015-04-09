@@ -7,7 +7,6 @@ ircService:
       auth:
         type: "cas"
         url: "https://cas.example.com"
-        redirect: "https://appservice.com/irc"  # will have /$TOKEN suffixed to it.
         lifetimeSecs: 7776000  # 90 days
       # ===================
       expose:
@@ -19,6 +18,9 @@ ircService:
         aliasPrefix: "#irc_"
         mappings:
           "#thepub": ["!kieouiJuedJoxtVdaG:localhost"]
+  auth:
+    redirectBase: "http://my.app.service.com/auth"  # will have /$TOKEN suffixed
+    port: 4555
   logging:
     level: "debug"
     logfile: "debug.log"
