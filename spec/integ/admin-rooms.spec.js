@@ -15,23 +15,6 @@ var asapiMock = require("../util/asapi-controller-mock");
 var appConfig = extend(true, {}, require("../util/config-mock"));
 var roomMapping = appConfig.roomMapping;
 
-// augment the config with irc auth
-var ircAuthServer = "irc.auth.only";
-appConfig.ircConfig.servers[ircAuthServer] = {
-    nick: "authbot",
-    expose: {
-        channels: true
-    },
-    auth: {
-        type: "cas",
-        url: "https://cas.irc.auth.only.com"
-    }
-};
-appConfig.ircConfig.auth = {
-    redirectBase: "https://redirected-url.irc.auth.only",
-    port: 4567
-};
-
 describe("Creating admin rooms", function() {
     var ircService = null;
     var mockAsapiController = null;

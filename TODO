@@ -2,25 +2,6 @@ Tests:
 - Add more tests for more edgey stuff (like the flakey section)
 - Add more tests for different configuration options
 
-Auth:
-  We want to support CAS/OAuth2 so private IRC networks can be bridged in without
-  exposing them to the public. This will be done by configuring the IRC AS to dynamically
-  create PRIVATE INVITE-ONLY ROOMS. These rooms will have the AS itself in the room so it
-  can invite authorised users. The flow for authing looks like:
-   >> Start chat: @appservice_username:homeserver.com
-   >> m.room.message => "/join #foo"
-   << "To join this channel, you need to auth via <CAS|OAuth2>. Go to <auth url?service>."
-   >> Click url -> Does OAuth/CAS dance, gets redirect back, on auth success/failure:
-   << "You have been authorised as 'username' for XXX days. Type '/join <channel>' to join."
-                                         OR
-   << "Authorisation failed."
-   >> "/join #foo"
-   << @appservice_username:homeserver.com sends invite for this user.
- Auth dance ties together the trusted 3p service and the user ID doing the auth. The auth
- stored on the AS is simply whether that user ID is an authorised user for that IRC network.
- 
- After the auth time expires, kick the real matrix user from all matrix rooms.
-
 Flakey:
 - Handle being kicked from Matrix rooms
 - Handle being disconnected from the IRC network (bot and individual clients)
