@@ -3,12 +3,6 @@ ircService:
   servers:
     irc.example.com:
       nick: "appservicebot"
-      # not yet implemented
-      auth:
-        type: "cas"
-        url: "https://cas.example.com"
-        lifetimeSecs: 7776000  # 90 days
-      # ===================
       expose:
         channels: true
         privateMessages: true
@@ -18,9 +12,6 @@ ircService:
         aliasPrefix: "#irc_"
         mappings:
           "#thepub": ["!kieouiJuedJoxtVdaG:localhost"]
-  auth:
-    redirectBase: "http://my.app.service.com/auth"  # will have /$TOKEN suffixed
-    port: 4555
   logging:
     level: "debug"
     logfile: "debug.log"

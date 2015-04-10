@@ -11,10 +11,6 @@ ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
 
-// ADDITIONAL MOCKS FOR AUTH WEB SERVER
-var authExpressMock = require("../util/auth-express-mock");
-authExpressMock["@global"] = true;
-
 // set up test config
 var appConfig = extend(true, {}, require("../util/config-mock"));
 var roomMapping = appConfig.roomMapping;
@@ -46,11 +42,9 @@ describe("Creating admin rooms", function() {
         console.log(" === Admin Rooms [create] Test Start === ");
         ircMock._reset();
         clientMock._reset();
-        authExpressMock(true)._reset();
         ircService = proxyquire("../../lib/irc-appservice.js", {
             "matrix-js-sdk": clientMock,
-            "irc": ircMock,
-            "express": authExpressMock
+            "irc": ircMock
         });
         mockAsapiController = asapiMock.create();
 
@@ -101,11 +95,9 @@ describe("Admin rooms", function() {
         console.log(" === Admin Rooms Test Start === ");
         ircMock._reset();
         clientMock._reset();
-        authExpressMock(true)._reset();
         ircService = proxyquire("../../lib/irc-appservice.js", {
             "matrix-js-sdk": clientMock,
-            "irc": ircMock,
-            "express": authExpressMock
+            "irc": ircMock
         });
         mockAsapiController = asapiMock.create();
 
@@ -169,32 +161,6 @@ describe("Admin rooms", function() {
             room_id: adminRoomId,
             type: "m.room.message"
         }).catch(function(e) {
-            done();
-        });
-    });
-
-    it("should provide an auth url when given a valid !join by an unauthed user",
-    function(done) {
-        var sentNotice = false;
-        var redirectUrl = appConfig.ircConfig.servers[ircAuthServer].auth.url;
-        sdk.sendMessage.andCallFake(function(roomId, content) {
-            expect(roomId).toEqual(adminRoomId);
-            expect(content.body).toContain(redirectUrl);
-            expect(content.msgtype).toEqual("m.notice");
-            sentNotice = true;
-            return q();
-        });
-
-        mockAsapiController._trigger("type:m.room.message", {
-            content: {
-                body: "!join "+ircAuthServer+" #foo",
-                msgtype: "m.text"
-            },
-            user_id: userId,
-            room_id: adminRoomId,
-            type: "m.room.message"
-        }).done(function(e) {
-            expect(sentNotice).toBe(true);
             done();
         });
     });
