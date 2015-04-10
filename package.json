@@ -4,7 +4,7 @@
   "description": "IRC Bridge for matrix-appservice",
   "main": "index.js",
   "scripts": {
-    "test": "istanbul cover --report cobertura jasmine-node -- spec --verbose --forceexit --captureExceptions"
+    "test": "istanbul cover --report cobertura jasmine-node -- spec --verbose --junitreport --forceexit --captureExceptions"
   },
   "repository": {
     "type": "git",
