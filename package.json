@@ -8,12 +8,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Kegsay/matrix-appservice-irc.git"
+    "url": "https://github.com/matrix-org/matrix-appservice-irc.git"
   },
   "author": "",
   "license": "Apache 2.0",
   "bugs": {
-    "url": "https://github.com/Kegsay/matrix-appservice-irc/issues"
+    "url": "https://github.com/matrix-org/matrix-appservice-irc/issues"
   },
   "dependencies": {
     "crc": "^3.2.1",
