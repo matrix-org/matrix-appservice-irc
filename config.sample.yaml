@@ -1,28 +1,111 @@
+# Configuration specific to AS registration. Unless other marked, all fields are *REQUIRED*.
+appService:
+  # The URL to the home server for client-server API calls.
+  hs: "http://localhost:8008"
+  # The 'domain' part for user IDs on this home server. Usually (but not always)
+  # is the "domain name" part of the HS URL.
+  hsDomain: "localhost"
+  # The application service token to use. Please use a secure random token! You
+  # can generate a secure random token by typing into the terminal:
+  # node -e "require('crypto').randomBytes(20,function(ex,buf){console.log(buf.toString('hex'))});"
+  token: "f0c03ebff14c223b57a3afdffe42ffd9c5875e9b"
+  # The webhook URL for the home server to hit on new events.
+  as: "http://localhost:3500"
+  # The port to listen on.
+  port: 3500
+  # Optional. The desired user ID localpart for the AS bot.
+  localpart: "appservice_irc"
+
+# Configuration specific to the IRC service
 ircService:
-  databaseUri: "nedb://data"
   servers:
+    # The address of the server to connect to.
     irc.example.com:
-      nick: "appservicebot"
-      expose:
-        channels: true
-        privateMessages: true
-      userPrefix: "@irc_"
-      nickPrefix: "M-"
-      rooms:
-        aliasPrefix: "#irc_"
-        mappings:
-          "#thepub": ["!kieouiJuedJoxtVdaG:localhost"]
+      botConfig:
+        # The nickname to give the AS bot.
+        nick: "appservicebot"
+        # The password to give to NickServ for this nick
+        password: "helloworld"
+
+      # Configuration for PMs / private 1:1 communications between users.
+      privateMessages:
+        # Enable the ability for PMs to be sent to/from IRC/Matrix.
+        # Default: true.
+        enabled: true
+        # Prevent Matrix users from sending PMs to the following IRC nicks.
+        # Optional. Default: [].
+        exclude: ["Alice", "Bob"]
+
+      # Configuration for mappings not explicitly listed in the 'mapping' section.
+      dynamicChannels:
+        # Enable the ability for Matrix users to join *any* channel on this IRC
+        # network.
+        # Default: false.
+        enabled: true
+        # How the AS should create new Matrix rooms:
+        # "public": A public room is created, and an alias is published for this room
+        #           so any Matrix user can join so long as they know the alias.
+        # "private" : An invite-only room is created, and no alias is published so
+        #             only Matrix users with an invite can join this room.
+        # Default: public.
+        visibility: "public"
+        # Should created Matrix rooms be federated? If false, only users on the
+        # HS attached to this AS will be able to interact with this room.
+        # Default: true.
+        federate: true
+        # The room alias template to apply when creating new mappings. The following
+        # variables are exposed:
+        # $SERVER => The IRC server address (e.g. "irc.example.com")
+        # $CHANNEL => The IRC channel (e.g. "#python")
+        aliasTemplate: "#irc_$CHANNEL"
+        # Prevent the given list of channels from being mapped.
+        exclude: ["#foo", "#bar"]
+
+      mappings:
+        # 1:many mappings from IRC channels to room IDs on this IRC server.
+        "#thepub": ["!kieouiJuedJoxtVdaG:localhost"]
+
+      # Configuration for virtual matrix users. The following variables are exposed:
+      # $NICK => The IRC nick
+      # $SERVER => The IRC server address (e.g. "irc.example.com")
+      matrixClients:
+        # The user ID template to use when creating virtual matrix users.
+        # Optional. Default: "@$SERVER_$NICK". Example: "@irc.example.com_Alice:example.com"
+        userTemplate: "@irc_$NICK"
+        # The display name to use for created matrix clients.
+        # Optional. Default: "$NICK (IRC)". Example: "Alice (IRC)"
+        displayName: "$NICK (IRC)"
+
+      # Configuration for virtual IRC users. The following variables are exposed:
+      # $LOCALPART => The user ID localpart ("alice" in @alice:localhost)
+      # $USER_ID => The user ID
+      # $DISPLAY => The display name of this user, with excluded characters (e.g. space)
+      #             removed. If the user has no display name, this falls back to $LOCALPART.
+      ircClients:
+        # The prefix to apply to every IRC client nick. Can be an empty string.
+        # Optional. Default: "M-". Example: "M-Alice".
+        nickTemplate: "M-$DISPLAY"
+        # The max number of IRC clients that will connect. If the limit is
+        # reached, the client that spoke the longest time ago will be disconnected
+        # and replaced.
+        # Optional. Default: 30.
+        maxClients: 30
+
+  # Configuration for logging
   logging:
+    # Level to log on console/logfile. One of error|warn|info|debug
     level: "debug"
+    # The file location to log to. This is relative to the project directory.
     logfile: "debug.log"
+    # The file location to log errors to. This is relative to the project directory.
     errfile: "errors.log"
+    # Whether to log to the console or not.
     toConsole: true
+    # The max size each file can get to in bytes before a new file is created.
     maxFileSizeBytes: 134217728 # 128 MB
+    # The max number of files to keep. Files will be overwritten eventually due to rotations.
     maxFiles: 5
 
-appService:
-  hs: "http://localhost:8008"
-  hsDomain: "localhost"
-  token: "1234567890"
-  as: "http://localhost:3500"
-  port: 3500
+  # The nedb database URI to connect to. This is relative to the project directory.
+  # Required.
+  databaseUri: "nedb://data"
