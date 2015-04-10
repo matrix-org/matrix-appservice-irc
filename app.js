@@ -10,31 +10,30 @@ var validator = require("./lib/config/validator");
 var appservice = require("matrix-appservice");
 var irc = require("./lib/irc-appservice.js");
 
-var config = undefined;
+var configFile = undefined;
 var generateRegistration = process.argv[2] == "--generate-registration";
 
 // load the config file
 try {
-    config = yaml.safeLoad(fs.readFileSync('./config.yaml', 'utf8'));
+    configFile = yaml.safeLoad(fs.readFileSync('./config.yaml', 'utf8'));
 } 
 catch (e) {
     console.error(e);
     return;
 }
 
-var configBlobs = validator.loadConfig(config);
-if (!configBlobs) {
+var config = validator.loadConfig(configFile);
+if (!config) {
     console.error("Failed to validate config file.");
     process.exit(1);
     return;
 }
-
-var checksum = crc.crc32(JSON.stringify(config)).toString(16);
-irc.configure(config.ircService);
-
 config.appService.service = irc;
 config.appService.generateRegistration = generateRegistration;
 
+
+var checksum = crc.crc32(JSON.stringify(configFile)).toString(16);
+irc.configure(config);
 // assign the HS token now: this involves CRCing the config.yaml to avoid
 // people changing that file but not updating the home server config.
 var randomPart = crypto.randomBytes(32).toString('hex');

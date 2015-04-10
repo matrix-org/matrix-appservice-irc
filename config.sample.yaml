@@ -21,6 +21,11 @@ ircService:
   servers:
     # The address of the server to connect to.
     irc.example.com:
+      # The port to connect to. Optional.
+      port: 6697
+      # Whether to use SSL or not. Default: false.
+      ssl: true
+
       botConfig:
         # The nickname to give the AS bot.
         nick: "appservicebot"
@@ -57,6 +62,7 @@ ircService:
         # variables are exposed:
         # $SERVER => The IRC server address (e.g. "irc.example.com")
         # $CHANNEL => The IRC channel (e.g. "#python")
+        # This MUST have $CHANNEL somewhere in it.
         aliasTemplate: "#irc_$CHANNEL"
         # Prevent the given list of channels from being mapped.
         exclude: ["#foo", "#bar"]
@@ -69,20 +75,23 @@ ircService:
       # $NICK => The IRC nick
       # $SERVER => The IRC server address (e.g. "irc.example.com")
       matrixClients:
-        # The user ID template to use when creating virtual matrix users.
+        # The user ID template to use when creating virtual matrix users. This
+        # MUST have $NICK somewhere in it.
         # Optional. Default: "@$SERVER_$NICK". Example: "@irc.example.com_Alice:example.com"
         userTemplate: "@irc_$NICK"
-        # The display name to use for created matrix clients.
+        # The display name to use for created matrix clients. This MUST have
+        # $NICK somewhere in it if it is specified.
         # Optional. Default: "$NICK (IRC)". Example: "Alice (IRC)"
         displayName: "$NICK (IRC)"
 
       # Configuration for virtual IRC users. The following variables are exposed:
       # $LOCALPART => The user ID localpart ("alice" in @alice:localhost)
-      # $USER_ID => The user ID
+      # $USERID => The user ID
       # $DISPLAY => The display name of this user, with excluded characters (e.g. space)
       #             removed. If the user has no display name, this falls back to $LOCALPART.
       ircClients:
-        # The prefix to apply to every IRC client nick. Can be an empty string.
+        # The template to apply to every IRC client nick. This MUST have either
+        # $DISPLAY or $USERID or $LOCALPART somewhere in it.
         # Optional. Default: "M-". Example: "M-Alice".
         nickTemplate: "M-$DISPLAY"
         # The max number of IRC clients that will connect. If the limit is

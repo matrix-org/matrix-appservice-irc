@@ -44,6 +44,10 @@ properties:
                 additionalProperties:
                     type: "object"
                     properties:
+                        port:
+                            type: "number"
+                        ssl:
+                            type: "boolean"
                         botConfig:
                             type: "object"
                             properties:
@@ -72,6 +76,7 @@ properties:
                                     type: "boolean"
                                 aliasTemplate:
                                     type: "string"
+                                    pattern: "\\$CHANNEL"
                                 exclude:
                                     type: "array"
                                     items:
@@ -92,13 +97,16 @@ properties:
                             properties:
                                 userTemplate:
                                     type: "string"
+                                    pattern: "\\$NICK"
                                 displayName:
                                     type: "string"
+                                    pattern: "\\$NICK"
                         ircClients:
                             type: "object"
                             properties:
                                 nickTemplate:
                                     type: "string"
+                                    pattern: "\\$USERID|\\$LOCALPART|\\$DISPLAY"
                                 maxClients:
                                     type: "number"
         required: ["databaseUri", "servers"]
