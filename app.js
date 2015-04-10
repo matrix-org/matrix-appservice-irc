@@ -4,6 +4,8 @@ var crypto = require("crypto");
 var yaml = require("js-yaml");
 var fs = require("fs");
 
+var validator = require("./lib/config/validator");
+
 // when invoked with 'node app.js', make an AS with just the IRC service.
 var appservice = require("matrix-appservice");
 var irc = require("./lib/irc-appservice.js");
@@ -19,6 +21,14 @@ catch (e) {
     console.error(e);
     return;
 }
+
+var configBlobs = validator.loadConfig(config);
+if (!configBlobs) {
+    console.error("Failed to validate config file.");
+    process.exit(1);
+    return;
+}
+
 var checksum = crc.crc32(JSON.stringify(config)).toString(16);
 irc.configure(config.ircService);
 

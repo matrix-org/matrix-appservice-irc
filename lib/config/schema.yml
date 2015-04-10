@@ -1,0 +1,104 @@
+"$schema": "http://json-schema.org/draft-04/schema#"
+type: "object"
+properties:
+    appService:
+        type: "object"
+        properties:
+            hs:
+                "type": "string"
+            hsDomain:
+                "type": "string"
+            token:
+                "type": "string"
+            as:
+                "type": "string"
+            port:
+                "type": "number"
+            localpart:
+                "type": "string"
+        required: ["hs","hsDomain","token","as","port"]
+    ircService:
+        type: "object"
+        properties:
+            databaseUri:
+                type: "string"
+            logging:
+                type: "object"
+                properties:
+                    level:
+                        type: "string"
+                        enum: ["error","warn","info","debug"]
+                    logfile:
+                        type: "string"
+                    errfile:
+                        type: "string"
+                    toConsole:
+                        type: "boolean"
+                    maxFileSizeBytes:
+                        type: "number"
+                    maxFiles:
+                        type: "number"
+            servers:
+                type: "object"
+                # all properties must follow the following
+                additionalProperties:
+                    type: "object"
+                    properties:
+                        botConfig:
+                            type: "object"
+                            properties:
+                                nick:
+                                    type: "string"
+                                password:
+                                    type: "string"
+                        privateMessages:
+                            type: "object"
+                            properties:
+                                enabled:
+                                    type: "boolean"
+                                exclude:
+                                    type: "array"
+                                    items:
+                                        type: "string"
+                        dynamicChannels:
+                            type: "object"
+                            properties:
+                                enabled:
+                                    type: "boolean"
+                                visibility:
+                                    type: "string"
+                                    enum: ["public","private"]
+                                federate:
+                                    type: "boolean"
+                                aliasTemplate:
+                                    type: "string"
+                                exclude:
+                                    type: "array"
+                                    items:
+                                        type: "string"
+                        mappings:
+                            type: "object"
+                            patternProperties:
+                                # must start with a #
+                                "^#+.*$":
+                                    type: "array"
+                                    items:
+                                        type: "string"
+                                    minItems: 1
+                                    uniqueItems: true
+                            additionalProperties: false
+                        matrixClients:
+                            type: "object"
+                            properties:
+                                userTemplate:
+                                    type: "string"
+                                displayName:
+                                    type: "string"
+                        ircClients:
+                            type: "object"
+                            properties:
+                                nickTemplate:
+                                    type: "string"
+                                maxClients:
+                                    type: "number"
+        required: ["databaseUri", "servers"]

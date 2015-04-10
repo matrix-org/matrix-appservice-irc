@@ -91,7 +91,7 @@ ircService:
         # Optional. Default: 30.
         maxClients: 30
 
-  # Configuration for logging
+  # Configuration for logging. Optional. Default: console debug level logging only.
   logging:
     # Level to log on console/logfile. One of error|warn|info|debug
     level: "debug"
