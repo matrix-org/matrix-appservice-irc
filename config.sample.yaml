@@ -93,7 +93,7 @@ ircService:
       ircClients:
         # The template to apply to every IRC client nick. This MUST have either
         # $DISPLAY or $USERID or $LOCALPART somewhere in it.
-        # Optional. Default: "M-". Example: "M-Alice".
+        # Optional. Default: "M-$DISPLAY". Example: "M-Alice".
         nickTemplate: "M-$DISPLAY"
         # The max number of IRC clients that will connect. If the limit is
         # reached, the client that spoke the longest time ago will be disconnected
@@ -116,6 +116,7 @@ ircService:
     # The max number of files to keep. Files will be overwritten eventually due to rotations.
     maxFiles: 5
 
-  # The nedb database URI to connect to. This is relative to the project directory.
+  # The nedb database URI to connect to. This is the name of the directory to dump .db files to.
+  # This is relative to the project directory.
   # Required.
   databaseUri: "nedb://data"
