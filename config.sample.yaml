@@ -63,6 +63,7 @@ ircService:
         # $SERVER => The IRC server address (e.g. "irc.example.com")
         # $CHANNEL => The IRC channel (e.g. "#python")
         # This MUST have $CHANNEL somewhere in it.
+        # Default: '#irc_$SERVER_$CHANNEL'
         aliasTemplate: "#irc_$CHANNEL"
         # Prevent the given list of channels from being mapped.
         exclude: ["#foo", "#bar"]

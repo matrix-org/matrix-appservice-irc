@@ -11,41 +11,18 @@ ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
 
-var ircService = null;
+// set up test config
+var appConfig = require("../util/config-mock");
+var ircConfig = appConfig.ircConfig;
+var roomMapping = appConfig.roomMapping;
 
-var ircConfig = {
-    databaseUri: "nedb://spec-db",
-    servers: {
-        "irc.example": {
-            nick: "a_nick",
-            expose: {
-                channels: true,
-                privateMessages: true
-            },
-            rooms: {
-                mappings: {
-                    "#coffee": ["!foo:bar"]
-                }
-            }
-        }
-    }
-};
-var serviceConfig = {
-    hs: "https://some.home.server.goeshere",
-    hsDomain: "some.home.server",
-    hsToken: "foobar",
-    token: "it's a secret",
-    as: "https://mywuvelyapplicationservicerunninganircbridgeyay.gome",
-    port: 2
-};
+
 
 describe("Initialisation", function() {
-    // rip this from the config
-    var ircAddr = Object.keys(ircConfig.servers)[0];
-    var ircNick = ircConfig.servers[Object.keys(ircConfig.servers)[0]].nick;
-    var ircChannel = Object.keys(
-        ircConfig.servers[Object.keys(ircConfig.servers)[0]].rooms.mappings
-    )[0];
+    var ircService = null;
+    var ircAddr = roomMapping.server;
+    var ircNick = roomMapping.botNick;
+    var ircChannel = roomMapping.channel;
     var databaseUri = ircConfig.databaseUri;
 
     var mockAsapiController = null;
@@ -68,7 +45,7 @@ describe("Initialisation", function() {
     function(done) {
         // do the init
         ircService.configure(ircConfig);
-        ircService.register(mockAsapiController, serviceConfig).then(function() {
+        ircService.register(mockAsapiController, ircConfig).then(function() {
             var ircClient = ircMock._findClient(ircAddr, ircNick);
             expect(ircClient).toBeDefined();
             expect(ircClient.connect).toHaveBeenCalled();

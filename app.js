@@ -31,13 +31,14 @@ if (!config) {
 config.appService.service = irc;
 config.appService.generateRegistration = generateRegistration;
 
-
-var checksum = crc.crc32(JSON.stringify(configFile)).toString(16);
-irc.configure(config);
-// assign the HS token now: this involves CRCing the config.yaml to avoid
-// people changing that file but not updating the home server config.
+// make a checksum of the IRC server configuration. This will be checked against
+// the checksum created at the last "--generate-registration". If there is a
+// difference, it means that the user has failed to tell the HS of the new
+// registration, so we can refuse to start until that is done.
+var checksum = crc.crc32(JSON.stringify(config.servers)).toString(16);
 var randomPart = crypto.randomBytes(32).toString('hex');
 config.appService.hsToken = randomPart + "_crc" + checksum;
+irc.configure(config);
 
 appservice.registerServices([config.appService]);
 

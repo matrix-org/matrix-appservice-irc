@@ -76,7 +76,7 @@ properties:
                                     type: "boolean"
                                 aliasTemplate:
                                     type: "string"
-                                    pattern: "\\$CHANNEL"
+                                    pattern: "^#.*\\$CHANNEL"
                                 exclude:
                                     type: "array"
                                     items:
@@ -97,7 +97,7 @@ properties:
                             properties:
                                 userTemplate:
                                     type: "string"
-                                    pattern: "\\$NICK"
+                                    pattern: "^@.*\\$NICK"
                                 displayName:
                                     type: "string"
                                     pattern: "\\$NICK"

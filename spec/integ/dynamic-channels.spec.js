@@ -25,7 +25,7 @@ describe("Dynamic channels", function() {
 
     beforeEach(function(done) {
         console.log(" === Dynamic channels Test Start === ");
-        appConfig.ircConfig.servers[roomMapping.server].expose.channels = true;
+        appConfig.ircConfig.servers[roomMapping.server].dynamicChannels.enabled = true;
         ircMock._reset();
         clientMock._reset();
         ircService = proxyquire("../../lib/irc-appservice.js", {
@@ -53,9 +53,10 @@ describe("Dynamic channels", function() {
 
     it("should join IRC channels when it receives special alias queries", 
     function(done) {
+        // Default mapping => #irc_$SERVER_$CHANNEL
         var tChannel = "#foobar";
         var tRoomId = "!newroom:id";
-        var tAliasLocalpart = roomMapping.server + "_" + tChannel;
+        var tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
         var tAlias = "#" + tAliasLocalpart + ":" + appConfig.homeServerDomain;
 
         // when we get the connect/join requests, accept them.
@@ -77,11 +78,12 @@ describe("Dynamic channels", function() {
                 room_id: tRoomId
             });
         });
-        
         mockAsapiController._query_alias(tAlias).done(function() {
             if (joinedIrcChannel) {
                 done();
             }
+        }, function(e) {
+            console.error("Failed to join IRC channel: %s", JSON.stringify(e));
         });
     });
 });
@@ -96,7 +98,7 @@ describe("Dynamic channels (disabled)", function() {
     };
 
     beforeEach(function(done) {
-        appConfig.ircConfig.servers[roomMapping.server].expose.channels = false;
+        appConfig.ircConfig.servers[roomMapping.server].dynamicChannels.enabled = false;
         console.log(" === Dynamic channels disabled Test Start === ");
         ircMock._reset();
         clientMock._reset();
