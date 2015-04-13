@@ -29,8 +29,8 @@ ircService:
       botConfig:
         # The nickname to give the AS bot.
         nick: "appservicebot"
-        # The password to give to NickServ for this nick
-        password: "helloworld"
+        # The password to give to NickServ for this nick. Optional.
+        password: "helloworld"  # NOT YET IMPLEMENTED
 
       # Configuration for PMs / private 1:1 communications between users.
       privateMessages:
@@ -39,7 +39,7 @@ ircService:
         enabled: true
         # Prevent Matrix users from sending PMs to the following IRC nicks.
         # Optional. Default: [].
-        exclude: ["Alice", "Bob"]
+        exclude: ["Alice", "Bob"] # NOT YET IMPLEMENTED
 
       # Configuration for mappings not explicitly listed in the 'mapping' section.
       dynamicChannels:
@@ -53,11 +53,11 @@ ircService:
         # "private" : An invite-only room is created, and no alias is published so
         #             only Matrix users with an invite can join this room.
         # Default: public.
-        visibility: "public"
+        visibility: "public" # NOT YET IMPLEMENTED
         # Should created Matrix rooms be federated? If false, only users on the
         # HS attached to this AS will be able to interact with this room.
         # Default: true.
-        federate: true
+        federate: true # NOT YET IMPLEMENTED
         # The room alias template to apply when creating new mappings. The following
         # variables are exposed:
         # $SERVER => The IRC server address (e.g. "irc.example.com")
@@ -83,7 +83,7 @@ ircService:
         # The display name to use for created matrix clients. This MUST have
         # $NICK somewhere in it if it is specified.
         # Optional. Default: "$NICK (IRC)". Example: "Alice (IRC)"
-        displayName: "$NICK (IRC)"
+        displayName: "$NICK (IRC)" # NOT YET IMPLEMENTED
 
       # Configuration for virtual IRC users. The following variables are exposed:
       # $LOCALPART => The user ID localpart ("alice" in @alice:localhost)
@@ -99,7 +99,7 @@ ircService:
         # reached, the client that spoke the longest time ago will be disconnected
         # and replaced.
         # Optional. Default: 30.
-        maxClients: 30
+        maxClients: 30 # NOT YET IMPLEMENTED
 
   # Configuration for logging. Optional. Default: console debug level logging only.
   logging:
