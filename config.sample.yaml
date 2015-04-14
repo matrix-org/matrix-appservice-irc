@@ -58,13 +58,18 @@ ircService:
         # HS attached to this AS will be able to interact with this room.
         # Default: true.
         federate: true # NOT YET IMPLEMENTED
-        # The room alias template to apply when creating new mappings. The following
-        # variables are exposed:
+        # The room alias template to apply when creating new mappings. This only
+        # applies if visibility is 'public'. The following variables are exposed:
         # $SERVER => The IRC server address (e.g. "irc.example.com")
         # $CHANNEL => The IRC channel (e.g. "#python")
         # This MUST have $CHANNEL somewhere in it.
         # Default: '#irc_$SERVER_$CHANNEL'
         aliasTemplate: "#irc_$CHANNEL"
+        # Only the specified user IDs can join rooms. Only applies if visiblity
+        # is 'private'. Default: []
+        whitelist:
+          - "@foo:example.com"
+          - "@bar:example.com"
         # Prevent the given list of channels from being mapped.
         exclude: ["#foo", "#bar"]
 

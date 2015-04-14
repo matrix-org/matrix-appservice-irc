@@ -77,6 +77,11 @@ properties:
                                 aliasTemplate:
                                     type: "string"
                                     pattern: "^#.*\\$CHANNEL"
+                                whitelist:
+                                    type: "array"
+                                    items:
+                                        type: "string"
+                                        pattern: "^@.*"
                                 exclude:
                                     type: "array"
                                     items:
