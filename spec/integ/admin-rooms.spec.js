@@ -30,6 +30,9 @@ describe("Creating admin rooms", function() {
             "irc": ircMock
         });
         mockAsapiController = asapiMock.create();
+        ircMock._letNickJoinChannel(
+            roomMapping.server, roomMapping.botNick, roomMapping.channel
+        );
 
         // do the init
         dbHelper._reset(appConfig.databaseUri).then(function() {
