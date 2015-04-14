@@ -109,4 +109,6 @@ properties:
                                     pattern: "\\$USERID|\\$LOCALPART|\\$DISPLAY"
                                 maxClients:
                                     type: "number"
+                                allowNickChanges:
+                                    type: "boolean"
         required: ["databaseUri", "servers"]

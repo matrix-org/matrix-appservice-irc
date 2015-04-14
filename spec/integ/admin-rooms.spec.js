@@ -114,7 +114,7 @@ describe("Admin rooms", function() {
         });
     });
 
-    it("should respond to bad !join commands with a help notice", function(done) {
+    it("should respond to bad !nick commands with a help notice", function(done) {
         var sentNotice = false;
         sdk.sendMessage.andCallFake(function(roomId, content) {
             expect(roomId).toEqual(adminRoomId);
@@ -125,7 +125,7 @@ describe("Admin rooms", function() {
 
         mockAsapiController._trigger("type:m.room.message", {
             content: {
-                body: "!join blargle",
+                body: "!nick blargle",
                 msgtype: "m.text"
             },
             user_id: userId,

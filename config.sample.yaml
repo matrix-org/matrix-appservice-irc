@@ -95,6 +95,10 @@ ircService:
         # $DISPLAY or $USERID or $LOCALPART somewhere in it.
         # Optional. Default: "M-$DISPLAY". Example: "M-Alice".
         nickTemplate: "M-$DISPLAY"
+        # True to allow virtual IRC clients to change their nick on this server
+        # by issuing !nick <server> <nick> commands to the IRC AS bot.
+        # This is completely freeform: it will NOT follow the nickTemplate.
+        allowNickChanges: true
         # The max number of IRC clients that will connect. If the limit is
         # reached, the client that spoke the longest time ago will be disconnected
         # and replaced.
