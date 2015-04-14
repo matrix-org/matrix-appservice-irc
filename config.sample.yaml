@@ -41,7 +41,7 @@ ircService:
         # Optional. Default: [].
         exclude: ["Alice", "Bob"] # NOT YET IMPLEMENTED
 
-      # Configuration for mappings not explicitly listed in the 'mapping' section.
+      # Configuration for mappings not explicitly listed in the 'mappings' section.
       dynamicChannels:
         # Enable the ability for Matrix users to join *any* channel on this IRC
         # network.
@@ -65,12 +65,12 @@ ircService:
         # This MUST have $CHANNEL somewhere in it.
         # Default: '#irc_$SERVER_$CHANNEL'
         aliasTemplate: "#irc_$CHANNEL"
-        # Only the specified user IDs can join rooms. Only applies if visiblity
-        # is 'private'. Default: []
+        # A list of user IDs which the AS bot will send invites to in response to a !join.
+        # Only applies if visiblity is 'private'. Default: []
         whitelist:
           - "@foo:example.com"
           - "@bar:example.com"
-        # Prevent the given list of channels from being mapped.
+        # Prevent the given list of channels from being mapped under any circumstances.
         exclude: ["#foo", "#bar"]
 
       mappings:
