@@ -6,7 +6,7 @@
 var proxyquire =  require('proxyquire');
 var clientMock = require("../util/client-sdk-mock");
 clientMock["@global"] = true; 
-var ircMock = require("../util/irc-mock");
+var ircMock = require("../util/irc-client-mock");
 ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
@@ -15,8 +15,6 @@ var asapiMock = require("../util/asapi-controller-mock");
 var appConfig = require("../util/config-mock");
 var ircConfig = appConfig.ircConfig;
 var roomMapping = appConfig.roomMapping;
-
-
 
 describe("Initialisation", function() {
     var ircService = null;
@@ -43,20 +41,23 @@ describe("Initialisation", function() {
 
     it("should connect to the IRC network and channel in the config", 
     function(done) {
-        // do the init
-        ircService.configure(ircConfig);
-        ircService.register(mockAsapiController, ircConfig).then(function() {
-            var ircClient = ircMock._findClient(ircAddr, ircNick);
-            expect(ircClient).toBeDefined();
-            expect(ircClient.connect).toHaveBeenCalled();
-            expect(ircClient.join).not.toHaveBeenCalled();
-            // invoke the connect callback
-            return ircClient._triggerConnect();
-        }).then(function(client) {
-            // check it joins the right channel
-            expect(client.join).toHaveBeenCalled();
-            expect(client.join.calls[0].args[0]).toEqual(ircChannel);
+        var clientConnected = false;
+        ircMock._whenClient(ircAddr, ircNick, "connect", function(client, fn) {
+            expect(clientJoined).toBe(false, "Joined before connect call");
+            clientConnected = true;
+            fn();
+        });
+
+        var clientJoined = false;
+        ircMock._whenClient(ircAddr, ircNick, "join", function(client, chan, fn) {
+            expect(chan).toEqual(ircChannel);
+            expect(clientConnected).toBe(true, "Connected before join call");
+            clientJoined = true;
             done();
-        }).done();
+        });
+
+        // run the test
+        ircService.configure(ircConfig);
+        ircService.register(mockAsapiController, appConfig.serviceConfig);
     });
 });
