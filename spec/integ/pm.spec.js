@@ -6,7 +6,7 @@
 var proxyquire =  require('proxyquire');
 var clientMock = require("../util/client-sdk-mock");
 clientMock["@global"] = true; 
-var ircMock = require("../util/irc-mock");
+var ircMock = require("../util/irc-client-mock");
 ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
@@ -43,6 +43,10 @@ describe("Matrix-to-IRC PMing", function() {
         joinRoomDefer = q.defer();
         roomStateDefer = q.defer();
 
+        ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+
         // do the init
         dbHelper._reset(appConfig.databaseUri).then(function() {
             ircService.configure(appConfig.ircConfig);
@@ -74,13 +78,15 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it queries whois, say they exist
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
-            return client._triggerConnect();
-        }).then(function(client) {
-            return client._triggerWhois(tIrcNick, true);
-        }).done(function() {
+        ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
+        function(client, nick, cb) {
+            expect(nick).toEqual(tIrcNick);
+            // say they exist (presence of user key)
             whoisDefer.resolve();
+            cb({
+                user: tIrcNick,
+                nick: tIrcNick
+            });
         });
 
         // when it tries to register, join the room and get state, accept them
@@ -145,13 +151,15 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it queries whois, say they exist
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
-            return client._triggerConnect();
-        }).then(function(client) {
-            return client._triggerWhois(tIrcNick, true);
-        }).done(function() {
+        ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
+        function(client, nick, cb) {
+            expect(nick).toEqual(tIrcNick);
+            // say they exist (presence of user key)
             whoisDefer.resolve();
+            cb({
+                user: tIrcNick,
+                nick: tIrcNick
+            });
         });
 
         // when it tries to register, join the room and get state, accept them
@@ -249,6 +257,14 @@ describe("IRC-to-Matrix PMing", function() {
             returnUserId: tVirtualUserId
         });
 
+        // let the user join when they send a message
+        ircMock._autoConnectNetworks(
+            roomMapping.server, tRealMatrixUserNick, roomMapping.server
+        );
+        ircMock._autoJoinChannels(
+            roomMapping.server, tRealMatrixUserNick, roomMapping.channel
+        );
+
         // do the init
         dbHelper._reset(appConfig.databaseUri).then(function() {
             ircService.configure(appConfig.ircConfig);
@@ -258,7 +274,7 @@ describe("IRC-to-Matrix PMing", function() {
         }).then(function() {
             // send a message in the linked room (so the service provisions a 
             // virtual IRC user which the 'real' IRC users can speak to)
-            mockAsapiController._trigger("type:m.room.message", {
+            return mockAsapiController._trigger("type:m.room.message", {
                 content: {
                     body: "get me in",
                     msgtype: "m.text"
@@ -267,9 +283,6 @@ describe("IRC-to-Matrix PMing", function() {
                 room_id: roomMapping.roomId,
                 type: "m.room.message"
             });
-            return ircMock._letNickJoinChannel(
-                roomMapping.server, tRealMatrixUserNick, roomMapping.channel
-            );
         }).done(function() {
             done();
         });
@@ -318,8 +331,8 @@ describe("IRC-to-Matrix PMing", function() {
         // find the *VIRTUAL CLIENT* (not the bot) and send the irc message
         ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick).done(
         function(client) {
-            client._trigger(
-                "message", [tRealIrcUserNick, tRealMatrixUserNick, tText]
+            client.emit(
+                "message", tRealIrcUserNick, tRealMatrixUserNick, tText
             );
         });
     });

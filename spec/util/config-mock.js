@@ -13,7 +13,7 @@ module.exports = {
 
 module.exports.roomMapping = {
     server: "irc.example",
-    botNick: "a_nick",
+    botNick: "ro_bot_nick",
     channel: "#coffee",
     roomId: "!foo:bar"
 };

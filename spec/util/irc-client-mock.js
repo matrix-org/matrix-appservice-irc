@@ -55,6 +55,7 @@ function Client(addr, nick, opts) {
             for (var i=0; i<arguments.length; i++) {
                 args.push(arguments[i]);
             }
+            console.log("IrcClient.emit => %s", JSON.stringify(args));
             clientEmitter.emit.apply(clientEmitter, args);
         });
     });
@@ -83,7 +84,9 @@ module.exports._findClient = function(addr, nick) {
 };
 
 module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
+    console.log("Add listener for "+(addr+"_"+nick));
     clientEmitter.on((addr+"_"+nick), function(invokedFnName, client) {
+        console.log("Irc.Client.on %s", (addr+"_"+nick));
         if (invokedFnName !== fnName) {
             return;
         }

@@ -5,7 +5,7 @@ var q = require("q");
 var proxyquire =  require('proxyquire');
 var clientMock = require("../util/client-sdk-mock");
 clientMock["@global"] = true; 
-var ircMock = require("../util/irc-mock");
+var ircMock = require("../util/irc-client-mock");
 ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
@@ -38,6 +38,10 @@ describe("Invite-only rooms", function() {
             "irc": ircMock
         });
         mockAsapiController = asapiMock.create();
+
+        ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
 
         // do the init
         dbHelper._reset(appConfig.databaseUri).then(function() {
@@ -77,12 +81,17 @@ describe("Invite-only rooms", function() {
         "regardless of the number of people in the room.", 
     function(done) {
         // when it queries whois, say they exist
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
-            return client._triggerConnect();
-        }).then(function(client) {
-            return client._triggerWhois(testIrcUser.nick, true);
-        }).done();
+        var askedWhois = false;
+        ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
+        function(client, nick, cb) {
+            expect(nick).toEqual(testIrcUser.nick);
+            // say they exist (presence of user key)
+            askedWhois = true;
+            cb({
+                user: testIrcUser.nick,
+                nick: testIrcUser.nick
+            });
+        });
 
         var sdk = clientMock._client();
         // if it tries to register, accept.
@@ -148,6 +157,7 @@ describe("Invite-only rooms", function() {
             expect(leftRoom).toBe(false);
             // should go off the fact that the inviter was the bot
             expect(askedForRoomState).toBe(false);
+            expect(askedWhois).toBe(true);
             done();
         });
     });
