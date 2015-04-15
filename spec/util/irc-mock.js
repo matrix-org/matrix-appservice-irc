@@ -145,6 +145,9 @@ function Client(addr, nick, opts) {
                 }
             });
             spy._invocations[key].callbacks = [];
+            if (methodName == "join") {
+                obj.chans[key] = {};
+            }
             return q(obj);
         }
         else {
@@ -173,6 +176,7 @@ function Client(addr, nick, opts) {
             client._trigger("nick", [oldNick, newNick]);
         });
     };
+    this.chans = {};
 
     // invoke any waiting _findClientAsync calls
     var deferList = deferredsForClients[addr+"_"+nick];

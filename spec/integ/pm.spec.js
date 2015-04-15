@@ -28,7 +28,7 @@ describe("Matrix-to-IRC PMing", function() {
     var whoisDefer, registerDefer, joinRoomDefer, roomStateDefer;
 
     beforeEach(function(done) {
-        console.log(" === PM Matrix-to-IRC Test Start === ");
+        console.log(" === M->I PM Test Start === ");
         ircMock._reset();
         clientMock._reset();
         ircService = proxyquire("../../lib/irc-appservice.js", {
@@ -232,7 +232,7 @@ describe("IRC-to-Matrix PMing", function() {
     var tText = "ello ello ello";
 
     beforeEach(function(done) {
-        console.log(" === PM Test Start === ");
+        console.log(" === IRC->M PM Test Start === ");
         ircMock._reset();
         clientMock._reset();
         ircService = proxyquire("../../lib/irc-appservice.js", {
