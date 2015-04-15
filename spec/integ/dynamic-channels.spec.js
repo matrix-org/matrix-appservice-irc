@@ -26,6 +26,7 @@ describe("Dynamic channels", function() {
     beforeEach(function(done) {
         console.log(" === Dynamic channels Test Start === ");
         appConfig.ircConfig.servers[roomMapping.server].dynamicChannels.enabled = true;
+        appConfig.ircConfig.servers[roomMapping.server].dynamicChannels.visibility = "public";
         ircMock._reset();
         clientMock._reset();
         ircService = proxyquire("../../lib/irc-appservice.js", {

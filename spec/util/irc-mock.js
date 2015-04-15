@@ -30,6 +30,7 @@ function Client(addr, nick, opts) {
 
     // keep a list of the listeners
     var listeners = {};
+    var onceListeners = {};
     this.addListener = jasmine.createSpy("Client.addListener(event, fn)");
     this.addListener.andCallFake(function(event, fn) {
         if (!listeners[event]) {
@@ -37,11 +38,24 @@ function Client(addr, nick, opts) {
         }
         listeners[event].push(fn);
     });
+    this.once = jasmine.createSpy("Client.once(event, fn)");
+    this.once.andCallFake(function(event, fn) {
+        if (!onceListeners[event]) {
+            onceListeners[event] = [];
+        }
+        onceListeners[event].push(fn);
+    });
     this._trigger = function (type, args) {
         if (listeners[type]) {
             listeners[type].forEach(function(listener) {
                 listener.apply(this, args);
             });
+        }
+        if (onceListeners[type]) {
+            onceListeners[type].forEach(function(listener) {
+                listener.apply(this, args);
+            });
+            onceListeners[type] = [];
         }
     };
     this.addr = addr;
@@ -149,6 +163,14 @@ function Client(addr, nick, opts) {
         return trigger(that, "whois", nick, {
             user: (exists ? nick : undefined),
             nick: nick
+        });
+    };
+    this._changeNick = function(oldNick, newNick) {
+        var client = this;
+        process.nextTick(function() {
+            // send a response from the IRC server
+            client.nick = newNick;
+            client._trigger("nick", [oldNick, newNick]);
         });
     };
 

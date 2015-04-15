@@ -48,25 +48,6 @@ describe("Invite-only rooms", function() {
         });
     });
 
-    // XXX FIXME TODO this is no longer true!
-    xit("should not be joined by the bot if the AS does not know the room ID", 
-    function(done) {
-        mockAsapiController._trigger("type:m.room.member", {
-            content: {
-                membership: "invite",
-            },
-            state_key: botUserId,
-            user_id: testUser.id,
-            room_id: "!unknownroomid:here",
-            type: "m.room.member"
-        }).catch(function(e) {
-            // XXX mingy check here, but better than nothing
-            if (typeof e === "string" && e.indexOf("unknown room") !== -1) {
-                done();
-            }
-        });
-    });
-
     it("should be joined by the bot if the AS does know the room ID", 
     function(done) {
         var sdk = clientMock._client();
