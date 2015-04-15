@@ -100,9 +100,11 @@ module.exports._autoJoinChannels = function(addr, nick, channels) {
     if (typeof channels === "string") {
         channels = [channels];
     }
-    module.exports._whenClient(addr, nick, "connect", function(client, chan, cb) {
+    module.exports._whenClient(addr, nick, "join", function(client, chan, cb) {
         if (channels.indexOf(chan) != -1) {
-            cb();
+            if (cb) {
+                cb();
+            }
         }
     });
 };
@@ -111,9 +113,11 @@ module.exports._autoConnectNetworks = function(addr, nick, networks) {
     if (typeof networks === "string") {
         networks = [networks];
     }
-    module.exports._whenClient(addr, nick, "join", function(client, chan, cb) {
+    module.exports._whenClient(addr, nick, "connect", function(client, cb) {
         if (networks.indexOf(client.addr) != -1) {
-            cb();
+            if (cb) {
+                cb();
+            }
         }
     });
 };

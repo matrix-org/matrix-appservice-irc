@@ -8,7 +8,7 @@ var q = require("q");
 var proxyquire =  require('proxyquire');
 var clientMock = require("../util/client-sdk-mock");
 clientMock["@global"] = true; 
-var ircMock = require("../util/irc-mock");
+var ircMock = require("../util/irc-client-mock");
 ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
@@ -37,12 +37,18 @@ describe("Matrix-to-IRC message bridging", function() {
         mockAsapiController = asapiMock.create();
 
         // accept connection requests
-        ircMock._findClientAsync(roomMapping.server, testUser.nick).then(
-        function(client) {
-            return client._triggerConnect();
-        }).then(function(client) {
-            return client._triggerJoinFor(roomMapping.channel);
-        }).done();
+        ircMock._autoConnectNetworks(
+            roomMapping.server, testUser.nick, roomMapping.server
+        );
+        ircMock._autoJoinChannels(
+            roomMapping.server, testUser.nick, roomMapping.channel
+        );
+        ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+        ircMock._autoJoinChannels(
+            roomMapping.server, roomMapping.botNick, roomMapping.channel
+        );
 
         // do the init
         dbHelper._reset(appConfig.databaseUri).then(function() {
@@ -55,6 +61,17 @@ describe("Matrix-to-IRC message bridging", function() {
 
     it("should bridge matrix messages as IRC text", function(done) {
         var testText = "Here is some test text.";
+
+        ircMock._whenClient(roomMapping.server, testUser.nick, "say", 
+        function(client, channel, text) {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            expect(text.length).toEqual(testText.length);
+            expect(text).toEqual(testText);
+            done();
+        });
+
         mockAsapiController._trigger("type:m.room.message", {
             content: {
                 body: testText,
@@ -63,15 +80,6 @@ describe("Matrix-to-IRC message bridging", function() {
             user_id: testUser.id,
             room_id: roomMapping.roomId,
             type: "m.room.message"
-        });
-
-        ircMock._emitter.on("say", function(client, channel, text) {
-            expect(client.nick).toEqual(testUser.nick);
-            expect(client.addr).toEqual(roomMapping.server);
-            expect(channel).toEqual(roomMapping.channel);
-            expect(text.length).toEqual(testText.length);
-            expect(text).toEqual(testText);
-            done();
         });
     });
 
@@ -85,6 +93,17 @@ describe("Matrix-to-IRC message bridging", function() {
         var tIrcBody = "I support \u0002strong bold\u000f and \u0002normal bold"+
         "\u000f and \u0002bold \u001fand underline\u000f\u0002\u000303 including"+
         " green\u000f\u0002\u000f"; // last 2 codes not necessary!
+
+        ircMock._whenClient(roomMapping.server, testUser.nick, "say", 
+        function(client, channel, text) {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            expect(text.length).toEqual(tIrcBody.length);
+            expect(text).toEqual(tIrcBody);
+            done();
+        });
+
         mockAsapiController._trigger("type:m.room.message", {
             content: {
                 body: tFallback,
@@ -95,15 +114,6 @@ describe("Matrix-to-IRC message bridging", function() {
             user_id: testUser.id,
             room_id: roomMapping.roomId,
             type: "m.room.message"
-        });
-
-        ircMock._emitter.on("say", function(client, channel, text) {
-            expect(client.nick).toEqual(testUser.nick);
-            expect(client.addr).toEqual(roomMapping.server);
-            expect(channel).toEqual(roomMapping.channel);
-            expect(text.length).toEqual(tIrcBody.length);
-            expect(text).toEqual(tIrcBody);
-            done();
         });
     });
 
@@ -115,6 +125,17 @@ describe("Matrix-to-IRC message bridging", function() {
         "are < included > here.";
         var tIrcBody = "this is a \"test\" & some _ mo!re fun ch@racters... "+
         "are < included > here.";
+
+        ircMock._whenClient(roomMapping.server, testUser.nick, "say", 
+        function(client, channel, text) {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            expect(text.length).toEqual(tIrcBody.length);
+            expect(text).toEqual(tIrcBody);
+            done();
+        });
+
         mockAsapiController._trigger("type:m.room.message", {
             content: {
                 body: tFallback,
@@ -126,19 +147,20 @@ describe("Matrix-to-IRC message bridging", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
-
-        ircMock._emitter.on("say", function(client, channel, text) {
-            expect(client.nick).toEqual(testUser.nick);
-            expect(client.addr).toEqual(roomMapping.server);
-            expect(channel).toEqual(roomMapping.channel);
-            expect(text.length).toEqual(tIrcBody.length);
-            expect(text).toEqual(tIrcBody);
-            done();
-        });
     });
 
     it("should bridge matrix emotes as IRC actions", function(done) {
         var testEmote = "thinks";
+
+        ircMock._whenClient(roomMapping.server, testUser.nick, "action", 
+        function(client, channel, text) {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            expect(text).toEqual(testEmote);
+            done();
+        });
+
         mockAsapiController._trigger("type:m.room.message", {
             content: {
                 body: testEmote,
@@ -148,18 +170,21 @@ describe("Matrix-to-IRC message bridging", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
-
-        ircMock._emitter.on("action", function(client, channel, text) {
-            expect(client.nick).toEqual(testUser.nick);
-            expect(client.addr).toEqual(roomMapping.server);
-            expect(channel).toEqual(roomMapping.channel);
-            expect(text).toEqual(testEmote);
-            done();
-        });
     });
 
     it("should bridge matrix notices as IRC notices", function(done) {
         var testNotice = "Some automated message";
+
+        ircMock._whenClient(roomMapping.server, testUser.nick, "ctcp", 
+        function(client, channel, kind, text) {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            expect(kind).toEqual("notice");
+            expect(text).toEqual(testNotice);
+            done();
+        });
+
         mockAsapiController._trigger("type:m.room.message", {
             content: {
                 body: testNotice,
@@ -169,32 +194,14 @@ describe("Matrix-to-IRC message bridging", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
-
-        ircMock._emitter.on("ctcp", function(client, channel, kind, text) {
-            expect(client.nick).toEqual(testUser.nick);
-            expect(client.addr).toEqual(roomMapping.server);
-            expect(channel).toEqual(roomMapping.channel);
-            expect(kind).toEqual("notice");
-            expect(text).toEqual(testNotice);
-            done();
-        });
     });
 
     it("should bridge matrix images as IRC text with a URL", function(done) {
         var tBody = "the_image.jpg";
         var tMxcSegment = "somedomain.com/somecontentid";
-        mockAsapiController._trigger("type:m.room.message", {
-            content: {
-                body: tBody,
-                url: "mxc://" + tMxcSegment,
-                msgtype: "m.image"
-            },
-            user_id: testUser.id,
-            room_id: roomMapping.roomId,
-            type: "m.room.message"
-        });
 
-        ircMock._emitter.on("say", function(client, channel, text) {
+        ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say", 
+        function(client, channel, text) {
             expect(client.nick).toEqual(roomMapping.botNick);
             expect(client.addr).toEqual(roomMapping.server);
             expect(channel).toEqual(roomMapping.channel);
@@ -205,27 +212,24 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        // NB: The *BOT* sends the message here, so let it connect.
-        ircMock._letNickJoinChannel(
-            roomMapping.server, roomMapping.botNick, roomMapping.channel
-        );
-    });
-
-    it("should bridge matrix files as IRC text with a URL", function(done) {
-        var tBody = "a_file.apk";
-        var tMxcSegment = "somedomain.com/somecontentid";
         mockAsapiController._trigger("type:m.room.message", {
             content: {
                 body: tBody,
                 url: "mxc://" + tMxcSegment,
-                msgtype: "m.file"
+                msgtype: "m.image"
             },
             user_id: testUser.id,
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
+    });
 
-        ircMock._emitter.on("say", function(client, channel, text) {
+    it("should bridge matrix files as IRC text with a URL", function(done) {
+        var tBody = "a_file.apk";
+        var tMxcSegment = "somedomain.com/somecontentid";
+
+        ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say", 
+        function(client, channel, text) {
             expect(client.nick).toEqual(roomMapping.botNick);
             expect(client.addr).toEqual(roomMapping.server);
             expect(channel).toEqual(roomMapping.channel);
@@ -236,14 +240,31 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        // NB: The *BOT* sends the message here, so let it connect.
-        ircMock._letNickJoinChannel(
-            roomMapping.server, roomMapping.botNick, roomMapping.channel
-        );
+        mockAsapiController._trigger("type:m.room.message", {
+            content: {
+                body: tBody,
+                url: "mxc://" + tMxcSegment,
+                msgtype: "m.file"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
     });
 
     it("should bridge matrix topics as IRC topics", function(done) {
         var testTopic = "Topics are amazingz";
+
+        ircMock._whenClient(roomMapping.server, testUser.nick, "send", 
+        function(client, command, channel, data) {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(command).toEqual("TOPIC");
+            expect(channel).toEqual(roomMapping.channel);
+            expect(data).toEqual(testTopic);
+            done();
+        });
+
         mockAsapiController._trigger("type:m.room.topic", {
             content: {
                 topic: testTopic
@@ -251,15 +272,6 @@ describe("Matrix-to-IRC message bridging", function() {
             user_id: testUser.id,
             room_id: roomMapping.roomId,
             type: "m.room.topic"
-        });
-
-        ircMock._emitter.on("send", function(client, command, channel, data) {
-            expect(client.nick).toEqual(testUser.nick);
-            expect(client.addr).toEqual(roomMapping.server);
-            expect(command).toEqual("TOPIC");
-            expect(channel).toEqual(roomMapping.channel);
-            expect(data).toEqual(testTopic);
-            done();
         });
     });
 });

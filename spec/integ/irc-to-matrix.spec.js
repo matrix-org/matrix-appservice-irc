@@ -8,7 +8,7 @@ var q = require("q");
 var proxyquire =  require('proxyquire');
 var clientMock = require("../util/client-sdk-mock");
 clientMock["@global"] = true; 
-var ircMock = require("../util/irc-mock");
+var ircMock = require("../util/irc-client-mock");
 ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
@@ -53,7 +53,10 @@ describe("IRC-to-Matrix message bridging", function() {
             returnUserId: tUserId
         });
 
-        ircMock._letNickJoinChannel(
+        ircMock._autoJoinChannels(
+            roomMapping.server, roomMapping.botNick, roomMapping.channel
+        );
+        ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.channel
         );
 
@@ -83,7 +86,7 @@ describe("IRC-to-Matrix message bridging", function() {
 
         ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
         function(client) {
-            client._trigger("message", [tFromNick, roomMapping.channel, testText]);
+            client.emit("message", tFromNick, roomMapping.channel, testText);
         });
     });
 
@@ -100,9 +103,10 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(function(client) {
-            client._trigger("ctcp-privmsg", 
-                [tFromNick, roomMapping.channel, "ACTION "+testEmoteText]
+        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        function(client) {
+            client.emit("ctcp-privmsg", 
+                tFromNick, roomMapping.channel, "ACTION "+testEmoteText
             );
         });
     });
@@ -120,8 +124,9 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(function(client) {
-            client._trigger("notice", [tFromNick, roomMapping.channel, testNoticeText]);
+        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        function(client) {
+            client.emit("notice", tFromNick, roomMapping.channel, testNoticeText);
         });
     });
 
@@ -135,8 +140,9 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(function(client) {
-            client._trigger("topic", [roomMapping.channel, testTopic, tFromNick]);
+        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        function(client) {
+            client.emit("topic", roomMapping.channel, testTopic, tFromNick);
         });
     });
 
@@ -172,8 +178,9 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(function(client) {
-            client._trigger("message", [tFromNick, roomMapping.channel, tIrcFormattedText]);
+        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        function(client) {
+            client.emit("message", tFromNick, roomMapping.channel, tIrcFormattedText);
         });
     });
 });
