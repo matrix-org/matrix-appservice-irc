@@ -125,6 +125,12 @@ ircService:
     # The max number of files to keep. Files will be overwritten eventually due to rotations.
     maxFiles: 5
 
+  # Optional. The endpoint for a statsd server. If not specified, stats will not
+  # be sent. Stats are sent as UDP.
+  statsd:
+    hostname: "127.0.0.1"
+    port: 9878
+
   # The nedb database URI to connect to. This is the name of the directory to dump .db files to.
   # This is relative to the project directory.
   # Required.
