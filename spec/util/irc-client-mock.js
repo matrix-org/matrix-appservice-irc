@@ -26,6 +26,13 @@ function setClientNick(addr, oldNick, newNick) {
     instances[addr+DELIM+oldNick] = null;
     instanceEmitter.emit("client_"+addr+"_"+newNick, client);
 };
+function invokeCallback(cb) {
+    process.nextTick(function() {
+        if (cb) {
+            cb();
+        }
+    });
+};
 
 module.exports._reset = function() {
     instances = {};
@@ -115,9 +122,7 @@ module.exports._autoJoinChannels = function(addr, nick, channels) {
     module.exports._whenClient(addr, nick, "join", function(client, chan, cb) {
         if (channels.indexOf(chan) != -1) {
             client.chans[chan] = {};
-            if (cb) {
-                cb();
-            }
+            invokeCallback(cb);
         }
     });
 };
@@ -128,9 +133,7 @@ module.exports._autoConnectNetworks = function(addr, nick, networks) {
     }
     module.exports._whenClient(addr, nick, "connect", function(client, cb) {
         if (networks.indexOf(client.addr) != -1) {
-            if (cb) {
-                cb();
-            }
+            invokeCallback(cb);
         }
     });
 };

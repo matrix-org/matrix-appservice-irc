@@ -10,6 +10,7 @@ var ircMock = require("../util/irc-client-mock");
 ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
+var test = require("../util/test");
 var q = require("q");
 
 // set up test config
