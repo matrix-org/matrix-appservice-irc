@@ -15,6 +15,9 @@ Flakey:
 - Handle being disconnected from the IRC network (bot and individual clients)
 - Matrix rate limiting (M_LIMIT_EXCEEDED)
 - Handle nick clashes (incl. alt nickname support on the bot)
+- You can send messages in channels you are not a part of (e.g. Github123),
+  we should probably send that from the AS bot rather than pollute the member
+  list in this case.
 
 Nice to haves:
 - Unit tests
