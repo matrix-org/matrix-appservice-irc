@@ -6,7 +6,7 @@ var extend = require("extend");
 var proxyquire =  require('proxyquire');
 var clientMock = require("../util/client-sdk-mock");
 clientMock["@global"] = true; 
-var ircMock = require("../util/irc-mock");
+var ircMock = require("../util/irc-client-mock");
 ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
@@ -30,14 +30,20 @@ describe("Creating admin rooms", function() {
             "irc": ircMock
         });
         mockAsapiController = asapiMock.create();
-        ircMock._letNickJoinChannel(
+
+        ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+        ircMock._autoJoinChannels(
             roomMapping.server, roomMapping.botNick, roomMapping.channel
         );
 
         // do the init
         dbHelper._reset(appConfig.databaseUri).then(function() {
             ircService.configure(appConfig.ircConfig);
-            return ircService.register(mockAsapiController, appConfig.serviceConfig);
+            return ircService.register(
+                mockAsapiController, appConfig.serviceConfig
+            );
         }).done(function() {
             done();
         });
@@ -97,10 +103,16 @@ describe("Admin rooms", function() {
         });
         mockAsapiController = asapiMock.create();
 
-        ircMock._letNickJoinChannel(
+        ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+        ircMock._autoJoinChannels(
             roomMapping.server, roomMapping.botNick, roomMapping.channel
         );
-        ircMock._letNickJoinChannel(
+        ircMock._autoConnectNetworks(
+            roomMapping.server, userIdNick, roomMapping.server
+        );
+        ircMock._autoJoinChannels(
             roomMapping.server, userIdNick, roomMapping.channel
         );
 
@@ -208,7 +220,8 @@ describe("Admin rooms", function() {
 
         // make sure that the nick command is sent
         var sentNickCommand = false;
-        ircMock._emitter.on("send", function(client, command, arg) {
+        ircMock._whenClient(roomMapping.server, userIdNick, "send", 
+        function(client, command, arg) {
             expect(client.nick).toEqual(userIdNick, "use the old nick on /nick");
             expect(client.addr).toEqual(roomMapping.server);
             expect(command).toEqual("NICK");
@@ -219,7 +232,8 @@ describe("Admin rooms", function() {
 
         // make sure that when a message is sent it uses the new nick
         var sentSay = false;
-        ircMock._emitter.on("say", function(client, channel, text) {
+        ircMock._whenClient(roomMapping.server, newNick, "say", 
+        function(client, channel, text) {
             expect(client.nick).toEqual(newNick, "use the new nick on /say");
             expect(client.addr).toEqual(roomMapping.server);
             expect(channel).toEqual(roomMapping.channel);
@@ -272,9 +286,10 @@ describe("Admin rooms", function() {
         var newRoomId = "!aasifuhawei:efjkwehfi";
 
         // let the bot join the irc channel
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
-            return client._triggerJoinFor(newChannel);
+        ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
+        function(client, chan, cb) {
+            expect(chan).toEqual(newChannel);
+            if (cb) { cb(); }
         });
 
         // make sure the AS creates a new PRIVATE matrix room.

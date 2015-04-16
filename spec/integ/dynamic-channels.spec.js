@@ -5,7 +5,7 @@ var q = require("q");
 var proxyquire =  require('proxyquire');
 var clientMock = require("../util/client-sdk-mock");
 clientMock["@global"] = true; 
-var ircMock = require("../util/irc-mock");
+var ircMock = require("../util/irc-client-mock");
 ircMock["@global"] = true;
 var dbHelper = require("../util/db-helper");
 var asapiMock = require("../util/asapi-controller-mock");
@@ -36,17 +36,22 @@ describe("Dynamic channels", function() {
         mockAsapiController = asapiMock.create();
 
         // accept connection requests
-        ircMock._findClientAsync(roomMapping.server, testUser.nick).then(
-        function(client) {
-            return client._triggerConnect();
-        }).then(function(client) {
-            return client._triggerJoinFor(roomMapping.channel);
-        }).done();
+        ircMock._autoConnectNetworks(
+            roomMapping.server, testUser.nick, roomMapping.server
+        );
+        ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+        ircMock._autoJoinChannels(
+            roomMapping.server, testUser.nick, roomMapping.channel
+        );
 
         // do the init
         dbHelper._reset(appConfig.databaseUri).then(function() {
             ircService.configure(appConfig.ircConfig);
-            return ircService.register(mockAsapiController, appConfig.serviceConfig);
+            return ircService.register(
+                mockAsapiController, appConfig.serviceConfig
+            );
         }).done(function() {
             done();
         });
@@ -62,13 +67,11 @@ describe("Dynamic channels", function() {
 
         // when we get the connect/join requests, accept them.
         var joinedIrcChannel = false;
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
-            return client._triggerConnect();
-        }).then(function(client) {
-            return client._triggerJoinFor(tChannel);
-        }).done(function() {
+        ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
+        function(client, chan, cb) {
+            expect(chan).toEqual(tChannel);
             joinedIrcChannel = true;
+            if (cb) { cb(); }
         });
 
         // when we get the create room request, process it.
@@ -110,17 +113,22 @@ describe("Dynamic channels (disabled)", function() {
         mockAsapiController = asapiMock.create();
 
         // accept connection requests
-        ircMock._findClientAsync(roomMapping.server, testUser.nick).then(
-        function(client) {
-            return client._triggerConnect();
-        }).then(function(client) {
-            return client._triggerJoinFor(roomMapping.channel);
-        }).done();
+        ircMock._autoConnectNetworks(
+            roomMapping.server, testUser.nick, roomMapping.server
+        );
+        ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+        ircMock._autoJoinChannels(
+            roomMapping.server, testUser.nick, roomMapping.channel
+        );
 
         // do the init
         dbHelper._reset(appConfig.databaseUri).then(function() {
             ircService.configure(appConfig.ircConfig);
-            return ircService.register(mockAsapiController, appConfig.serviceConfig);
+            return ircService.register(
+                mockAsapiController, appConfig.serviceConfig
+            );
         }).done(function() {
             done();
         });
@@ -135,13 +143,12 @@ describe("Dynamic channels (disabled)", function() {
 
         // when we get the connect/join requests, accept them.
         var joinedIrcChannel = false;
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
-            return client._triggerConnect();
-        }).then(function(client) {
-            return client._triggerJoinFor(tChannel);
-        }).done(function() {
-            joinedIrcChannel = true;
+        ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
+        function(client, chan, cb) {
+            if (chan === tChannel) {
+                joinedIrcChannel = true;
+            }
+            if (cb) { cb(); }
         });
 
         // when we get the create room request, process it.
@@ -153,9 +160,8 @@ describe("Dynamic channels (disabled)", function() {
         });
 
         mockAsapiController._query_alias(tAlias).catch(function() {
-            if (!joinedIrcChannel) {
-                done();
-            }
+            expect(joinedIrcChannel).toBe(false, "Joined channel by alias");
+            done();
         });
     });
 });

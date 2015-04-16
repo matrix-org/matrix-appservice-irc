@@ -24,7 +24,7 @@ function setClientNick(addr, oldNick, newNick) {
     client.nick = newNick;
     instances[addr+DELIM+newNick] = client;
     instances[addr+DELIM+oldNick] = null;
-    instanceEmitter.emit("update_client_"+addr+"_"+oldNick, client);
+    instanceEmitter.emit("client_"+addr+"_"+newNick, client);
 };
 
 module.exports._reset = function() {
@@ -60,6 +60,15 @@ function Client(addr, nick, opts) {
         });
     });
 
+    this._changeNick = function(oldNick, newNick) {
+        setClientNick(client.addr, oldNick, newNick);
+        // emit the nick message from the server
+        process.nextTick(function() {
+            // send a response from the IRC server
+            client.emit("nick", oldNick, newNick);
+        });
+    };
+
     setClient(client, addr, nick);
 };
 util.inherits(Client, EventEmitter);
@@ -84,12 +93,12 @@ module.exports._findClient = function(addr, nick) {
 };
 
 module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
-    console.log("Add listener for "+(addr+"_"+nick));
+    console.log("Add listener(%s) for fn=%s", (addr+"_"+nick), fnName);
     clientEmitter.on((addr+"_"+nick), function(invokedFnName, client) {
-        console.log("Irc.Client.on %s", (addr+"_"+nick));
         if (invokedFnName !== fnName) {
             return;
         }
+        console.log("Irc.Client.on(%s) fn=%s", (addr+"_"+nick), invokedFnName);
         // invoke function with the remaining args (incl. Client object)
         var args = [];
         for (var i=1; i<arguments.length; i++) {
@@ -105,6 +114,7 @@ module.exports._autoJoinChannels = function(addr, nick, channels) {
     }
     module.exports._whenClient(addr, nick, "join", function(client, chan, cb) {
         if (channels.indexOf(chan) != -1) {
+            client.chans[chan] = {};
             if (cb) {
                 cb();
             }
