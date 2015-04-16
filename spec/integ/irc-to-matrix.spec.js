@@ -106,7 +106,9 @@ describe("IRC-to-Matrix message bridging", function() {
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
         function(client) {
-            client.emit("notice", tFromNick, roomMapping.channel, testNoticeText);
+            client.emit(
+                "notice", tFromNick, roomMapping.channel, testNoticeText
+            );
         });
     });
 
@@ -160,7 +162,9 @@ describe("IRC-to-Matrix message bridging", function() {
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
         function(client) {
-            client.emit("message", tFromNick, roomMapping.channel, tIrcFormattedText);
+            client.emit(
+                "message", tFromNick, roomMapping.channel, tIrcFormattedText
+            );
         });
     });
 });

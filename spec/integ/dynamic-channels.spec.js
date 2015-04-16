@@ -7,6 +7,7 @@ var env = test.mkEnv();
 
 // set up test config
 var appConfig = env.appConfig;
+var ircConfig = appConfig.ircConfig;
 var roomMapping = appConfig.roomMapping;
 
 describe("Dynamic channels", function() {
@@ -16,8 +17,8 @@ describe("Dynamic channels", function() {
     };
 
     beforeEach(function(done) {
-        appConfig.ircConfig.servers[roomMapping.server].dynamicChannels.enabled = true;
-        appConfig.ircConfig.servers[roomMapping.server].dynamicChannels.visibility = "public";
+        ircConfig.servers[roomMapping.server].dynamicChannels.enabled = true;
+        ircConfig.servers[roomMapping.server].dynamicChannels.visibility = "public";
         test.beforeEach(this, env);
 
         // accept connection requests
@@ -78,7 +79,7 @@ describe("Dynamic channels (disabled)", function() {
     };
 
     beforeEach(function(done) {
-        appConfig.ircConfig.servers[roomMapping.server].dynamicChannels.enabled = false;
+        ircConfig.servers[roomMapping.server].dynamicChannels.enabled = false;
         test.beforeEach(this, env);
 
         // accept connection requests

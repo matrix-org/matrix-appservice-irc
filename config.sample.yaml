@@ -1,4 +1,5 @@
-# Configuration specific to AS registration. Unless other marked, all fields are *REQUIRED*.
+# Configuration specific to AS registration. Unless other marked, all fields
+# are *REQUIRED*.
 appService:
   # The URL to the home server for client-server API calls.
   hs: "http://localhost:8008"
@@ -41,17 +42,19 @@ ircService:
         # Optional. Default: [].
         exclude: ["Alice", "Bob"] # NOT YET IMPLEMENTED
 
-      # Configuration for mappings not explicitly listed in the 'mappings' section.
+      # Configuration for mappings not explicitly listed in the 'mappings' 
+      # section.
       dynamicChannels:
         # Enable the ability for Matrix users to join *any* channel on this IRC
         # network.
         # Default: false.
         enabled: true
         # How the AS should create new Matrix rooms:
-        # "public": A public room is created, and an alias is published for this room
-        #           so any Matrix user can join so long as they know the alias.
-        # "private" : An invite-only room is created, and no alias is published so
-        #             only Matrix users with an invite can join this room.
+        # "public": A public room is created, and an alias is published for this
+        #           room so any Matrix user can join so long as they know the
+        #           alias.
+        # "private" : An invite-only room is created, and no alias is published
+        #             so only Matrix users with an invite can join this room.
         # Default: public.
         visibility: "public" # NOT YET IMPLEMENTED
         # Should created Matrix rooms be federated? If false, only users on the
@@ -65,25 +68,28 @@ ircService:
         # This MUST have $CHANNEL somewhere in it.
         # Default: '#irc_$SERVER_$CHANNEL'
         aliasTemplate: "#irc_$CHANNEL"
-        # A list of user IDs which the AS bot will send invites to in response to a !join.
-        # Only applies if visiblity is 'private'. Default: []
+        # A list of user IDs which the AS bot will send invites to in response
+        # to a !join. Only applies if visiblity is 'private'. Default: []
         whitelist:
           - "@foo:example.com"
           - "@bar:example.com"
-        # Prevent the given list of channels from being mapped under any circumstances.
+        # Prevent the given list of channels from being mapped under any 
+        # circumstances.
         exclude: ["#foo", "#bar"]
 
       mappings:
         # 1:many mappings from IRC channels to room IDs on this IRC server.
         "#thepub": ["!kieouiJuedJoxtVdaG:localhost"]
 
-      # Configuration for virtual matrix users. The following variables are exposed:
+      # Configuration for virtual matrix users. The following variables are
+      # exposed:
       # $NICK => The IRC nick
       # $SERVER => The IRC server address (e.g. "irc.example.com")
       matrixClients:
         # The user ID template to use when creating virtual matrix users. This
         # MUST have $NICK somewhere in it.
-        # Optional. Default: "@$SERVER_$NICK". Example: "@irc.example.com_Alice:example.com"
+        # Optional. Default: "@$SERVER_$NICK".
+        # Example: "@irc.example.com_Alice:example.com"
         userTemplate: "@irc_$NICK"
         # The display name to use for created matrix clients. This MUST have
         # $NICK somewhere in it if it is specified.
@@ -93,8 +99,9 @@ ircService:
       # Configuration for virtual IRC users. The following variables are exposed:
       # $LOCALPART => The user ID localpart ("alice" in @alice:localhost)
       # $USERID => The user ID
-      # $DISPLAY => The display name of this user, with excluded characters (e.g. space)
-      #             removed. If the user has no display name, this falls back to $LOCALPART.
+      # $DISPLAY => The display name of this user, with excluded characters
+      #             (e.g. space) removed. If the user has no display name, this
+      #             falls back to $LOCALPART.
       ircClients:
         # The template to apply to every IRC client nick. This MUST have either
         # $DISPLAY or $USERID or $LOCALPART somewhere in it.
@@ -105,24 +112,27 @@ ircService:
         # This is completely freeform: it will NOT follow the nickTemplate.
         allowNickChanges: true
         # The max number of IRC clients that will connect. If the limit is
-        # reached, the client that spoke the longest time ago will be disconnected
-        # and replaced.
+        # reached, the client that spoke the longest time ago will be
+        # disconnected and replaced.
         # Optional. Default: 30.
         maxClients: 30 # NOT YET IMPLEMENTED
 
-  # Configuration for logging. Optional. Default: console debug level logging only.
+  # Configuration for logging. Optional. Default: console debug level logging
+  # only.
   logging:
     # Level to log on console/logfile. One of error|warn|info|debug
     level: "debug"
     # The file location to log to. This is relative to the project directory.
     logfile: "debug.log"
-    # The file location to log errors to. This is relative to the project directory.
+    # The file location to log errors to. This is relative to the project
+    # directory.
     errfile: "errors.log"
     # Whether to log to the console or not.
     toConsole: true
     # The max size each file can get to in bytes before a new file is created.
     maxFileSizeBytes: 134217728 # 128 MB
-    # The max number of files to keep. Files will be overwritten eventually due to rotations.
+    # The max number of files to keep. Files will be overwritten eventually due
+    # to rotations.
     maxFiles: 5
 
   # Optional. The endpoint for a statsd server. If not specified, stats will not
@@ -131,7 +141,7 @@ ircService:
     hostname: "127.0.0.1"
     port: 9878
 
-  # The nedb database URI to connect to. This is the name of the directory to dump .db files to.
-  # This is relative to the project directory.
+  # The nedb database URI to connect to. This is the name of the directory to
+  # dump .db files to. This is relative to the project directory.
   # Required.
   databaseUri: "nedb://data"

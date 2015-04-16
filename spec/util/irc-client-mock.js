@@ -36,8 +36,10 @@ function invokeCallback(cb) {
 
 module.exports._reset = function() {
     instances = {};
-    instanceEmitter = new EventEmitter(); // emitter when clients are added
-    clientEmitter = new EventEmitter(); // emitter when functions are called on a client.
+    // emitter when clients are added
+    instanceEmitter = new EventEmitter();
+    // emitter when functions are called on a client.
+    clientEmitter = new EventEmitter();
 };
 
 function Client(addr, nick, opts) {
@@ -55,7 +57,8 @@ function Client(addr, nick, opts) {
         client[fnName].andCallFake(function() {
             // emit that the action was performed along with the args. This can
             // be caught in the form:
-            // clientEmitter.on(addr+"_"+nick, function(fnName, client, arg1, arg2 ...)) {
+            // clientEmitter.on(addr+"_"+nick, 
+            // function(fnName, client, arg1, arg2 ...)) {
             //     // stuff    
             // }
             var args = [client.addr+"_"+client.nick, fnName, client];

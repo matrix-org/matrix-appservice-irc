@@ -46,6 +46,8 @@ describe("Initialisation", function() {
 
         // run the test
         env.ircService.configure(ircConfig);
-        env.ircService.register(env.mockAsapiController, appConfig.serviceConfig);
+        env.ircService.register(
+            env.mockAsapiController, appConfig.serviceConfig
+        );
     });
 });

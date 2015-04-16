@@ -13,11 +13,11 @@ module.exports.create = function() {
     };
 
     var asapiCtrl = {
-        setUserQueryResolver: jasmine.createSpy("AsapiCtrl.setUserQueryResolver(fn)"),
-        setAliasQueryResolver: jasmine.createSpy("AsapiCtrl.setAliasQueryResolver(fn)"),
-        addRegexPattern: jasmine.createSpy("AsapiCtrl.addRegexPattern(type, regex, exclusive)"),
-        getRegexNamespaces: jasmine.createSpy("AsapiCtrl.getRegexNamespaces()"),
-        setHomeserverToken: jasmine.createSpy("AsapiCtrl.setHomeserverToken(tok)"),
+        setUserQueryResolver: jasmine.createSpy("setUserQueryResolver(fn)"),
+        setAliasQueryResolver: jasmine.createSpy("setAliasQueryResolver(fn)"),
+        addRegexPattern: jasmine.createSpy("addRegexPattern(type, regex, excl)"),
+        getRegexNamespaces: jasmine.createSpy("getRegexNamespaces()"),
+        setHomeserverToken: jasmine.createSpy("setHomeserverToken(tok)"),
         setLogger: function(){},
         on: jasmine.createSpy("AsapiCtrl.on(eventType, fn)"),
         _trigger: function(eventType, content) {

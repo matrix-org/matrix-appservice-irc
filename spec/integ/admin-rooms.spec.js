@@ -7,6 +7,7 @@ var env = test.mkEnv();
 
 // set up test config
 var appConfig = env.appConfig;
+var ircConfig = appConfig.ircConfig;
 var roomMapping = appConfig.roomMapping;
 
 describe("Creating admin rooms", function() {
@@ -61,13 +62,13 @@ describe("Admin rooms", function() {
     var botUserId = "@"+appConfig.botLocalpart+":"+appConfig.homeServerDomain;
 
     // enable nick changes
-    appConfig.ircConfig.servers[roomMapping.server].ircClients.allowNickChanges = true;
+    ircConfig.servers[roomMapping.server].ircClients.allowNickChanges = true;
     // enable private dynamic channels with the user ID in a whitelist
-    appConfig.ircConfig.servers[roomMapping.server].dynamicChannels.enabled = true;
-    appConfig.ircConfig.servers[roomMapping.server].dynamicChannels.whitelist = [
+    ircConfig.servers[roomMapping.server].dynamicChannels.enabled = true;
+    ircConfig.servers[roomMapping.server].dynamicChannels.whitelist = [
         userId
     ];
-    appConfig.ircConfig.servers[roomMapping.server].dynamicChannels.visibility = "private";
+    ircConfig.servers[roomMapping.server].dynamicChannels.visibility = "private";
 
     beforeEach(function(done) {
         test.beforeEach(this, env);
@@ -127,7 +128,8 @@ describe("Admin rooms", function() {
         console.log("Before each post");
     });
 
-    it("should respond to bad !nick commands with a help notice", function(done) {
+    it("should respond to bad !nick commands with a help notice", 
+    function(done) {
         var sentNotice = false;
         sdk.sendMessage.andCallFake(function(roomId, content) {
             expect(roomId).toEqual(adminRoomId);
@@ -150,7 +152,8 @@ describe("Admin rooms", function() {
         });
     });
 
-    it("should respond to bad !join commands with a help notice", function(done) {
+    it("should respond to bad !join commands with a help notice", 
+    function(done) {
         var sentNotice = false;
         sdk.sendMessage.andCallFake(function(roomId, content) {
             expect(roomId).toEqual(adminRoomId);
@@ -215,7 +218,8 @@ describe("Admin rooms", function() {
             sentSay = true;
         });
 
-        // make sure the AS sends an ACK of the request as a notice in the admin room
+        // make sure the AS sends an ACK of the request as a notice in the admin
+        // room
         var sentAckNotice = false;
         sdk.sendMessage.andCallFake(function(roomId, content) {
             expect(roomId).toEqual(adminRoomId);
