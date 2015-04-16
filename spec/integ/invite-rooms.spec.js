@@ -1,23 +1,15 @@
 "use strict";
 var q = require("q");
+var test = require("../util/test");
 
 // set up integration testing mocks
-var proxyquire =  require('proxyquire');
-var clientMock = require("../util/client-sdk-mock");
-clientMock["@global"] = true; 
-var ircMock = require("../util/irc-client-mock");
-ircMock["@global"] = true;
-var dbHelper = require("../util/db-helper");
-var asapiMock = require("../util/asapi-controller-mock");
+var env = test.mkEnv();
 
 // set up test config
-var appConfig = require("../util/config-mock");
+var appConfig = env.appConfig;
 var roomMapping = appConfig.roomMapping;
 
 describe("Invite-only rooms", function() {
-    var ircService = null;
-    var mockAsapiController = null;
-
     var botUserId = "@"+appConfig.botLocalpart+":"+appConfig.homeServerDomain;
     var testUser = {
         id: "@flibble:wibble",
@@ -30,31 +22,21 @@ describe("Invite-only rooms", function() {
     };
 
     beforeEach(function(done) {
-        console.log(" === Invite Rooms Test Start === ");
-        ircMock._reset();
-        clientMock._reset();
-        ircService = proxyquire("../../lib/irc-appservice.js", {
-            "matrix-js-sdk": clientMock,
-            "irc": ircMock
-        });
-        mockAsapiController = asapiMock.create();
+        test.beforeEach(this, env);
 
-        ircMock._autoConnectNetworks(
+        env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
         // do the init
-        dbHelper._reset(appConfig.databaseUri).then(function() {
-            ircService.configure(appConfig.ircConfig);
-            return ircService.register(mockAsapiController, appConfig.serviceConfig);
-        }).done(function() {
+        test.initEnv(env).done(function() {
             done();
         });
     });
 
     it("should be joined by the bot if the AS does know the room ID", 
     function(done) {
-        var sdk = clientMock._client();
+        var sdk = env.clientMock._client();
         var joinedRoom = false;
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
@@ -62,7 +44,7 @@ describe("Invite-only rooms", function() {
             return q({});
         });
 
-        mockAsapiController._trigger("type:m.room.member", {
+        env.mockAsapiController._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
             },
@@ -82,7 +64,7 @@ describe("Invite-only rooms", function() {
     function(done) {
         // when it queries whois, say they exist
         var askedWhois = false;
-        ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
         function(client, nick, cb) {
             expect(nick).toEqual(testIrcUser.nick);
             // say they exist (presence of user key)
@@ -93,7 +75,7 @@ describe("Invite-only rooms", function() {
             });
         });
 
-        var sdk = clientMock._client();
+        var sdk = env.clientMock._client();
         // if it tries to register, accept.
         sdk._onHttpRegister({
             expectLocalpart: testIrcUser.localpart,
@@ -144,7 +126,7 @@ describe("Invite-only rooms", function() {
             ]);
         });
 
-        mockAsapiController._trigger("type:m.room.member", {
+        env.mockAsapiController._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
             },

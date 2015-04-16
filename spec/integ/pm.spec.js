@@ -2,25 +2,18 @@
  * Contains integration tests for private messages.
  */
 "use strict";
-// set up integration testing mocks
-var proxyquire =  require('proxyquire');
-var clientMock = require("../util/client-sdk-mock");
-clientMock["@global"] = true; 
-var ircMock = require("../util/irc-client-mock");
-ircMock["@global"] = true;
-var dbHelper = require("../util/db-helper");
-var asapiMock = require("../util/asapi-controller-mock");
-var test = require("../util/test");
 var q = require("q");
+var test = require("../util/test");
+
+// set up integration testing mocks
+var env = test.mkEnv();
+
 
 // set up test config
-var appConfig = require("../util/config-mock");
+var appConfig = env.appConfig;
 var roomMapping = appConfig.roomMapping;
 
 describe("Matrix-to-IRC PMing", function() {
-    var ircService = null;
-    var mockAsapiController = null;
-
     var tUserId = "@flibble:wibble";
     var tIrcNick = "someone";
     var tUserLocalpart = roomMapping.server+"_"+tIrcNick;
@@ -29,14 +22,7 @@ describe("Matrix-to-IRC PMing", function() {
     var whoisDefer, registerDefer, joinRoomDefer, roomStateDefer;
 
     beforeEach(function(done) {
-        console.log(" === M->I PM Test Start === ");
-        ircMock._reset();
-        clientMock._reset();
-        ircService = proxyquire("../../lib/irc-appservice.js", {
-            "matrix-js-sdk": clientMock,
-            "irc": ircMock
-        });
-        mockAsapiController = asapiMock.create();
+        test.beforeEach(this, env);
 
         // reset the deferreds
         whoisDefer = q.defer();
@@ -44,17 +30,11 @@ describe("Matrix-to-IRC PMing", function() {
         joinRoomDefer = q.defer();
         roomStateDefer = q.defer();
 
-        ircMock._autoConnectNetworks(
+        env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        // do the init
-        dbHelper._reset(appConfig.databaseUri).then(function() {
-            ircService.configure(appConfig.ircConfig);
-            return ircService.register(
-                mockAsapiController, appConfig.serviceConfig
-            );
-        }).done(function() {
+        test.initEnv(env).done(function() {
             done();
         });
     });
@@ -68,7 +48,7 @@ describe("Matrix-to-IRC PMing", function() {
         ]);
 
         // get the ball rolling
-        mockAsapiController._trigger("type:m.room.member", {
+        env.mockAsapiController._trigger("type:m.room.member", {
             content: {
                 membership: "invite"
             },
@@ -79,7 +59,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it queries whois, say they exist
-        ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
         function(client, nick, cb) {
             expect(nick).toEqual(tIrcNick);
             // say they exist (presence of user key)
@@ -91,7 +71,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it tries to register, join the room and get state, accept them
-        var sdk = clientMock._client();
+        var sdk = env.clientMock._client();
         sdk._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId,
@@ -141,7 +121,7 @@ describe("Matrix-to-IRC PMing", function() {
         ]);
 
         // get the ball rolling
-        mockAsapiController._trigger("type:m.room.member", {
+        env.mockAsapiController._trigger("type:m.room.member", {
             content: {
                 membership: "invite"
             },
@@ -152,7 +132,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it queries whois, say they exist
-        ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
         function(client, nick, cb) {
             expect(nick).toEqual(tIrcNick);
             // say they exist (presence of user key)
@@ -164,7 +144,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it tries to register, join the room and get state, accept them
-        var sdk = clientMock._client();
+        var sdk = env.clientMock._client();
         sdk._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId,
@@ -225,8 +205,6 @@ describe("Matrix-to-IRC PMing", function() {
 });
 
 describe("IRC-to-Matrix PMing", function() {
-    var ircService = null;
-    var mockAsapiController = null;
     var sdk = null;
 
     var tRealIrcUserNick = "bob";
@@ -241,15 +219,8 @@ describe("IRC-to-Matrix PMing", function() {
     var tText = "ello ello ello";
 
     beforeEach(function(done) {
-        console.log(" === IRC->M PM Test Start === ");
-        ircMock._reset();
-        clientMock._reset();
-        ircService = proxyquire("../../lib/irc-appservice.js", {
-            "matrix-js-sdk": clientMock,
-            "irc": ircMock
-        });
-        mockAsapiController = asapiMock.create();
-        sdk = clientMock._client();
+        test.beforeEach(this, env);
+        sdk = env.clientMock._client();
 
         // add registration mock impl:
         // registering should be for the REAL irc user
@@ -259,23 +230,18 @@ describe("IRC-to-Matrix PMing", function() {
         });
 
         // let the user join when they send a message
-        ircMock._autoConnectNetworks(
+        env.ircMock._autoConnectNetworks(
             roomMapping.server, tRealMatrixUserNick, roomMapping.server
         );
-        ircMock._autoJoinChannels(
+        env.ircMock._autoJoinChannels(
             roomMapping.server, tRealMatrixUserNick, roomMapping.channel
         );
 
         // do the init
-        dbHelper._reset(appConfig.databaseUri).then(function() {
-            ircService.configure(appConfig.ircConfig);
-            return ircService.register(
-                mockAsapiController, appConfig.serviceConfig
-            );
-        }).then(function() {
+        test.initEnv(env).then(function() {
             // send a message in the linked room (so the service provisions a 
             // virtual IRC user which the 'real' IRC users can speak to)
-            return mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAsapiController._trigger("type:m.room.message", {
                 content: {
                     body: "get me in",
                     msgtype: "m.text"
@@ -330,7 +296,7 @@ describe("IRC-to-Matrix PMing", function() {
         });
 
         // find the *VIRTUAL CLIENT* (not the bot) and send the irc message
-        ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick).done(
+        env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick).done(
         function(client) {
             client.emit(
                 "message", tRealIrcUserNick, tRealMatrixUserNick, tText

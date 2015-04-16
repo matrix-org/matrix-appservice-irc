@@ -3,23 +3,16 @@
  */
 "use strict";
 var q = require("q");
+var test = require("../util/test");
 
 // set up integration testing mocks
-var proxyquire =  require('proxyquire');
-var clientMock = require("../util/client-sdk-mock");
-clientMock["@global"] = true; 
-var ircMock = require("../util/irc-client-mock");
-ircMock["@global"] = true;
-var dbHelper = require("../util/db-helper");
-var asapiMock = require("../util/asapi-controller-mock");
+var env = test.mkEnv();
 
 // set up test config
-var appConfig = require("../util/config-mock");
+var appConfig = env.appConfig;
 var roomMapping = appConfig.roomMapping;
 
 describe("IRC-to-Matrix message bridging", function() {
-    var ircService = null;
-    var mockAsapiController = null;
     var sdk = null;
 
     var tFromNick = "mike";
@@ -35,17 +28,9 @@ describe("IRC-to-Matrix message bridging", function() {
     };
 
     beforeEach(function(done) {
-        console.log(" === IRC-to-Matrix Test Start === ");
-        // instantiate mocks
-        ircMock._reset();
-        clientMock._reset();
-        ircService = proxyquire("../../lib/irc-appservice.js", {
-            "matrix-js-sdk": clientMock,
-            "irc": ircMock
-        });
-        mockAsapiController = asapiMock.create();
-        sdk = clientMock._client();
-
+        test.beforeEach(this, env);
+        
+        sdk = env.clientMock._client();
         // add registration mock impl:
         // registering should be for the irc user
         sdk._onHttpRegister({
@@ -53,20 +38,15 @@ describe("IRC-to-Matrix message bridging", function() {
             returnUserId: tUserId
         });
 
-        ircMock._autoJoinChannels(
+        env.ircMock._autoJoinChannels(
             roomMapping.server, roomMapping.botNick, roomMapping.channel
         );
-        ircMock._autoConnectNetworks(
+        env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.channel
         );
 
         // do the init
-        dbHelper._reset(appConfig.databaseUri).then(function() {
-            ircService.configure(appConfig.ircConfig);
-            return ircService.register(
-                mockAsapiController, appConfig.serviceConfig
-            );
-        }).done(function() {
+        test.initEnv(env).done(function() {
             done();
         });
     });
@@ -84,7 +64,7 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
         function(client) {
             client.emit("message", tFromNick, roomMapping.channel, testText);
         });
@@ -103,7 +83,7 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
         function(client) {
             client.emit("ctcp-privmsg", 
                 tFromNick, roomMapping.channel, "ACTION "+testEmoteText
@@ -124,7 +104,7 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
         function(client) {
             client.emit("notice", tFromNick, roomMapping.channel, testNoticeText);
         });
@@ -140,7 +120,7 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
         function(client) {
             client.emit("topic", roomMapping.channel, testTopic, tFromNick);
         });
@@ -178,7 +158,7 @@ describe("IRC-to-Matrix message bridging", function() {
             return q();
         });
 
-        ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
         function(client) {
             client.emit("message", tFromNick, roomMapping.channel, tIrcFormattedText);
         });
