@@ -22,6 +22,11 @@ properties:
         properties:
             databaseUri:
                 type: "string"
+            statsd:
+                type: "object"
+                properties:
+                    endpoint:
+                        type: "string"
             logging:
                 type: "object"
                 properties:
