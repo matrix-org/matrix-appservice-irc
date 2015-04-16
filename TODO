@@ -1,3 +1,11 @@
+Features:
+- The AS bot should set a matrix display name (configurable)
+- For !commands, if there is only 1 IRC network configured, we should allow it
+  to not be specified.
+- private rooms should have join_rules and topic set to level:0 so anyone can
+  edit them. join_rules so that users can manually set rooms to public/publish
+  an alias for them. Required: ability to set room visibility post-create.
+
 Tests:
 - Add more tests for more edgey stuff (like the flakey section)
 - Add more tests for different configuration options
