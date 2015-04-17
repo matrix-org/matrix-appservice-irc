@@ -26,13 +26,6 @@ function setClientNick(addr, oldNick, newNick) {
     instances[addr+DELIM+oldNick] = null;
     instanceEmitter.emit("client_"+addr+"_"+newNick, client);
 };
-function invokeCallback(cb) {
-    process.nextTick(function() {
-        if (cb) {
-            cb();
-        }
-    });
-};
 
 module.exports._reset = function() {
     instances = {};
@@ -50,7 +43,7 @@ function Client(addr, nick, opts) {
     this.chans = {};
 
     var spies = [
-        "connect", "whois", "join", "send", "action", "ctcp", "say"
+        "connect", "whois", "join", "send", "action", "ctcp", "say", "disconnect"
     ];
     spies.forEach(function(fnName) {
         client[fnName] = jasmine.createSpy("Client."+fnName);
@@ -76,6 +69,14 @@ function Client(addr, nick, opts) {
         process.nextTick(function() {
             // send a response from the IRC server
             client.emit("nick", oldNick, newNick);
+        });
+    };
+
+    this._invokeCallback = function(cb) {
+        process.nextTick(function() {
+            if (cb) {
+                cb();
+            }
         });
     };
 
@@ -125,7 +126,7 @@ module.exports._autoJoinChannels = function(addr, nick, channels) {
     module.exports._whenClient(addr, nick, "join", function(client, chan, cb) {
         if (channels.indexOf(chan) != -1) {
             client.chans[chan] = {};
-            invokeCallback(cb);
+            client._invokeCallback(cb);
         }
     });
 };
@@ -136,7 +137,7 @@ module.exports._autoConnectNetworks = function(addr, nick, networks) {
     }
     module.exports._whenClient(addr, nick, "connect", function(client, cb) {
         if (networks.indexOf(client.addr) != -1) {
-            invokeCallback(cb);
+            client._invokeCallback(cb);
         }
     });
 };
