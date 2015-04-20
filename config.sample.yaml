@@ -115,6 +115,9 @@ ircService:
         # by issuing !nick <server> <nick> commands to the IRC AS bot.
         # This is completely freeform: it will NOT follow the nickTemplate.
         allowNickChanges: true
+        # True to listen on port 113 for Ident requests and respond with the
+        # matrix user's user_id (converted to ASCII)
+        useIdent: true  # NOT YET IMPLEMENTED
         # The max number of IRC clients that will connect. If the limit is
         # reached, the client that spoke the longest time ago will be
         # disconnected and replaced.
