@@ -95,6 +95,10 @@ ircService:
         # $NICK somewhere in it if it is specified.
         # Optional. Default: "$NICK (IRC)". Example: "Alice (IRC)"
         displayName: "$NICK (IRC)" # NOT YET IMPLEMENTED
+        # Make virtual matrix clients join and leave rooms as their real IRC
+        # counterparts join/part channels.
+        # Optional. Default: true
+        mirrorJoinPart: true  # NOT YET IMPLEMENTED
 
       # Configuration for virtual IRC users. The following variables are exposed:
       # $LOCALPART => The user ID localpart ("alice" in @alice:localhost)
@@ -115,7 +119,7 @@ ircService:
         # reached, the client that spoke the longest time ago will be
         # disconnected and replaced.
         # Optional. Default: 30.
-        maxClients: 30 # NOT YET IMPLEMENTED
+        maxClients: 30
 
   # Configuration for logging. Optional. Default: console debug level logging
   # only.

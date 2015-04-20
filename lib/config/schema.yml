@@ -114,6 +114,8 @@ properties:
                                 displayName:
                                     type: "string"
                                     pattern: "\\$NICK"
+                                mirrorJoinPart:
+                                    type: "boolean"
                         ircClients:
                             type: "object"
                             properties:
