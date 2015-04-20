@@ -118,7 +118,7 @@ describe("IRC client cycling", function() {
             // expect the first person who said something to have disconnected
             // AND NO ONE ELSE.
             expect(testUsers[0].disconnects).toEqual(1);
-            for (var i=1; i<testUsers.length; i++) {
+            for (i=1; i<testUsers.length; i++) {
                 expect(testUsers[i].disconnects).toEqual(
                     0, testUsers[i].id+" disconnected");
             }
