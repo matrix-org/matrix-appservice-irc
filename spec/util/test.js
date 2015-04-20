@@ -42,7 +42,7 @@ module.exports.initEnv = function(env) {
 module.exports.log = function(testCase) {
     var desc = testCase.suite.description + " : " + testCase.description;
     console.log(desc);
-    console.log(Array(1+desc.length).join("="));
+    console.log(new Array(1+desc.length).join("="));
 };
 
 module.exports.beforeEach = function(testCase, env) {

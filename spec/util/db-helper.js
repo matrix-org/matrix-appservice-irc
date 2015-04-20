@@ -35,7 +35,7 @@
                 if (configWiped && roomsWiped) {
                     d.resolve();
                 }
-            })
+            });
         }
     });
     var configDb = new Datastore({
@@ -47,7 +47,7 @@
                 if (configWiped && roomsWiped) {
                     d.resolve();
                 }
-            })
+            });
         }
     });
     return d.promise;

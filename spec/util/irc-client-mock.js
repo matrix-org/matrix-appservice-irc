@@ -14,18 +14,18 @@ var instances = {
 
 function getClient(addr, nick) {
     return instances[addr+DELIM+nick];
-};
+}
 function setClient(client, addr, nick) {
     instances[addr+DELIM+nick] = client;
     instanceEmitter.emit("client_"+addr+"_"+nick, client);
-};
+}
 function setClientNick(addr, oldNick, newNick) {
     var client = instances[addr+DELIM+oldNick];
     client.nick = newNick;
     instances[addr+DELIM+newNick] = client;
     instances[addr+DELIM+oldNick] = null;
     instanceEmitter.emit("client_"+addr+"_"+newNick, client);
-};
+}
 
 module.exports._reset = function() {
     instances = {};
@@ -81,7 +81,7 @@ function Client(addr, nick, opts) {
     };
 
     setClient(client, addr, nick);
-};
+}
 util.inherits(Client, EventEmitter);
 module.exports.Client = Client;
 
