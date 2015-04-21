@@ -98,7 +98,7 @@ ircService:
         # Make virtual matrix clients join and leave rooms as their real IRC
         # counterparts join/part channels.
         # Optional. Default: true
-        mirrorJoinPart: true  # NOT YET IMPLEMENTED
+        mirrorJoinPart: true
 
       # Configuration for virtual IRC users. The following variables are exposed:
       # $LOCALPART => The user ID localpart ("alice" in @alice:localhost)
