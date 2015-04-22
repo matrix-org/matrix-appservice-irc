@@ -137,7 +137,6 @@ describe("IRC-to-Matrix message bridging", function() {
         var tHtmlMain = "This text is <b>bold</b> and this is <u>underlined</u> "+
             'and this is <font color="green">green</font>. Finally, '+
             'this is a <b><u><font color="green">mix of all three';
-        var tHtml = tHtmlMain + tHtmlCloseTags;
         var tFallback = "This text is bold and this is underlined and this is "+
             "green. Finally, this is a mix of all three";
         sdk.sendMessage.andCallFake(function(roomId, content) {

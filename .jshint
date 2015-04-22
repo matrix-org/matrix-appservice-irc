@@ -1,4 +1,10 @@
 {
     "node": true,
-    "jasmine": true
+    "jasmine": true,
+
+    "curly": true,
+    "forin": true,
+    "freeze": true,
+    "undef": true,
+    "unused": "vars"
 }

@@ -2,7 +2,6 @@
  * Tests client-cycling options work correctly.
  */
 "use strict";
-var q = require("q");
 var test = require("../util/test");
 
 // set up integration testing mocks
