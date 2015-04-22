@@ -35,11 +35,11 @@ Quick Start
 Usage
 -----
 To join a channel on an IRC network configured for public use:
- - Join a room with the alias ``#<alias_prefix><channel_name>:<homeserver_hosting_the_appservice>`` e.g. ``#irc_#python:example.com``.
+ - Join a room with the alias ``#<alias_prefix><channel_name>:<homeserver_hosting_the_appservice>`` e.g. ``#irc_#python:example.com``. The template for this can be configured at `config.yaml:ircService.servers.<servername>.dynamicChannels.aliasTemplate`.
 
 To send a PM to someone on an IRC network:
  - Start a conversation with a user ID ``@<user_prefix><nick>:<homeserver_hosting_the_appservice>`` e.g.
-   ``@irc_Alice:example.com``
+   ``@irc_Alice:example.com``. The template for this can be configured at `config.yaml:ircService.servers.<servername>.matrixClients.userTemplate`.
 
 Configuration
 -------------
