@@ -1,19 +1,22 @@
 # Configuration specific to AS registration. Unless other marked, all fields
 # are *REQUIRED*.
 appService:
-  # The URL to the home server for client-server API calls.
-  hs: "http://localhost:8008"
-  # The 'domain' part for user IDs on this home server. Usually (but not always)
-  # is the "domain name" part of the HS URL.
-  hsDomain: "localhost"
-  # The application service token to use. Please use a secure random token! You
-  # can generate a secure random token by typing into the terminal:
-  # node -e "require('crypto').randomBytes(20,function(ex,buf){console.log(buf.toString('hex'))});"
-  token: "f0c03ebff14c223b57a3afdffe42ffd9c5875e9b"
-  # The webhook URL for the home server to hit on new events.
-  as: "http://localhost:3500"
-  # The port to listen on.
-  port: 3500
+  homeserver:
+    # The URL to the home server for client-server API calls.
+    url: "http://localhost:8008"
+    # The 'domain' part for user IDs on this home server. Usually (but not always)
+    # is the "domain name" part of the HS URL.
+    domain: "localhost"
+  appservice:
+    # The application service token to use. Please use a secure random token! You
+    # can generate a secure random token by typing into the terminal:
+    # node -e "require('crypto').randomBytes(20,function(ex,buf){console.log(buf.toString('hex'))});"
+    token: "f0c03ebff14c223b57a3afdffe42ffd9c5875e9b"
+    # The webhook URL for the home server to hit on new events.
+    url: "http://localhost:3500"
+  http:
+    # The port to listen on.
+    port: 3500
   # Optional. The desired user ID localpart for the AS bot.
   localpart: "appservice_irc"
 

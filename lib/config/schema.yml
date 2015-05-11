@@ -4,19 +4,33 @@ properties:
     appService:
         type: "object"
         properties:
-            hs:
-                "type": "string"
-            hsDomain:
-                "type": "string"
-            token:
-                "type": "string"
-            as:
-                "type": "string"
-            port:
-                "type": "number"
+            homeserver:
+                type: "object"
+                properties:
+                    url:
+                        type: "string"
+                    domain:
+                        type: "string"
+                required: ["url", "domain"]
+            appservice:
+                type: "object"
+                properties:
+                    url:
+                        type: "string"
+                    token:
+                        type: "string"
+                required: ["url", "token"]
+            http:
+                type: "object"
+                properties:
+                    port:
+                        type: "number"
+                    maxSize:
+                        type: "number"
+                required: ["port"]
             localpart:
                 "type": "string"
-        required: ["hs","hsDomain","token","as","port"]
+        required: ["homeserver", "appservice", "http"]
     ircService:
         type: "object"
         properties:

@@ -37,16 +37,14 @@ config.appService.generateRegistration = generateRegistration;
 // registration, so we can refuse to start until that is done.
 var checksum = crc.crc32(JSON.stringify(config.servers)).toString(16);
 var randomPart = crypto.randomBytes(32).toString('hex');
-config.appService.hsToken = randomPart + "_crc" + checksum;
+config.appService.homeserver.token = randomPart + "_crc" + checksum;
 irc.configure(config);
-
-appservice.registerServices([config.appService]);
+appservice.registerService(config.appService);
 
 if (generateRegistration) {
     var fname = "appservice-registration-irc.yaml";
     console.log("Generating registration file to %s...", fname);
-    appservice.getRegistrations().done(function(entries) {
-        var registration = entries[0];
+    appservice.getRegistration().done(function(registration) {
         fs.writeFile(fname, yaml.safeDump(registration), function(e) {
             if (e) {
                 console.error("Failed to write registration file: %s", e);
