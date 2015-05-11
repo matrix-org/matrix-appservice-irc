@@ -34,11 +34,17 @@ var serverConfig = {
 
 var config = validator.loadConfig({
     appService: {
-        hs: module.exports.homeServerUrl,
-        hsDomain: module.exports.homeServerDomain,
-        token: module.exports.appServiceToken,
-        as: module.exports.appServiceUrl,
-        port: module.exports.port,
+        homeserver: {
+            url: module.exports.homeServerUrl,
+            domain: module.exports.homeServerDomain
+        },
+        appservice: {
+            token: module.exports.appServiceToken,
+            url: module.exports.appServiceUrl
+        },
+        http: {
+            port: module.exports.port
+        },
         localpart: module.exports.botLocalpart
     },
     ircService: {
