@@ -3,6 +3,7 @@ var crc = require("crc");
 var crypto = require("crypto");
 var yaml = require("js-yaml");
 var fs = require("fs");
+var nopt = require("nopt");
 
 var validator = require("./lib/config/validator");
 
@@ -11,7 +12,9 @@ var appservice = require("matrix-appservice");
 var irc = require("./lib/irc-appservice.js");
 
 var configFile = undefined;
-var generateRegistration = process.argv[2] == "--generate-registration";
+var opts = nopt({
+    "generate-registration": Boolean
+});
 
 // load the config file
 try {
@@ -29,7 +32,7 @@ if (!config) {
     return;
 }
 config.appService.service = irc;
-config.appService.generateRegistration = generateRegistration;
+config.appService.generateRegistration = opts["generate-registration"];
 
 // make a checksum of the IRC server configuration. This will be checked against
 // the checksum created at the last "--generate-registration". If there is a
@@ -41,7 +44,7 @@ config.appService.homeserver.token = randomPart + "_crc" + checksum;
 irc.configure(config);
 appservice.registerService(config.appService);
 
-if (generateRegistration) {
+if (config.appService.generateRegistration) {
     var fname = "appservice-registration-irc.yaml";
     console.log("Generating registration file to %s...", fname);
     appservice.getRegistration().done(function(registration) {
