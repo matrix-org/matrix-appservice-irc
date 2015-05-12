@@ -23,7 +23,7 @@
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
     "matrix-appservice": "0.1.0",
-    "matrix-js-sdk": "0.0.3",
+    "matrix-js-sdk": "0.0.4",
     "nedb": "^1.1.2",
     "q": "^1.2.0",
     "request": "^2.54.0",

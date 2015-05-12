@@ -30,9 +30,16 @@ module.exports._reset = function() {
         roomState: jasmine.createSpy("sdk.roomState(roomId)"),
         setRoomTopic: jasmine.createSpy("sdk.setRoomTopic(roomId, topic)"),
         setDisplayName: jasmine.createSpy("sdk.setDisplayName(name)"),
+        getStateEvent: jasmine.createSpy("sdk.getStateEvent(room,type,key)"),
         invite: jasmine.createSpy("sdk.invite(roomId, userId)"),
         leave: jasmine.createSpy("sdk.leave(roomId)")
     };
+
+    // mock up getStateEvent immediately since it is called for every new IRC
+    // connection.
+    mockClient.getStateEvent.andCallFake(function() {
+        return q({});
+    });
 
     // Helper to succeed sdk registration calls.
     mockClient._onHttpRegister = function(params) {
