@@ -40,6 +40,66 @@ describe("IRC connections", function() {
         });
     });
 
+    it("should use the matrix user's display name if they have one", 
+    function(done) {
+        var displayName = "Some_Name";
+        var nickForDisplayName = "M-Some_Name";
+
+        // not interested in join calls
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, nickForDisplayName, roomMapping.channel
+        );
+
+        // listen for the display name nick and let it connect
+        var gotConnectCall = false;
+        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "connect", 
+        function(client, cb) {
+            gotConnectCall = true;
+            client._invokeCallback(cb);
+        });
+
+        // also listen for the normal nick so we can whine more coherently
+        // rather than just time out the test.
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect", 
+        function(client, cb) {
+            console.error("Wrong nick connected: %s", testUser.nick);
+            client._invokeCallback(cb);
+        });
+
+        // mock a response for the state event.
+        env.clientMock._client().getStateEvent.andCallFake(function() {
+            return q({
+                displayname: displayName
+            });
+        });
+
+        var gotSayCall = false;
+        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "say", 
+        function(client, channel, text) {
+            expect(client.nick).toEqual(nickForDisplayName);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            gotSayCall = true;
+        });
+
+        // send a message to kick start the AS
+        env.mockAsapiController._trigger("type:m.room.message", {
+            content: {
+                body: "A message",
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        }).done(function() {
+            expect(gotConnectCall).toBe(
+                true, nickForDisplayName+" failed to connect to IRC."
+            );
+            expect(gotSayCall).toBe(true, "Didn't get say");
+            done();
+        });
+    });
+
     it("should be made once per client, regardless of how many messages are "+
     "to be sent to IRC", function(done) {
         var connectCount = 0;
