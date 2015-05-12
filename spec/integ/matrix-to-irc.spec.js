@@ -156,12 +156,11 @@ describe("Matrix-to-IRC message bridging", function() {
     it("should bridge matrix notices as IRC notices", function(done) {
         var testNotice = "Some automated message";
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "ctcp", 
-        function(client, channel, kind, text) {
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "notice", 
+        function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
             expect(channel).toEqual(roomMapping.channel);
-            expect(kind).toEqual("notice");
             expect(text).toEqual(testNotice);
             done();
         });

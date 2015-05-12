@@ -43,7 +43,8 @@ function Client(addr, nick, opts) {
     this.chans = {};
 
     var spies = [
-        "connect", "whois", "join", "send", "action", "ctcp", "say", "disconnect"
+        "connect", "whois", "join", "send", "action", "ctcp", "say", 
+        "disconnect", "notice"
     ];
     spies.forEach(function(fnName) {
         client[fnName] = jasmine.createSpy("Client."+fnName);
