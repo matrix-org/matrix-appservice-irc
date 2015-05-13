@@ -35,9 +35,10 @@ if (opts.help) {
         "--generate-registration": "Create the registration YAML for this application service."
     };
     console.log("Node.js IRC Application Service");
+    console.log("\nOptions:")
     Object.keys(help).forEach(function(cmd) {
-        console.log(cmd);
-        console.log("    %s", help[cmd]);
+        console.log("  %s", cmd);
+        console.log("      %s", help[cmd]);
     });
     console.log();
     process.exit(0);
