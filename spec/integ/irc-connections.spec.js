@@ -100,6 +100,65 @@ describe("IRC connections", function() {
         });
     });
 
+    it("should use the nick assigned in the rpl_welcome (registered) event", 
+    function(done) {
+        var assignedNick = "monkeys";
+
+        // catch attempts to send messages and fail coherently
+        var sdk = env.clientMock._client();
+        sdk._onHttpRegister({
+            expectLocalpart: roomMapping.server+"_"+testUser.nick, 
+            returnUserId: testUser.id
+        });
+        sdk.sendMessage.andCallFake(function(roomId, c) {
+            expect(false).toBe(
+                true, "bridge tried to send a msg to matrix from a virtual "+
+                "irc user with a nick assigned from rpl_welcome."
+            );
+            done();
+            return q();
+        });
+
+        // let the user connect
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect", 
+        function(client, cb) {
+            // after the connect callback, modify their nick and emit an event.
+            client._invokeCallback(cb).done(function() {
+                process.nextTick(function() {
+                    client.nick = assignedNick;
+                    client.emit("registered");
+                });
+            });
+        });
+
+        // send a message from matrix to make them join the room.
+        env.mockAsapiController._trigger("type:m.room.message", {
+            content: {
+                body: "A message",
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        }).then(function() {
+            // send a message in response from the assigned nick: if it is using
+            // the assigned nick then it shouldn't try to pass it on (virtual
+            // user error)
+            env.ircMock._findClientAsync(
+                roomMapping.server, roomMapping.botNick
+            ).done(function(client) {
+                client.emit(
+                    "message", assignedNick, roomMapping.channel, "some text"
+                );
+                // TODO: We should really have a means to notify tests if the
+                // bridge decides to do nothing due to it being an ignored user.
+                setTimeout(function() {
+                    done();
+                }, 200);
+            });
+        });
+    });
+
     it("should be made once per client, regardless of how many messages are "+
     "to be sent to IRC", function(done) {
         var connectCount = 0;

@@ -74,11 +74,14 @@ function Client(addr, nick, opts) {
     };
 
     this._invokeCallback = function(cb) {
+        var d = q.defer();
         process.nextTick(function() {
             if (cb) {
                 cb();
             }
+            d.resolve();
         });
+        return d.promise;
     };
 
     setClient(client, addr, nick);
