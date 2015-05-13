@@ -200,4 +200,105 @@ describe("IRC connections", function() {
             done();
         });
     });
+
+    // BOTS-41
+    it("[BOTS-41] should be able to handle clashing nicks without causing echos", 
+    function(done) {
+        var nickToClash = "M-kermit";
+        var users = [
+            {
+                id: "@kermit:bar",
+                assignedNick: "M-kermit"
+            },
+            {
+                id: "@kermit:someplace",
+                assignedNick: "M-kermit1"
+            }
+        ];
+
+        var connectCount = 0;
+        env.ircMock._whenClient(roomMapping.server, nickToClash, "connect", 
+        function(client, cb) {
+            if (connectCount === 0) {
+                client._invokeCallback(cb);
+            }
+            else {
+                // add a number to their nick.
+                client.nick = client.nick + connectCount;
+                client._invokeCallback(cb);
+            }
+            connectCount += 1;
+        });
+
+        // not interested in joins
+        users.forEach(function(user) {
+            env.ircMock._autoJoinChannels(
+                roomMapping.server, user.assignedNick, roomMapping.channel
+            );
+        });
+
+        // catch attempts to send messages and fail coherently
+        var sdk = env.clientMock._client();
+        sdk._onHttpRegister({
+            expectLocalpart: roomMapping.server+"_"+users[0].assignedNick, 
+            returnUserId: users[0].id
+        });
+        sdk.sendMessage.andCallFake(function(roomId, c) {
+            expect(false).toBe(
+                true, "bridge tried to send a msg to matrix from a virtual "+
+                "irc user (clashing nicks)."
+            );
+            done();
+            return q();
+        });
+
+        // send a message from the first guy
+        env.mockAsapiController._trigger("type:m.room.message", {
+            content: {
+                body: "A message",
+                msgtype: "m.text"
+            },
+            user_id: users[0].id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        }).then(function() {
+            // send a message from the second guy
+            return env.mockAsapiController._trigger("type:m.room.message", {
+                content: {
+                    body: "Another message",
+                    msgtype: "m.text"
+                },
+                user_id: users[1].id,
+                room_id: roomMapping.roomId,
+                type: "m.room.message"
+            });
+        }).then(function() {
+            // send a message from the first guy
+            return env.mockAsapiController._trigger("type:m.room.message", {
+                content: {
+                    body: "3rd message",
+                    msgtype: "m.text"
+                },
+                user_id: users[0].id,
+                room_id: roomMapping.roomId,
+                type: "m.room.message"
+            });
+        }).done(function() {
+            // send an echo of the 3rd message: it shouldn't pass it through
+            // because it is a virtual user!
+            env.ircMock._findClientAsync(
+                roomMapping.server, roomMapping.botNick
+            ).done(function(client) {
+                client.emit(
+                    "message", users[0].assignedNick, roomMapping.channel,
+                    "3rd message"
+                );
+                // TODO: We should really have a means to notify tests if the
+                // bridge decides to do nothing due to it being an ignored user.
+                setTimeout(function() {
+                    done();
+                }, 200);
+            });
+        });
+    });
 });

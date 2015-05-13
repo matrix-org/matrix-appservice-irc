@@ -11,10 +11,10 @@ var env = test.mkEnv();
 var appConfig = env.appConfig;
 var roomMapping = appConfig.roomMapping;
 
-// set client cycling to 3 for these tests. This is slightly brittle since we
+// set client cycling to 2 for these tests. This is slightly brittle since we
 // assume that this means when the limit is reached we disconnect a client
-// immediately (to always keep 1 below the limit).
-appConfig.ircConfig.servers[roomMapping.server].ircClients.maxClients = 3;
+// after a new connection is made (at most 1 above limit).
+appConfig.ircConfig.servers[roomMapping.server].ircClients.maxClients = 2;
 
 
 describe("IRC client cycling", function() {
@@ -114,10 +114,13 @@ describe("IRC client cycling", function() {
                     1, testUsers[i].id+" connected"
                 );
             }
-            // expect the first person who said something to have disconnected
+            // expect the first 2 people who said something to have disconnected
             // AND NO ONE ELSE.
-            expect(testUsers[0].disconnects).toEqual(1);
-            for (i=1; i<testUsers.length; i++) {
+            expect(testUsers[0].disconnects).toEqual(1, 
+                "client should have disconnected but didn't");
+            expect(testUsers[1].disconnects).toEqual(1, 
+                "client should have disconnected but didn't");
+            for (i=2; i<testUsers.length; i++) {
                 expect(testUsers[i].disconnects).toEqual(
                     0, testUsers[i].id+" disconnected");
             }
@@ -171,8 +174,12 @@ describe("IRC client cycling", function() {
             // there is just 1, it indicates it used a cached copy.
             var first = testUsers[0];
             expect(first.says).toEqual(2);
-            expect(first.connects).toEqual(2);
-            expect(first.disconnects).toEqual(1);
+            expect(first.connects).toEqual(
+                2, "client should 2 connects but doesn't"
+            );
+            expect(first.disconnects).toEqual(
+                1, "client should 1 disconnects but doesn't"
+            );
             done();
         });
     });
