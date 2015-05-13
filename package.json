@@ -25,6 +25,7 @@
     "matrix-appservice": "0.1.0",
     "matrix-js-sdk": "0.0.4",
     "nedb": "^1.1.2",
+    "nopt": "^3.0.1",
     "q": "^1.2.0",
     "request": "^2.54.0",
     "sanitize-html": "^1.6.1",
