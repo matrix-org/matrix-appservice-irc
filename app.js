@@ -13,12 +13,42 @@ var irc = require("./lib/irc-appservice.js");
 
 var configFile = undefined;
 var opts = nopt({
-    "generate-registration": Boolean
+    "generate-registration": Boolean,
+    "config": String,
+    "verbose": Boolean,
+    "help": Boolean,
+}, {
+    "c": "--config",
+    "v": "--verbose",
+    "h": "--help"
 });
+var configFileLoc = "./config.yaml";
+
+if (opts.help) {
+    var help = {
+        "--config -c": (
+            "Specify a config file to load. Will look for '"+
+            configFileLoc+"' if omitted."
+        ),
+        "--help -h": "Display this help message.",
+        "--verbose -v": "Turn on verbose logging. This will log all IRC events.",
+        "--generate-registration": "Create the registration YAML for this application service."
+    };
+    console.log("Node.js IRC Application Service");
+    Object.keys(help).forEach(function(cmd) {
+        console.log(cmd);
+        console.log("    %s", help[cmd]);
+    });
+    console.log();
+    process.exit(0);
+}
+if (opts.config) {
+    configFileLoc = opts.config;
+}
 
 // load the config file
 try {
-    configFile = yaml.safeLoad(fs.readFileSync('./config.yaml', 'utf8'));
+    configFile = yaml.safeLoad(fs.readFileSync(configFileLoc, 'utf8'));
 } 
 catch (e) {
     console.error(e);
@@ -32,7 +62,8 @@ if (!config) {
     return;
 }
 config.appService.service = irc;
-config.appService.generateRegistration = opts["generate-registration"];
+config.appService.generateRegistration = Boolean(opts["generate-registration"]);
+config.logging.verbose = Boolean(opts["verbose"]);
 
 // make a checksum of the IRC server configuration. This will be checked against
 // the checksum created at the last "--generate-registration". If there is a
