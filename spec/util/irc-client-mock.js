@@ -27,6 +27,9 @@ function setClientNick(addr, oldNick, newNick) {
     instanceEmitter.emit("client_" + addr + "_" + newNick, client);
 }
 
+/**
+ * Reset all mock IRC clients.
+ */
 module.exports._reset = function() {
     instances = {};
     // emitter when clients are added
@@ -87,12 +90,20 @@ function Client(addr, nick, opts) {
     setClient(client, addr, nick);
 }
 util.inherits(Client, EventEmitter);
+
+/**
+ * A mock IRC Client class.
+ */
 module.exports.Client = Client;
 
-// ===== helpers
-
+/**
+ * Get an IRC client with the given domain and nick when the AS makes one.
+ * @param {String} addr : The IRC server address.
+ * @param {String} nick : The IRC nick to obtain a client for.
+ * @return {Promise} Which is resolved with the IRC {@link Client} instance.
+ */
 module.exports._findClientAsync = function(addr, nick) {
-    var client = module.exports._findClient(addr, nick);
+    var client = getClient(addr, nick);
     if (client) {
         return q(client);
     }
@@ -103,10 +114,15 @@ module.exports._findClientAsync = function(addr, nick) {
     return d.promise;
 };
 
-module.exports._findClient = function(addr, nick) {
-    return getClient(addr, nick);
-};
-
+/**
+ * Invoke a function when the AS invokes a function on the mock IRC client.
+ * @param {String} addr : The IRC server address for the client.
+ * @param {String} nick : The IRC nick for the client.
+ * @param {String} fnName : The function name that the AS will invoke.
+ * @param {Function} invokeFn : The function to invoke. The first parameter will
+ * be the {@link Client} with the remaining parameters being the parameters the
+ * AS invoked the original function with.
+ */
 module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
     console.log("Add listener(%s) for fn=%s", (addr + "_" + nick), fnName);
     clientEmitter.on((addr + "_" + nick), function(invokedFnName, client) {
@@ -123,6 +139,12 @@ module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
     });
 };
 
+/**
+ * Automatically join IRC channels for a given IRC client.
+ * @param {String} addr : The IRC server address for the client.
+ * @param {String} nick : The IRC nick for the client.
+ * @param {String|Array} channels : The list of channels to automatically join.
+ */
 module.exports._autoJoinChannels = function(addr, nick, channels) {
     if (typeof channels === "string") {
         channels = [channels];
@@ -135,6 +157,12 @@ module.exports._autoJoinChannels = function(addr, nick, channels) {
     });
 };
 
+/**
+ * Automatically join IRC networks for a given IRC client.
+ * @param {String} addr : The IRC server address for the client.
+ * @param {String} nick : The IRC nick for the client.
+ * @param {String|Array} networks : The list of networks to automatically join.
+ */
 module.exports._autoConnectNetworks = function(addr, nick, networks) {
     if (typeof networks === "string") {
         networks = [networks];

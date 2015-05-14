@@ -4,6 +4,10 @@
 "use strict";
 var q = require("q");
 
+/**
+ * Construct a new mock ASAPI controller.
+ * @return {AsapiController} A Mock ASAPI controller.
+ */
 module.exports.create = function() {
     var onFunctions = {
         // event type: [fn, fn]

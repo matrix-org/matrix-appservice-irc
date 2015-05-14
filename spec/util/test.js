@@ -3,6 +3,10 @@
 var extend = require("extend");
 var proxyquire = require('proxyquire');
 
+/**
+ * Construct a new test environment with mock modules.
+ * @return {Object} containing a set of mock modules.
+ */
 module.exports.mkEnv = function() {
     var clientMock = require("./client-sdk-mock");
     clientMock["@global"] = true;
@@ -21,6 +25,13 @@ module.exports.mkEnv = function() {
     };
 };
 
+/**
+ * Initialise a new test environment. This will clear the test database and
+ * register the IRC service (as if it were called by app.js).
+ * @param {Object} env : The test environment to initialise with
+ * (from {@link mkEnv}).
+ * @return {Promise} which is resolved when the app has finished initiliasing.
+ */
 module.exports.initEnv = function(env) {
     // wipe the database entirely then call configure and register on the IRC
     // service.
@@ -39,12 +50,21 @@ module.exports.initEnv = function(env) {
     });
 };
 
+/**
+ * Log a description of the current test case to the console.
+ * @param {TestCase} testCase : The Jasmine test case to log.
+ */
 module.exports.log = function(testCase) {
     var desc = testCase.suite.description + " : " + testCase.description;
     console.log(desc);
     console.log(new Array(1 + desc.length).join("="));
 };
 
+/**
+ * Reset the test environment for a new test case. This resets all mocks.
+ * @param {TestCase} testCase : The new test case.
+ * @param {Object} env : The pre-initialised test environment.
+ */
 module.exports.beforeEach = function(testCase, env) {
     module.exports.log(testCase);
     if (env) {

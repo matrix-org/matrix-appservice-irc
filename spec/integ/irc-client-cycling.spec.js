@@ -11,14 +11,14 @@ var env = test.mkEnv();
 var appConfig = env.appConfig;
 var roomMapping = appConfig.roomMapping;
 
-// set client cycling to 2 for these tests. This is slightly brittle since we
-// assume that this means when the limit is reached we disconnect a client
-// after a new connection is made (at most 1 above limit).
-appConfig.ircConfig.servers[roomMapping.server].ircClients.maxClients = 2;
-
 
 describe("IRC client cycling", function() {
     var testUsers = null;
+
+    // set client cycling to 2 for these tests. This is slightly brittle since we
+    // assume that this means when the limit is reached we disconnect a client
+    // after a new connection is made (at most 1 above limit).
+    appConfig.ircConfig.servers[roomMapping.server].ircClients.maxClients = 2;
 
     beforeEach(function(done) {
         test.beforeEach(this, env);

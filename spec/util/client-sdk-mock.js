@@ -6,19 +6,35 @@ var q = require("q");
 var suppliedConfig = null;
 var mockClient = {};
 
+/**
+ * Stub method for creating a new SDK client.
+ * @param {Object} config : The SDK client configuration.
+ * @return {SdkClient} The SDK client instance.
+ */
 module.exports.createClient = function(config) {
     suppliedConfig = config;
     return mockClient;
 };
 
+/**
+ * Stub method for request calls. Does nothing.
+ * @param {Function} requestFn
+ */
 module.exports.request = function(requestFn) {
     // ignore the request fn, as that will actually invoke HTTP requests.
 };
 
+/**
+ * Get the Matrix Client SDK global instance.
+ * @return {SdkClient} The Matrix Client SDK
+ */
 module.exports._client = function() {
     return mockClient;
 };
 
+/**
+ * Reset the Matrix Client SDK global instance.
+ */
 module.exports._reset = function() {
     suppliedConfig = null;
     mockClient = {

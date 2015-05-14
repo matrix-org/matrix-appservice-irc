@@ -1,11 +1,11 @@
 /*
  * Helper class for cleaning nedb state
  */
- "use strict";
- var q = require("q");
- var Datastore = require("nedb");
+"use strict";
+var q = require("q");
+var Datastore = require("nedb");
 
- var deleteDb = function(db, query) {
+var deleteDb = function(db, query) {
     var defer = q.defer();
     db.remove(query, {multi: true}, function(err, docs) {
         if (err) {
@@ -15,9 +15,14 @@
         defer.resolve(docs);
     });
     return defer.promise;
- };
+};
 
- module.exports._reset = function(databaseUri) {
+/**
+ * Reset the database, wiping all data.
+ * @param {String} databaseUri : The database URI to wipe all data from.
+ * @return {Promise} Which is resolved when the database has been cleared.
+ */
+module.exports._reset = function(databaseUri) {
     var d = q.defer();
     if (databaseUri.indexOf("nedb://") !== 0) {
         return q.reject("Must be nedb:// URI");
@@ -51,4 +56,4 @@
         }
     });
     return d.promise;
- };
+};

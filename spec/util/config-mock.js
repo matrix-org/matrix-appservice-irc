@@ -1,5 +1,8 @@
 var validator = require("../../lib/config/validator");
 
+/**
+ * Default test AS information
+ */
 module.exports = {
     databaseUri: "nedb://spec-db",
     homeServerUrl: "https://some.home.server.goeshere",
@@ -11,6 +14,9 @@ module.exports = {
     port: 2
 };
 
+/**
+ * Default test room mapping.
+ */
 module.exports.roomMapping = {
     server: "irc.example",
     botNick: "ro_bot_nick",
@@ -52,5 +58,12 @@ var config = validator.loadConfig({
         servers: serverConfig
     }
 });
+
+/**
+ * Default test IRC config.
+ */
 module.exports.ircConfig = config;
+/**
+ * Default test AS config.
+ */
 module.exports.serviceConfig = config.appService;
