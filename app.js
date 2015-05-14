@@ -14,12 +14,14 @@ var irc = require("./lib/irc-appservice.js");
 var configFile = undefined;
 var opts = nopt({
     "generate-registration": Boolean,
+    "skip-crc-check": Boolean,
     "config": String,
     "verbose": Boolean,
-    "help": Boolean,
+    "help": Boolean
 }, {
     "c": "--config",
     "v": "--verbose",
+    "s": "--skip-crc-check",
     "h": "--help"
 });
 var configFileLoc = "./config.yaml";
@@ -30,9 +32,15 @@ if (opts.help) {
             "Specify a config file to load. Will look for '"+
             configFileLoc+"' if omitted."
         ),
-        "--help -h": "Display this help message.",
-        "--verbose -v": "Turn on verbose logging. This will log all IRC events.",
-        "--generate-registration": "Create the registration YAML for this application service."
+        "--verbose -v": "Turn on verbose logging. This will log all incoming IRC events.",
+        "--generate-registration": "Create the registration YAML for this application service.",
+        "--skip-crc-check -s": (
+            "Start the application service even if it detects a mismatched home server"+
+            "\n      token. Only use this if you know what you're doing (e.g. a change"+
+            "\n      to the config file which you know is safe to make without updating"+
+            "\n      the application service registration)."
+        ),
+        "--help -h": "Display this help message."
     };
     console.log("Node.js IRC Application Service");
     console.log("\nOptions:")
@@ -64,6 +72,7 @@ if (!config) {
 }
 config.appService.service = irc;
 config.appService.generateRegistration = Boolean(opts["generate-registration"]);
+config.appService.skipCrcCheck = Boolean(opts["skip-crc-check"]);
 config.logging.verbose = Boolean(opts["verbose"]);
 
 // make a checksum of the IRC server configuration. This will be checked against
