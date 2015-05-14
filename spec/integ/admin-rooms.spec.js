@@ -11,7 +11,7 @@ var ircConfig = appConfig.ircConfig;
 var roomMapping = appConfig.roomMapping;
 
 describe("Creating admin rooms", function() {
-    var botUserId = "@"+appConfig.botLocalpart+":"+appConfig.homeServerDomain;
+    var botUserId = "@" + appConfig.botLocalpart + ":" + appConfig.homeServerDomain;
 
     beforeEach(function(done) {
         test.beforeEach(this, env);
@@ -28,7 +28,7 @@ describe("Creating admin rooms", function() {
         });
     });
 
-    it("should be possible by sending an invite to the bot's user ID", 
+    it("should be possible by sending an invite to the bot's user ID",
     function(done) {
         var botJoinedRoom = false;
         var sdk = env.clientMock._client();
@@ -59,7 +59,7 @@ describe("Admin rooms", function() {
     var adminRoomId = "!adminroomid:here";
     var userId = "@someone:somewhere";
     var userIdNick = "M-someone";
-    var botUserId = "@"+appConfig.botLocalpart+":"+appConfig.homeServerDomain;
+    var botUserId = "@" + appConfig.botLocalpart + ":" + appConfig.homeServerDomain;
 
     // enable nick changes
     ircConfig.servers[roomMapping.server].ircClients.allowNickChanges = true;
@@ -128,7 +128,7 @@ describe("Admin rooms", function() {
         console.log("Before each post");
     });
 
-    it("should respond to bad !nick commands with a help notice", 
+    it("should respond to bad !nick commands with a help notice",
     function(done) {
         var sentNotice = false;
         sdk.sendMessage.andCallFake(function(roomId, content) {
@@ -152,7 +152,7 @@ describe("Admin rooms", function() {
         });
     });
 
-    it("should respond to bad !join commands with a help notice", 
+    it("should respond to bad !join commands with a help notice",
     function(done) {
         var sentNotice = false;
         sdk.sendMessage.andCallFake(function(roomId, content) {
@@ -196,7 +196,7 @@ describe("Admin rooms", function() {
 
         // make sure that the nick command is sent
         var sentNickCommand = false;
-        env.ircMock._whenClient(roomMapping.server, userIdNick, "send", 
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
         function(client, command, arg) {
             expect(client.nick).toEqual(userIdNick, "use the old nick on /nick");
             expect(client.addr).toEqual(roomMapping.server);
@@ -208,7 +208,7 @@ describe("Admin rooms", function() {
 
         // make sure that when a message is sent it uses the new nick
         var sentSay = false;
-        env.ircMock._whenClient(roomMapping.server, newNick, "say", 
+        env.ircMock._whenClient(roomMapping.server, newNick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(newNick, "use the new nick on /say");
             expect(client.addr).toEqual(roomMapping.server);
@@ -231,7 +231,7 @@ describe("Admin rooms", function() {
         // trigger the request to change the nick
         env.mockAsapiController._trigger("type:m.room.message", {
             content: {
-                body: "!nick "+roomMapping.server+" "+newNick,
+                body: "!nick " + roomMapping.server + " " + newNick,
                 msgtype: "m.text"
             },
             user_id: userId,
@@ -257,7 +257,7 @@ describe("Admin rooms", function() {
         });
     });
 
-    it("should be able to join a channel with !join if they are on the whitelist", 
+    it("should be able to join a channel with !join if they are on the whitelist",
     function(done) {
         var newChannel = "#awooga";
         var newRoomId = "!aasifuhawei:efjkwehfi";
@@ -293,7 +293,7 @@ describe("Admin rooms", function() {
         // trigger the request to join a channel
         env.mockAsapiController._trigger("type:m.room.message", {
             content: {
-                body: "!join "+roomMapping.server+" "+newChannel,
+                body: "!join " + roomMapping.server + " " + newChannel,
                 msgtype: "m.text"
             },
             user_id: userId,

@@ -10,14 +10,14 @@ var appConfig = env.appConfig;
 var roomMapping = appConfig.roomMapping;
 
 describe("Invite-only rooms", function() {
-    var botUserId = "@"+appConfig.botLocalpart+":"+appConfig.homeServerDomain;
+    var botUserId = "@" + appConfig.botLocalpart + ":" + appConfig.homeServerDomain;
     var testUser = {
         id: "@flibble:wibble",
         nick: "flibble"
     };
     var testIrcUser = {
-        localpart: roomMapping.server+"_foobar",
-        id: "@"+roomMapping.server+"_foobar:"+appConfig.homeServerDomain,
+        localpart: roomMapping.server + "_foobar",
+        id: "@" + roomMapping.server + "_foobar:" + appConfig.homeServerDomain,
         nick: "foobar"
     };
 
@@ -34,7 +34,7 @@ describe("Invite-only rooms", function() {
         });
     });
 
-    it("should be joined by the bot if the AS does know the room ID", 
+    it("should be joined by the bot if the AS does know the room ID",
     function(done) {
         var sdk = env.clientMock._client();
         var joinedRoom = false;
@@ -59,8 +59,8 @@ describe("Invite-only rooms", function() {
         });
     });
 
-    it("should be joined by a virtual IRC user if the bot invited them, "+
-        "regardless of the number of people in the room.", 
+    it("should be joined by a virtual IRC user if the bot invited them, " +
+        "regardless of the number of people in the room.",
     function(done) {
         // when it queries whois, say they exist
         var askedWhois = false;

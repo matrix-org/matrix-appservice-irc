@@ -40,7 +40,7 @@ describe("IRC connections", function() {
         });
     });
 
-    it("should use the matrix user's display name if they have one", 
+    it("should use the matrix user's display name if they have one",
     function(done) {
         var displayName = "Some_Name";
         var nickForDisplayName = "M-Some_Name";
@@ -52,7 +52,7 @@ describe("IRC connections", function() {
 
         // listen for the display name nick and let it connect
         var gotConnectCall = false;
-        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "connect", 
+        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "connect",
         function(client, cb) {
             gotConnectCall = true;
             client._invokeCallback(cb);
@@ -60,7 +60,7 @@ describe("IRC connections", function() {
 
         // also listen for the normal nick so we can whine more coherently
         // rather than just time out the test.
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect", 
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect",
         function(client, cb) {
             console.error("Wrong nick connected: %s", testUser.nick);
             client._invokeCallback(cb);
@@ -74,7 +74,7 @@ describe("IRC connections", function() {
         });
 
         var gotSayCall = false;
-        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "say", 
+        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(nickForDisplayName);
             expect(client.addr).toEqual(roomMapping.server);
@@ -93,26 +93,26 @@ describe("IRC connections", function() {
             type: "m.room.message"
         }).done(function() {
             expect(gotConnectCall).toBe(
-                true, nickForDisplayName+" failed to connect to IRC."
+                true, nickForDisplayName + " failed to connect to IRC."
             );
             expect(gotSayCall).toBe(true, "Didn't get say");
             done();
         });
     });
 
-    it("should use the nick assigned in the rpl_welcome (registered) event", 
+    it("should use the nick assigned in the rpl_welcome (registered) event",
     function(done) {
         var assignedNick = "monkeys";
 
         // catch attempts to send messages and fail coherently
         var sdk = env.clientMock._client();
         sdk._onHttpRegister({
-            expectLocalpart: roomMapping.server+"_"+testUser.nick, 
+            expectLocalpart: roomMapping.server + "_" + testUser.nick,
             returnUserId: testUser.id
         });
         sdk.sendMessage.andCallFake(function(roomId, c) {
             expect(false).toBe(
-                true, "bridge tried to send a msg to matrix from a virtual "+
+                true, "bridge tried to send a msg to matrix from a virtual " +
                 "irc user with a nick assigned from rpl_welcome."
             );
             done();
@@ -120,7 +120,7 @@ describe("IRC connections", function() {
         });
 
         // let the user connect
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect", 
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect",
         function(client, cb) {
             // after the connect callback, modify their nick and emit an event.
             client._invokeCallback(cb).done(function() {
@@ -159,11 +159,11 @@ describe("IRC connections", function() {
         });
     });
 
-    it("should be made once per client, regardless of how many messages are "+
+    it("should be made once per client, regardless of how many messages are " +
     "to be sent to IRC", function(done) {
         var connectCount = 0;
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect", 
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect",
         function(client, cb) {
             connectCount += 1;
             // add an artificially long delay to make sure it isn't connecting
@@ -202,7 +202,7 @@ describe("IRC connections", function() {
     });
 
     // BOTS-41
-    it("[BOTS-41] should be able to handle clashing nicks without causing echos", 
+    it("[BOTS-41] should be able to handle clashing nicks without causing echos",
     function(done) {
         var nickToClash = "M-kermit";
         var users = [
@@ -217,7 +217,7 @@ describe("IRC connections", function() {
         ];
 
         var connectCount = 0;
-        env.ircMock._whenClient(roomMapping.server, nickToClash, "connect", 
+        env.ircMock._whenClient(roomMapping.server, nickToClash, "connect",
         function(client, cb) {
             if (connectCount === 0) {
                 client._invokeCallback(cb);
@@ -240,12 +240,12 @@ describe("IRC connections", function() {
         // catch attempts to send messages and fail coherently
         var sdk = env.clientMock._client();
         sdk._onHttpRegister({
-            expectLocalpart: roomMapping.server+"_"+users[0].assignedNick, 
+            expectLocalpart: roomMapping.server + "_" + users[0].assignedNick,
             returnUserId: users[0].id
         });
         sdk.sendMessage.andCallFake(function(roomId, c) {
             expect(false).toBe(
-                true, "bridge tried to send a msg to matrix from a virtual "+
+                true, "bridge tried to send a msg to matrix from a virtual " +
                 "irc user (clashing nicks)."
             );
             done();

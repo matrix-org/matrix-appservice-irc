@@ -1,11 +1,11 @@
 // common tasks performed in tests
 "use strict";
 var extend = require("extend");
-var proxyquire =  require('proxyquire');
+var proxyquire = require('proxyquire');
 
 module.exports.mkEnv = function() {
     var clientMock = require("./client-sdk-mock");
-    clientMock["@global"] = true; 
+    clientMock["@global"] = true;
     var ircMock = require("./irc-client-mock");
     ircMock["@global"] = true;
     var dbHelper = require("./db-helper");
@@ -42,7 +42,7 @@ module.exports.initEnv = function(env) {
 module.exports.log = function(testCase) {
     var desc = testCase.suite.description + " : " + testCase.description;
     console.log(desc);
-    console.log(new Array(1+desc.length).join("="));
+    console.log(new Array(1 + desc.length).join("="));
 };
 
 module.exports.beforeEach = function(testCase, env) {

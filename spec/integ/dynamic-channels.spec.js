@@ -37,7 +37,7 @@ describe("Dynamic channels", function() {
         });
     });
 
-    it("should join IRC channels when it receives special alias queries", 
+    it("should join IRC channels when it receives special alias queries",
     function(done) {
         // Default mapping => #irc_$SERVER_$CHANNEL
         var tChannel = "#foobar";

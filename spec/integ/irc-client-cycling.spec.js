@@ -33,31 +33,31 @@ describe("IRC client cycling", function() {
 
         testUsers = [
             {
-                id: "@alice:hs", nick:"M-alice",
-                connects:0, disconnects:0, says:0
+                id: "@alice:hs", nick: "M-alice",
+                connects: 0, disconnects: 0, says: 0
             },
             {
-                id: "@bob:hs", nick:"M-bob",
-                connects:0, disconnects:0, says:0
+                id: "@bob:hs", nick: "M-bob",
+                connects: 0, disconnects: 0, says: 0
             },
             {
-                id: "@charles:hs", nick:"M-charles",
-                connects:0, disconnects:0, says:0
+                id: "@charles:hs", nick: "M-charles",
+                connects: 0, disconnects: 0, says: 0
             }
         ];
 
         testUsers.forEach(function(usr, index) {
             // we'll tally when these clients connect, say or disconnect
-            env.ircMock._whenClient(roomMapping.server, usr.nick, "say", 
+            env.ircMock._whenClient(roomMapping.server, usr.nick, "say",
             function(client, channel, text) {
                 testUsers[index].says += 1;
             });
-            env.ircMock._whenClient(roomMapping.server, usr.nick, "connect", 
+            env.ircMock._whenClient(roomMapping.server, usr.nick, "connect",
             function(client, cb) {
                 testUsers[index].connects += 1;
                 client._invokeCallback(cb);
             });
-            env.ircMock._whenClient(roomMapping.server, usr.nick, "disconnect", 
+            env.ircMock._whenClient(roomMapping.server, usr.nick, "disconnect",
             function(client, reason, cb) {
                 testUsers[index].disconnects += 1;
                 client._invokeCallback(cb);
@@ -74,7 +74,7 @@ describe("IRC client cycling", function() {
         });
     });
 
-    it("should disconnect the oldest (last message time) client", 
+    it("should disconnect the oldest (last message time) client",
     function(done) {
         env.mockAsapiController._trigger("type:m.room.message", {
             content: {
@@ -106,29 +106,29 @@ describe("IRC client cycling", function() {
             });
         }).done(function() {
             // everyone should have connected/said something
-            for (var i=0; i<testUsers.length; i++) {
+            for (var i = 0; i < testUsers.length; i++) {
                 expect(testUsers[i].says).toEqual(
-                    1, testUsers[i].id+" said something"
+                    1, testUsers[i].id + " said something"
                 );
                 expect(testUsers[i].connects).toEqual(
-                    1, testUsers[i].id+" connected"
+                    1, testUsers[i].id + " connected"
                 );
             }
             // expect the first 2 people who said something to have disconnected
             // AND NO ONE ELSE.
-            expect(testUsers[0].disconnects).toEqual(1, 
+            expect(testUsers[0].disconnects).toEqual(1,
                 "client should have disconnected but didn't");
-            expect(testUsers[1].disconnects).toEqual(1, 
+            expect(testUsers[1].disconnects).toEqual(1,
                 "client should have disconnected but didn't");
-            for (i=2; i<testUsers.length; i++) {
+            for (i = 2; i < testUsers.length; i++) {
                 expect(testUsers[i].disconnects).toEqual(
-                    0, testUsers[i].id+" disconnected");
+                    0, testUsers[i].id + " disconnected");
             }
             done();
         });
     });
 
-    it("should reconnect (make a new connection) for a cycled-out client when "+
+    it("should reconnect (make a new connection) for a cycled-out client when " +
         "speaking and not use the old disconnected client", function(done) {
         env.mockAsapiController._trigger("type:m.room.message", {
             content: {

@@ -18,12 +18,12 @@ module.exports.create = function() {
         addRegexPattern: jasmine.createSpy("addRegexPattern(type, regex, excl)"),
         getRegexNamespaces: jasmine.createSpy("getRegexNamespaces()"),
         setHomeserverToken: jasmine.createSpy("setHomeserverToken(tok)"),
-        setLogger: function(){},
+        setLogger: function() {},
         on: jasmine.createSpy("AsapiCtrl.on(eventType, fn)"),
         _trigger: function(eventType, content) {
             var promises = [];
             if (onFunctions[eventType]) {
-                for (var i=0; i<onFunctions[eventType].length; i++) {
+                for (var i = 0; i < onFunctions[eventType].length; i++) {
                     promises.push(onFunctions[eventType][i](content));
                 }
             }

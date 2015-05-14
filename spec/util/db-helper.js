@@ -7,7 +7,7 @@
 
  var deleteDb = function(db, query) {
     var defer = q.defer();
-    db.remove(query, {multi:true}, function(err, docs) {
+    db.remove(query, {multi: true}, function(err, docs) {
         if (err) {
             defer.reject(err);
             return;

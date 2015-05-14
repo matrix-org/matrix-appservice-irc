@@ -16,8 +16,8 @@ var roomMapping = appConfig.roomMapping;
 describe("Matrix-to-IRC PMing", function() {
     var tUserId = "@flibble:wibble";
     var tIrcNick = "someone";
-    var tUserLocalpart = roomMapping.server+"_"+tIrcNick;
-    var tIrcUserId = "@"+tUserLocalpart+":"+appConfig.homeServerDomain;
+    var tUserLocalpart = roomMapping.server + "_" + tIrcNick;
+    var tIrcUserId = "@" + tUserLocalpart + ":" + appConfig.homeServerDomain;
 
     var whoisDefer, registerDefer, joinRoomDefer, roomStateDefer;
 
@@ -105,10 +105,10 @@ describe("Matrix-to-IRC PMing", function() {
 
         globalPromise.done(function() {
             done();
-        }, function(){});
+        }, function() {});
     });
 
-    it("should join group chat rooms invited from matrix then leave them", 
+    it("should join group chat rooms invited from matrix then leave them",
     function(done) {
         // additional actions on group chat rooms
         var sendMessageDefer = q.defer();
@@ -116,7 +116,7 @@ describe("Matrix-to-IRC PMing", function() {
 
         var globalPromise = q.all([
             whoisDefer.promise, registerDefer.promise, joinRoomDefer.promise,
-            roomStateDefer.promise, leaveRoomDefer.promise, 
+            roomStateDefer.promise, leaveRoomDefer.promise,
             sendMessageDefer.promise
         ]);
 
@@ -200,7 +200,7 @@ describe("Matrix-to-IRC PMing", function() {
 
         globalPromise.done(function() {
             done();
-        }, function(){});
+        }, function() {});
     });
 });
 
@@ -208,7 +208,7 @@ describe("IRC-to-Matrix PMing", function() {
     var sdk = null;
 
     var tRealIrcUserNick = "bob";
-    var tVirtualUserId = "@"+roomMapping.server+"_"+tRealIrcUserNick+":"+
+    var tVirtualUserId = "@" + roomMapping.server + "_" + tRealIrcUserNick + ":" +
                           appConfig.homeServerDomain;
 
     var tRealMatrixUserNick = "M-alice";
@@ -225,7 +225,7 @@ describe("IRC-to-Matrix PMing", function() {
         // add registration mock impl:
         // registering should be for the REAL irc user
         sdk._onHttpRegister({
-            expectLocalpart: roomMapping.server+"_"+tRealIrcUserNick, 
+            expectLocalpart: roomMapping.server + "_" + tRealIrcUserNick,
             returnUserId: tVirtualUserId
         });
 
@@ -239,7 +239,7 @@ describe("IRC-to-Matrix PMing", function() {
 
         // do the init
         test.initEnv(env).then(function() {
-            // send a message in the linked room (so the service provisions a 
+            // send a message in the linked room (so the service provisions a
             // virtual IRC user which the 'real' IRC users can speak to)
             return env.mockAsapiController._trigger("type:m.room.message", {
                 content: {
@@ -256,7 +256,7 @@ describe("IRC-to-Matrix PMing", function() {
     });
 
     it("should create a 1:1 matrix room and invite the real matrix user when " +
-    "it receives a PM directed at a virtual user from a real IRC user", 
+    "it receives a PM directed at a virtual user from a real IRC user",
     function(done) {
         var createRoomDefer = q.defer();
         var inviteDefer = q.defer();

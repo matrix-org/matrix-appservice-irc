@@ -13,18 +13,18 @@ var instances = {
 };
 
 function getClient(addr, nick) {
-    return instances[addr+DELIM+nick];
+    return instances[addr + DELIM + nick];
 }
 function setClient(client, addr, nick) {
-    instances[addr+DELIM+nick] = client;
-    instanceEmitter.emit("client_"+addr+"_"+nick, client);
+    instances[addr + DELIM + nick] = client;
+    instanceEmitter.emit("client_" + addr + "_" + nick, client);
 }
 function setClientNick(addr, oldNick, newNick) {
-    var client = instances[addr+DELIM+oldNick];
+    var client = instances[addr + DELIM + oldNick];
     client.nick = newNick;
-    instances[addr+DELIM+newNick] = client;
-    instances[addr+DELIM+oldNick] = null;
-    instanceEmitter.emit("client_"+addr+"_"+newNick, client);
+    instances[addr + DELIM + newNick] = client;
+    instances[addr + DELIM + oldNick] = null;
+    instanceEmitter.emit("client_" + addr + "_" + newNick, client);
 }
 
 module.exports._reset = function() {
@@ -43,20 +43,20 @@ function Client(addr, nick, opts) {
     this.chans = {};
 
     var spies = [
-        "connect", "whois", "join", "send", "action", "ctcp", "say", 
+        "connect", "whois", "join", "send", "action", "ctcp", "say",
         "disconnect", "notice"
     ];
     spies.forEach(function(fnName) {
-        client[fnName] = jasmine.createSpy("Client."+fnName);
+        client[fnName] = jasmine.createSpy("Client." + fnName);
         client[fnName].andCallFake(function() {
             // emit that the action was performed along with the args. This can
             // be caught in the form:
-            // clientEmitter.on(addr+"_"+nick, 
+            // clientEmitter.on(addr+"_"+nick,
             // function(fnName, client, arg1, arg2 ...)) {
-            //     // stuff    
+            //     // stuff
             // }
-            var args = [client.addr+"_"+client.nick, fnName, client];
-            for (var i=0; i<arguments.length; i++) {
+            var args = [client.addr + "_" + client.nick, fnName, client];
+            for (var i = 0; i < arguments.length; i++) {
                 args.push(arguments[i]);
             }
             console.log("IrcClient.emit => %s", JSON.stringify(args));
@@ -97,7 +97,7 @@ module.exports._findClientAsync = function(addr, nick) {
         return q(client);
     }
     var d = q.defer();
-    instanceEmitter.once("client_"+addr+"_"+nick, function(client) {
+    instanceEmitter.once("client_" + addr + "_" + nick, function(client) {
         d.resolve(client);
     });
     return d.promise;
@@ -108,15 +108,15 @@ module.exports._findClient = function(addr, nick) {
 };
 
 module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
-    console.log("Add listener(%s) for fn=%s", (addr+"_"+nick), fnName);
-    clientEmitter.on((addr+"_"+nick), function(invokedFnName, client) {
+    console.log("Add listener(%s) for fn=%s", (addr + "_" + nick), fnName);
+    clientEmitter.on((addr + "_" + nick), function(invokedFnName, client) {
         if (invokedFnName !== fnName) {
             return;
         }
-        console.log("Irc.Client.on(%s) fn=%s", (addr+"_"+nick), invokedFnName);
+        console.log("Irc.Client.on(%s) fn=%s", (addr + "_" + nick), invokedFnName);
         // invoke function with the remaining args (incl. Client object)
         var args = [];
-        for (var i=1; i<arguments.length; i++) {
+        for (var i = 1; i < arguments.length; i++) {
             args.push(arguments[i]);
         }
         invokeFn.apply(this, args);

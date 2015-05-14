@@ -43,7 +43,7 @@ describe("Matrix-to-IRC message bridging", function() {
     it("should bridge matrix messages as IRC text", function(done) {
         var testText = "Here is some test text.";
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say", 
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -64,18 +64,18 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
-    it("should bridge formatted matrix messages as formatted IRC text", 
+    it("should bridge formatted matrix messages as formatted IRC text",
     function(done) {
-        var tFormattedBody = "I support <strong>strong bold</strong> and <b>"+
-        'normal bold</b> and <b>bold <u>and underline</u><font color="green"> '+
+        var tFormattedBody = "I support <strong>strong bold</strong> and <b>" +
+        'normal bold</b> and <b>bold <u>and underline</u><font color="green"> ' +
         "including green</font></b>";
-        var tFallback = "I support strong bold and normal bold and "+
+        var tFallback = "I support strong bold and normal bold and " +
         "bold and underline including green";
-        var tIrcBody = "I support \u0002strong bold\u000f and \u0002normal bold"+
-        "\u000f and \u0002bold \u001fand underline\u000f\u0002\u000303 including"+
+        var tIrcBody = "I support \u0002strong bold\u000f and \u0002normal bold" +
+        "\u000f and \u0002bold \u001fand underline\u000f\u0002\u000303 including" +
         " green\u000f\u0002\u000f"; // last 2 codes not necessary!
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say", 
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -98,16 +98,16 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
-    it("should bridge escaped HTML matrix messages as unescaped HTML", 
+    it("should bridge escaped HTML matrix messages as unescaped HTML",
     function(done) {
-        var tFormattedBody = "<p>this is a &quot;test&quot; &amp; some _ mo!re"+
+        var tFormattedBody = "<p>this is a &quot;test&quot; &amp; some _ mo!re" +
         " fun ch@racters... are &lt; included &gt; here.</p>";
-        var tFallback = "this is a \"test\" & some _ mo!re fun ch@racters... "+
+        var tFallback = "this is a \"test\" & some _ mo!re fun ch@racters... " +
         "are < included > here.";
-        var tIrcBody = "this is a \"test\" & some _ mo!re fun ch@racters... "+
+        var tIrcBody = "this is a \"test\" & some _ mo!re fun ch@racters... " +
         "are < included > here.";
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say", 
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -133,7 +133,7 @@ describe("Matrix-to-IRC message bridging", function() {
     it("should bridge matrix emotes as IRC actions", function(done) {
         var testEmote = "thinks";
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "action", 
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -156,7 +156,7 @@ describe("Matrix-to-IRC message bridging", function() {
     it("should bridge matrix notices as IRC notices", function(done) {
         var testNotice = "Some automated message";
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "notice", 
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "notice",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -180,7 +180,7 @@ describe("Matrix-to-IRC message bridging", function() {
         var tBody = "the_image.jpg";
         var tMxcSegment = "somedomain.com/somecontentid";
 
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say", 
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(roomMapping.botNick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -208,7 +208,7 @@ describe("Matrix-to-IRC message bridging", function() {
         var tBody = "a_file.apk";
         var tMxcSegment = "somedomain.com/somecontentid";
 
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say", 
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(roomMapping.botNick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -235,7 +235,7 @@ describe("Matrix-to-IRC message bridging", function() {
     it("should bridge matrix topics as IRC topics", function(done) {
         var testTopic = "Topics are amazingz";
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "send", 
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "send",
         function(client, command, channel, data) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -256,7 +256,7 @@ describe("Matrix-to-IRC message bridging", function() {
     });
 
     // BOTS-40
-    it("[BOTS-40] should mention the *correct* nick of the sender of the image"+
+    it("[BOTS-40] should mention the *correct* nick of the sender of the image" +
     " in the text", function(done) {
         // change the nick of something else (shouldn't affect result)
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "join",
@@ -267,7 +267,7 @@ describe("Matrix-to-IRC message bridging", function() {
         var tBody = "the_image.jpg";
         var tMxcSegment = "somedomain.com/somecontentid";
 
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say", 
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(roomMapping.botNick);
             expect(client.addr).toEqual(roomMapping.server);
