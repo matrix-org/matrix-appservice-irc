@@ -38,8 +38,8 @@ directory. You can override this by passing ``--config some_file.yaml`` or
 | means you must be running your own homeserver to register an AS.         |
 +==========================================================================+
 ```
-The following options are **REQUIRED** in order to point the AS to the HS and
-vice versa:
+The following options are **REQUIRED** in order to point the AS to the
+homeserver (HS) and vice versa:
 ```yaml
 appService:
   # This section contains information about the HS
@@ -151,10 +151,62 @@ NB: These variables are sanitized by removing non-ASCII and invalid nick charact
 
 Registering
 -----------
+Before the HS will send the AS any events, you need to register it. You can
+generate a *registration file* for the AS by typing:
+```
+ $ node app.js --generate-registration
+```
+This will create a file ``appservice-registration-irc.yaml``. The HS is still
+unaware of this file currently. In order to tell the HS about the registration,
+you need to modify the **homeserver** configuration file (``homeserver.yaml``).
+The **homeserver** configuration file needs to have:
+```yaml
+app_service_config_files:
+   # This should be pointed to wherever the generated registration file is.
+ - "/home/someone/matrix-appservice-irc/appservice-registration-irc.yaml"
+```
+**You will need to restart the homeserver in order for this to take effect.**
 
 ### Architecture
+```
++--------+         (3)               +-------------+
+| IRC AS |<----AS HTTP API-----------| Home Server |
+|        |--Client-Server HTTP API-->|             |
++--------+       (extended)          +-------------+
+       |                                   |
+--generate-registration            read homserver.yaml
+    (1)|                                   |(2)
+       |   +-------------------+           |
+       +-->| Registration File |<----------+
+           |   - as_token      |
+           |   - hs_token      |
+           |   - app regex     |
+           +-------------------+
+           
+1) The IRC AS generates a registration file containing the tokens to use.
+2) The homeserver reads the registration and configures itself.
+3) Both AS and HS communicate over HTTP using the assigned tokens.
+```
 
 ### Safety checks
+It is possible for the registration files being used between AS and HS to get
+out of sync. If this happens, the AS will not recognize the homeserver token
+and will produce errors ``Invalid homeserver token``. Likewise, the AS may
+receive errors from the HS ``Invalid application service token.``. This is
+annoying but possible to deal with.
+
+What's more sinister is if the application specific regex changes. The tokens
+may not have changed, but the AS may think it is in charge of a namespace it
+doesn't have permission to use (e.g. thinking it has ``@irc_.*`` but it really
+has ``@xmpp_.*``). This produces undefined behaviour in the AS. In order to
+reduce the risk of the registrations getting out of sync like this, the IRC AS
+appends a CRC of the AS configuration file to the homeserver token whenever the
+AS configuration file is modified. If the configuration was changed, the CRC
+check will fail when compared to the homeserver token and the IRC AS can fail
+early. If you know for certain that your modifications to the configuration
+file is safe (doesn't alter the registration regex), you can disable the CRC
+check by passing ``--skip-crc-check`` or ``-s``. This is useful since otherwise
+you would need to restart the HS for the new registration file to take effect.
 
 Features
 --------
