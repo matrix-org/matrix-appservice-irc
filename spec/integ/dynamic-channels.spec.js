@@ -62,7 +62,7 @@ describe("Dynamic channels", function() {
                 room_id: tRoomId
             });
         });
-        env.mockAsapiController._query_alias(tAlias).done(function() {
+        env.mockAsapiController._queryAlias(tAlias).done(function() {
             if (joinedIrcChannel) {
                 done();
             }
@@ -129,7 +129,7 @@ describe("Dynamic channels (disabled)", function() {
             });
         });
 
-        env.mockAsapiController._query_alias(tAlias).catch(function() {
+        env.mockAsapiController._queryAlias(tAlias).catch(function() {
             expect(joinedIrcChannel).toBe(false, "Joined channel by alias");
             done();
         });

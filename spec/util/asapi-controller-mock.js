@@ -36,10 +36,10 @@ module.exports.create = function() {
             }
             return q.all(promises);
         },
-        _query_alias: function(alias) {
+        _queryAlias: function(alias) {
             return resolvers.alias(alias);
         },
-        _query_user: function(user) {
+        _queryUser: function(user) {
             return resolvers.user(user);
         }
     };

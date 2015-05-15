@@ -63,12 +63,10 @@ describe("Invite-only rooms", function() {
         "regardless of the number of people in the room.",
     function(done) {
         // when it queries whois, say they exist
-        var askedWhois = false;
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
         function(client, nick, cb) {
             expect(nick).toEqual(testIrcUser.nick);
             // say they exist (presence of user key)
-            askedWhois = true;
             cb({
                 user: testIrcUser.nick,
                 nick: testIrcUser.nick
@@ -139,7 +137,6 @@ describe("Invite-only rooms", function() {
             expect(leftRoom).toBe(false);
             // should go off the fact that the inviter was the bot
             expect(askedForRoomState).toBe(false);
-            expect(askedWhois).toBe(true);
             done();
         });
     });

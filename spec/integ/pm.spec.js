@@ -43,7 +43,7 @@ describe("Matrix-to-IRC PMing", function() {
         // there's a number of actions we want this to do, so track them to make
         // sure they are all called.
         var globalPromise = q.all([
-            whoisDefer.promise, registerDefer.promise, joinRoomDefer.promise,
+            registerDefer.promise, joinRoomDefer.promise,
             roomStateDefer.promise
         ]);
 
@@ -63,7 +63,6 @@ describe("Matrix-to-IRC PMing", function() {
         function(client, nick, cb) {
             expect(nick).toEqual(tIrcNick);
             // say they exist (presence of user key)
-            whoisDefer.resolve();
             cb({
                 user: tIrcNick,
                 nick: tIrcNick
@@ -115,7 +114,7 @@ describe("Matrix-to-IRC PMing", function() {
         var leaveRoomDefer = q.defer();
 
         var globalPromise = q.all([
-            whoisDefer.promise, registerDefer.promise, joinRoomDefer.promise,
+            registerDefer.promise, joinRoomDefer.promise,
             roomStateDefer.promise, leaveRoomDefer.promise,
             sendMessageDefer.promise
         ]);
@@ -136,7 +135,6 @@ describe("Matrix-to-IRC PMing", function() {
         function(client, nick, cb) {
             expect(nick).toEqual(tIrcNick);
             // say they exist (presence of user key)
-            whoisDefer.resolve();
             cb({
                 user: tIrcNick,
                 nick: tIrcNick
