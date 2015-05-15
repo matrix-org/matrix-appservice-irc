@@ -19,6 +19,7 @@ users. It also creates 'virtual' Matrix users for real IRC clients. It currently
 
 Quick Start
 -----------
+For more information, check out the [how-to guide](HOWTO.md).
 - ``git clone`` this repository.
 - Run ``npm install``.
 - Optional: Run the tests by running ``npm test``.
