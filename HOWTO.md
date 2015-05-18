@@ -127,7 +127,8 @@ ircService:
 The following variables are available for templates:
 
 #### Nick Template
-NB: These variables are sanitized by removing non-ASCII and invalid nick characters.
+NB: These variables are sanitized by removing non-ASCII and invalid nick 
+characters.
 
 | Variable      | Description
 | ------------- | -----------
@@ -210,19 +211,19 @@ you would need to restart the HS for the new registration file to take effect.
 
 Features
 --------
-Some of the features listed below require Matrix users the ability to talk to the
-AS directly. This is done by creating a Matrix room and inviting the AS bot to it.
-The AS bot's ``user_id`` defaults to ``@matrix-appservice-irc:<domain>``, but can
-be changed like so:
+Some of the features listed below require Matrix users the ability to talk to
+the AS directly. This is done by creating a Matrix room and inviting the AS bot
+to it. The AS bot's ``user_id`` defaults to ``@matrix-appservice-irc:<domain>``
+but can be changed like so:
 ```yaml
 appService:
   localpart: "ircas"  # Creates a user ID @ircas:<domain>
 ```
 
 ### Changing Nicks
-By default, Matrix users are assigned a nick from the nick template and that's it.
-They cannot change their nick. You can grant Matrix users the ability to change
-their own nick like so:
+By default, Matrix users are assigned a nick from the nick template and 
+that's it. They cannot change their nick. You can grant Matrix users the 
+ability to change their own nick like so:
 ```yaml
 ircService:
   servers:
@@ -230,18 +231,18 @@ ircService:
       ircClients:
         allowNickChanges: true
 ```
-Matrix users will now be able to change their nick to *anything*; the nick is not
-restricted in any way. Matrix users can set their nick by inviting the AS bot into
-a one-to-one Matrix room and sending a message with ``!nick <server> <new_nick>``
-e.g. ``!nick irc.example.com bob``. In order for nick changing to work, you must
-already have a nick, so you must already be connected to the IRC network (e.g. by
-having sent a message).
+Matrix users will now be able to change their nick to *anything*; the nick is
+not restricted in any way. Matrix users can set their nick by inviting the AS
+bot into a one-to-one Matrix room and sending a message with
+``!nick <server> <new_nick>`` e.g. ``!nick irc.example.com bob``. In order for
+nick changing to work, you must already have a nick, so you must already be
+connected to the IRC network (e.g. by having sent a message).
 
 ### Private bridging
-By default, dynamic mappings to an IRC network are present in the published room 
-list, and anyone can join these dynamic channels. This may be undesirable, and you
-may want to make these hidden/accessible to select users. To make dynamic mappings
-private:
+By default, dynamic mappings to an IRC network are present in the published
+room list, and anyone can join these dynamic channels. This may be undesirable,
+and you may want to make these hidden/accessible to select users. To make
+dynamic mappings private:
 
 ```yaml
 ircService:
@@ -261,11 +262,11 @@ type ``!join <server name> <channel>`` e.g. ``!join irc.example.com #foo``. You
 must be on the whitelist for this to work.
 
 ### Ident
-You may want to assign ident-verified usernames to the generated IRC clients e.g.
-to scope bans to Matrix users rather than the entire application service. This
-application service can run an 
-[ident server](http://en.wikipedia.org/wiki/Ident_protocol) to make this possible.
-Ident is disabled by default. To enable it:
+You may want to assign ident-verified usernames to the generated IRC clients
+e.g. to scope bans to Matrix users rather than the entire application service.
+This application service can run an 
+[ident server](http://en.wikipedia.org/wiki/Ident_protocol) to make this 
+possible. Ident is disabled by default. To enable it:
 ```yaml
 ircService:
   ident:
@@ -288,7 +289,28 @@ ircService:
 
 ### Logging
 Logging is configurable in the yaml, but there is also an extra verbose setting
-you can enable. This is done by passing ``--verbose`` or ``-v`` to ``node app.js``.
+you can enable. This is done by passing ``--verbose`` or ``-v`` to 
+``node app.js``.
 
 Contributing
 ------------
+
+### Reporting a bug
+Think you've found a bug? Want a new feature on the client? Please open an
+issue on JIRA:
+
+- Create an account and login to https://matrix.org/jira
+- Navigate to the ``BOTS`` project.
+- Click **Create Issue** - Please be as descriptive as possible, with reproduction
+  steps if possible, and mention "IRC AS" in your issue.
+
+All issues in JIRA are **public**.
+
+### Helping out
+Please fork this project, make your fix and then send us a pull request. Please
+reference any issue this fix is addressing in your pull request. This project
+uses a variety of automated tools to check for things like style violations,
+missing semicolons, etc. To run your fix through these tools, please run
+[check.sh](the check shell script) contained in this repository. You will need
+to have ``jshint`` and ``gjslint`` (Google Closure Linter) installed, in
+addition to ``compiler.jar`` (Closure Compiler).
