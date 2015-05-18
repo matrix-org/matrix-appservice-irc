@@ -4,6 +4,10 @@ Matrix IRC Application Service
 
 This is a Node.js IRC bridge for Matrix, using the Application Services (AS) API. This requires **Synapse 0.9** or above as this AS uses the new registration format.
 
+```
+ $ npm install matrix-appservice-irc
+```
+
 What does it do?
 ----------------
 This bridges IRC channels into Matrix, allowing IRC users to communicate with
