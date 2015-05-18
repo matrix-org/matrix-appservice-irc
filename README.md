@@ -12,10 +12,7 @@ users. It also creates 'virtual' Matrix users for real IRC clients. It currently
  - Bridging specific (specified in the config) IRC channels and specific Matrix rooms.
  - Bridging of private conversations, which can be initiated both from IRC (as PMs) and from 
    Matrix (as invites to virtual Matrix users).
- - Dynamically bridging *any IRC channels on a network*:
-     * **publicly**: via specially crafted room aliases (e.g. Joining the room
-       ``#irc.example.com_#python:homeserver.com`` would join the channel ``#python`` on 
-       ``irc.example.com`` even if this isn't specified in the config.)
+ - Dynamically bridging *any IRC channels on a network*
 
 Quick Start
 -----------
@@ -46,3 +43,7 @@ Configuration
 -------------
 See [the sample config file](config.sample.yaml) for an explanation of the
 configuration options available.
+
+Contributing
+------------
+Please see the [HOW TO](HOWTO.md#contributing) for information on contributing.
