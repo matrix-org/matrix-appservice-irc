@@ -311,6 +311,6 @@ Please fork this project, make your fix and then send us a pull request. Please
 reference any issue this fix is addressing in your pull request. This project
 uses a variety of automated tools to check for things like style violations,
 missing semicolons, etc. To run your fix through these tools, please run
-[check.sh](the check shell script) contained in this repository. You will need
+[the check shell script](check.sh) contained in this repository. You will need
 to have ``jshint`` and ``gjslint`` (Google Closure Linter) installed, in
 addition to ``compiler.jar`` (Closure Compiler).
