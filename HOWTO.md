@@ -91,7 +91,7 @@ ircService:
 This will register a block of aliases which represent all the possible IRC
 channels on ``irc.example.com``. To join ``#some-channel`` as a Matrix client,
 try to join the room alias ``#irc_irc.example.com_#some-channel:localhost``.
-You can now join any channel you like by modifying the alias you join.
+You can now join any channel you like by modifying the alias you join. 
 
 ### Modifying templates
 You may think that aliases like ``#irc_irc.example.com_#some-channel:localhost``
@@ -210,10 +210,55 @@ you would need to restart the HS for the new registration file to take effect.
 
 Features
 --------
+Some of the features listed below require Matrix users the ability to talk to the
+AS directly. This is done by creating a Matrix room and inviting the AS bot to it.
+The AS bot's ``user_id`` defaults to ``@matrix-appservice-irc:<domain>``, but can
+be changed like so:
+```yaml
+appService:
+  localpart: "ircas"  # Creates a user ID @ircas:<domain>
+```
 
-### Dynamic bridging
+### Changing Nicks
+By default, Matrix users are assigned a nick from the nick template and that's it.
+They cannot change their nick. You can grant Matrix users the ability to change
+their own nick like so:
+```yaml
+ircService:
+  servers:
+    irc.example.com:
+      ircClients:
+        allowNickChanges: true
+```
+Matrix users will now be able to change their nick to *anything*; the nick is not
+restricted in any way. Matrix users can set their nick by inviting the AS bot into
+a one-to-one Matrix room and sending a message with ``!nick <server> <new_nick>``
+e.g. ``!nick irc.example.com bob``. In order for nick changing to work, you must
+already have a nick, so you must already be connected to the IRC network (e.g. by
+having sent a message).
 
 ### Private bridging
+By default, dynamic mappings to an IRC network are present in the published room 
+list, and anyone can join these dynamic channels. This may be undesirable, and you
+may want to make these hidden/accessible to select users. To make dynamic mappings
+private:
+
+```yaml
+ircService:
+  servers:
+    irc.example.com:
+      dynamicChannels:
+        enabled: true
+        visibility: "private"
+        whitelist:
+          - "@someone:localhost"
+          - "@another:localhost"
+```
+Only ``@someone:localhost`` or ``@another:localhost`` can join these rooms now.
+Private rooms cannot be joined via room aliases. You need to get the AS bot to
+invite you to the room. To do this, create a room and invite the AS bot, then
+type ``!join <server name> <channel>`` e.g. ``!join irc.example.com #foo``. You
+must be on the whitelist for this to work.
 
 ### Ident
 
