@@ -261,10 +261,34 @@ type ``!join <server name> <channel>`` e.g. ``!join irc.example.com #foo``. You
 must be on the whitelist for this to work.
 
 ### Ident
+You may want to assign ident-verified usernames to the generated IRC clients e.g.
+to scope bans to Matrix users rather than the entire application service. This
+application service can run an 
+[ident server](http://en.wikipedia.org/wiki/Ident_protocol) to make this possible.
+Ident is disabled by default. To enable it:
+```yaml
+ircService:
+  ident:
+    enabled: true
+    port: 1113  # optional (default: 113) but this allows you to run the AS without root.
+```
 
 ### Statsd
+This application service supports sending metrics to a 
+[statsd server](https://github.com/etsy/statsd). Metrics monitored include:
+ - Memory usage (RSS, heap, etc)
+ - Request outcomes (success/fail) and durations (ms).
+Sending metrics is disabled by default. To enable this:
+```yaml
+ircService:
+  statsd:
+    hostname: "127.0.0.1"
+    port: 8125
+```
 
 ### Logging
+Logging is configurable in the yaml, but there is also an extra verbose setting
+you can enable. This is done by passing ``--verbose`` or ``-v`` to ``node app.js``.
 
 Contributing
 ------------
