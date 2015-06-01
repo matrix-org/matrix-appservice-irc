@@ -1,5 +1,6 @@
-HOW-TO
-======
+Matrix<->IRC Gateway HOW-TO
+===========================
+
 This guide is designed to familiarise you with the configuration and running of
 this IRC Application Service (AS) and provide a more thorough look at some of
 the features of this AS.
