@@ -24,9 +24,9 @@ properties:
                 type: "object"
                 properties:
                     port:
-                        type: "number"
+                        type: "integer"
                     maxSize:
-                        type: "number"
+                        type: "integer"
                 required: ["port"]
             localpart:
                 "type": "string"
@@ -42,7 +42,7 @@ properties:
                     hostname:
                         type: "string"
                     port:
-                        type: "number"
+                        type: "integer"
                 required: ["hostname", "port"]
             ident:
                 type: "object"
@@ -50,7 +50,7 @@ properties:
                     enabled:
                         type: "boolean"
                     port:
-                        type: "number"
+                        type: "integer"
                     hashUsernames:
                         type: "boolean"
                 required: ["enabled"]
@@ -67,9 +67,9 @@ properties:
                     toConsole:
                         type: "boolean"
                     maxFileSizeBytes:
-                        type: "number"
+                        type: "integer"
                     maxFiles:
-                        type: "number"
+                        type: "integer"
             servers:
                 type: "object"
                 # all properties must follow the following
@@ -77,7 +77,7 @@ properties:
                     type: "object"
                     properties:
                         port:
-                            type: "number"
+                            type: "integer"
                         ssl:
                             type: "boolean"
                         botConfig:
@@ -147,7 +147,10 @@ properties:
                                     type: "string"
                                     pattern: "\\$USERID|\\$LOCALPART|\\$DISPLAY"
                                 maxClients:
-                                    type: "number"
+                                    type: "integer"
+                                idleTimeout:
+                                    type: "integer"
+                                    minimum: 0
                                 allowNickChanges:
                                     type: "boolean"
         required: ["databaseUri", "servers"]

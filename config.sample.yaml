@@ -123,6 +123,10 @@ ircService:
         # disconnected and replaced.
         # Optional. Default: 30.
         maxClients: 30
+        # The maximum amount of time in seconds that the client can exist
+        # without sending another message before being disconnected. Use 0 to
+        # not apply an idle timeout. Default: 600 (10 minutes)
+        idleTimeout: 30
   
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users
