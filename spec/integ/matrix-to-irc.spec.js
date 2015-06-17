@@ -130,6 +130,33 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
+    it("should strip out unknown html tags from formatted_body", function(done) {
+        var tFormattedBody = "Here is <foo bar=\"tar\">baz text</foo>";
+        var tFallback = "Here is baz text";
+
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        function(client, channel, text) {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            expect(text.length).toEqual(tFallback.length);
+            expect(text).toEqual(tFallback);
+            done();
+        });
+
+        env.mockAsapiController._trigger("type:m.room.message", {
+            content: {
+                body: tFallback,
+                format: "org.matrix.custom.html",
+                formatted_body: tFormattedBody,
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+    });
+
     it("should bridge matrix emotes as IRC actions", function(done) {
         var testEmote = "thinks";
 
