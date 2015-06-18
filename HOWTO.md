@@ -241,9 +241,9 @@ connected to the IRC network (e.g. by having sent a message).
 
 ### Private bridging
 By default, dynamic mappings to an IRC network are present in the published
-room list, and anyone can join these dynamic channels. This may be undesirable,
-and you may want to make these hidden/accessible to select users. To make
-dynamic mappings private:
+room list, and anyone can join these dynamic channels via the room alias. This
+may be undesirable, and you may want to make these hidden/accessible to select
+users. To make dynamic mappings private to a select group of users:
 
 ```yaml
 ircService:
@@ -251,7 +251,9 @@ ircService:
     irc.example.com:
       dynamicChannels:
         enabled: true
-        visibility: "private"
+        published: false
+        createAlias: false
+        joinRule: invite
         whitelist:
           - "@someone:localhost"
           - "@another:localhost"
@@ -261,6 +263,23 @@ Private rooms cannot be joined via room aliases. You need to get the AS bot to
 invite you to the room. To do this, create a room and invite the AS bot, then
 type ``!join <server name> <channel>`` e.g. ``!join irc.example.com #foo``. You
 must be on the whitelist for this to work.
+
+For a less restrictive option, you may want similar functionality to `+s` on
+IRC (does not appear in the channel list). To do this:
+
+```yaml
+ircService:
+  servers:
+    irc.example.com:
+      dynamicChannels:
+        enabled: true
+        createAlias: true
+        joinRule: public
+        published: false
+```
+
+This will still create the room alias for the room, but only people who know
+the alias will be able to join the room.
 
 ### Ident
 You may want to assign ident-verified usernames to the generated IRC clients
