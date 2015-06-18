@@ -101,9 +101,13 @@ properties:
                             properties:
                                 enabled:
                                     type: "boolean"
-                                visibility:
+                                published:
+                                    type: "boolean"
+                                createAlias:
+                                    type: "boolean"
+                                joinRule:
                                     type: "string"
-                                    enum: ["public","private"]
+                                    enum: ["invite", "public"]
                                 federate:
                                     type: "boolean"
                                 aliasTemplate:

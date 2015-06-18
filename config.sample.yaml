@@ -52,27 +52,29 @@ ircService:
         # network.
         # Default: false.
         enabled: true
-        # How the AS should create new Matrix rooms:
-        # "public": A public room is created, and an alias is published for this
-        #           room so any Matrix user can join so long as they know the
-        #           alias.
-        # "private" : An invite-only room is created, and no alias is published
-        #             so only Matrix users with an invite can join this room.
-        # Default: public.
-        visibility: "public" # NOT YET IMPLEMENTED
+        # Should the AS create a room alias for the new Matrix room? The form of
+        # the alias can be modified via 'aliasTemplate'. Default: true.
+        createAlias: true
+        # Should the AS publish the new Matrix room to the public room list so
+        # anyone can see it? Default: true.
+        published: true
+        # What should the join_rule be for the new Matrix room? If 'public',
+        # anyone can join the room. If 'invite', only users with an invite can
+        # join the room. Default: "public".
+        joinRule: public
         # Should created Matrix rooms be federated? If false, only users on the
         # HS attached to this AS will be able to interact with this room.
         # Default: true.
         federate: true # NOT YET IMPLEMENTED
-        # The room alias template to apply when creating new mappings. This only
-        # applies if visibility is 'public'. The following variables are exposed:
+        # The room alias template to apply when creating new aliases. This only
+        # applies if createAlias is 'true'. The following variables are exposed:
         # $SERVER => The IRC server address (e.g. "irc.example.com")
         # $CHANNEL => The IRC channel (e.g. "#python")
         # This MUST have $CHANNEL somewhere in it.
         # Default: '#irc_$SERVER_$CHANNEL'
         aliasTemplate: "#irc_$CHANNEL"
         # A list of user IDs which the AS bot will send invites to in response
-        # to a !join. Only applies if visiblity is 'private'. Default: []
+        # to a !join. Only applies if joinRule is 'invite'. Default: []
         whitelist:
           - "@foo:example.com"
           - "@bar:example.com"
