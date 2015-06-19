@@ -60,7 +60,9 @@ ircService:
         published: true
         # What should the join_rule be for the new Matrix room? If 'public',
         # anyone can join the room. If 'invite', only users with an invite can
-        # join the room. Default: "public".
+        # join the room. Note that if an IRC channel has +k or +i set on it,
+        # join_rules will be set to 'invite' until these modes are removed.
+        # Default: "public".
         joinRule: public
         # Should created Matrix rooms be federated? If false, only users on the
         # HS attached to this AS will be able to interact with this room.

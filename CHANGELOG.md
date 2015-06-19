@@ -9,3 +9,6 @@ Changes in 0.1.1
    `dynamicChannels.createAlias`, `dynamicChannels.published` and
    `dynamicChannels.joinRule` which gives more control over how the AS creates
    dynamic rooms.
+ - Listen for `+k` and `+i` modes and change the `join_rules` of the Matrix
+   room to `invite` when they are set. Revert back to the YAML configured
+   `join_rules` when these modes are removed.
