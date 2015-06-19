@@ -29,7 +29,7 @@ module.exports._reset = function(databaseUri) {
     }
     var baseDbName = databaseUri.substring("nedb://".length);
 
-    var configWiped, roomsWiped = false;
+    var configWiped, roomsWiped, usersWiped = false;
 
     var roomsDb = new Datastore({
         filename: baseDbName + "/rooms.db",
@@ -37,7 +37,7 @@ module.exports._reset = function(databaseUri) {
         onload: function() {
             deleteDb(roomsDb, {}).done(function() {
                 roomsWiped = true;
-                if (configWiped && roomsWiped) {
+                if (configWiped && roomsWiped && usersWiped) {
                     d.resolve();
                 }
             });
@@ -49,7 +49,19 @@ module.exports._reset = function(databaseUri) {
         onload: function() {
             deleteDb(configDb, {}).done(function() {
                 configWiped = true;
-                if (configWiped && roomsWiped) {
+                if (configWiped && roomsWiped && usersWiped) {
+                    d.resolve();
+                }
+            });
+        }
+    });
+    var usersDb = new Datastore({
+        filename: baseDbName + "/users.db",
+        autoload: true,
+        onload: function() {
+            deleteDb(usersDb, {}).done(function() {
+                usersWiped = true;
+                if (configWiped && roomsWiped && usersWiped) {
                     d.resolve();
                 }
             });
