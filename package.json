@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "istanbul cover --report cobertura jasmine-node -- spec --verbose --junitreport --forceexit --captureExceptions",
-    "lint": "jshint -c .jshint lib spec && gjslint --unix_mode --disable 0131 --max_line_length 90 -r lib/ -r spec/",
+    "lint": "jshint -c .jshint lib spec && gjslint --unix_mode --disable 0131,0220 --max_line_length 90 -r lib/ -r spec/",
     "check": "npm test && npm run lint"
   },
   "repository": {
