@@ -128,6 +128,27 @@ describe("IRC-to-Matrix message bridging", function() {
         });
     });
 
+    it("should be insensitive to the case of the channel",
+    function(done) {
+        var testText = "this is some test text.";
+        sdk.sendMessage.andCallFake(function(roomId, content) {
+            expect(roomId).toEqual(roomMapping.roomId);
+            expect(content).toEqual({
+                body: testText,
+                msgtype: "m.text"
+            });
+            done();
+            return q();
+        });
+
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        function(client) {
+            client.emit(
+                "message", tFromNick, roomMapping.channel.toUpperCase(), testText
+            );
+        });
+    });
+
     it("should bridge IRC formatted text as Matrix's org.matrix.custom.html",
     function(done) {
         var tIrcFormattedText = "This text is \u0002bold\u000f and this is " +

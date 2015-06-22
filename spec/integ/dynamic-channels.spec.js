@@ -70,6 +70,52 @@ describe("Dynamic channels", function() {
             console.error("Failed to join IRC channel: %s", JSON.stringify(e));
         });
     });
+
+    it("should point to the same room ID for aliases with different cases",
+    function(done) {
+        // Default mapping => #irc_$SERVER_$CHANNEL
+        var tChannel = "#foobar";
+        var tRoomId = "!newroom:id";
+        var tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
+        var tAlias = "#" + tAliasLocalpart + ":" + appConfig.homeServerDomain;
+        var tAliasCapsLocalpart = "irc_" + roomMapping.server + "_#FooBar";
+        var tCapsAlias = "#" + tAliasCapsLocalpart + ":" + appConfig.homeServerDomain;
+
+        // when we get the connect/join requests, accept them.
+        var joinedIrcChannel = false;
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
+        function(client, chan, cb) {
+            expect(chan).toEqual(tChannel);
+            joinedIrcChannel = true;
+            if (cb) { cb(); }
+        });
+
+        // when we get the create room request, process it.
+        var sdk = env.clientMock._client();
+        sdk.createRoom.andCallFake(function(opts) {
+            expect(opts.room_alias_name).toEqual(tAliasLocalpart);
+            return q({
+                room_id: tRoomId
+            });
+        });
+
+        var madeAlias = false;
+        sdk._doAuthedRequest.andCallFake(function(cb, method, path, qp, body) {
+            madeAlias = true;
+            expect(body).toEqual({
+                room_id: tRoomId
+            });
+            expect(path).toEqual("/directory/room/" + encodeURIComponent(tCapsAlias));
+            return q({});
+        });
+
+        env.mockAsapiController._queryAlias(tAlias).then(function() {
+            return env.mockAsapiController._queryAlias(tCapsAlias);
+        }).done(function() {
+            expect(madeAlias).toBe(true, "Failed to create alias");
+            done();
+        });
+    });
 });
 
 describe("Dynamic channels (disabled)", function() {
