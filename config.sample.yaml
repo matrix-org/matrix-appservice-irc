@@ -129,7 +129,7 @@ ircService:
         maxClients: 30
         # The maximum amount of time in seconds that the client can exist
         # without sending another message before being disconnected. Use 0 to
-        # not apply an idle timeout. Default: 10800 (3 hours)
+        # not apply an idle timeout. Default: 172800 (48 hours)
         idleTimeout: 10800
   
   # Configuration for an ident server. If you are running a public bridge it is
