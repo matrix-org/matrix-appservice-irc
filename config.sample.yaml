@@ -34,7 +34,7 @@ ircService:
         # The nickname to give the AS bot.
         nick: "appservicebot"
         # The password to give to NickServ for this nick. Optional.
-        password: "helloworld"  # NOT YET IMPLEMENTED
+        password: "helloworld"
 
       # Configuration for PMs / private 1:1 communications between users.
       privateMessages:
