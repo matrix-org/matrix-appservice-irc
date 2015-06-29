@@ -50,4 +50,37 @@ describe("Initialisation", function() {
             env.mockAsapiController, appConfig.serviceConfig
         );
     });
+
+    it("[BOTS-70] should attempt to set the bot nick if ircd assigned random string",
+    function(done) {
+        var assignedNick = "5EXABJ6GG";
+
+        // let the bot connect
+        env.ircMock._whenClient(roomMapping.server, ircNick, "connect",
+        function(client, cb) {
+            // after the connect callback, modify their nick and emit an event.
+            client._invokeCallback(cb).done(function() {
+                process.nextTick(function() {
+                    client.nick = assignedNick;
+                    client.emit("nick", ircNick, assignedNick);
+                    done();
+                });
+            });
+        });
+
+        env.ircMock._whenClient(roomMapping.server, ircNick, "send",
+        function(client, command, arg) {
+            expect(client.nick).toEqual(ircNick, "use the old nick on /nick");
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(command).toEqual("NICK");
+            expect(arg).toEqual(ircNick);
+            done();
+        });
+
+        // run the test
+        env.ircService.configure(ircConfig);
+        env.ircService.register(
+            env.mockAsapiController, appConfig.serviceConfig
+        );
+    });
 });
