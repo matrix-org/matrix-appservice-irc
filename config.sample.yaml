@@ -84,6 +84,47 @@ ircService:
         # circumstances.
         exclude: ["#foo", "#bar"]
 
+      # Configuration for controlling how Matrix and IRC membership lists are
+      # synced.
+      membershipLists:
+        # Enable the syncing of membership lists between IRC and Matrix. This
+        # has a significant effect on performance on startup as the lists are
+        # synced. Default: false.
+        enabled: false
+
+        # The global rules to apply to all mapped and dynamic channels unless
+        # a more specific rule is set.
+        global:
+          # Sync the IRC membership list to Matrix. Default: true.
+          ircToMatrix: true
+          # Sync the Matrix membership list to IRC. Enabling this will create 1
+          # TCP connection per Matrix user, regardless of their activity in the
+          # room. IRC networks usually have a max client connection limit between
+          # 5-50. Default: false.
+          matrixToIrc: false
+
+        # More specific rules for syncing are defined below. It is possible to
+        # create conflicting rulesets (e.g. #foo maps to !foo:bar and #foo should
+        # be synced but !foo:bar should not be synced). In the event of a conflict,
+        # 'false' will always be chosen (no syncing).
+
+        # NOT YET IMPLEMENTED
+        # Set specific rules to apply to IRC channels.
+        channels:
+          - channel: "#thepub"
+            ircToMatrix: true
+            matrixToIrc: true
+          - channel: "#thebar"
+            ircToMatrix: false
+            matrixToIrc: true
+
+        # NOT YET IMPLEMENTED
+        # Set specific rules to apply to Matrix rooms.
+        rooms:
+          - room: "!fuasirouddJoxtwfge:localhost"
+            ircToMatrix: false
+            matrixToIrc: false
+
       mappings:
         # 1:many mappings from IRC channels to room IDs on this IRC server.
         "#thepub": ["!kieouiJuedJoxtVdaG:localhost"]

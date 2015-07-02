@@ -96,6 +96,44 @@ properties:
                                     type: "array"
                                     items:
                                         type: "string"
+                        membershipLists:
+                            type: "object"
+                            properties:
+                                enabled:
+                                    type: "boolean"
+                                global:
+                                    type: "object"
+                                    properties:
+                                        ircToMatrix:
+                                            type: "boolean"
+                                        matrixToIrc:
+                                            type: "boolean"
+                                channels:
+                                    type: "array"
+                                    items:
+                                        type: "object"
+                                        properties:
+                                            channel:
+                                                type: "string"
+                                                pattern: "^#+.*$"
+                                            ircToMatrix:
+                                                type: "boolean"
+                                            matrixToIrc:
+                                                type: "boolean"
+                                        additionalProperties: false
+                                rooms:
+                                    type: "array"
+                                    items:
+                                        type: "object"
+                                        properties:
+                                            room:
+                                                type: "string"
+                                                pattern: "^!+.*$"
+                                            ircToMatrix:
+                                                type: "boolean"
+                                            matrixToIrc:
+                                                type: "boolean"
+                                        additionalProperties: false
                         dynamicChannels:
                             type: "object"
                             properties:
