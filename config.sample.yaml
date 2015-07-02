@@ -131,6 +131,11 @@ ircService:
         # without sending another message before being disconnected. Use 0 to
         # not apply an idle timeout. Default: 172800 (48 hours)
         idleTimeout: 10800
+        # Make virtual IRC clients join and leave channels as their real Matrix
+        # counterparts join/leave rooms. Make sure your 'maxClients' value is
+        # high enough!
+        # Optional. Default: false
+        mirrorJoinPart: true
   
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users
