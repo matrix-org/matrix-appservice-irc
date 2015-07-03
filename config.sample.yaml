@@ -94,6 +94,7 @@ ircService:
 
         # The global rules to apply to all mapped and dynamic channels unless
         # a more specific rule is set.
+        # NOT YET IMPLEMENTED
         global:
           # Sync the IRC membership list to Matrix. Default: true.
           ircToMatrix: true
@@ -118,11 +119,10 @@ ircService:
             ircToMatrix: false
             matrixToIrc: true
 
-        # NOT YET IMPLEMENTED
         # Set specific rules to apply to Matrix rooms.
         rooms:
           - room: "!fuasirouddJoxtwfge:localhost"
-            ircToMatrix: false
+            ircToMatrix: false  # <-- NOT YET IMPLEMENTED
             matrixToIrc: false
 
       mappings:
