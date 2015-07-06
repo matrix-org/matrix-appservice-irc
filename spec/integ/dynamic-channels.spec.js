@@ -62,9 +62,10 @@ describe("Dynamic channels", function() {
                 room_id: tRoomId
             });
         });
-        sdk.sendStateEvent.andCallFake(function(roomId, eventType) {
+        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
+            expect(obj).toEqual({history_visibility: "joined"});
             return q({});
         });
 
@@ -105,9 +106,10 @@ describe("Dynamic channels", function() {
             });
         });
 
-        sdk.sendStateEvent.andCallFake(function(roomId, eventType) {
+        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
+            expect(obj).toEqual({history_visibility: "joined"});
             return q({});
         });
 
@@ -187,9 +189,10 @@ describe("Dynamic channels (disabled)", function() {
             });
         });
 
-        sdk.sendStateEvent.andCallFake(function(roomId, eventType) {
+        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
+            expect(obj).toEqual({history_visibility: "joined"});
             return q({});
         });
 

@@ -93,8 +93,9 @@ describe("Homeserver alias queries", function() {
             });
         });
 
-        sdk.sendStateEvent.andCallFake(function(roomId, eventType) {
+        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
             expect(eventType).toEqual("m.room.history_visibility");
+            expect(obj).toEqual({history_visibility: "joined"});
             return q({});
         });
 
