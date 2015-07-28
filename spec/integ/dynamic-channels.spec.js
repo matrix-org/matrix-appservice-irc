@@ -62,6 +62,13 @@ describe("Dynamic channels", function() {
                 room_id: tRoomId
             });
         });
+        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+            expect(roomId).toEqual(tRoomId);
+            expect(eventType).toEqual("m.room.history_visibility");
+            expect(obj).toEqual({history_visibility: "joined"});
+            return q({});
+        });
+
         env.mockAsapiController._queryAlias(tAlias).done(function() {
             if (joinedIrcChannel) {
                 done();
@@ -97,6 +104,13 @@ describe("Dynamic channels", function() {
             return q({
                 room_id: tRoomId
             });
+        });
+
+        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+            expect(roomId).toEqual(tRoomId);
+            expect(eventType).toEqual("m.room.history_visibility");
+            expect(obj).toEqual({history_visibility: "joined"});
+            return q({});
         });
 
         var madeAlias = false;
@@ -173,6 +187,13 @@ describe("Dynamic channels (disabled)", function() {
             return q({
                 room_id: tRoomId
             });
+        });
+
+        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+            expect(roomId).toEqual(tRoomId);
+            expect(eventType).toEqual("m.room.history_visibility");
+            expect(obj).toEqual({history_visibility: "joined"});
+            return q({});
         });
 
         env.mockAsapiController._queryAlias(tAlias).catch(function() {
