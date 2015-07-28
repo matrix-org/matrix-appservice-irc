@@ -1,4 +1,4 @@
-
+- Remove the AS bot from IRC entirely.
 - The AS bot should set its own matrix display name (configurable)
 - For `!commands`, if there is only 1 IRC network configured, we should allow it
   to not be specified.
@@ -6,7 +6,7 @@
   edit them. join_rules so that users can manually set rooms to public/publish
   an alias for them.
 - You can send messages in channels you are not a part of (e.g. `Github123`),
-  we should probably send that from the AS bot rather than pollute the member
-  list in this case.
+  we should probably send that from the AS bot on the matrix side rather than
+  pollute the member list in this case.
 - We need to do win95 style `LONGNA~1` semantics for virtual IRC usernames. We
   should persist the `~#` bit forever so bans are fixed directly to a user ID.
