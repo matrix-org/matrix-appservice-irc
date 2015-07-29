@@ -39,7 +39,10 @@ module.exports._reset = function() {
     suppliedConfig = null;
     mockClient = {
         credentials: {},
-        register: jasmine.createSpy("sdk.register(loginType, data)"),
+        _http: {
+            opts: {}
+        },
+        register: jasmine.createSpy("sdk.register(username, password)"),
         createRoom: jasmine.createSpy("sdk.createRoom(opts)"),
         joinRoom: jasmine.createSpy("sdk.joinRoom(idOrAlias)"),
         sendMessage: jasmine.createSpy("sdk.sendMessage(roomId, content)"),
@@ -50,7 +53,7 @@ module.exports._reset = function() {
         sendStateEvent: jasmine.createSpy("sdk.sendStateEvent(room,type,content,key)"),
         invite: jasmine.createSpy("sdk.invite(roomId, userId)"),
         leave: jasmine.createSpy("sdk.leave(roomId)"),
-        _doAuthedRequest: jasmine.createSpy("sdk._doAuthedRequest")
+        createAlias: jasmine.createSpy("sdk.createAlias(alias, roomId)")
     };
 
     // mock up getStateEvent immediately since it is called for every new IRC
@@ -61,11 +64,8 @@ module.exports._reset = function() {
 
     // Helper to succeed sdk registration calls.
     mockClient._onHttpRegister = function(params) {
-        mockClient.register.andCallFake(function(loginType, data) {
-            expect(loginType).toEqual("m.login.application_service");
-            expect(data).toEqual({
-                user: params.expectLocalpart
-            });
+        mockClient.register.andCallFake(function(username, password) {
+            expect(username).toEqual(params.expectLocalpart);
             return q({
                 user_id: params.returnUserId
             });

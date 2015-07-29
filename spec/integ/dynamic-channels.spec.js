@@ -114,12 +114,10 @@ describe("Dynamic channels", function() {
         });
 
         var madeAlias = false;
-        sdk._doAuthedRequest.andCallFake(function(cb, method, path, qp, body) {
+        sdk.createAlias.andCallFake(function(alias, roomId) {
             madeAlias = true;
-            expect(body).toEqual({
-                room_id: tRoomId
-            });
-            expect(path).toEqual("/directory/room/" + encodeURIComponent(tCapsAlias));
+            expect(roomId).toEqual(tRoomId);
+            expect(alias).toEqual(tCapsAlias);
             return q({});
         });
 
