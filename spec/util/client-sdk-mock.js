@@ -53,7 +53,8 @@ module.exports._reset = function() {
         sendStateEvent: jasmine.createSpy("sdk.sendStateEvent(room,type,content,key)"),
         invite: jasmine.createSpy("sdk.invite(roomId, userId)"),
         leave: jasmine.createSpy("sdk.leave(roomId)"),
-        createAlias: jasmine.createSpy("sdk.createAlias(alias, roomId)")
+        createAlias: jasmine.createSpy("sdk.createAlias(alias, roomId)"),
+        mxcUrlToHttp: jasmine.createSpy("sdk.mxcUrlToHttp(mxc, w, h, method)")
     };
 
     // mock up getStateEvent immediately since it is called for every new IRC

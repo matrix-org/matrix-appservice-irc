@@ -206,6 +206,9 @@ describe("Matrix-to-IRC message bridging", function() {
     it("should bridge matrix images as IRC text with a URL", function(done) {
         var tBody = "the_image.jpg";
         var tMxcSegment = "somedomain.com/somecontentid";
+        var tHttpUri = "http://" + tMxcSegment;
+        var sdk = env.clientMock._client();
+        sdk.mxcUrlToHttp.andReturn(tHttpUri);
 
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say",
         function(client, channel, text) {
@@ -215,9 +218,11 @@ describe("Matrix-to-IRC message bridging", function() {
             // don't be too brittle when checking this, but I expect to see the
             // image filename (body) and the http url.
             expect(text.indexOf(tBody)).not.toEqual(-1);
-            expect(text.indexOf(tMxcSegment)).not.toEqual(-1);
+            expect(text.indexOf(tHttpUri)).not.toEqual(-1);
             done();
         });
+
+
 
         env.mockAsapiController._trigger("type:m.room.message", {
             content: {
@@ -234,6 +239,9 @@ describe("Matrix-to-IRC message bridging", function() {
     it("should bridge matrix files as IRC text with a URL", function(done) {
         var tBody = "a_file.apk";
         var tMxcSegment = "somedomain.com/somecontentid";
+        var tHttpUri = "http://" + tMxcSegment;
+        var sdk = env.clientMock._client();
+        sdk.mxcUrlToHttp.andReturn(tHttpUri);
 
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say",
         function(client, channel, text) {
@@ -243,7 +251,7 @@ describe("Matrix-to-IRC message bridging", function() {
             // don't be too brittle when checking this, but I expect to see the
             // filename (body) and the http url.
             expect(text.indexOf(tBody)).not.toEqual(-1);
-            expect(text.indexOf(tMxcSegment)).not.toEqual(-1);
+            expect(text.indexOf(tHttpUri)).not.toEqual(-1);
             done();
         });
 
