@@ -3,19 +3,7 @@
  */
 "use strict";
 var q = require("q");
-var Datastore = require("nedb");
-
-var deleteDb = function(db, query) {
-    var defer = q.defer();
-    db.remove(query, {multi: true}, function(err, docs) {
-        if (err) {
-            defer.reject(err);
-            return;
-        }
-        defer.resolve(docs);
-    });
-    return defer.promise;
-};
+var fs = require("fs");
 
 /**
  * Reset the database, wiping all data.
@@ -23,49 +11,29 @@ var deleteDb = function(db, query) {
  * @return {Promise} Which is resolved when the database has been cleared.
  */
 module.exports._reset = function(databaseUri) {
-    var d = q.defer();
     if (databaseUri.indexOf("nedb://") !== 0) {
         return q.reject("Must be nedb:// URI");
     }
     var baseDbName = databaseUri.substring("nedb://".length);
 
-    var configWiped, roomsWiped, usersWiped = false;
+    var roomDefer = q.defer();
+    fs.unlink(baseDbName + "/rooms.db", function() {
+        roomDefer.resolve();
+    });
 
-    var roomsDb = new Datastore({
-        filename: baseDbName + "/rooms.db",
-        autoload: true,
-        onload: function() {
-            deleteDb(roomsDb, {}).done(function() {
-                roomsWiped = true;
-                if (configWiped && roomsWiped && usersWiped) {
-                    d.resolve();
-                }
-            });
-        }
+    var configDefer = q.defer();
+    fs.unlink(baseDbName + "/config.db", function() {
+        configDefer.resolve();
     });
-    var configDb = new Datastore({
-        filename: baseDbName + "/config.db",
-        autoload: true,
-        onload: function() {
-            deleteDb(configDb, {}).done(function() {
-                configWiped = true;
-                if (configWiped && roomsWiped && usersWiped) {
-                    d.resolve();
-                }
-            });
-        }
+
+    var usersDefer = q.defer();
+    fs.unlink(baseDbName + "/users.db", function() {
+        usersDefer.resolve();
     });
-    var usersDb = new Datastore({
-        filename: baseDbName + "/users.db",
-        autoload: true,
-        onload: function() {
-            deleteDb(usersDb, {}).done(function() {
-                usersWiped = true;
-                if (configWiped && roomsWiped && usersWiped) {
-                    d.resolve();
-                }
-            });
-        }
+
+    var ircClientDefer = q.defer();
+    fs.unlink(baseDbName + "/irc_clients.db", function() {
+        ircClientDefer.resolve();
     });
-    return d.promise;
+    return q.all(roomDefer, configDefer, usersDefer, ircClientDefer);
 };
