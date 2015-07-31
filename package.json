@@ -22,7 +22,7 @@
     "crc": "^3.2.1",
     "extend": "^2.0.0",
     "fs": "0.0.2",
-    "irc": "^0.3.12",
+    "irc": "matrix-org/node-irc",
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
     "matrix-appservice": "0.1.0",
