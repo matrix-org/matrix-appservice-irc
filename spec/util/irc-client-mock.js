@@ -43,6 +43,7 @@ function Client(addr, nick, opts) {
     var client = this;
     this.addr = addr;
     this.nick = nick;
+    this.opts = opts;
     this.chans = {};
 
     var spies = [
