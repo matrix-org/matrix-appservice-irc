@@ -365,4 +365,66 @@ describe("IRC connections", function() {
             done();
         });
     });
+
+    it("should queue ident generation requests to avoid racing when querying for " +
+            "cached ident usernames", function(done) {
+        var usr1 = {
+            nick: "M-averyverylongname",
+            id: "@averyverylongname:localhost"
+        };
+        var usr2 = {
+            nick: "M-averyverylongnameagain",
+            id: "@averyverylongnameagain:localhost"
+        };
+
+        // not interested in join calls
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, usr1.nick, roomMapping.channel
+        );
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, usr2.nick, roomMapping.channel
+        );
+
+        env.ircMock._whenClient(roomMapping.server, usr1.nick, "connect",
+        function(client, cb) {
+            usr1.username = client.opts.userName;
+            client._invokeCallback(cb);
+        });
+        env.ircMock._whenClient(roomMapping.server, usr2.nick, "connect",
+        function(client, cb) {
+            usr2.username = client.opts.userName;
+            client._invokeCallback(cb);
+        });
+
+        // mock a response for the state event.
+        env.clientMock._client().getStateEvent.andCallFake(function() {
+            return q({});
+        });
+
+        // send a message to kick start the AS
+        var p1 = env.mockAsapiController._trigger("type:m.room.message", {
+            content: {
+                body: "A message",
+                msgtype: "m.text"
+            },
+            user_id: usr1.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+        var p2 = env.mockAsapiController._trigger("type:m.room.message", {
+            content: {
+                body: "A message2",
+                msgtype: "m.text"
+            },
+            user_id: usr2.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+        q.all([p1, p2]).done(function() {
+            expect(usr1.username).toBeDefined();
+            expect(usr2.username).toBeDefined();
+            expect(usr1.username).not.toEqual(usr2.username);
+            done();
+        });
+    });
 });
