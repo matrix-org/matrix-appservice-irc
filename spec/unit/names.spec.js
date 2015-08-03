@@ -33,7 +33,6 @@ describe("Username generation", function() {
                     userId: existingUsernames[uname]
                 };
             }
-            console.log("getByUsername => %s", existingUsernames[uname]);
             return q(obj);
         };
         storeMock.ircClients.set = function() {
