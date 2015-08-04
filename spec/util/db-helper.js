@@ -17,22 +17,26 @@ module.exports._reset = function(databaseUri) {
     var baseDbName = databaseUri.substring("nedb://".length);
 
     var roomDefer = q.defer();
-    fs.unlink(baseDbName + "/rooms.db", function() {
+    fs.unlink(baseDbName + "/rooms.db", function(e) {
+        if (e) { console.error("rooms.db => %s", e); }
         roomDefer.resolve();
     });
 
     var configDefer = q.defer();
-    fs.unlink(baseDbName + "/config.db", function() {
+    fs.unlink(baseDbName + "/config.db", function(e) {
+        if (e) { console.error("config.db => %s", e); }
         configDefer.resolve();
     });
 
     var usersDefer = q.defer();
-    fs.unlink(baseDbName + "/users.db", function() {
+    fs.unlink(baseDbName + "/users.db", function(e) {
+        if (e) { console.error("users.db => %s", e); }
         usersDefer.resolve();
     });
 
     var ircClientDefer = q.defer();
-    fs.unlink(baseDbName + "/irc_clients.db", function() {
+    fs.unlink(baseDbName + "/irc_clients.db", function(e) {
+        if (e) { console.error("irc_clients.db => %s", e); }
         ircClientDefer.resolve();
     });
     return q.all(roomDefer, configDefer, usersDefer, ircClientDefer);
