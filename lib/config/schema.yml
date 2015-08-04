@@ -51,8 +51,6 @@ properties:
                         type: "boolean"
                     port:
                         type: "integer"
-                    hashUsernames:
-                        type: "boolean"
                 required: ["enabled"]
             logging:
                 type: "object"

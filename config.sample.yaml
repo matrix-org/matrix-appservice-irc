@@ -170,7 +170,8 @@ ircService:
         maxClients: 30
         # The maximum amount of time in seconds that the client can exist
         # without sending another message before being disconnected. Use 0 to
-        # not apply an idle timeout. Default: 172800 (48 hours)
+        # not apply an idle timeout. This value is ignored if this IRC server is
+        # mirroring matrix membership lists to IRC. Default: 172800 (48 hours)
         idleTimeout: 10800
         # Make virtual IRC clients join and leave channels as their real Matrix
         # counterparts join/leave rooms. Make sure your 'maxClients' value is
@@ -181,7 +182,6 @@ ircService:
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users
   # rather than the application service itself.
-  # NOT YET IMPLEMENTED.
   ident:
     # True to listen for Ident requests and respond with the
     # matrix user's user_id (converted to ASCII, respecting RFC 1413).
@@ -194,11 +194,6 @@ ircService:
     # on instead of 113 here.
     # Default: 113.
     port: 1113
-    # True to return a hash of the username rather than the user_id itself. This
-    # may be preferable if you'd rather not leak the matrix users connected to
-    # the IRC network.
-    # Default: false.
-    hashUsernames: false
 
   # Configuration for logging. Optional. Default: console debug level logging
   # only.
