@@ -3,7 +3,7 @@
  */
 "use strict";
 var q = require("q");
-var fs = require("fs");
+var Datastore = require("nedb");
 
 /**
  * Reset the database, wiping all data.
@@ -16,28 +16,31 @@ module.exports._reset = function(databaseUri) {
     }
     var baseDbName = databaseUri.substring("nedb://".length);
 
-    var roomDefer = q.defer();
-    fs.unlink(baseDbName + "/rooms.db", function(e) {
-        if (e) { console.error("rooms.db => %s", e); }
-        roomDefer.resolve();
-    });
+    function delDatabase(name) {
+        var d = q.defer();
+        var db = new Datastore({
+            filename: baseDbName + name,
+            autoload: true,
+            onload: function() {
+                console.log("Loaded %s", name);
+                db.remove({}, {multi: true}, function(err, docs) {
+                    if (err) {
+                        console.error("db-helper %s Failed to delete: %s", name, err);
+                        console.error(err.stack);
+                        d.reject(err);
+                        return;
+                    }
+                    d.resolve(docs);
+                });
+            }
+        });
+        return d.promise;
+    }
 
-    var configDefer = q.defer();
-    fs.unlink(baseDbName + "/config.db", function(e) {
-        if (e) { console.error("config.db => %s", e); }
-        configDefer.resolve();
-    });
-
-    var usersDefer = q.defer();
-    fs.unlink(baseDbName + "/users.db", function(e) {
-        if (e) { console.error("users.db => %s", e); }
-        usersDefer.resolve();
-    });
-
-    var ircClientDefer = q.defer();
-    fs.unlink(baseDbName + "/irc_clients.db", function(e) {
-        if (e) { console.error("irc_clients.db => %s", e); }
-        ircClientDefer.resolve();
-    });
-    return q.all(roomDefer, configDefer, usersDefer, ircClientDefer);
+    return q.allSettled([
+        delDatabase("/config.db"),
+        delDatabase("/irc_clients.db"),
+        delDatabase("/rooms.db"),
+        delDatabase("/users.db")
+    ]);
 };
