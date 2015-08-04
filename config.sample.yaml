@@ -218,6 +218,7 @@ ircService:
   statsd:
     hostname: "127.0.0.1"
     port: 9878
+    jobName: "instance_name"
 
   # The nedb database URI to connect to. This is the name of the directory to
   # dump .db files to. This is relative to the project directory.
