@@ -122,10 +122,13 @@ describe("IRC connections", function() {
         // let the user connect
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect",
         function(client, cb) {
+            console.log("TEST: %s connect req", testUser.nick);
             // after the connect callback, modify their nick and emit an event.
             client._invokeCallback(cb).done(function() {
+                console.log("TEST: %s connected cb invoked", testUser.nick);
                 process.nextTick(function() {
                     client.nick = assignedNick;
+                    console.log("TEST: %s emitting registered", client.nick);
                     client.emit("registered");
                 });
             });
@@ -140,13 +143,15 @@ describe("IRC connections", function() {
             user_id: testUser.id,
             room_id: roomMapping.roomId,
             type: "m.room.message"
-        }).then(function() {
+        }).done(function() {
+            console.log("TEST: m>i msg complete");
             // send a message in response from the assigned nick: if it is using
             // the assigned nick then it shouldn't try to pass it on (virtual
             // user error)
             env.ircMock._findClientAsync(
                 roomMapping.server, roomMapping.botNick
             ).done(function(client) {
+                console.log("TEST: Got irc bot - emit as %s", assignedNick);
                 client.emit(
                     "message", assignedNick, roomMapping.channel, "some text"
                 );
