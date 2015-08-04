@@ -102,13 +102,14 @@ describe("Homeserver alias queries", function() {
         var botJoined = false;
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
         function(client, channel, cb) {
-            expect(channel).toEqual(testChannel);
-            botJoined = true;
-            client._invokeCallback(cb);
+            if(channel === testChannel) {
+                botJoined = true;
+                client._invokeCallback(cb);
+            }
         });
 
         env.mockAsapiController._queryAlias(testAlias).done(function() {
-            expect(botJoined).toBe(true);
+            expect(botJoined).toBe(true, "Bot didn't join " + testChannel);
             done();
         }, function(err) {
             console.error(err);

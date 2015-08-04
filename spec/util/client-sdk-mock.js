@@ -44,7 +44,7 @@ module.exports._reset = function() {
         },
         register: jasmine.createSpy("sdk.register(username, password)"),
         createRoom: jasmine.createSpy("sdk.createRoom(opts)"),
-        joinRoom: jasmine.createSpy("sdk.joinRoom(idOrAlias)"),
+        joinRoom: jasmine.createSpy("sdk.joinRoom(idOrAlias, opts)"),
         sendMessage: jasmine.createSpy("sdk.sendMessage(roomId, content)"),
         roomState: jasmine.createSpy("sdk.roomState(roomId)"),
         setRoomTopic: jasmine.createSpy("sdk.setRoomTopic(roomId, topic)"),

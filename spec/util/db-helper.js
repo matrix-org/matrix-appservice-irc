@@ -22,7 +22,6 @@ module.exports._reset = function(databaseUri) {
             filename: baseDbName + name,
             autoload: true,
             onload: function() {
-                console.log("Loaded %s", name);
                 db.remove({}, {multi: true}, function(err, docs) {
                     if (err) {
                         console.error("db-helper %s Failed to delete: %s", name, err);
