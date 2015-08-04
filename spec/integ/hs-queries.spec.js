@@ -102,7 +102,7 @@ describe("Homeserver alias queries", function() {
         var botJoined = false;
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
         function(client, channel, cb) {
-            if(channel === testChannel) {
+            if (channel === testChannel) {
                 botJoined = true;
                 client._invokeCallback(cb);
             }

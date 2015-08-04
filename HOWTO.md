@@ -299,6 +299,7 @@ This application service supports sending metrics to a
 [statsd server](https://github.com/etsy/statsd). Metrics monitored include:
  - Memory usage (RSS, heap, etc)
  - Request outcomes (success/fail) and durations (ms).
+ - Number of active IRC client connections
 Sending metrics is disabled by default. To enable this:
 ```yaml
 ircService:
