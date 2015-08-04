@@ -49,9 +49,10 @@ describe("Dynamic channels", function() {
         var joinedIrcChannel = false;
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
         function(client, chan, cb) {
-            expect(chan).toEqual(tChannel);
-            joinedIrcChannel = true;
-            if (cb) { cb(); }
+            if (chan === tChannel) {
+                joinedIrcChannel = true;
+                if (cb) { cb(); }
+            }
         });
 
         // when we get the create room request, process it.
@@ -72,6 +73,9 @@ describe("Dynamic channels", function() {
         env.mockAsapiController._queryAlias(tAlias).done(function() {
             if (joinedIrcChannel) {
                 done();
+            }
+            else {
+                expect(false).toBe(true, "Failed to join irc channel");
             }
         }, function(e) {
             console.error("Failed to join IRC channel: %s", JSON.stringify(e));
