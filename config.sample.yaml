@@ -35,6 +35,11 @@ ircService:
         nick: "appservicebot"
         # The password to give to NickServ for this nick. Optional.
         password: "helloworld"
+        # Join channels even if there are no Matrix users on the other side of
+        # the bridge. Set to false to prevent the bot from joining channels which have no
+        # real matrix users in them, even if there is a mapping for the channel.
+        # Default: true
+        joinChannelsIfNoUsers: true
 
       # Configuration for PMs / private 1:1 communications between users.
       privateMessages:
@@ -88,42 +93,37 @@ ircService:
       # synced.
       membershipLists:
         # Enable the syncing of membership lists between IRC and Matrix. This
-        # has a significant effect on performance on startup as the lists are
-        # synced. Default: false.
+        # can have a significant effect on performance on startup as the lists are
+        # synced. This must be enabled for anything else in this section to take
+        # effect. Default: false.
         enabled: false
 
-        # The global rules to apply to all mapped and dynamic channels unless
-        # a more specific rule is set.
-        # NOT YET IMPLEMENTED
         global:
-          # Sync the IRC membership list to Matrix. Default: true.
-          ircToMatrix: true
-          # Sync the Matrix membership list to IRC. Enabling this will create 1
-          # TCP connection per Matrix user, regardless of their activity in the
-          # room. IRC networks usually have a max client connection limit between
-          # 5-50. Default: false.
-          matrixToIrc: false
+          ircToMatrix:
+            # Get a snapshot of all real IRC users on a channel (via NAMES) and
+            # join their virtual matrix clients to the room.
+            initial: false
+            # Make virtual matrix clients join and leave rooms as their real IRC
+            # counterparts join/part channels. Default: false.
+            incremental: false
 
-        # More specific rules for syncing are defined below. It is possible to
-        # create conflicting rulesets (e.g. #foo maps to !foo:bar and #foo should
-        # be synced but !foo:bar should not be synced). In the event of a conflict,
-        # 'false' will always be chosen (no syncing).
+          matrixToIrc:
+            # Get a snapshot of all real Matrix users in the room and join all of
+            # them to the mapped IRC channel on startup. Default: false.
+            initial: false
+            # Make virtual IRC clients join and leave channels as their real Matrix
+            # counterparts join/leave rooms. Make sure your 'maxClients' value is
+            # high enough! Default: false.
+            incremental: false
 
-        # NOT YET IMPLEMENTED
-        # Set specific rules to apply to IRC channels.
-        channels:
-          - channel: "#thepub"
-            ircToMatrix: true
-            matrixToIrc: true
-          - channel: "#thebar"
-            ircToMatrix: false
-            matrixToIrc: true
-
-        # Set specific rules to apply to Matrix rooms.
         rooms:
           - room: "!fuasirouddJoxtwfge:localhost"
-            ircToMatrix: false  # <-- NOT YET IMPLEMENTED
-            matrixToIrc: false
+            matrixToIrc:
+              initial: false
+              incremental: false
+            ircToMatrix: # not yet implemented
+              initial: false # not yet implemented
+              incremental: false # not yet implemented
 
       mappings:
         # 1:many mappings from IRC channels to room IDs on this IRC server.
@@ -143,10 +143,8 @@ ircService:
         # $NICK somewhere in it if it is specified.
         # Optional. Default: "$NICK (IRC)". Example: "Alice (IRC)"
         displayName: "$NICK (IRC)" # NOT YET IMPLEMENTED
-        # Make virtual matrix clients join and leave rooms as their real IRC
-        # counterparts join/part channels.
-        # Optional. Default: true
-        mirrorJoinPart: true
+        # DEPRECATED: Use membershipLists.global.ircToMatrix.incremental: true
+        # mirrorJoinPart: true
 
       # Configuration for virtual IRC users. The following variables are exposed:
       # $LOCALPART => The user ID localpart ("alice" in @alice:localhost)
@@ -173,11 +171,8 @@ ircService:
         # not apply an idle timeout. This value is ignored if this IRC server is
         # mirroring matrix membership lists to IRC. Default: 172800 (48 hours)
         idleTimeout: 10800
-        # Make virtual IRC clients join and leave channels as their real Matrix
-        # counterparts join/leave rooms. Make sure your 'maxClients' value is
-        # high enough!
-        # Optional. Default: false
-        mirrorJoinPart: true
+        # DEPRECATED: Use membershipLists.global.matrixToIrc.incremental: true
+        # mirrorJoinPart: true
   
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users

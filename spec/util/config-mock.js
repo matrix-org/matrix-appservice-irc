@@ -26,7 +26,8 @@ module.exports.roomMapping = {
 var serverConfig = {
     "irc.example": {
         botConfig: {
-            nick: module.exports.roomMapping.botNick
+            nick: module.exports.roomMapping.botNick,
+            joinChannelsIfNoUsers: true
         },
         dynamicChannels: {
             enabled: true

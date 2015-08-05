@@ -10,8 +10,13 @@ var appConfig = env.appConfig;
 var roomMapping = appConfig.roomMapping;
 
 // set up config.yaml flags
-appConfig.ircConfig.servers[roomMapping.server].ircClients.mirrorJoinPart = true;
-appConfig.ircConfig.servers[roomMapping.server].matrixClients.mirrorJoinPart = true;
+appConfig.ircConfig.servers[roomMapping.server].membershipLists.enabled = true;
+appConfig.ircConfig.servers[
+    roomMapping.server
+].membershipLists.global.ircToMatrix.incremental = true;
+appConfig.ircConfig.servers[
+    roomMapping.server
+].membershipLists.global.matrixToIrc.incremental = true;
 
 describe("Mirroring", function() {
     var testUser = {
