@@ -263,10 +263,13 @@ describe("Admin rooms", function() {
         var newRoomId = "!aasifuhawei:efjkwehfi";
 
         // let the bot join the irc channel
+        var joinedChannel = false;
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
         function(client, chan, cb) {
-            expect(chan).toEqual(newChannel);
-            if (cb) { cb(); }
+            if (chan === newChannel) {
+                joinedChannel = true;
+                if (cb) { cb(); }
+            }
         });
 
         // make sure the AS creates a new PRIVATE matrix room.
@@ -303,6 +306,7 @@ describe("Admin rooms", function() {
             // make sure everything was called
             expect(createdMatrixRoom).toBe(true, "created matrix room");
             expect(sentInvite).toBe(true, "sent matrix invite");
+            expect(joinedChannel).toBe(true, "bot didn't join channel");
             done();
         });
     });
