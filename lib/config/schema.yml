@@ -129,14 +129,23 @@ properties:
                                             room:
                                                 type: "string"
                                                 pattern: "^!+.*$"
-                                            ircToMatrix:
+                                            matrixToIrc:
                                                 type: "object"
                                                 properties:
                                                     initial:
                                                         type: "boolean"
                                                     incremental:
                                                         type: "boolean"
-                                            matrixToIrc:
+                                        additionalProperties: false
+                                channels:
+                                    type: "array"
+                                    items:
+                                        type: "object"
+                                        properties:
+                                            channel:
+                                                type: "string"
+                                                pattern: "^#+.*$"
+                                            ircToMatrix:
                                                 type: "object"
                                                 properties:
                                                     initial:
