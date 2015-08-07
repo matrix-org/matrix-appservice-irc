@@ -10,6 +10,7 @@ var validator = require("./lib/config/validator");
 // when invoked with 'node app.js', make an AS with just the IRC service.
 var appservice = require("matrix-appservice");
 var irc = require("./lib/irc-appservice.js");
+var hotReload = require("./lib/hot-reload.js");
 
 var configFile = undefined;
 var opts = nopt({
@@ -113,5 +114,6 @@ if (config.appService.generateRegistration) {
     });
 }
 else {
+    hotReload.setup();
     appservice.runForever();
 }
