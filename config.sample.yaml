@@ -116,14 +116,19 @@ ircService:
             # high enough! Default: false.
             incremental: false
 
+        # Apply specific rules to Matrix rooms. Only matrix-to-IRC takes effect.
         rooms:
           - room: "!fuasirouddJoxtwfge:localhost"
             matrixToIrc:
               initial: false
               incremental: false
-            ircToMatrix: # not yet implemented
-              initial: false # not yet implemented
-              incremental: false # not yet implemented
+
+        # Apply specific rules to IRC channels. Only IRC-to-matrix takes effect.
+        channels:
+          - channel: "#foo"
+            ircToMatrix:
+              initial: false
+              incremental: false
 
       mappings:
         # 1:many mappings from IRC channels to room IDs on this IRC server.
