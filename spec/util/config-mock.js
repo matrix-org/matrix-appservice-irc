@@ -1,4 +1,4 @@
-var validator = require("../../lib/config/validator");
+var Validator = require("../../lib/config/validator");
 
 /**
  * Default test AS information
@@ -39,7 +39,7 @@ var serverConfig = {
 };
 
 
-var config = validator.loadConfig({
+var configValidator = new Validator({
     appService: {
         homeserver: {
             url: module.exports.homeServerUrl,
@@ -59,6 +59,7 @@ var config = validator.loadConfig({
         servers: serverConfig
     }
 });
+var config = configValidator.validate();
 
 /**
  * Default test IRC config.

@@ -5,14 +5,13 @@ var yaml = require("js-yaml");
 var fs = require("fs");
 var nopt = require("nopt");
 
-var validator = require("./lib/config/validator");
+var Validator = require("./lib/config/validator");
 
 // when invoked with 'node app.js', make an AS with just the IRC service.
 var appservice = require("matrix-appservice");
 var irc = require("./lib/irc-appservice.js");
 var hotReload = require("./lib/hot-reload.js");
 
-var configFile = undefined;
 var opts = nopt({
     "generate-registration": Boolean,
     "skip-crc-check": Boolean,
@@ -25,13 +24,12 @@ var opts = nopt({
     "s": "--skip-crc-check",
     "h": "--help"
 });
-var configFileLoc = "./config.yaml";
 
 if (opts.help) {
     var help = {
         "--config -c": (
             "Specify a config file to load. Will look for '"+
-            configFileLoc+"' if omitted."
+            Validator.getFileLocation()+"' if omitted."
         ),
         "--verbose -v": "Turn on verbose logging. This will log all incoming IRC events.",
         "--generate-registration": "Create the registration YAML for this application service.",
@@ -53,19 +51,21 @@ if (opts.help) {
     process.exit(0);
 }
 if (opts.config) {
-    configFileLoc = opts.config;
+    Validator.setFileLocation(opts.config);
 }
 
 // load the config file
+var config;
 try {
-    configFile = yaml.safeLoad(fs.readFileSync(configFileLoc, 'utf8'));
-} 
+    var configValidator = new Validator(Validator.getFileLocation());
+    config = configValidator.validate();
+}
 catch (e) {
     console.error(e);
+    process.exit(1);
     return;
 }
 
-var config = validator.loadConfig(configFile);
 if (!config) {
     console.error("Failed to validate config file.");
     process.exit(1);
