@@ -31,6 +31,17 @@ ircService:
       ssl: true
 
       botConfig:
+        # Enable the presence of the bot in IRC channels. The bot serves as the entity
+        # which maps from IRC -> Matrix. You can disable the bot entirely which
+        # means IRC -> Matrix chat will be shared by active "M-Nick" connections
+        # in the room. If there are no users in the room (or if there are users
+        # but their connections are not on IRC) then nothing will be bridged to
+        # Matrix. If you're concerned about the bot being treated as a "logger"
+        # entity, then you may want to disable the bot. If you want IRC->Matrix
+        # but don't want to have TCP connections to IRC unless a Matrix user speaks
+        # (because your client connection limit is low), then you may want to keep
+        # the bot enabled. Default: true.
+        enabled: true
         # The nickname to give the AS bot.
         nick: "appservicebot"
         # The password to give to NickServ for this nick. Optional.

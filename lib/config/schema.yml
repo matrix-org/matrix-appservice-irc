@@ -83,6 +83,8 @@ properties:
                         botConfig:
                             type: "object"
                             properties:
+                                enabled:
+                                    type: "boolean"
                                 nick:
                                     type: "string"
                                 password:
