@@ -14,7 +14,7 @@
     "url": "https://github.com/matrix-org/matrix-appservice-irc.git"
   },
   "author": "",
-  "license": "Apache 2.0",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/matrix-org/matrix-appservice-irc/issues"
   },

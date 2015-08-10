@@ -39,7 +39,7 @@ describe("Initialisation", function() {
         env.ircMock._whenClient(ircAddr, ircNick, "join",
         function(client, chan, fn) {
             expect(chan).toEqual(ircChannel);
-            expect(clientConnected).toBe(true, "Connected before join call");
+            expect(clientConnected).toBe(true, "Didn't connect before join call");
             clientJoined = true;
             done();
         });
