@@ -8,6 +8,10 @@ Features:
    `dynamicChannels.createAlias`, `dynamicChannels.published` and
    `dynamicChannels.joinRule` which gives more control over how the AS creates
    dynamic rooms.
+ - Added `matrixClients.mirrorJoinPart` to make virtual IRC users join and part
+   as their real Matrix counterparts join and leave rooms (the other way around
+   to the existing `ircClients.mirrorJoinPart`).
+ - Added a `membershipLists` section to control syncing of membership lists.
 
 Improvements:
  - Replaced `check.sh` with `npm run lint` and `npm run check`.

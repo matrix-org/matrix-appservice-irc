@@ -35,6 +35,11 @@ ircService:
         nick: "appservicebot"
         # The password to give to NickServ for this nick. Optional.
         password: "helloworld"
+        # Join channels even if there are no Matrix users on the other side of
+        # the bridge. Set to false to prevent the bot from joining channels which have no
+        # real matrix users in them, even if there is a mapping for the channel.
+        # Default: true
+        joinChannelsIfNoUsers: true
 
       # Configuration for PMs / private 1:1 communications between users.
       privateMessages:
@@ -84,6 +89,47 @@ ircService:
         # circumstances.
         exclude: ["#foo", "#bar"]
 
+      # Configuration for controlling how Matrix and IRC membership lists are
+      # synced.
+      membershipLists:
+        # Enable the syncing of membership lists between IRC and Matrix. This
+        # can have a significant effect on performance on startup as the lists are
+        # synced. This must be enabled for anything else in this section to take
+        # effect. Default: false.
+        enabled: false
+
+        global:
+          ircToMatrix:
+            # Get a snapshot of all real IRC users on a channel (via NAMES) and
+            # join their virtual matrix clients to the room.
+            initial: false
+            # Make virtual matrix clients join and leave rooms as their real IRC
+            # counterparts join/part channels. Default: false.
+            incremental: false
+
+          matrixToIrc:
+            # Get a snapshot of all real Matrix users in the room and join all of
+            # them to the mapped IRC channel on startup. Default: false.
+            initial: false
+            # Make virtual IRC clients join and leave channels as their real Matrix
+            # counterparts join/leave rooms. Make sure your 'maxClients' value is
+            # high enough! Default: false.
+            incremental: false
+
+        # Apply specific rules to Matrix rooms. Only matrix-to-IRC takes effect.
+        rooms:
+          - room: "!fuasirouddJoxtwfge:localhost"
+            matrixToIrc:
+              initial: false
+              incremental: false
+
+        # Apply specific rules to IRC channels. Only IRC-to-matrix takes effect.
+        channels:
+          - channel: "#foo"
+            ircToMatrix:
+              initial: false
+              incremental: false
+
       mappings:
         # 1:many mappings from IRC channels to room IDs on this IRC server.
         "#thepub": ["!kieouiJuedJoxtVdaG:localhost"]
@@ -102,10 +148,8 @@ ircService:
         # $NICK somewhere in it if it is specified.
         # Optional. Default: "$NICK (IRC)". Example: "Alice (IRC)"
         displayName: "$NICK (IRC)" # NOT YET IMPLEMENTED
-        # Make virtual matrix clients join and leave rooms as their real IRC
-        # counterparts join/part channels.
-        # Optional. Default: true
-        mirrorJoinPart: true
+        # DEPRECATED: Use membershipLists.global.ircToMatrix.incremental: true
+        # mirrorJoinPart: true
 
       # Configuration for virtual IRC users. The following variables are exposed:
       # $LOCALPART => The user ID localpart ("alice" in @alice:localhost)
@@ -129,13 +173,15 @@ ircService:
         maxClients: 30
         # The maximum amount of time in seconds that the client can exist
         # without sending another message before being disconnected. Use 0 to
-        # not apply an idle timeout. Default: 172800 (48 hours)
+        # not apply an idle timeout. This value is ignored if this IRC server is
+        # mirroring matrix membership lists to IRC. Default: 172800 (48 hours)
         idleTimeout: 10800
+        # DEPRECATED: Use membershipLists.global.matrixToIrc.incremental: true
+        # mirrorJoinPart: true
   
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users
   # rather than the application service itself.
-  # NOT YET IMPLEMENTED.
   ident:
     # True to listen for Ident requests and respond with the
     # matrix user's user_id (converted to ASCII, respecting RFC 1413).
@@ -148,11 +194,6 @@ ircService:
     # on instead of 113 here.
     # Default: 113.
     port: 1113
-    # True to return a hash of the username rather than the user_id itself. This
-    # may be preferable if you'd rather not leak the matrix users connected to
-    # the IRC network.
-    # Default: false.
-    hashUsernames: false
 
   # Configuration for logging. Optional. Default: console debug level logging
   # only.
@@ -177,6 +218,7 @@ ircService:
   statsd:
     hostname: "127.0.0.1"
     port: 9878
+    jobName: "instance_name"
 
   # The nedb database URI to connect to. This is the name of the directory to
   # dump .db files to. This is relative to the project directory.

@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "istanbul cover --report cobertura jasmine-node -- spec --verbose --junitreport --forceexit --captureExceptions",
+    "testonly": "jasmine-node spec --verbose --forceexit --captureExceptions",
     "lint": "jshint -c .jshint lib spec && gjslint --unix_mode --disable 0131,0220 --max_line_length 90 -r lib/ -r spec/",
     "check": "npm test && npm run lint"
   },
@@ -21,11 +22,11 @@
     "crc": "^3.2.1",
     "extend": "^2.0.0",
     "fs": "0.0.2",
-    "irc": "^0.3.12",
+    "irc": "matrix-org/node-irc",
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
     "matrix-appservice": "0.1.0",
-    "matrix-js-sdk": "0.0.4-a",
+    "matrix-js-sdk": "0.2.0",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
     "q": "^1.2.0",

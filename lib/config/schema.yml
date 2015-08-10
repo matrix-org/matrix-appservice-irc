@@ -43,6 +43,8 @@ properties:
                         type: "string"
                     port:
                         type: "integer"
+                    jobName:
+                        type: "string"
                 required: ["hostname", "port"]
             ident:
                 type: "object"
@@ -51,8 +53,6 @@ properties:
                         type: "boolean"
                     port:
                         type: "integer"
-                    hashUsernames:
-                        type: "boolean"
                 required: ["enabled"]
             logging:
                 type: "object"
@@ -87,6 +87,8 @@ properties:
                                     type: "string"
                                 password:
                                     type: "string"
+                                joinChannelsIfNoUsers:
+                                    type: "boolean"
                         privateMessages:
                             type: "object"
                             properties:
@@ -96,6 +98,61 @@ properties:
                                     type: "array"
                                     items:
                                         type: "string"
+                        membershipLists:
+                            type: "object"
+                            properties:
+                                enabled:
+                                    type: "boolean"
+                                global:
+                                    type: "object"
+                                    properties:
+                                        ircToMatrix:
+                                            type: "object"
+                                            properties:
+                                                initial:
+                                                    type: "boolean"
+                                                incremental:
+                                                    type: "boolean"
+                                        matrixToIrc:
+                                            type: "object"
+                                            properties:
+                                                initial:
+                                                    type: "boolean"
+                                                incremental:
+                                                    type: "boolean"
+                                    additionalProperties: false
+                                rooms:
+                                    type: "array"
+                                    items:
+                                        type: "object"
+                                        properties:
+                                            room:
+                                                type: "string"
+                                                pattern: "^!+.*$"
+                                            matrixToIrc:
+                                                type: "object"
+                                                properties:
+                                                    initial:
+                                                        type: "boolean"
+                                                    incremental:
+                                                        type: "boolean"
+                                        additionalProperties: false
+                                channels:
+                                    type: "array"
+                                    items:
+                                        type: "object"
+                                        properties:
+                                            channel:
+                                                type: "string"
+                                                pattern: "^#+.*$"
+                                            ircToMatrix:
+                                                type: "object"
+                                                properties:
+                                                    initial:
+                                                        type: "boolean"
+                                                    incremental:
+                                                        type: "boolean"
+                                        additionalProperties: false
                         dynamicChannels:
                             type: "object"
                             properties:
@@ -142,8 +199,6 @@ properties:
                                 displayName:
                                     type: "string"
                                     pattern: "\\$NICK"
-                                mirrorJoinPart:
-                                    type: "boolean"
                         ircClients:
                             type: "object"
                             properties:
