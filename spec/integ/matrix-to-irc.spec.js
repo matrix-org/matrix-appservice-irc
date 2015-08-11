@@ -210,9 +210,9 @@ describe("Matrix-to-IRC message bridging", function() {
         var sdk = env.clientMock._client();
         sdk.mxcUrlToHttp.andReturn(tHttpUri);
 
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say",
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "notice",
         function(client, channel, text) {
-            expect(client.nick).toEqual(roomMapping.botNick);
+            expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
             expect(channel).toEqual(roomMapping.channel);
             // don't be too brittle when checking this, but I expect to see the
@@ -221,8 +221,6 @@ describe("Matrix-to-IRC message bridging", function() {
             expect(text.indexOf(tHttpUri)).not.toEqual(-1);
             done();
         });
-
-
 
         env.mockAsapiController._trigger("type:m.room.message", {
             content: {
@@ -243,9 +241,9 @@ describe("Matrix-to-IRC message bridging", function() {
         var sdk = env.clientMock._client();
         sdk.mxcUrlToHttp.andReturn(tHttpUri);
 
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say",
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "notice",
         function(client, channel, text) {
-            expect(client.nick).toEqual(roomMapping.botNick);
+            expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
             expect(channel).toEqual(roomMapping.channel);
             // don't be too brittle when checking this, but I expect to see the
@@ -288,52 +286,5 @@ describe("Matrix-to-IRC message bridging", function() {
             room_id: roomMapping.roomId,
             type: "m.room.topic"
         });
-    });
-
-    // BOTS-40
-    it("[BOTS-40] should mention the *correct* nick of the sender of the image" +
-    " in the text", function(done) {
-        // change the nick of something else (shouldn't affect result)
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "join",
-        function(client) {
-            client.emit("nick", "another_user", "a_new_nick");
-        });
-
-        var tBody = "the_image.jpg";
-        var tMxcSegment = "somedomain.com/somecontentid";
-
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "say",
-        function(client, channel, text) {
-            expect(client.nick).toEqual(roomMapping.botNick);
-            expect(client.addr).toEqual(roomMapping.server);
-            expect(channel).toEqual(roomMapping.channel);
-            expect(text.indexOf(testUser.nick)).not.toEqual(-1,
-                "Bot sent an image to IRC which had the wrong nick"
-            );
-            done();
-        });
-
-        // make the target user join the channel by saying something
-        env.mockAsapiController._trigger("type:m.room.message", {
-            content: {
-                body: "herro",
-                msgtype: "m.text"
-            },
-            user_id: testUser.id,
-            room_id: roomMapping.roomId,
-            type: "m.room.message"
-        }).then(function() {
-            // send the image message
-            return env.mockAsapiController._trigger("type:m.room.message", {
-                content: {
-                    body: tBody,
-                    url: "mxc://" + tMxcSegment,
-                    msgtype: "m.image"
-                },
-                user_id: testUser.id,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
-        }).done();
     });
 });
