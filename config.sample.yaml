@@ -10,7 +10,7 @@ appService:
   appservice:
     # The application service token to use. Please use a secure random token! You
     # can generate a secure random token by typing into the terminal:
-    # node -e "require('crypto').randomBytes(20,function(ex,buf){console.log(buf.toString('hex'))});"
+    # node -e "console.log(require('crypto').randomBytes(20).toString('hex'));"
     token: "f0c03ebff14c223b57a3afdffe42ffd9c5875e9b"
     # The webhook URL for the home server to hit on new events.
     url: "http://localhost:3500"
@@ -31,6 +31,21 @@ ircService:
       ssl: true
 
       botConfig:
+        # Enable the presence of the bot in IRC channels. The bot serves as the entity
+        # which maps from IRC -> Matrix. You can disable the bot entirely which
+        # means IRC -> Matrix chat will be shared by active "M-Nick" connections
+        # in the room. If there are no users in the room (or if there are users
+        # but their connections are not on IRC) then nothing will be bridged to
+        # Matrix. If you're concerned about the bot being treated as a "logger"
+        # entity, then you may want to disable the bot. If you want IRC->Matrix
+        # but don't want to have TCP connections to IRC unless a Matrix user speaks
+        # (because your client connection limit is low), then you may want to keep
+        # the bot enabled. Default: true.
+        # NB: If the bot is disabled, you SHOULD have matrix-to-IRC syncing turned
+        #     on, else there will be no users and no bot in a channel (meaning no
+        #     messages to Matrix!) until a Matrix user speaks which makes a client
+        #     join the target IRC channel.
+        enabled: true
         # The nickname to give the AS bot.
         nick: "appservicebot"
         # The password to give to NickServ for this nick. Optional.

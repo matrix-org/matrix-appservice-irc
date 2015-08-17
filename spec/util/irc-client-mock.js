@@ -31,6 +31,12 @@ function setClientNick(addr, oldNick, newNick) {
  * Reset all mock IRC clients.
  */
 module.exports._reset = function() {
+    Object.keys(instances).forEach(function(k) {
+        var cli = instances[k];
+        if (cli) {
+            cli._dead = true;
+        }
+    });
     instances = {};
     // emitter when clients are added
     instanceEmitter = new EventEmitter();
@@ -53,6 +59,7 @@ function Client(addr, nick, opts) {
     spies.forEach(function(fnName) {
         client[fnName] = jasmine.createSpy("Client." + fnName);
         client[fnName].andCallFake(function() {
+            if (client._dead) { return; }
             // emit that the action was performed along with the args. This can
             // be caught in the form:
             // clientEmitter.on(addr+"_"+nick,

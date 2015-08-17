@@ -4,17 +4,19 @@
   "description": "IRC Bridge for matrix-appservice",
   "main": "index.js",
   "scripts": {
-    "test": "istanbul cover --report cobertura jasmine-node -- spec --verbose --junitreport --forceexit --captureExceptions",
-    "testonly": "jasmine-node spec --verbose --forceexit --captureExceptions",
+    "test": "jasmine-node spec --verbose --forceexit --captureExceptions",
     "lint": "jshint -c .jshint lib spec && gjslint --unix_mode --disable 0131,0220 --max_line_length 90 -r lib/ -r spec/",
-    "check": "npm test && npm run lint"
+    "check": "npm test && npm run lint",
+    "ci-lint": "jshint -c .jshint lib spec --reporter checkstyle > ci-lint.xml || true",
+    "ci-test": "istanbul cover --report cobertura jasmine-node -- spec --verbose --junitreport --forceexit --captureExceptions",
+    "ci": "npm run ci-lint && npm run ci-test"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/matrix-org/matrix-appservice-irc.git"
   },
   "author": "",
-  "license": "Apache 2.0",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/matrix-org/matrix-appservice-irc/issues"
   },
