@@ -7,7 +7,6 @@ var joinUrl = require("url").resolve;
 var opts = nopt({
     "room-alias": String,
     "appservice-token": String,
-    "admin-token": String,
     "msg": String,
     "url": String,
     "help": Boolean
@@ -34,17 +33,14 @@ if (opts.help) {
     console.log("--url               The home server base URL e.g. https://matrix.org");
     console.log("--room-alias        The alias to unbridge.");
     console.log("--appservice-token  The AS token. Used to set join_rules in the room.");
-    console.log("--admin-token       Optional. The token to use when DELETEing the alias.");
-    console.log("                    If not specified, will use the appservice-token.");
     console.log("--msg               Optional. The message to send to the room.");
     process.exit(0);
     return;
 }
-// set defaults
-opts["admin-token"] = opts["admin-token"] || opts["appservice-token"];
 
+// admin token is always the AS token since it's "exclusively" claimed.
 main(
-    opts.url, opts["room-alias"], opts["appservice-token"], opts["admin-token"],
+    opts.url, opts["room-alias"], opts["appservice-token"], opts["appservice-token"],
     opts.msg
 );
 
