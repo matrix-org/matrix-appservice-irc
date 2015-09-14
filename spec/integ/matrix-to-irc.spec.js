@@ -210,7 +210,7 @@ describe("Matrix-to-IRC message bridging", function() {
         var sdk = env.clientMock._client();
         sdk.mxcUrlToHttp.andReturn(tHttpUri);
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "notice",
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -241,7 +241,7 @@ describe("Matrix-to-IRC message bridging", function() {
         var sdk = env.clientMock._client();
         sdk.mxcUrlToHttp.andReturn(tHttpUri);
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "notice",
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
