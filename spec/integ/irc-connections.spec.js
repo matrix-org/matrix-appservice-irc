@@ -427,4 +427,34 @@ describe("IRC connections", function() {
             done();
         });
     });
+
+    it("should gracefully fail if it fails to join a channel when sending a message",
+    function(done) {
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, testUser.nick, roomMapping.server
+        );
+
+        var errorEmitted = false;
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "join",
+        function(client, cb) {
+            errorEmitted = true;
+            client.emit("error", {
+                command: "err_bannedfromchan",
+                args: [roomMapping.channel]
+            });
+        });
+
+        env.mockAsapiController._trigger("type:m.room.message", {
+            content: {
+                body: "A message",
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        }).catch(function(e) {
+            expect(errorEmitted).toBe(true);
+            done();
+        });
+    });
 });
