@@ -82,6 +82,92 @@ describe("Dynamic channels", function() {
         });
     });
 
+    it("should create non federated room when joining channel and federation is enabled",
+    function(done) {
+        ircConfig.servers[roomMapping.server].dynamicChannels.federate = true;
+
+        var tChannel = "#foobar";
+        var tRoomId = "!newroom:id";
+        var tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
+        var tAlias = "#" + tAliasLocalpart + ":" + appConfig.homeServerDomain;
+
+        // when we get the connect/join requests, accept them.
+        var joinedIrcChannel = false;
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
+        function(client, chan, cb) {
+            if (chan === tChannel) {
+                joinedIrcChannel = true;
+                if (cb) { cb(); }
+            }
+        });
+
+        // when we get the create room request, process it.
+        var sdk = env.clientMock._client();
+        sdk.createRoom.andCallFake(function(opts) {
+            expect(opts.creation_content).toEqual({"m.federate": true});
+            return q({
+                room_id: tRoomId
+            });
+        });
+
+        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+            expect(roomId).toEqual(tRoomId);
+            expect(eventType).toEqual("m.room.history_visibility");
+            expect(obj).toEqual({history_visibility: "joined"});
+            return q({});
+        });
+
+        env.mockAsapiController._queryAlias(tAlias).done(function() {
+            expect(joinedIrcChannel).toBe(true, "Failed to join irc channel");
+            done();
+        }, function(e) {
+            console.error("Failed to join IRC channel: %s", JSON.stringify(e));
+        });
+    });
+
+    it("should create non federated room when joining channel and federation is disabled",
+    function(done) {
+        ircConfig.servers[roomMapping.server].dynamicChannels.federate = false;
+
+        var tChannel = "#foobar";
+        var tRoomId = "!newroom:id";
+        var tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
+        var tAlias = "#" + tAliasLocalpart + ":" + appConfig.homeServerDomain;
+
+        // when we get the connect/join requests, accept them.
+        var joinedIrcChannel = false;
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
+        function(client, chan, cb) {
+            if (chan === tChannel) {
+                joinedIrcChannel = true;
+                if (cb) { cb(); }
+            }
+        });
+
+        // when we get the create room request, process it.
+        var sdk = env.clientMock._client();
+        sdk.createRoom.andCallFake(function(opts) {
+            expect(opts.creation_content).toEqual({"m.federate": false});
+            return q({
+                room_id: tRoomId
+            });
+        });
+
+        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+            expect(roomId).toEqual(tRoomId);
+            expect(eventType).toEqual("m.room.history_visibility");
+            expect(obj).toEqual({history_visibility: "joined"});
+            return q({});
+        });
+
+        env.mockAsapiController._queryAlias(tAlias).done(function() {
+            expect(joinedIrcChannel).toBe(true, "Failed to join irc channel");
+            done();
+        }, function(e) {
+            console.error("Failed to join IRC channel: %s", JSON.stringify(e));
+        });
+    });
+
     it("should point to the same room ID for aliases with different cases",
     function(done) {
         // Default mapping => #irc_$SERVER_$CHANNEL
