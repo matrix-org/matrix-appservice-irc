@@ -82,7 +82,7 @@ describe("Dynamic channels", function() {
         });
     });
 
-    it("should create non federated room when joining channel and federation is enabled",
+    it("should create federated room when joining channel and federation is enabled",
     function(done) {
         ircConfig.servers[roomMapping.server].dynamicChannels.federate = true;
 
