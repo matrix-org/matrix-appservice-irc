@@ -29,6 +29,8 @@ ircService:
       port: 6697
       # Whether to use SSL or not. Default: false.
       ssl: true
+      # Whether or not IRC server is using a self-signed cert or not providing CA Chain
+      sslselfsign: false
 
       botConfig:
         # Enable the presence of the bot in IRC channels. The bot serves as the entity
@@ -48,7 +50,7 @@ ircService:
         enabled: true
         # The nickname to give the AS bot.
         nick: "appservicebot"
-        # The password to give to NickServ for this nick. Optional.
+        # The password to give to NickServ or IRC Server for this nick. Optional.
         password: "helloworld"
         # Join channels even if there are no Matrix users on the other side of
         # the bridge. Set to false to prevent the bot from joining channels which have no

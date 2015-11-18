@@ -80,6 +80,8 @@ properties:
                             type: "integer"
                         ssl:
                             type: "boolean"
+                        sslselfsign:
+                            type: "boolean"
                         botConfig:
                             type: "object"
                             properties:
