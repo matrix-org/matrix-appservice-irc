@@ -313,6 +313,16 @@ Logging is configurable in the yaml, but there is also an extra verbose setting
 you can enable. This is done by passing ``--verbose`` or ``-v`` to 
 ``node app.js``.
 
+### Unique IPv6 addresses
+You may want to assign unique IPv6 addresses to the generated IRC clients
+e.g. to scope bans to Matrix users rather than the entire application service.
+To enable this:
+```yaml
+ircService:
+  uniqueIPv6:
+    prefix: "2001:0db8:85a3::"  # modify appropriately
+```
+
 Contributing
 ------------
 

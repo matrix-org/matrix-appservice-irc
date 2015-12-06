@@ -241,3 +241,9 @@ ircService:
   # dump .db files to. This is relative to the project directory.
   # Required.
   databaseUri: "nedb://data"
+  
+  # Optional. The IPv6 prefix to use for generating unique addresses for each
+  # connected user. If not specified, all users will connect from the same
+  # (default) address.
+  uniqueIPv6:
+    prefix: "2001:0db8:85a3::"
