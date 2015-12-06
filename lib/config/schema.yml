@@ -34,6 +34,12 @@ properties:
     ircService:
         type: "object"
         properties:
+            uniqueIPv6:
+                type: "object"
+                properties:
+                    prefix:
+                        type: "string"
+                required: ["prefix"]
             databaseUri:
                 type: "string"
             statsd:
