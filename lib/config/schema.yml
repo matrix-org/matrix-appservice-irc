@@ -82,6 +82,8 @@ properties:
                             type: "boolean"
                         sslselfsign:
                             type: "boolean"
+                        password:
+                            type: "string"
                         botConfig:
                             type: "object"
                             properties:
