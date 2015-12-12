@@ -31,7 +31,7 @@ ircService:
       ssl: true
       # Whether or not IRC server is using a self-signed cert or not providing CA Chain
       sslselfsign: false
-      # The server password. Optional.
+      # The connection password to send for all clients as a PASS command. Optional.
       password: 'pa$$w0rd'
 
       botConfig:
