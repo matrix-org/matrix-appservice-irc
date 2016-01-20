@@ -1,6 +1,6 @@
 "use strict";
+var promiseutil = require("./lib/promiseutil");
 var nopt = require("nopt");
-var q = require("q");
 var request = require("request");
 var joinUrl = require("url").resolve;
 
@@ -67,7 +67,7 @@ function main(url, alias, astoken, admintoken, msg) {
 }
 
 function getIdForAlias(url, alias) {
-    var d = q.defer();
+    var d = promiseutil.defer();
     var encAlias = encodeURIComponent(alias);
     request.get(
         joinUrl(url, "/_matrix/client/api/v1/directory/room/" + encAlias),
@@ -87,7 +87,7 @@ function getIdForAlias(url, alias) {
 }
 
 function deleteAlias(url, alias, token) {
-    var d = q.defer();
+    var d = promiseutil.defer();
     var encAlias = encodeURIComponent(alias);
     request({
         url: joinUrl(
@@ -104,7 +104,7 @@ function deleteAlias(url, alias, token) {
 }
 
 function setInviteJoinRules(url, roomId, token) {
-    var d = q.defer();
+    var d = promiseutil.defer();
     var encRoomId = encodeURIComponent(roomId);
     request({
         url: joinUrl(
@@ -129,7 +129,7 @@ function sendMessage(url, roomId, token, msg) {
         console.log("No message provided. Skipping.");
         return q();
     }
-    var d = q.defer();
+    var d = promiseutil.defer();
     var encRoomId = encodeURIComponent(roomId);
     request({
         url: joinUrl(

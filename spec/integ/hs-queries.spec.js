@@ -1,6 +1,6 @@
 "use strict";
 var test = require("../util/test");
-var q = require("q");
+var Promise = require("bluebird");
 
 // set up integration testing mocks
 var env = test.mkEnv();
@@ -88,7 +88,7 @@ describe("Homeserver alias queries", function() {
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.room_alias_name).toEqual(testLocalpart);
             expect(opts.visibility).toEqual("public");
-            return q({
+            return Promise.resolve({
                 room_id: "!something:somewhere"
             });
         });
@@ -96,7 +96,7 @@ describe("Homeserver alias queries", function() {
         sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
-            return q({});
+            return Promise.resolve({});
         });
 
         var botJoined = false;

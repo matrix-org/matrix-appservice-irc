@@ -76,5 +76,12 @@ module.exports.beforeEach = function(testCase, env) {
         });
         env.mockAsapiController = env.asapiMock.create();
     }
+
+    process.on("unhandledRejection", function(reason, promise) {
+        if (reason.stack) {
+            throw reason;
+        }
+        throw new Error("Unhandled rejection: " + reason);
+    });
 };
 

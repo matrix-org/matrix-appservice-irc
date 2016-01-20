@@ -2,7 +2,7 @@
  * Contains integration tests for all IRC-initiated events.
  */
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
 var test = require("../util/test");
 
 // set up integration testing mocks
@@ -61,7 +61,7 @@ describe("IRC-to-Matrix message bridging", function() {
                 msgtype: "m.text"
             });
             done();
-            return q();
+            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
@@ -80,7 +80,7 @@ describe("IRC-to-Matrix message bridging", function() {
                 msgtype: "m.emote"
             });
             done();
-            return q();
+            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
@@ -101,7 +101,7 @@ describe("IRC-to-Matrix message bridging", function() {
                 msgtype: "m.notice"
             });
             done();
-            return q();
+            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
@@ -119,7 +119,7 @@ describe("IRC-to-Matrix message bridging", function() {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(topic).toEqual(testTopic);
             done();
-            return q();
+            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
@@ -138,7 +138,7 @@ describe("IRC-to-Matrix message bridging", function() {
                 msgtype: "m.text"
             });
             done();
-            return q();
+            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
@@ -177,7 +177,7 @@ describe("IRC-to-Matrix message bridging", function() {
                 checksum(tHtmlCloseTags)
             );
             done();
-            return q();
+            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(

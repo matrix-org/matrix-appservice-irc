@@ -1,5 +1,5 @@
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
 var test = require("../util/test");
 
 // set up integration testing mocks
@@ -178,7 +178,7 @@ describe("Mirroring", function() {
             sdk.joinRoom.andCallFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 done();
-                return q();
+                return Promise.resolve();
             });
 
             env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
@@ -191,7 +191,7 @@ describe("Mirroring", function() {
             sdk.leave.andCallFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 done();
-                return q();
+                return Promise.resolve();
             });
 
             env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(

@@ -2,7 +2,8 @@
  * Contains integration tests for private messages.
  */
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
+var promiseutil = require("../../lib/promiseutil");
 var test = require("../util/test");
 
 // set up integration testing mocks
@@ -25,10 +26,10 @@ describe("Matrix-to-IRC PMing", function() {
         test.beforeEach(this, env);
 
         // reset the deferreds
-        whoisDefer = q.defer();
-        registerDefer = q.defer();
-        joinRoomDefer = q.defer();
-        roomStateDefer = q.defer();
+        whoisDefer = promiseutil.defer();
+        registerDefer = promiseutil.defer();
+        joinRoomDefer = promiseutil.defer();
+        roomStateDefer = promiseutil.defer();
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -42,7 +43,7 @@ describe("Matrix-to-IRC PMing", function() {
     it("should join 1:1 rooms invited from matrix", function(done) {
         // there's a number of actions we want this to do, so track them to make
         // sure they are all called.
-        var globalPromise = q.all([
+        var globalPromise = Promise.all([
             registerDefer.promise, joinRoomDefer.promise,
             roomStateDefer.promise
         ]);
@@ -79,12 +80,12 @@ describe("Matrix-to-IRC PMing", function() {
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             joinRoomDefer.resolve();
-            return q({});
+            return Promise.resolve({});
         });
         sdk.roomState.andCallFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             roomStateDefer.resolve({});
-            return q([
+            return Promise.resolve([
             {
                 content: {membership: "join"},
                 user_id: tIrcUserId,
@@ -110,10 +111,10 @@ describe("Matrix-to-IRC PMing", function() {
     it("should join group chat rooms invited from matrix then leave them",
     function(done) {
         // additional actions on group chat rooms
-        var sendMessageDefer = q.defer();
-        var leaveRoomDefer = q.defer();
+        var sendMessageDefer = promiseutil.defer();
+        var leaveRoomDefer = promiseutil.defer();
 
-        var globalPromise = q.all([
+        var globalPromise = Promise.all([
             registerDefer.promise, joinRoomDefer.promise,
             roomStateDefer.promise, leaveRoomDefer.promise,
             sendMessageDefer.promise
@@ -153,24 +154,24 @@ describe("Matrix-to-IRC PMing", function() {
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             joinRoomDefer.resolve();
-            return q({});
+            return Promise.resolve({});
         });
         // see if it sends a message (to say it doesn't do group chat)
         sdk.sendMessage.andCallFake(function(roomId, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             sendMessageDefer.resolve();
-            return q({});
+            return Promise.resolve({});
         });
         // when it tries to leave, accept it
         sdk.leave.andCallFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             leaveRoomDefer.resolve();
-            return q({});
+            return Promise.resolve({});
         });
         sdk.roomState.andCallFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             roomStateDefer.resolve({});
-            return q([
+            return Promise.resolve([
             {
                 content: {membership: "join"},
                 user_id: tIrcUserId,
@@ -256,17 +257,17 @@ describe("IRC-to-Matrix PMing", function() {
     it("should create a 1:1 matrix room and invite the real matrix user when " +
     "it receives a PM directed at a virtual user from a real IRC user",
     function(done) {
-        var createRoomDefer = q.defer();
-        var inviteDefer = q.defer();
-        var sendMsgDefer = q.defer();
-        var promises = q.all([
+        var createRoomDefer = promiseutil.defer();
+        var inviteDefer = promiseutil.defer();
+        var sendMsgDefer = promiseutil.defer();
+        var promises = Promise.all([
             createRoomDefer.promise, inviteDefer.promise, sendMsgDefer.promise
         ]);
         // mock create room impl
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.visibility).toEqual("private");
             createRoomDefer.resolve();
-            return q({
+            return Promise.resolve({
                 room_id: tCreatedRoomId
             });
         });
@@ -275,7 +276,7 @@ describe("IRC-to-Matrix PMing", function() {
             expect(roomId).toEqual(tCreatedRoomId);
             expect(userId).toEqual(tRealUserId);
             inviteDefer.resolve();
-            return q({});
+            return Promise.resolve({});
         });
         // mock send message impl
         sdk.sendMessage.andCallFake(function(roomId, content) {
@@ -285,7 +286,7 @@ describe("IRC-to-Matrix PMing", function() {
                 msgtype: "m.text"
             });
             sendMsgDefer.resolve();
-            return q({});
+            return Promise.resolve({});
         });
 
         // test completes after all the matrix actions are done

@@ -2,7 +2,8 @@
  * Helper class for cleaning nedb state
  */
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
+var promiseutil = require("../../lib/promiseutil");
 var Datastore = require("nedb");
 
 /**
@@ -12,12 +13,12 @@ var Datastore = require("nedb");
  */
 module.exports._reset = function(databaseUri) {
     if (databaseUri.indexOf("nedb://") !== 0) {
-        return q.reject("Must be nedb:// URI");
+        return Promise.reject("Must be nedb:// URI");
     }
     var baseDbName = databaseUri.substring("nedb://".length);
 
     function delDatabase(name) {
-        var d = q.defer();
+        var d = promiseutil.defer();
         var db = new Datastore({
             filename: baseDbName + name,
             autoload: true,
@@ -36,7 +37,7 @@ module.exports._reset = function(databaseUri) {
         return d.promise;
     }
 
-    return q.allSettled([
+    return Promise.all([
         delDatabase("/config.db"),
         delDatabase("/irc_clients.db"),
         delDatabase("/rooms.db"),

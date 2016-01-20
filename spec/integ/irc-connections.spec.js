@@ -3,7 +3,7 @@
  */
 "use strict";
 var test = require("../util/test");
-var q = require("q");
+var Promise = require("bluebird");
 
 // set up integration testing mocks
 var env = test.mkEnv();
@@ -68,7 +68,7 @@ describe("IRC connections", function() {
 
         // mock a response for the state event.
         env.clientMock._client().getStateEvent.andCallFake(function() {
-            return q({
+            return Promise.resolve({
                 displayname: displayName
             });
         });
@@ -116,7 +116,7 @@ describe("IRC connections", function() {
                 "irc user with a nick assigned from rpl_welcome."
             );
             done();
-            return q();
+            return Promise.resolve();
         });
 
         // let the user connect
@@ -195,7 +195,7 @@ describe("IRC connections", function() {
             type: "m.room.message"
         }));
 
-        q.all(promises).done(function() {
+        Promise.all(promises).done(function() {
             expect(connectCount).toBe(1);
             done();
         });
@@ -249,7 +249,7 @@ describe("IRC connections", function() {
                 "irc user (clashing nicks)."
             );
             done();
-            return q();
+            return Promise.resolve();
         });
 
         // send a message from the first guy
@@ -334,7 +334,7 @@ describe("IRC connections", function() {
 
         // mock a response for the state event.
         env.clientMock._client().getStateEvent.andCallFake(function() {
-            return q({});
+            return Promise.resolve({});
         });
 
         // send a message to kick start the AS
@@ -398,7 +398,7 @@ describe("IRC connections", function() {
 
         // mock a response for the state event.
         env.clientMock._client().getStateEvent.andCallFake(function() {
-            return q({});
+            return Promise.resolve({});
         });
 
         // send a message to kick start the AS
@@ -420,7 +420,7 @@ describe("IRC connections", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
-        q.all([p1, p2]).done(function() {
+        Promise.all([p1, p2]).done(function() {
             expect(usr1.username).toBeDefined();
             expect(usr2.username).toBeDefined();
             expect(usr1.username).not.toEqual(usr2.username);

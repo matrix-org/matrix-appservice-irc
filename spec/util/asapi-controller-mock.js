@@ -2,7 +2,7 @@
  * Mock replacement for AsapiController
  */
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
 
 /**
  * Construct a new mock ASAPI controller.
@@ -34,7 +34,7 @@ module.exports.create = function() {
             if (promises.length === 1) {
                 return promises[0];
             }
-            return q.all(promises);
+            return Promise.all(promises);
         },
         _queryAlias: function(alias) {
             return resolvers.alias(alias);

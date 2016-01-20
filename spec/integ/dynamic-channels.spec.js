@@ -1,5 +1,5 @@
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
 var test = require("../util/test");
 
 // set up integration testing mocks
@@ -59,7 +59,7 @@ describe("Dynamic channels", function() {
         var sdk = env.clientMock._client();
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.room_alias_name).toEqual(tAliasLocalpart);
-            return q({
+            return Promise.resolve({
                 room_id: tRoomId
             });
         });
@@ -67,7 +67,7 @@ describe("Dynamic channels", function() {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
-            return q({});
+            return Promise.resolve({});
         });
 
         env.mockAsapiController._queryAlias(tAlias).done(function() {
@@ -105,7 +105,7 @@ describe("Dynamic channels", function() {
         var sdk = env.clientMock._client();
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.creation_content).toEqual({"m.federate": true});
-            return q({
+            return Promise.resolve({
                 room_id: tRoomId
             });
         });
@@ -114,7 +114,7 @@ describe("Dynamic channels", function() {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
-            return q({});
+            return Promise.resolve({});
         });
 
         env.mockAsapiController._queryAlias(tAlias).done(function() {
@@ -148,7 +148,7 @@ describe("Dynamic channels", function() {
         var sdk = env.clientMock._client();
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.creation_content).toEqual({"m.federate": false});
-            return q({
+            return Promise.resolve({
                 room_id: tRoomId
             });
         });
@@ -157,7 +157,7 @@ describe("Dynamic channels", function() {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
-            return q({});
+            return Promise.resolve({});
         });
 
         env.mockAsapiController._queryAlias(tAlias).done(function() {
@@ -191,7 +191,7 @@ describe("Dynamic channels", function() {
         var sdk = env.clientMock._client();
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.room_alias_name).toEqual(tAliasLocalpart);
-            return q({
+            return Promise.resolve({
                 room_id: tRoomId
             });
         });
@@ -200,7 +200,7 @@ describe("Dynamic channels", function() {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
-            return q({});
+            return Promise.resolve({});
         });
 
         var madeAlias = false;
@@ -208,7 +208,7 @@ describe("Dynamic channels", function() {
             madeAlias = true;
             expect(roomId).toEqual(tRoomId);
             expect(alias).toEqual(tCapsAlias);
-            return q({});
+            return Promise.resolve({});
         });
 
         env.mockAsapiController._queryAlias(tAlias).then(function() {
@@ -272,7 +272,7 @@ describe("Dynamic channels (disabled)", function() {
         // when we get the create room request, process it.
         var sdk = env.clientMock._client();
         sdk.createRoom.andCallFake(function(opts) {
-            return q({
+            return Promise.resolve({
                 room_id: tRoomId
             });
         });
@@ -281,7 +281,7 @@ describe("Dynamic channels (disabled)", function() {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
-            return q({});
+            return Promise.resolve({});
         });
 
         env.mockAsapiController._queryAlias(tAlias).catch(function() {

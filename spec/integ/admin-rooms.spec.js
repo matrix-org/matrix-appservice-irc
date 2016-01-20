@@ -1,5 +1,5 @@
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
 var test = require("../util/test");
 
 // set up integration testing mocks
@@ -35,7 +35,7 @@ describe("Creating admin rooms", function() {
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual("!adminroomid:here");
             botJoinedRoom = true;
-            return q({});
+            return Promise.resolve({});
         });
 
         env.mockAsapiController._trigger("type:m.room.member", {
@@ -90,7 +90,7 @@ describe("Admin rooms", function() {
         sdk = env.clientMock._client();
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual(adminRoomId);
-            return q({});
+            return Promise.resolve({});
         });
 
         // do the init
@@ -135,7 +135,7 @@ describe("Admin rooms", function() {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentNotice = true;
-            return q();
+            return Promise.resolve();
         });
 
         env.mockAsapiController._trigger("type:m.room.message", {
@@ -159,7 +159,7 @@ describe("Admin rooms", function() {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentNotice = true;
-            return q();
+            return Promise.resolve();
         });
 
         env.mockAsapiController._trigger("type:m.room.message", {
@@ -225,7 +225,7 @@ describe("Admin rooms", function() {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentAckNotice = true;
-            return q();
+            return Promise.resolve();
         });
 
         // trigger the request to change the nick
@@ -277,7 +277,7 @@ describe("Admin rooms", function() {
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.visibility).toEqual("private");
             createdMatrixRoom = true;
-            return q({
+            return Promise.resolve({
                 room_id: newRoomId
             });
         });
@@ -288,7 +288,7 @@ describe("Admin rooms", function() {
             expect(roomId).toEqual(newRoomId);
             expect(inviteeUserId).toEqual(userId);
             sentInvite = true;
-            return q({
+            return Promise.resolve({
                 room_id: newRoomId
             });
         });

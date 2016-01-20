@@ -2,7 +2,7 @@
  * Contains integration tests for IRC mode events.
  */
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
 var test = require("../util/test");
 
 // set up integration testing mocks
@@ -57,7 +57,7 @@ describe("IRC-to-Matrix mode bridging", function() {
             });
             expect(key).toEqual("");
             done();
-            return q();
+            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
@@ -76,7 +76,7 @@ describe("IRC-to-Matrix mode bridging", function() {
             });
             expect(key).toEqual("");
             done();
-            return q();
+            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
@@ -95,7 +95,7 @@ describe("IRC-to-Matrix mode bridging", function() {
             });
             expect(key).toEqual("");
             done();
-            return q();
+            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
@@ -114,7 +114,7 @@ describe("IRC-to-Matrix mode bridging", function() {
             });
             expect(key).toEqual("");
             done();
-            return q();
+            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
