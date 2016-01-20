@@ -1,5 +1,5 @@
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
 var proxyquire = require("proxyquire");
 var test = require("../util/test");
 
@@ -33,10 +33,10 @@ describe("Username generation", function() {
                     userId: existingUsernames[uname]
                 };
             }
-            return q(obj);
+            return Promise.resolve(obj);
         };
         storeMock.ircClients.set = function() {
-            return q();
+            return Promise.resolve();
         };
 
         names = proxyquire("../../lib/irclib/names.js", {
@@ -93,7 +93,7 @@ describe("Username generation", function() {
     it("should eventually give up trying usernames", function(done) {
         names.MAX_USER_NAME_LENGTH = 3;
         storeMock.ircClients.getByUsername = function() {
-            return q({userId: "@someone:else"});
+            return Promise.resolve({userId: "@someone:else"});
         };
         var userId = "@myreallylonguseridhere:localhost";
         names.getIrcNames(ircUser, mkMatrixUser(userId)).done(function(info) {

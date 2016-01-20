@@ -2,7 +2,7 @@
  * Mock replacement for 'matrix-js-sdk'.
  */
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
 var suppliedConfig = null;
 var mockClient = {};
 
@@ -60,14 +60,14 @@ module.exports._reset = function() {
     // mock up getStateEvent immediately since it is called for every new IRC
     // connection.
     mockClient.getStateEvent.andCallFake(function() {
-        return q({});
+        return Promise.resolve({});
     });
 
     // Helper to succeed sdk registration calls.
     mockClient._onHttpRegister = function(params) {
         mockClient.register.andCallFake(function(username, password) {
             expect(username).toEqual(params.expectLocalpart);
-            return q({
+            return Promise.resolve({
                 user_id: params.returnUserId
             });
         });
@@ -75,7 +75,7 @@ module.exports._reset = function() {
             if (params.andResolve) {
                 params.andResolve.resolve();
             }
-            return q({});
+            return Promise.resolve({});
         });
     };
 };

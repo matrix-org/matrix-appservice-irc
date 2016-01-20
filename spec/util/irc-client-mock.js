@@ -2,7 +2,8 @@
  * Mock replacement for 'irc'.
  */
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
+var promiseutil = require("../../lib/promiseutil");
 var util = require("util");
 var EventEmitter = require('events').EventEmitter;
 
@@ -85,7 +86,7 @@ function Client(addr, nick, opts) {
     };
 
     this._invokeCallback = function(cb) {
-        var d = q.defer();
+        var d = promiseutil.defer();
         process.nextTick(function() {
             if (cb) {
                 cb();
@@ -113,9 +114,9 @@ module.exports.Client = Client;
 module.exports._findClientAsync = function(addr, nick) {
     var client = getClient(addr, nick);
     if (client) {
-        return q(client);
+        return Promise.resolve(client);
     }
-    var d = q.defer();
+    var d = promiseutil.defer();
     instanceEmitter.once("client_" + addr + "_" + nick, function(client) {
         d.resolve(client);
     });

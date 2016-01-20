@@ -2,6 +2,8 @@ config.yaml
 data
 appservice-registration-irc.yaml
 spec-db
+.idea/*
+.*.swp
 
 # Logs
 logs

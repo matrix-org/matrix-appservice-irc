@@ -1,5 +1,5 @@
 "use strict";
-var q = require("q");
+var Promise = require("bluebird");
 var test = require("../util/test");
 
 // set up integration testing mocks
@@ -41,7 +41,7 @@ describe("Invite-only rooms", function() {
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             joinedRoom = true;
-            return q({});
+            return Promise.resolve({});
         });
 
         env.mockAsapiController._trigger("type:m.room.member", {
@@ -84,21 +84,21 @@ describe("Invite-only rooms", function() {
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             joinedRoom = true;
-            return q({});
+            return Promise.resolve({});
         });
 
         var leftRoom = false;
         sdk.leave.andCallFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             leftRoom = true;
-            return q({});
+            return Promise.resolve({});
         });
 
         var askedForRoomState = false;
         sdk.roomState.andCallFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             askedForRoomState = true;
-            return q([
+            return Promise.resolve([
             {
                 content: {membership: "join"},
                 user_id: botUserId,
