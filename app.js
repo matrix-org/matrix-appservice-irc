@@ -113,6 +113,5 @@ if (config.appService.generateRegistration) {
     });
 }
 else {
-    hotReload.setup();
     appservice.runForever();
 }
