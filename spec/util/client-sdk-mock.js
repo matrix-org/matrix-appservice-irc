@@ -3,7 +3,6 @@
  */
 "use strict";
 var Promise = require("bluebird");
-var suppliedConfig = null;
 var mockClient = {};
 
 /**
@@ -12,7 +11,6 @@ var mockClient = {};
  * @return {SdkClient} The SDK client instance.
  */
 module.exports.createClient = function(config) {
-    suppliedConfig = config;
     return mockClient;
 };
 
@@ -36,7 +34,6 @@ module.exports._client = function() {
  * Reset the Matrix Client SDK global instance.
  */
 module.exports._reset = function() {
-    suppliedConfig = null;
     mockClient = {
         credentials: {},
         _http: {

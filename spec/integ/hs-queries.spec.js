@@ -17,7 +17,7 @@ describe("Homeserver user queries", function() {
     );
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -34,7 +34,7 @@ describe("Homeserver user queries", function() {
     function(done) {
         var sdk = env.clientMock._client();
 
-        var askedWhois = false;
+        var askedWhois = false; // eslint-disable-line no-unused-vars
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
         function(client, nick, cb) {
             expect(nick).toEqual(testNick);
@@ -65,7 +65,7 @@ describe("Homeserver alias queries", function() {
     );
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(

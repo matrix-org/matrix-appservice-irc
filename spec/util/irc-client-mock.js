@@ -47,7 +47,7 @@ module.exports._reset = function() {
 
 function Client(addr, nick, opts) {
     // store this instance so tests can grab it and manipulate it.
-    var client = this;
+    var self = this;
     this.addr = addr;
     this.nick = nick;
     this.opts = opts;
@@ -58,16 +58,16 @@ function Client(addr, nick, opts) {
         "disconnect", "notice", "part"
     ];
     spies.forEach(function(fnName) {
-        client[fnName] = jasmine.createSpy("Client." + fnName);
-        client[fnName].andCallFake(function() {
-            if (client._dead) { return; }
+        self[fnName] = jasmine.createSpy("Client." + fnName);
+        self[fnName].andCallFake(function() {
+            if (self._dead) { return; }
             // emit that the action was performed along with the args. This can
             // be caught in the form:
             // clientEmitter.on(addr+"_"+nick,
             // function(fnName, client, arg1, arg2 ...)) {
             //     // stuff
             // }
-            var args = [client.addr + "_" + client.nick, fnName, client];
+            var args = [self.addr + "_" + self.nick, fnName, self];
             for (var i = 0; i < arguments.length; i++) {
                 args.push(arguments[i]);
             }
@@ -77,11 +77,11 @@ function Client(addr, nick, opts) {
     });
 
     this._changeNick = function(oldNick, newNick) {
-        setClientNick(client.addr, oldNick, newNick);
+        setClientNick(self.addr, oldNick, newNick);
         // emit the nick message from the server
         process.nextTick(function() {
             // send a response from the IRC server
-            client.emit("nick", oldNick, newNick);
+            self.emit("nick", oldNick, newNick);
         });
     };
 
@@ -96,7 +96,7 @@ function Client(addr, nick, opts) {
         return d.promise;
     };
 
-    setClient(client, addr, nick);
+    setClient(self, addr, nick);
 }
 util.inherits(Client, EventEmitter);
 
@@ -117,8 +117,8 @@ module.exports._findClientAsync = function(addr, nick) {
         return Promise.resolve(client);
     }
     var d = promiseutil.defer();
-    instanceEmitter.once("client_" + addr + "_" + nick, function(client) {
-        d.resolve(client);
+    instanceEmitter.once("client_" + addr + "_" + nick, function(cli) {
+        d.resolve(cli);
     });
     return d.promise;
 };
@@ -144,7 +144,7 @@ module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
         for (var i = 1; i < arguments.length; i++) {
             args.push(arguments[i]);
         }
-        invokeFn.apply(this, args);
+        invokeFn.apply(client, args);
     });
 };
 

@@ -18,7 +18,7 @@ describe("Username generation", function() {
     };
 
     beforeEach(function() {
-        test.log(this);
+        test.log(this); // eslint-disable-line no-invalid-this
         existingUsernames = {};
         ircUser = {
             nick: "MyCrazyNick",
