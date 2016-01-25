@@ -489,8 +489,8 @@ describe("IRC connections", function() {
             function nextCycle() {
                 setImmediate(function() {
                     if (minutesDone === minutesToDo) {
-                        // expect at the slowest once per 2 min
-                        expect(connectCount).toBeGreaterThan(60);
+                        // expect at the slowest once per 3 min
+                        expect(connectCount).toBeGreaterThan(40);
                         done();
                         return;
                     }
