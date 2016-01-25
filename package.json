@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "jasmine-node spec --verbose --forceexit --captureExceptions",
-    "lint": "jshint -c .jshint lib spec && gjslint --unix_mode --disable 0131,0220 --max_line_length 90 -r lib/ -r spec/",
+    "lint": "eslint lib spec",
     "check": "npm test && npm run lint",
-    "ci-lint": "jshint -c .jshint lib spec --reporter checkstyle > ci-lint.xml || true",
+    "ci-lint": "eslint lib spec --format checkstyle > ci_lint.xml || true",
     "ci-test": "istanbul cover --report cobertura jasmine-node -- spec --verbose --junitreport --forceexit --captureExceptions",
     "ci": "npm run ci-lint && npm run ci-test"
   },
@@ -37,9 +37,9 @@
     "winston": "^0.9.0"
   },
   "devDependencies": {
+    "eslint": "^1.10.3",
     "istanbul": "^0.3.13",
-    "proxyquire": "^1.4.0",
     "jasmine-node": "^1.14.5",
-    "jshint": "^2.8.0"
+    "proxyquire": "^1.4.0"
   }
 }
