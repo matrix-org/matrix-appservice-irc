@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "IRC Bridge for matrix-appservice",
   "main": "index.js",
+  "bin": "./bin/matrix-appservice-irc",
   "scripts": {
     "test": "jasmine-node spec --verbose --forceexit --captureExceptions",
     "lint": "eslint lib spec",
