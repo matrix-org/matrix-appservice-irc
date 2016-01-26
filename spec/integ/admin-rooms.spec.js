@@ -140,7 +140,7 @@ describe("Admin rooms", function() {
 
         env.mockAsapiController._trigger("type:m.room.message", {
             content: {
-                body: "!nick blargle",
+                body: "!nick blargle wargle",
                 msgtype: "m.text"
             },
             user_id: userId,
