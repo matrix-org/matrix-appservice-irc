@@ -11,19 +11,7 @@ new Cli({
     bridgeConfig: {
         affectsRegistration: true,
         schema: "./lib/config/schema.yml",
-        defaults: {
-            ircService: {
-                ident: {
-                    enabled: false,
-                    port: 113
-                },
-                logging: {
-                    level: "debug",
-                    toConsole: true
-                },
-                statsd: {}
-            }
-        }
+        defaults: main.defaultConfig()
     },
     generateRegistration: function(reg, callback) {
         main.generateRegistration(reg, this.getConfig()).done(function(completeRegistration) {
