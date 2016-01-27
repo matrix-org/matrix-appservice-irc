@@ -32,12 +32,12 @@ module.exports.mkEnv = function() {
  * (from {@link mkEnv}).
  * @return {Promise} which is resolved when the app has finished initiliasing.
  */
-module.exports.initEnv = function(env) {
+module.exports.initEnv = function(env, customConfig) {
     // wipe the database entirely then call configure and register on the IRC
     // service.
     return env.dbHelper._reset(env.appConfig.databaseUri).then(function() {
         return env.main.runBridge(
-            env.appConfig.port, env.appConfig.config,
+            env.appConfig.port, customConfig || env.appConfig.config,
             AppServiceRegistration.fromObject(env.appConfig.appServiceRegistration)
         );
     }).catch(function(e) {
