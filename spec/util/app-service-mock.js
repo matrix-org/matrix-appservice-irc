@@ -1,34 +1,58 @@
 "use strict";
 var EventEmitter = require("events");
+var util = require("util");
+var instance = null;
 
-class MockAppService extends EventEmitter {
-    constructor(obj) {
-        this.obj = obj;
-    }
-
-    listen(port) {
-        // NOP
-    }
-
-    _trigger(eventType, content) {
-        var promises = [];
-        var listeners = this.listeners(eventType);
-        listeners.forEach(function(l) {
-            promises.push(l(content));
-        })
-        if (promises.length === 1) {
-            return promises[0];
-        }
-        return Promise.all(promises);
-    }
-
-    _queryAlias(alias) {
-        return this.onAliasQuery(alias);
-    }
-
-    _queryUser(user) {
-        return this.onUserQuery(user);
-    }
+function MockAppService() {
+    EventEmitter.call(this);
 }
+util.inherits(MockAppService, EventEmitter);
 
-module.exports = MockAppService;
+MockAppService.prototype.listen = function(port) {
+    // NOP
+};
+
+MockAppService.prototype._trigger = function(eventType, content) {
+    var promises = [];
+    var listeners = instance.listeners(eventType);
+    listeners.forEach(function(l) {
+        promises.push(l(content));
+    })
+    if (promises.length === 1) {
+        return promises[0];
+    }
+    return Promise.all(promises);
+};
+
+MockAppService.prototype._queryAlias = function(alias) {
+    if (!this.onAliasQuery) {
+        throw new Error("IRC AS hasn't hooked into onAliasQuery yet.");
+    }
+    return this.onAliasQuery(alias);
+};
+
+MockAppService.prototype._queryUser = function(user) {
+    if (!this.onUserQuery) {
+        throw new Error("IRC AS hasn't hooked into onUserQuery yet.");
+    }
+    return this.onUserQuery(user);
+};
+
+function MockAppServiceProxy() {
+    if (!instance) {
+        instance = new MockAppService();
+    }
+    return instance;
+}
+MockAppServiceProxy.instance = function() {
+    instance = new MockAppService();
+    return instance;
+};
+MockAppServiceProxy.resetInstance = function() {
+    if (instance) {
+        instance.removeAllListeners();
+    }
+    instance = null;
+};
+
+module.exports = MockAppServiceProxy;

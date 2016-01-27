@@ -67,14 +67,18 @@ module.exports.log = function(testCase) {
  */
 module.exports.beforeEach = function(testCase, env) {
     module.exports.log(testCase);
+    MockAppService.resetInstance();
     if (env) {
         env.ircMock._reset();
         env.clientMock._reset();
-        env.ircService = proxyquire("../../lib/irc-appservice.js", {
+        env.main = proxyquire("../../lib/main.js", {
+            "matrix-appservice": {
+                AppService: MockAppService
+            },
             "matrix-js-sdk": env.clientMock,
             "irc": env.ircMock
         });
-        env.mockAppService = new MockAppService();
+        env.mockAppService = MockAppService.instance();
     }
 
     process.on("unhandledRejection", function(reason, promise) {

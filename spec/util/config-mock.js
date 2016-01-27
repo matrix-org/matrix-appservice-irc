@@ -40,6 +40,11 @@ var serverConfig = {
 };
 
 var config = main.defaultConfig();
+config.homeserver = {
+    url: module.exports.homeServerUrl,
+    domain: module.exports.homeServerDomain
+};
+config.ircService.databaseUri = module.exports.databaseUri;
 config.ircService.servers = serverConfig;
 
 /**
