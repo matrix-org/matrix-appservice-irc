@@ -6,18 +6,25 @@ var test = require("../util/test");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.appConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
 
 describe("Invite-only rooms", function() {
-    var botUserId = "@" + appConfig.botLocalpart + ":" + appConfig.homeServerDomain;
+    var botUserId = (
+        "@" + config._registration.sender_localpart + ":" + config.homeserver.domain
+    );
     var testUser = {
         id: "@flibble:wibble",
         nick: "flibble"
     };
     var testIrcUser = {
         localpart: roomMapping.server + "_foobar",
-        id: "@" + roomMapping.server + "_foobar:" + appConfig.homeServerDomain,
+        id: "@" + roomMapping.server + "_foobar:" + config.homeserver.domain,
         nick: "foobar"
     };
 
@@ -44,7 +51,7 @@ describe("Invite-only rooms", function() {
             return Promise.resolve({});
         });
 
-        env.mockAsapiController._trigger("type:m.room.member", {
+        env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
             },
@@ -124,7 +131,7 @@ describe("Invite-only rooms", function() {
             ]);
         });
 
-        env.mockAsapiController._trigger("type:m.room.member", {
+        env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
             },
