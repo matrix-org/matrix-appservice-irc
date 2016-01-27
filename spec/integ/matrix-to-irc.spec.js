@@ -8,8 +8,13 @@ var test = require("../util/test");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.appConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
 
 describe("Matrix-to-IRC message bridging", function() {
     var testUser = {
@@ -53,7 +58,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: testText,
                 msgtype: "m.text"
@@ -85,7 +90,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: tFallback,
                 format: "org.matrix.custom.html",
@@ -117,7 +122,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: tFallback,
                 format: "org.matrix.custom.html",
@@ -144,7 +149,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: tFallback,
                 format: "org.matrix.custom.html",
@@ -169,7 +174,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: testEmote,
                 msgtype: "m.emote"
@@ -192,7 +197,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: testNotice,
                 msgtype: "m.notice"
@@ -222,7 +227,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: tBody,
                 url: "mxc://" + tMxcSegment,
@@ -253,7 +258,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: tBody,
                 url: "mxc://" + tMxcSegment,
@@ -278,7 +283,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.topic", {
+        env.mockAppService._trigger("type:m.room.topic", {
             content: {
                 topic: testTopic
             },
