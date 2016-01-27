@@ -1,4 +1,5 @@
-var Validator = require("../../lib/config/validator");
+var extend = require("extend");
+var main = require("../../lib/main");
 
 /**
  * Default test AS information
@@ -24,7 +25,7 @@ module.exports.roomMapping = {
     roomId: "!foo:bar"
 };
 var serverConfig = {
-    "irc.example": {
+    "irc.example": extend(true, main.defaultServerConfig(), {
         botConfig: {
             nick: module.exports.roomMapping.botNick,
             joinChannelsIfNoUsers: true
@@ -35,37 +36,34 @@ var serverConfig = {
         mappings: {
             "#coffee": [module.exports.roomMapping.roomId]
         }
-    }
+    })
 };
 
-
-var configValidator = new Validator({
-    appService: {
-        homeserver: {
-            url: module.exports.homeServerUrl,
-            domain: module.exports.homeServerDomain
-        },
-        appservice: {
-            token: module.exports.appServiceToken,
-            url: module.exports.appServiceUrl
-        },
-        http: {
-            port: module.exports.port
-        },
-        localpart: module.exports.botLocalpart
-    },
-    ircService: {
-        databaseUri: module.exports.databaseUri,
-        servers: serverConfig
-    }
-});
-var config = configValidator.validate();
+var config = main.defaultConfig();
+config.ircService.servers = serverConfig;
 
 /**
  * Default test IRC config.
  */
-module.exports.ircConfig = config;
+module.exports.ircConfig = config.ircService;
 /**
  * Default test AS config.
  */
-module.exports.serviceConfig = config.appService;
+module.exports.serviceConfig = {
+    homeserver: {
+        url: module.exports.homeServerUrl,
+        domain: module.exports.homeServerDomain
+    },
+    appservice: {
+        token: module.exports.appServiceToken,
+        url: module.exports.appServiceUrl
+    },
+    localpart: module.exports.botLocalpart
+};
+module.exports.appServiceRegistration = {
+    hs_token: module.exports.homeServerToken,
+    as_token: module.exports.appServiceToken,
+    url: module.exports.appServiceUrl,
+    sender_localpart: module.exports.botLocalpart
+};
+module.exports.config = config;
