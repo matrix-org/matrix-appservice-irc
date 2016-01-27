@@ -8,15 +8,19 @@ var test = require("../util/test");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.appConfig;
-var ircConfig = appConfig.ircConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
 
 describe("Initialisation", function() {
     var ircAddr = roomMapping.server;
     var ircNick = roomMapping.botNick;
     var ircChannel = roomMapping.channel;
-    var databaseUri = ircConfig.databaseUri;
+    var databaseUri = config.ircService.databaseUri;
 
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
@@ -47,10 +51,7 @@ describe("Initialisation", function() {
         });
 
         // run the test
-        env.ircService.configure(ircConfig);
-        env.ircService.register(
-            env.mockAsapiController, appConfig.serviceConfig
-        );
+        test.initEnv(env);
     });
 
     it("[BOTS-70] should attempt to set the bot nick if ircd assigned random string",
@@ -80,9 +81,6 @@ describe("Initialisation", function() {
         });
 
         // run the test
-        env.ircService.configure(ircConfig);
-        env.ircService.register(
-            env.mockAsapiController, appConfig.serviceConfig
-        );
+        test.initEnv(env);
     });
 });
