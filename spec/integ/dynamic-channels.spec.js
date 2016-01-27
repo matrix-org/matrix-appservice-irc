@@ -6,9 +6,12 @@ var test = require("../util/test");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.cfg;
-var ircConfig = appConfig.ircConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan
+};
 
 describe("Dynamic channels", function() {
     var testUser = {
@@ -17,8 +20,7 @@ describe("Dynamic channels", function() {
     };
 
     beforeEach(function(done) {
-        ircConfig.servers[roomMapping.server].dynamicChannels.enabled = true;
-        ircConfig.servers[roomMapping.server].dynamicChannels.visibility = "public";
+        config.ircService.servers[roomMapping.server].dynamicChannels.enabled = true;
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
@@ -32,7 +34,7 @@ describe("Dynamic channels", function() {
             roomMapping.server, testUser.nick, roomMapping.channel
         );
 
-        test.initEnv(env, appConfig.config).done(function() {
+        test.initEnv(env, config).done(function() {
             done();
         });
     });
@@ -43,7 +45,7 @@ describe("Dynamic channels", function() {
         var tChannel = "#foobar";
         var tRoomId = "!newroom:id";
         var tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
-        var tAlias = "#" + tAliasLocalpart + ":" + appConfig.homeServerDomain;
+        var tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
 
         // when we get the connect/join requests, accept them.
         var joinedIrcChannel = false;
@@ -84,12 +86,12 @@ describe("Dynamic channels", function() {
 
     it("should create federated room when joining channel and federation is enabled",
     function(done) {
-        ircConfig.servers[roomMapping.server].dynamicChannels.federate = true;
+        config.ircService.servers[roomMapping.server].dynamicChannels.federate = true;
 
         var tChannel = "#foobar";
         var tRoomId = "!newroom:id";
         var tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
-        var tAlias = "#" + tAliasLocalpart + ":" + appConfig.homeServerDomain;
+        var tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
 
         // when we get the connect/join requests, accept them.
         var joinedIrcChannel = false;
@@ -131,9 +133,9 @@ describe("Dynamic channels", function() {
         var tChannel = "#foobar";
         var tRoomId = "!newroom:id";
         var tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
-        var tAlias = "#" + tAliasLocalpart + ":" + appConfig.homeServerDomain;
+        var tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
         var tAliasCapsLocalpart = "irc_" + roomMapping.server + "_#FooBar";
-        var tCapsAlias = "#" + tAliasCapsLocalpart + ":" + appConfig.homeServerDomain;
+        var tCapsAlias = "#" + tAliasCapsLocalpart + ":" + config.homeserver.domain;
 
         // when we get the connect/join requests, accept them.
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
@@ -183,9 +185,9 @@ describe("Dynamic channels (federation disabled)", function() {
 
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
-        env.appConfig.config.ircService.servers[
+        config.ircService.servers[
             roomMapping.server].dynamicChannels.enabled = true;
-        env.appConfig.config.ircService.servers[
+        config.ircService.servers[
             roomMapping.server].dynamicChannels.federate = false;
 
         // accept connection requests
@@ -198,7 +200,7 @@ describe("Dynamic channels (federation disabled)", function() {
         env.ircMock._autoJoinChannels(
             roomMapping.server, testUser.nick, roomMapping.channel
         );
-        test.initEnv(env, env.appConfig.config).done(function() {
+        test.initEnv(env, config).done(function() {
             done();
         });
     });
@@ -208,7 +210,7 @@ describe("Dynamic channels (federation disabled)", function() {
         var tChannel = "#foobar";
         var tRoomId = "!newroom:id";
         var tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
-        var tAlias = "#" + tAliasLocalpart + ":" + appConfig.homeServerDomain;
+        var tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
 
         // when we get the connect/join requests, accept them.
         var joinedIrcChannel = false;
@@ -252,7 +254,7 @@ describe("Dynamic channels (disabled)", function() {
     };
 
     beforeEach(function(done) {
-        ircConfig.servers[roomMapping.server].dynamicChannels.enabled = false;
+        config.ircService.servers[roomMapping.server].dynamicChannels.enabled = false;
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
@@ -267,7 +269,7 @@ describe("Dynamic channels (disabled)", function() {
         );
 
         // do the init
-        test.initEnv(env, appConfig.config).done(function() {
+        test.initEnv(env, config).done(function() {
             done();
         });
     });
@@ -277,7 +279,7 @@ describe("Dynamic channels (disabled)", function() {
         var tChannel = "#foobar";
         var tRoomId = "!newroom:id";
         var tAliasLocalpart = roomMapping.server + "_" + tChannel;
-        var tAlias = "#" + tAliasLocalpart + ":" + appConfig.homeServerDomain;
+        var tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
 
         // when we get the connect/join requests, accept them.
         var joinedIrcChannel = false;

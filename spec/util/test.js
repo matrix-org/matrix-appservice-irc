@@ -15,9 +15,9 @@ module.exports.mkEnv = function() {
     var ircMock = require("./irc-client-mock");
     ircMock["@global"] = true;
     var dbHelper = require("./db-helper");
-    var appConfig = extend(true, {}, require("../util/config-mock"));
+    var config = extend(true, {}, require("../util/test-config.json"));
     return {
-        appConfig: appConfig,
+        config: config,
         dbHelper: dbHelper,
         ircMock: ircMock,
         clientMock: clientMock,
@@ -35,10 +35,10 @@ module.exports.mkEnv = function() {
 module.exports.initEnv = function(env, customConfig) {
     // wipe the database entirely then call configure and register on the IRC
     // service.
-    return env.dbHelper._reset(env.appConfig.databaseUri).then(function() {
+    return env.dbHelper._reset(env.config.ircService.databaseUri).then(function() {
         return env.main.runBridge(
-            env.appConfig.port, customConfig || env.appConfig.config,
-            AppServiceRegistration.fromObject(env.appConfig.appServiceRegistration)
+            env.config._port, customConfig || env.config,
+            AppServiceRegistration.fromObject(env.config._registration)
         );
     }).catch(function(e) {
         var msg = JSON.stringify(e);
