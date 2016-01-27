@@ -88,21 +88,22 @@ var _generateRegistration = Promise.coroutine(function*(reg, config) {
         console.warn(
             `[DEPRECATED] Use of config field 'appService' is deprecated. Remove this field from the config file to remove this warning.
 
-            This will produce an error in a later release.
+            This release will use values from this config file. This will produce a fatal error in a later release.
 
             The new format looks like:
-            registration:
-                file: "/path/to/registration.yaml"
-                homeServer:
-                    url: "https://home.server.url"
-                    domain: "home.server.url"
+            homeserver:
+                url: "https://home.server.url"
+                domain: "home.server.url"
 
-            The AS URL can be changed with the -u CLI flag. The port can be changed
-            using the -p CLI flag. The AS localpart can be changed with the -l CLI flag.
-            The AS token and AS localpart are read from the registration file at runtime.`
+            The new locations for the missing fields are as follows:
+            http.port - Passed as a CLI flag --port.
+            appservice.token - Automatically generated.
+            appservice.url - Passed as a CLI flag --url
+            localpart - Passed as a CLI flag --localpart
+            `
         );
         if (config.appService.localpart) {
-            console.log("Using localpart from config file");
+            console.log("NOTICE: Using localpart from config file");
             reg.setSenderLocalpart(config.appService.localpart);
         }
         asToken = config.appService.appservice.token;
@@ -201,13 +202,31 @@ var _runBridge = Promise.coroutine(function*(port, config, reg) {
             return matrixToIrc.onLeave(event, target);
         }
     });
-    matrixLib.setMatrixClientConfig({
-        baseUrl: config.appService.homeserver.url,
-        accessToken: config.appService.appservice.token,
-        domain: config.appService.homeserver.domain,
-        localpart: config.appService.localpart || DEFAULT_LOCALPART
-    });
 
+    if (config.appService) {
+        console.warn(
+            `[DEPRECATED] Use of config field 'appService' is deprecated. Remove this field from the config file to remove this warning.
+
+            This release will use values from this config file. This will produce a fatal error in a later release.`
+        );
+        matrixLib.setMatrixClientConfig({
+            baseUrl: config.appService.homeserver.url,
+            accessToken: config.appService.appservice.token,
+            domain: config.appService.homeserver.domain,
+            localpart: config.appService.localpart || DEFAULT_LOCALPART
+        });
+    }
+    else {
+        if (!reg.getSenderLocalpart() || !reg.getAppServiceToken()) {
+            throw new Error("FATAL: Registration file is missing a sender_localpart and/or AS token.");
+        }
+        matrixLib.setMatrixClientConfig({
+            baseUrl: config.homeserver.url,
+            accessToken: reg.getAppServiceToken(),
+            domain: config.homeserver.domain,
+            localpart: reg.getSenderLocalpart()
+        });
+    }
 
     // Start things
     log.info("Joining mapped Matrix rooms...");
