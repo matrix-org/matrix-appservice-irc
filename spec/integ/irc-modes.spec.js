@@ -24,7 +24,7 @@ describe("IRC-to-Matrix mode bridging", function() {
         ].dynamicChannels.joinRule;
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         sdk = env.clientMock._client();
         // add registration mock impl:

@@ -19,7 +19,7 @@ describe("Initialisation", function() {
     var databaseUri = ircConfig.databaseUri;
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
         env.dbHelper._reset(databaseUri).done(function() {
             done();
         });
@@ -28,6 +28,8 @@ describe("Initialisation", function() {
     it("should connect to the IRC network and channel in the config",
     function(done) {
         var clientConnected = false;
+        var clientJoined = false;
+
         env.ircMock._whenClient(ircAddr, ircNick, "connect",
         function(client, fn) {
             expect(clientJoined).toBe(false, "Joined before connect call");
@@ -35,7 +37,7 @@ describe("Initialisation", function() {
             fn();
         });
 
-        var clientJoined = false;
+
         env.ircMock._whenClient(ircAddr, ircNick, "join",
         function(client, chan, fn) {
             expect(chan).toEqual(ircChannel);

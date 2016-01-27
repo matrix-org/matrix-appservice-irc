@@ -20,13 +20,12 @@ describe("Matrix-to-IRC PMing", function() {
     var tUserLocalpart = roomMapping.server + "_" + tIrcNick;
     var tIrcUserId = "@" + tUserLocalpart + ":" + appConfig.homeServerDomain;
 
-    var whoisDefer, registerDefer, joinRoomDefer, roomStateDefer;
+    var registerDefer, joinRoomDefer, roomStateDefer;
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // reset the deferreds
-        whoisDefer = promiseutil.defer();
         registerDefer = promiseutil.defer();
         joinRoomDefer = promiseutil.defer();
         roomStateDefer = promiseutil.defer();
@@ -218,7 +217,7 @@ describe("IRC-to-Matrix PMing", function() {
     var tText = "ello ello ello";
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
         sdk = env.clientMock._client();
 
         // add registration mock impl:

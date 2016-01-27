@@ -25,7 +25,7 @@ describe("Mirroring", function() {
     };
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(

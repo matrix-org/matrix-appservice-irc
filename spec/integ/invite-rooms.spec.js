@@ -22,7 +22,7 @@ describe("Invite-only rooms", function() {
     };
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server

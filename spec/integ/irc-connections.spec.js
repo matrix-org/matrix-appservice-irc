@@ -19,7 +19,7 @@ describe("IRC connections", function() {
     };
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // make the bot automatically connect and join the mapped channel
         env.ircMock._autoConnectNetworks(
@@ -489,8 +489,8 @@ describe("IRC connections", function() {
             function nextCycle() {
                 setImmediate(function() {
                     if (minutesDone === minutesToDo) {
-                        // expect at the slowest once per 2 min
-                        expect(connectCount).toBeGreaterThan(60);
+                        // expect at the slowest once per 3 min
+                        expect(connectCount).toBeGreaterThan(40);
                         done();
                         return;
                     }

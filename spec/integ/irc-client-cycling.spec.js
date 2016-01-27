@@ -21,7 +21,7 @@ describe("IRC client cycling", function() {
     appConfig.ircConfig.servers[roomMapping.server].ircClients.maxClients = 2;
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // make the bot automatically connect and join the mapped channel
         env.ircMock._autoConnectNetworks(

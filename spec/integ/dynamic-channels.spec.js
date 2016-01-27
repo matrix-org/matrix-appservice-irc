@@ -19,7 +19,7 @@ describe("Dynamic channels", function() {
     beforeEach(function(done) {
         ircConfig.servers[roomMapping.server].dynamicChannels.enabled = true;
         ircConfig.servers[roomMapping.server].dynamicChannels.visibility = "public";
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -179,11 +179,9 @@ describe("Dynamic channels", function() {
         var tCapsAlias = "#" + tAliasCapsLocalpart + ":" + appConfig.homeServerDomain;
 
         // when we get the connect/join requests, accept them.
-        var joinedIrcChannel = false;
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
         function(client, chan, cb) {
             expect(chan).toEqual(tChannel);
-            joinedIrcChannel = true;
             if (cb) { cb(); }
         });
 
@@ -228,7 +226,7 @@ describe("Dynamic channels (disabled)", function() {
 
     beforeEach(function(done) {
         ircConfig.servers[roomMapping.server].dynamicChannels.enabled = false;
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(

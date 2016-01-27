@@ -14,7 +14,7 @@ describe("Creating admin rooms", function() {
     var botUserId = "@" + appConfig.botLocalpart + ":" + appConfig.homeServerDomain;
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -71,7 +71,7 @@ describe("Admin rooms", function() {
     ircConfig.servers[roomMapping.server].dynamicChannels.visibility = "private";
 
     beforeEach(function(done) {
-        test.beforeEach(this, env);
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -140,7 +140,7 @@ describe("Admin rooms", function() {
 
         env.mockAsapiController._trigger("type:m.room.message", {
             content: {
-                body: "!nick blargle",
+                body: "!nick blargle wargle",
                 msgtype: "m.text"
             },
             user_id: userId,
