@@ -6,6 +6,8 @@ var Cli = require("matrix-appservice-bridge").Cli;
 var AppServiceRegistration = require("matrix-appservice-bridge").AppServiceRegistration;
 var AppService = require("matrix-appservice").AppService;
 
+var ircToMatrix = require("./lib/bridge/irc-to-matrix.js");
+var matrixToIrc = require("./lib/bridge/matrix-to-irc.js");
 var membershiplists = require("./lib/bridge/membershiplists.js");
 var IrcServer = require("./lib/irclib/server.js").IrcServer;
 var ircLib = require("./lib/irclib/irc.js");
@@ -81,20 +83,38 @@ var _toServer = function(domain, serverConfig) {
 };
 
 var _generateRegistration = Promise.coroutine(function*(reg, config) {
+    var asToken;
     if (config.appService) {
-        throw new Error(
-            `[DEPRECATED] Use of config field 'appService' is deprecated. Delete this entire object and try again.
-            It has been replaced with the field 'registrationFile' which points to the location
-            of the registration file generated earlier with the CLI flag -r. The port
-            can be changed using the CLI flag -p. Type --help for more information.`
+        console.warn(
+            `[DEPRECATED] Use of config field 'appService' is deprecated. Remove this field from the config file to remove this warning.
+
+            This will produce an error in a later release.
+
+            The new format looks like:
+            registration:
+                file: "/path/to/registration.yaml"
+                homeServer:
+                    url: "https://home.server.url"
+                    domain: "home.server.url"
+
+            The AS URL can be changed with the -u CLI flag. The port can be changed
+            using the -p CLI flag. The AS localpart can be changed with the -l CLI flag.
+            The AS token and AS localpart are read from the registration file at runtime.`
         );
+        if (config.appService.localpart) {
+            console.log("Using localpart from config file");
+            reg.setSenderLocalpart(config.appService.localpart);
+        }
+        asToken = config.appService.appservice.token;
     }
 
+    if (!reg.getSenderLocalpart()) {
+        reg.setSenderLocalpart(DEFAULT_LOCALPART);
+    }
+
+
     reg.setHomeserverToken(AppServiceRegistration.generateToken());
-    reg.setAppServiceToken(
-        config.appService.appservice.token || AppServiceRegistration.generateToken()
-    );
-    reg.setSenderLocalpart(config.appService.localpart || DEFAULT_LOCALPART);
+    reg.setAppServiceToken(asToken || AppServiceRegistration.generateToken());
 
     let serverDomains = Object.keys(config.ircService.servers);
     for (var i = 0; i < serverDomains.length; i++) {
@@ -113,7 +133,7 @@ var _generateRegistration = Promise.coroutine(function*(reg, config) {
     return reg;
 });
 
-var _runBridge = Promise.coroutine(function*(port, config) {
+var _runBridge = Promise.coroutine(function*(port, config, reg) {
     if (config.ircService.logging) {
         logging.configure(config.ircService.logging);
         logging.setUncaughtExceptionLogger(log);
@@ -145,7 +165,6 @@ var _runBridge = Promise.coroutine(function*(port, config) {
 
 
     // configure IRC side
-    var ircToMatrix = require("./bridge/irc-to-matrix.js");
     ircLib.registerHooks({
         onMessage: ircToMatrix.onMessage,
         onPrivateMessage: ircToMatrix.onPrivateMessage,
@@ -158,8 +177,9 @@ var _runBridge = Promise.coroutine(function*(port, config) {
 
 
     // configure Matrix side
-    var matrixToIrc = require("./bridge/matrix-to-irc.js");
-    var appService = new AppService();
+    var appService = new AppService({
+        homeserverToken: reg.getHomeserverToken()
+    });
     appService.on("http-log", function(logLine) {
         log.info(logLine.replace(/\n/g, " "));
     });
@@ -196,13 +216,16 @@ var _runBridge = Promise.coroutine(function*(port, config) {
     yield ircLib.connect();
     log.info("Syncing relevant membership lists...");
     for (var i = 0; i < servers.length; i++) {
-        yield membershiplists.sync(servers[i]);
+        membershiplists.sync(servers[i]);
     };
+    appService.listen(port);
 });
 
 
 new Cli({
     registrationPath: REG_PATH,
+    enableRegistration: true,
+    enableLocalpart: true,
     bridgeConfig: {
         affectsRegistration: true,
         schema: "./lib/config/schema.yml",
@@ -222,12 +245,11 @@ new Cli({
     },
     generateRegistration: function(reg, callback) {
         _generateRegistration(reg, this.getConfig()).done(function(completeRegistration) {
-            console.log(`Output registration to: ${REG_PATH}`);
             callback(completeRegistration);
         });
     },
-    run: function(port, config) {
-        _runBridge(port, config).catch(function(err) {
+    run: function(port, config, reg) {
+        _runBridge(port, config, reg).catch(function(err) {
             console.error("Failed to run bridge.");
             throw err;
         });
