@@ -76,12 +76,9 @@ describe("Admin rooms", function() {
         config.ircService.servers[roomMapping.server].dynamicChannels.whitelist = [
             userId
         ];
-        config.ircService.servers[
-            roomMapping.server].dynamicChannels.joinRule = "invite";
-        config.ircService.servers[
-            roomMapping.server].dynamicChannels.published = false;
-        config.ircService.servers[
-            roomMapping.server].dynamicChannels.createAlias = false;
+        config.ircService.servers[roomMapping.server].dynamicChannels.joinRule = "invite";
+        config.ircService.servers[roomMapping.server].dynamicChannels.published = false;
+        config.ircService.servers[roomMapping.server].dynamicChannels.createAlias = false;
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -99,9 +96,7 @@ describe("Admin rooms", function() {
         // auto-join an admin room
         sdk = env.clientMock._client();
         sdk.joinRoom.andCallFake(function(roomId) {
-            expect([adminRoomId, roomMapping.roomId].indexOf(roomId)).not.toEqual(
-                -1, "Unexpected joinRoom to " + roomId
-            );
+            expect([adminRoomId, roomMapping.roomId]).toContain(roomId);
             return Promise.resolve({});
         });
 
