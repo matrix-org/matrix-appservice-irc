@@ -13,11 +13,10 @@ MockAppService.prototype.listen = function(port) {
 };
 
 MockAppService.prototype._trigger = function(eventType, content) {
-    var promises = [];
     var listeners = instance.listeners(eventType);
-    listeners.forEach(function(l) {
-        promises.push(l(content));
-    })
+    var promises = listeners.map(function(l) {
+        return l(content);
+    });
     if (promises.length === 1) {
         return promises[0];
     }
