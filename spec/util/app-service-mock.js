@@ -17,6 +17,11 @@ MockAppService.prototype._trigger = function(eventType, content) {
     var promises = listeners.map(function(l) {
         return l(content);
     });
+
+    if (eventType.indexOf("type:") === 0) {
+        promises = promises.concat(this._trigger("event", content));
+    }
+
     if (promises.length === 1) {
         return promises[0];
     }
@@ -27,14 +32,18 @@ MockAppService.prototype._queryAlias = function(alias) {
     if (!this.onAliasQuery) {
         throw new Error("IRC AS hasn't hooked into onAliasQuery yet.");
     }
-    return this.onAliasQuery(alias);
+    return this.onAliasQuery(alias).catch(function(err) {
+        console.error("onAliasQuery threw => %s", err);
+    });
 };
 
 MockAppService.prototype._queryUser = function(user) {
     if (!this.onUserQuery) {
         throw new Error("IRC AS hasn't hooked into onUserQuery yet.");
     }
-    return this.onUserQuery(user);
+    return this.onUserQuery(user).catch(function(err) {
+        console.error("onUserQuery threw => %s", err);
+    });
 };
 
 function MockAppServiceProxy() {

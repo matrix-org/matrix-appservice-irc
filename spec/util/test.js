@@ -73,7 +73,8 @@ module.exports.beforeEach = function(testCase, env) {
         env.clientMock._reset();
         env.main = proxyquire("../../lib/main.js", {
             "matrix-appservice": {
-                AppService: MockAppService
+                AppService: MockAppService,
+                "@global": true
             },
             "matrix-js-sdk": env.clientMock,
             "irc": env.ircMock

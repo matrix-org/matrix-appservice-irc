@@ -306,7 +306,7 @@ describe("Dynamic channels (disabled)", function() {
             return Promise.resolve({});
         });
 
-        env.mockAppService._queryAlias(tAlias).catch(function() {
+        env.mockAppService._queryAlias(tAlias).done(function() {
             expect(joinedIrcChannel).toBe(false, "Joined channel by alias");
             done();
         });
