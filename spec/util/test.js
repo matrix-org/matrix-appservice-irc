@@ -2,6 +2,8 @@
 "use strict";
 var extend = require("extend");
 var proxyquire = require('proxyquire');
+var AppServiceRegistration = require("matrix-appservice-bridge").AppServiceRegistration;
+var MockAppService = require("./app-service-mock");
 
 /**
  * Construct a new test environment with mock modules.
@@ -13,15 +15,13 @@ module.exports.mkEnv = function() {
     var ircMock = require("./irc-client-mock");
     ircMock["@global"] = true;
     var dbHelper = require("./db-helper");
-    var asapiMock = require("./asapi-controller-mock");
-    var appConfig = extend(true, {}, require("../util/config-mock"));
+    var config = extend(true, {}, require("../util/test-config.json"));
     return {
-        appConfig: appConfig,
-        asapiMock: asapiMock,
+        config: config,
         dbHelper: dbHelper,
         ircMock: ircMock,
         clientMock: clientMock,
-        mockAsapiController: null
+        mockAppService: null // reset each test
     };
 };
 
@@ -32,13 +32,13 @@ module.exports.mkEnv = function() {
  * (from {@link mkEnv}).
  * @return {Promise} which is resolved when the app has finished initiliasing.
  */
-module.exports.initEnv = function(env) {
+module.exports.initEnv = function(env, customConfig) {
     // wipe the database entirely then call configure and register on the IRC
     // service.
-    return env.dbHelper._reset(env.appConfig.databaseUri).then(function() {
-        env.ircService.configure(env.appConfig.ircConfig);
-        return env.ircService.register(
-            env.mockAsapiController, env.appConfig.serviceConfig
+    return env.dbHelper._reset(env.config.ircService.databaseUri).then(function() {
+        return env.main.runBridge(
+            env.config._port, customConfig || env.config,
+            AppServiceRegistration.fromObject(env.config._registration)
         );
     }).catch(function(e) {
         var msg = JSON.stringify(e);
@@ -67,14 +67,18 @@ module.exports.log = function(testCase) {
  */
 module.exports.beforeEach = function(testCase, env) {
     module.exports.log(testCase);
+    MockAppService.resetInstance();
     if (env) {
         env.ircMock._reset();
         env.clientMock._reset();
-        env.ircService = proxyquire("../../lib/irc-appservice.js", {
+        env.main = proxyquire("../../lib/main.js", {
+            "matrix-appservice": {
+                AppService: MockAppService
+            },
             "matrix-js-sdk": env.clientMock,
             "irc": env.ircMock
         });
-        env.mockAsapiController = env.asapiMock.create();
+        env.mockAppService = MockAppService.instance();
     }
 
     process.on("unhandledRejection", function(reason, promise) {

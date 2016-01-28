@@ -9,15 +9,20 @@ var test = require("../util/test");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.appConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
 
 describe("IRC-to-Matrix message bridging", function() {
     var sdk = null;
 
     var tFromNick = "mike";
     var tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
-                  appConfig.homeServerDomain;
+                  config.homeserver.domain;
 
     var checksum = function(str) {
         var total = 0;
@@ -39,10 +44,10 @@ describe("IRC-to-Matrix message bridging", function() {
         });
 
         env.ircMock._autoJoinChannels(
-            roomMapping.server, roomMapping.botNick, roomMapping.channel
+            roomMapping.server, roomMapping.botNick, roomMapping.server
         );
         env.ircMock._autoConnectNetworks(
-            roomMapping.server, roomMapping.botNick, roomMapping.channel
+            roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
         // do the init

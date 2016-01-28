@@ -6,14 +6,17 @@ var Promise = require("bluebird");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.appConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick
+};
 
 describe("Homeserver user queries", function() {
     var testNick = "Alisha";
     var testLocalpart = roomMapping.server + "_" + testNick;
     var testUserId = (
-        "@" + testLocalpart + ":" + appConfig.homeServerDomain
+        "@" + testLocalpart + ":" + config.homeserver.domain
     );
 
     beforeEach(function(done) {
@@ -51,7 +54,7 @@ describe("Homeserver user queries", function() {
             returnUserId: testUserId
         });
 
-        env.mockAsapiController._queryUser(testUserId).done(function(res) {
+        env.mockAppService._queryUser(testUserId).done(function(res) {
             done();
         });
     });
@@ -61,7 +64,7 @@ describe("Homeserver alias queries", function() {
     var testChannel = "#tower";
     var testLocalpart = "irc_" + roomMapping.server + "_" + testChannel;
     var testAlias = (
-        "#" + testLocalpart + ":" + appConfig.homeServerDomain
+        "#" + testLocalpart + ":" + config.homeserver.domain
     );
 
     beforeEach(function(done) {
@@ -108,7 +111,7 @@ describe("Homeserver alias queries", function() {
             }
         });
 
-        env.mockAsapiController._queryAlias(testAlias).done(function() {
+        env.mockAppService._queryAlias(testAlias).done(function() {
             expect(botJoined).toBe(true, "Bot didn't join " + testChannel);
             done();
         }, function(err) {

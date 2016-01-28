@@ -9,16 +9,19 @@ var test = require("../util/test");
 // set up integration testing mocks
 var env = test.mkEnv();
 
-
-// set up test config
-var appConfig = env.appConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
 
 describe("Matrix-to-IRC PMing", function() {
     var tUserId = "@flibble:wibble";
     var tIrcNick = "someone";
     var tUserLocalpart = roomMapping.server + "_" + tIrcNick;
-    var tIrcUserId = "@" + tUserLocalpart + ":" + appConfig.homeServerDomain;
+    var tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
     var registerDefer, joinRoomDefer, roomStateDefer;
 
@@ -48,7 +51,7 @@ describe("Matrix-to-IRC PMing", function() {
         ]);
 
         // get the ball rolling
-        env.mockAsapiController._trigger("type:m.room.member", {
+        env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite"
             },
@@ -120,7 +123,7 @@ describe("Matrix-to-IRC PMing", function() {
         ]);
 
         // get the ball rolling
-        env.mockAsapiController._trigger("type:m.room.member", {
+        env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite"
             },
@@ -207,7 +210,7 @@ describe("IRC-to-Matrix PMing", function() {
 
     var tRealIrcUserNick = "bob";
     var tVirtualUserId = "@" + roomMapping.server + "_" + tRealIrcUserNick + ":" +
-                          appConfig.homeServerDomain;
+                          config.homeserver.domain;
 
     var tRealMatrixUserNick = "M-alice";
     var tRealUserId = "@alice:anotherhomeserver";
@@ -231,6 +234,9 @@ describe("IRC-to-Matrix PMing", function() {
         env.ircMock._autoConnectNetworks(
             roomMapping.server, tRealMatrixUserNick, roomMapping.server
         );
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
         env.ircMock._autoJoinChannels(
             roomMapping.server, tRealMatrixUserNick, roomMapping.channel
         );
@@ -239,7 +245,7 @@ describe("IRC-to-Matrix PMing", function() {
         test.initEnv(env).then(function() {
             // send a message in the linked room (so the service provisions a
             // virtual IRC user which the 'real' IRC users can speak to)
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "get me in",
                     msgtype: "m.text"
