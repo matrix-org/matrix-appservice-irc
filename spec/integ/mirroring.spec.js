@@ -6,15 +6,20 @@ var test = require("../util/test");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.appConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
 
 // set up config.yaml flags
-appConfig.ircConfig.servers[roomMapping.server].membershipLists.enabled = true;
-appConfig.ircConfig.servers[
+config.ircService.servers[roomMapping.server].membershipLists.enabled = true;
+config.ircService.servers[
     roomMapping.server
 ].membershipLists.global.ircToMatrix.incremental = true;
-appConfig.ircConfig.servers[
+config.ircService.servers[
     roomMapping.server
 ].membershipLists.global.matrixToIrc.incremental = true;
 
@@ -56,7 +61,7 @@ describe("Mirroring", function() {
                 client._invokeCallback(cb);
             });
 
-            env.mockAsapiController._trigger("type:m.room.member", {
+            env.mockAppService._trigger("type:m.room.member", {
                 content: {
                     membership: "join"
                 },
@@ -84,7 +89,7 @@ describe("Mirroring", function() {
                 client._invokeCallback(cb);
             });
 
-            env.mockAsapiController._trigger("type:m.room.message", {
+            env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "dummy text to get it to join",
                     msgtype: "m.text"
@@ -93,7 +98,7 @@ describe("Mirroring", function() {
                 room_id: roomMapping.roomId,
                 type: "m.room.message"
             }).then(function() {
-                return env.mockAsapiController._trigger("type:m.room.member", {
+                return env.mockAppService._trigger("type:m.room.member", {
                     content: {
                         membership: "leave"
                     },
@@ -119,7 +124,7 @@ describe("Mirroring", function() {
                 expect(false).toBe(true, "IRC client parted but shouldn't have.");
             });
 
-            env.mockAsapiController._trigger("type:m.room.member", {
+            env.mockAppService._trigger("type:m.room.member", {
                 content: {
                     membership: "join"
                 },
@@ -143,7 +148,7 @@ describe("Mirroring", function() {
                 expect(false).toBe(true, "IRC client parted but shouldn't have.");
             });
 
-            env.mockAsapiController._trigger("type:m.room.member", {
+            env.mockAppService._trigger("type:m.room.member", {
                 content: {
                     membership: "leave"
                 },
@@ -162,7 +167,7 @@ describe("Mirroring", function() {
         var ircUser = {
             nick: "bob",
             localpart: roomMapping.server + "_bob",
-            id: "@" + roomMapping.server + "_bob:" + appConfig.homeServerDomain
+            id: "@" + roomMapping.server + "_bob:" + config.homeserver.domain
         };
         beforeEach(function() {
             sdk = env.clientMock._client();

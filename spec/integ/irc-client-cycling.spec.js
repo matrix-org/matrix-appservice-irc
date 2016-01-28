@@ -8,20 +8,24 @@ var test = require("../util/test");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.appConfig;
-var roomMapping = appConfig.roomMapping;
-
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
 
 describe("IRC client cycling", function() {
     var testUsers = null;
 
-    // set client cycling to 2 for these tests. This is slightly brittle since we
-    // assume that this means when the limit is reached we disconnect a client
-    // after a new connection is made (at most 1 above limit).
-    appConfig.ircConfig.servers[roomMapping.server].ircClients.maxClients = 2;
-
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+
+        // set client cycling to 2 for these tests. This is slightly brittle since we
+        // assume that this means when the limit is reached we disconnect a client
+        // after a new connection is made (at most 1 above limit).
+        config.ircService.servers[roomMapping.server].ircClients.maxClients = 2;
 
         // make the bot automatically connect and join the mapped channel
         env.ircMock._autoConnectNetworks(
@@ -76,7 +80,7 @@ describe("IRC client cycling", function() {
 
     it("should disconnect the oldest (last message time) client",
     function(done) {
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -85,7 +89,7 @@ describe("IRC client cycling", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         }).then(function() {
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "Another message",
                     msgtype: "m.text"
@@ -95,7 +99,7 @@ describe("IRC client cycling", function() {
                 type: "m.room.message"
             });
         }).then(function() {
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "A third message",
                     msgtype: "m.text"
@@ -130,7 +134,7 @@ describe("IRC client cycling", function() {
 
     it("should reconnect (make a new connection) for a cycled-out client when " +
         "speaking and not use the old disconnected client", function(done) {
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -139,7 +143,7 @@ describe("IRC client cycling", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         }).then(function() {
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "Another message",
                     msgtype: "m.text"
@@ -149,7 +153,7 @@ describe("IRC client cycling", function() {
                 type: "m.room.message"
             });
         }).then(function() {
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "A third message",
                     msgtype: "m.text"
@@ -159,7 +163,7 @@ describe("IRC client cycling", function() {
                 type: "m.room.message"
             });
         }).then(function() {
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "That first guy is back again.",
                     msgtype: "m.text"

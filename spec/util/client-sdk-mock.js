@@ -54,6 +54,11 @@ module.exports._reset = function() {
         mxcUrlToHttp: jasmine.createSpy("sdk.mxcUrlToHttp(mxc, w, h, method)")
     };
 
+    // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms
+    mockClient.joinRoom.andCallFake(function() {
+        return Promise.resolve({});
+    });
+
     // mock up getStateEvent immediately since it is called for every new IRC
     // connection.
     mockClient.getStateEvent.andCallFake(function() {
