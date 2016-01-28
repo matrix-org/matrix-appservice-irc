@@ -1,7 +1,9 @@
 Changes in 0.1.1
 ================
+**Requires Node v4+**
 
 Features:
+ - `app.js` is now added to `.bin` so can be invoked directly.
  - Added config option `ircClients.idleTimeout` to allow virtual IRC clients to
    timeout after a specified amount of time.
  - **Deprecate** `dynamicChannels.visibility` in favour of
@@ -24,3 +26,4 @@ Bug fixes:
    to rooms.
  - Strip unknown HTML tags from Matrix messages before sending to IRC.
  - Don't try to leave Matrix rooms if the IRC user who left is a virtual user.
+ - And more..
