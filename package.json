@@ -9,7 +9,7 @@
     "lint": "eslint lib spec",
     "check": "npm test && npm run lint",
     "ci-lint": "eslint lib spec --format checkstyle > ci-lint.xml || true",
-    "ci-test": "istanbul cover --report cobertura jasmine-node -- spec --verbose --junitreport --forceexit --captureExceptions",
+    "ci-test": "istanbul cover -x \"**/spec/**\" --report cobertura jasmine-node -- spec --verbose --junitreport --forceexit --captureExceptions",
     "ci": "npm run ci-lint && npm run ci-test"
   },
   "repository": {
