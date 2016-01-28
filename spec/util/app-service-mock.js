@@ -43,10 +43,14 @@ function MockAppServiceProxy() {
     }
     return instance;
 }
+
 MockAppServiceProxy.instance = function() {
-    instance = new MockAppService();
+    if (!instance) {
+        instance = new MockAppService();
+    }
     return instance;
 };
+
 MockAppServiceProxy.resetInstance = function() {
     if (instance) {
         instance.removeAllListeners();
