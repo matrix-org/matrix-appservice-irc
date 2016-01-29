@@ -192,4 +192,31 @@ describe("IRC-to-Matrix message bridging", function() {
             );
         });
     });
+
+    it("should html escape IRC text", function(done) {
+        var tIrcFormattedText = "This text is \u0002bold\u000f and has " +
+            "<div> tags & characters like ' and \"";
+        var tHtmlMain = "This text is <b>bold</b> and has " +
+            "&lt;div&gt; tags &amp; characters like &#39; and &quot;";
+        var tFallback = "This text is bold and has <div> tags & characters like ' and \"";
+        sdk.sendMessage.andCallFake(function(roomId, content) {
+            expect(roomId).toEqual(roomMapping.roomId);
+            // more readily expose non-printing character errors (looking at
+            // you \u000f)
+            expect(content.body.length).toEqual(tFallback.length);
+            expect(content.body).toEqual(tFallback);
+            expect(content.format).toEqual("org.matrix.custom.html");
+            expect(content.msgtype).toEqual("m.text");
+            expect(content.formatted_body).toEqual(tHtmlMain);
+            done();
+            return Promise.resolve();
+        });
+
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        function(client) {
+            client.emit(
+                "message", tFromNick, roomMapping.channel, tIrcFormattedText
+            );
+        });
+    });
 });
