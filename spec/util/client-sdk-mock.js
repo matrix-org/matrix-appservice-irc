@@ -11,6 +11,7 @@ var mockClient = {};
  * @return {SdkClient} The SDK client instance.
  */
 module.exports.createClient = function(config) {
+    mockClient.credentials.userId = config.userId;
     return mockClient;
 };
 
@@ -35,7 +36,9 @@ module.exports._client = function() {
  */
 module.exports._reset = function() {
     mockClient = {
-        credentials: {},
+        credentials: {
+            userId: null
+        },
         _http: {
             opts: {}
         },
