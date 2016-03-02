@@ -30,7 +30,7 @@
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
     "matrix-appservice": "^0.2.3",
-    "matrix-appservice-bridge": "^0.1.5",
+    "matrix-appservice-bridge": "matrix-org/matrix-appservice-bridge#develop",
     "matrix-js-sdk": "0.3.0",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
