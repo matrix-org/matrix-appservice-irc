@@ -68,6 +68,12 @@ module.exports._reset = function() {
         return Promise.resolve({});
     });
 
+    // mock up registration since we make them if they aren't in the DB (which they won't be
+    // for testing).
+    mockClient.register.andCallFake(function() {
+        return Promise.resolve({});
+    });
+
     // Helper to succeed sdk registration calls.
     mockClient._onHttpRegister = function(params) {
         mockClient.register.andCallFake(function(username, password) {
