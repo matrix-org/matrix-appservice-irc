@@ -11,6 +11,7 @@ var mockClient = {};
  * @return {SdkClient} The SDK client instance.
  */
 module.exports.createClient = function(config) {
+    mockClient.credentials.userId = config.userId;
     return mockClient;
 };
 
@@ -35,7 +36,9 @@ module.exports._client = function() {
  */
 module.exports._reset = function() {
     mockClient = {
-        credentials: {},
+        credentials: {
+            userId: null
+        },
         _http: {
             opts: {}
         },
@@ -62,6 +65,12 @@ module.exports._reset = function() {
     // mock up getStateEvent immediately since it is called for every new IRC
     // connection.
     mockClient.getStateEvent.andCallFake(function() {
+        return Promise.resolve({});
+    });
+
+    // mock up registration since we make them if they aren't in the DB (which they won't be
+    // for testing).
+    mockClient.register.andCallFake(function() {
         return Promise.resolve({});
     });
 
