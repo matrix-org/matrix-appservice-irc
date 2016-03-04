@@ -263,25 +263,18 @@ describe("IRC-to-Matrix PMing", function() {
     "it receives a PM directed at a virtual user from a real IRC user",
     function(done) {
         var createRoomDefer = promiseutil.defer();
-        var inviteDefer = promiseutil.defer();
         var sendMsgDefer = promiseutil.defer();
         var promises = Promise.all([
-            createRoomDefer.promise, inviteDefer.promise, sendMsgDefer.promise
+            createRoomDefer.promise, sendMsgDefer.promise
         ]);
         // mock create room impl
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.visibility).toEqual("private");
+            expect(opts.invite).toEqual([tRealUserId]);
             createRoomDefer.resolve();
             return Promise.resolve({
                 room_id: tCreatedRoomId
             });
-        });
-        // mock invite impl
-        sdk.invite.andCallFake(function(roomId, userId) {
-            expect(roomId).toEqual(tCreatedRoomId);
-            expect(userId).toEqual(tRealUserId);
-            inviteDefer.resolve();
-            return Promise.resolve({});
         });
         // mock send message impl
         sdk.sendMessage.andCallFake(function(roomId, content) {

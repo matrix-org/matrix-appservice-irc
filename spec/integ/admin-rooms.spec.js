@@ -275,18 +275,8 @@ describe("Admin rooms", function() {
         var createdMatrixRoom = false;
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.visibility).toEqual("private");
+            expect(opts.invite).toEqual([userId]);
             createdMatrixRoom = true;
-            return Promise.resolve({
-                room_id: newRoomId
-            });
-        });
-
-        // make sure the AS invites the user to the new room
-        var sentInvite = false;
-        sdk.invite.andCallFake(function(roomId, inviteeUserId) {
-            expect(roomId).toEqual(newRoomId);
-            expect(inviteeUserId).toEqual(userId);
-            sentInvite = true;
             return Promise.resolve({
                 room_id: newRoomId
             });
@@ -303,9 +293,8 @@ describe("Admin rooms", function() {
             type: "m.room.message"
         }).done(function() {
             // make sure everything was called
-            expect(createdMatrixRoom).toBe(true, "created matrix room");
-            expect(sentInvite).toBe(true, "sent matrix invite");
-            expect(joinedChannel).toBe(true, "bot didn't join channel");
+            expect(createdMatrixRoom).toBe(true, "Did not create matrix room");
+            expect(joinedChannel).toBe(true, "Bot didn't join channel");
             done();
         });
     });
