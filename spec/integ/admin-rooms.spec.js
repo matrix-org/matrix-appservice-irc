@@ -130,7 +130,7 @@ describe("Admin rooms", function() {
     it("should respond to bad !nick commands with a help notice",
     function(done) {
         var sentNotice = false;
-        sdk.sendMessage.andCallFake(function(roomId, content) {
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentNotice = true;
@@ -154,7 +154,7 @@ describe("Admin rooms", function() {
     it("should respond to bad !join commands with a help notice",
     function(done) {
         var sentNotice = false;
-        sdk.sendMessage.andCallFake(function(roomId, content) {
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentNotice = true;
@@ -220,7 +220,7 @@ describe("Admin rooms", function() {
         // make sure the AS sends an ACK of the request as a notice in the admin
         // room
         var sentAckNotice = false;
-        sdk.sendMessage.andCallFake(function(roomId, content) {
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentAckNotice = true;

@@ -115,7 +115,7 @@ describe("IRC connections", function() {
             expectLocalpart: roomMapping.server + "_" + testUser.nick,
             returnUserId: testUser.id
         });
-        sdk.sendMessage.andCallFake(function(roomId, c) {
+        sdk.sendEvent.andCallFake(function(roomId, type, c) {
             expect(false).toBe(
                 true, "bridge tried to send a msg to matrix from a virtual " +
                 "irc user with a nick assigned from rpl_welcome."
@@ -248,7 +248,7 @@ describe("IRC connections", function() {
             expectLocalpart: roomMapping.server + "_" + users[0].assignedNick,
             returnUserId: users[0].id
         });
-        sdk.sendMessage.andCallFake(function(roomId, c) {
+        sdk.sendEvent.andCallFake(function(roomId, type, c) {
             expect(false).toBe(
                 true, "bridge tried to send a msg to matrix from a virtual " +
                 "irc user (clashing nicks)."

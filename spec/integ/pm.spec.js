@@ -159,8 +159,9 @@ describe("Matrix-to-IRC PMing", function() {
             return Promise.resolve({});
         });
         // see if it sends a message (to say it doesn't do group chat)
-        sdk.sendMessage.andCallFake(function(roomId, content) {
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
+            expect(type).toEqual("m.room.message");
             sendMessageDefer.resolve();
             return Promise.resolve({});
         });
@@ -277,8 +278,9 @@ describe("IRC-to-Matrix PMing", function() {
             });
         });
         // mock send message impl
-        sdk.sendMessage.andCallFake(function(roomId, content) {
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(tCreatedRoomId);
+            expect(type).toEqual("m.room.message");
             expect(content).toEqual({
                 body: tText,
                 msgtype: "m.text"

@@ -51,6 +51,7 @@ module.exports._reset = function() {
         setDisplayName: jasmine.createSpy("sdk.setDisplayName(name)"),
         getStateEvent: jasmine.createSpy("sdk.getStateEvent(room,type,key)"),
         sendStateEvent: jasmine.createSpy("sdk.sendStateEvent(room,type,content,key)"),
+        sendEvent: jasmine.createSpy("sdk.sendEvent(roomId,type,content)"),
         invite: jasmine.createSpy("sdk.invite(roomId, userId)"),
         leave: jasmine.createSpy("sdk.leave(roomId)"),
         createAlias: jasmine.createSpy("sdk.createAlias(alias, roomId)"),
