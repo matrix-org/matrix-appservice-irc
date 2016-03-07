@@ -13,7 +13,8 @@ describe("Username generation", function() {
 
     var mkMatrixUser = function(uid) {
         return {
-            userId: uid
+            userId: uid,
+            getId: function() { return uid; }
         };
     };
 
