@@ -136,6 +136,11 @@ describe("IRC connections", function() {
             });
         });
 
+        // we're not interested in the joins, so autojoin them.
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, assignedNick, roomMapping.channel
+        );
+
         // send a message from matrix to make them join the room.
         env.mockAppService._trigger("type:m.room.message", {
             content: {
