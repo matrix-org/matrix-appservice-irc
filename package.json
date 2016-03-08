@@ -2,7 +2,7 @@
   "name": "matrix-appservice-irc",
   "version": "0.1.1",
   "description": "IRC Bridge for matrix-appservice",
-  "main": "index.js",
+  "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",
   "scripts": {
     "test": "BLUEBIRD_DEBUG=1 jasmine-node spec --verbose --forceexit --captureExceptions",

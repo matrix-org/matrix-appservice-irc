@@ -40,7 +40,7 @@ describe("Username generation", function() {
             return Promise.resolve();
         };
 
-        names = proxyquire("../../lib/irclib/names.js", {
+        names = proxyquire("../../lib/irc/names.js", {
             "../store": storeMock
         });
         names.MAX_USER_NAME_LENGTH = 8;
