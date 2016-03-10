@@ -1,5 +1,5 @@
 These integration tests replace modules at the edges of the service, namely:
- - AsapiController (Inbound Matrix Events)
+ - Inbound Matrix Events (AppService)
  - irc module (Inbound/Outbound IRC Events)
  - matrix-js-sdk (Outbound Matrix Events)
 
