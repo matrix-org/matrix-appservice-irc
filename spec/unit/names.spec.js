@@ -1,13 +1,10 @@
 "use strict";
 var Promise = require("bluebird");
-var proxyquire = require("proxyquire");
 var test = require("../util/test");
 
 describe("Username generation", function() {
     var names;
-    var storeMock = {
-        ircClients: {}
-    };
+    var storeMock = {};
     var existingUsernames = {};
     var ircUser;
 
@@ -25,23 +22,33 @@ describe("Username generation", function() {
             nick: "MyCrazyNick",
             server: {
                 domain: "somedomain.com"
+            },
+            getUsername: function() {
+                return this._uname;
+            },
+            getUserId: function() {},
+            setUsername: function(u) {
+                this._uname = u;
             }
         };
-        storeMock.ircClients.getByUsername = function(domain, uname) {
+        storeMock.getIrcClientByUsername = function(domain, uname) {
             var obj;
             if (existingUsernames[uname]) {
                 obj = {
-                    userId: existingUsernames[uname]
+                    getUserId: function() { return existingUsernames[uname]; }
                 };
             }
             return Promise.resolve(obj);
         };
-        storeMock.ircClients.set = function() {
+        storeMock.storeIrcClient = function() {
             return Promise.resolve();
         };
 
-        names = proxyquire("../../lib/irc/names.js", {
-            "../store": storeMock
+        names = require("../../lib/irc/names.js");
+        names.initQueue({
+            getStore: function() {
+                return storeMock;
+            }
         });
         names.MAX_USER_NAME_LENGTH = 8;
     });
@@ -93,8 +100,8 @@ describe("Username generation", function() {
 
     it("should eventually give up trying usernames", function(done) {
         names.MAX_USER_NAME_LENGTH = 3;
-        storeMock.ircClients.getByUsername = function() {
-            return Promise.resolve({userId: "@someone:else"});
+        storeMock.getIrcClientByUsername = function() {
+            return Promise.resolve({getUserId: function() { return "@someone:else"} });
         };
         var userId = "@myreallylonguseridhere:localhost";
         names.getIrcNames(ircUser, mkMatrixUser(userId)).done(function(info) {

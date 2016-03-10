@@ -38,11 +38,7 @@ module.exports._reset = function(databaseUri) {
     }
 
     return Promise.all([
-        delDatabase("/config.db"),
-        delDatabase("/irc_clients.db"),
         delDatabase("/rooms.db"),
         delDatabase("/users.db"),
-        delDatabase("/_rooms.db"),
-        delDatabase("/_users.db")
     ]);
 };
