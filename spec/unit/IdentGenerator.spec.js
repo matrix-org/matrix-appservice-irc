@@ -44,6 +44,9 @@ describe("Username generation", function() {
         storeMock.storeIrcClientConfig = function() {
             return Promise.resolve();
         };
+        storeMock.getIrcClientConfig = function() {
+            return Promise.resolve();
+        };
 
         identGenerator = new IdentGenerator(storeMock);
         IdentGenerator.MAX_USER_NAME_LENGTH = 8;
