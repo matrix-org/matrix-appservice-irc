@@ -32,16 +32,16 @@ describe("Username generation", function() {
                 this._uname = u;
             }
         };
-        storeMock.getIrcClientByUsername = function(domain, uname) {
+        storeMock.getMatrixUserByUsername = function(domain, uname) {
             var obj;
             if (existingUsernames[uname]) {
                 obj = {
-                    getUserId: function() { return existingUsernames[uname]; }
+                    getId: function() { return existingUsernames[uname]; }
                 };
             }
             return Promise.resolve(obj);
         };
-        storeMock.storeIrcClient = function() {
+        storeMock.storeIrcClientConfig = function() {
             return Promise.resolve();
         };
 
@@ -96,8 +96,8 @@ describe("Username generation", function() {
 
     it("should eventually give up trying usernames", function(done) {
         IdentGenerator.MAX_USER_NAME_LENGTH = 3;
-        storeMock.getIrcClientByUsername = function() {
-            return Promise.resolve({getUserId: function() { return "@someone:else"} });
+        storeMock.getMatrixUserByUsername = function() {
+            return Promise.resolve({getId: function() { return "@someone:else"} });
         };
         var userId = "@myreallylonguseridhere:localhost";
         identGenerator.getIrcNames(ircUser, mkMatrixUser(userId)).done(function(info) {
