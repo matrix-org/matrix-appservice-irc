@@ -33,6 +33,7 @@
                 "port": 6667,
                 "ssl": false,
                 "sslselfsign": false,
+                "sendConnectionMessages": false,
 
                 "botConfig": {
                     "enabled": true,
