@@ -58,7 +58,7 @@ describe("Dynamic channels", function() {
         });
 
         // when we get the create room request, process it.
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.room_alias_name).toEqual(tAliasLocalpart);
             return Promise.resolve({
@@ -104,7 +104,7 @@ describe("Dynamic channels", function() {
         });
 
         // when we get the create room request, process it.
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.creation_content).toEqual({"m.federate": true});
             return Promise.resolve({
@@ -145,7 +145,7 @@ describe("Dynamic channels", function() {
         });
 
         // when we get the create room request, process it.
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.room_alias_name).toEqual(tAliasLocalpart);
             return Promise.resolve({
@@ -223,7 +223,7 @@ describe("Dynamic channels (federation disabled)", function() {
         });
 
         // when we get the create room request, process it.
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.creation_content).toEqual({"m.federate": false});
             return Promise.resolve({
@@ -292,7 +292,7 @@ describe("Dynamic channels (disabled)", function() {
         });
 
         // when we get the create room request, process it.
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.andCallFake(function(opts) {
             return Promise.resolve({
                 room_id: tRoomId

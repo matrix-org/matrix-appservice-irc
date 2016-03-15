@@ -170,7 +170,7 @@ describe("Mirroring", function() {
             id: "@" + roomMapping.server + "_bob:" + config.homeserver.domain
         };
         beforeEach(function() {
-            sdk = env.clientMock._client();
+            sdk = env.clientMock._client(ircUser.id);
             // add registration mock impl:
             // registering should be for the irc user
             sdk._onHttpRegister({

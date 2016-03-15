@@ -15,9 +15,7 @@ var roomMapping = {
 };
 
 describe("Invite-only rooms", function() {
-    var botUserId = (
-        "@" + config._registration.sender_localpart + ":" + config.homeserver.domain
-    );
+    var botUserId = config._botUserId;
     var testUser = {
         id: "@flibble:wibble",
         nick: "flibble"
@@ -43,7 +41,7 @@ describe("Invite-only rooms", function() {
 
     it("should be joined by the bot if the AS does know the room ID",
     function(done) {
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(botUserId);
         var joinedRoom = false;
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
@@ -80,7 +78,7 @@ describe("Invite-only rooms", function() {
             });
         });
 
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(testIrcUser.id);
         // if it tries to register, accept.
         sdk._onHttpRegister({
             expectLocalpart: testIrcUser.localpart,

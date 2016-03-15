@@ -13,9 +13,7 @@ var roomMapping = {
     channel: config._chan,
     roomId: config._roomid
 };
-var botUserId = (
-    "@" + config._registration.sender_localpart + ":" + config.homeserver.domain
-);
+var botUserId = config._botUserId;
 
 describe("Creating admin rooms", function() {
 
@@ -37,7 +35,7 @@ describe("Creating admin rooms", function() {
     it("should be possible by sending an invite to the bot's user ID",
     function(done) {
         var botJoinedRoom = false;
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(botUserId);
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual("!adminroomid:here");
             botJoinedRoom = true;
@@ -60,8 +58,6 @@ describe("Creating admin rooms", function() {
 });
 
 describe("Admin rooms", function() {
-    var sdk = null;
-
     var adminRoomId = "!adminroomid:here";
     var userId = "@someone:somewhere";
     var userIdNick = "M-someone";
@@ -94,7 +90,7 @@ describe("Admin rooms", function() {
         );
 
         // auto-join an admin room
-        sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(userId);
         sdk.joinRoom.andCallFake(function(roomId) {
             expect([adminRoomId, roomMapping.roomId]).toContain(roomId);
             return Promise.resolve({});
@@ -130,6 +126,7 @@ describe("Admin rooms", function() {
     it("should respond to bad !nick commands with a help notice",
     function(done) {
         var sentNotice = false;
+        var sdk = env.clientMock._client(botUserId);
         sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
@@ -154,6 +151,7 @@ describe("Admin rooms", function() {
     it("should respond to bad !join commands with a help notice",
     function(done) {
         var sentNotice = false;
+        var sdk = env.clientMock._client(botUserId);
         sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
@@ -220,6 +218,7 @@ describe("Admin rooms", function() {
         // make sure the AS sends an ACK of the request as a notice in the admin
         // room
         var sentAckNotice = false;
+        var sdk = env.clientMock._client(botUserId);
         sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
@@ -273,6 +272,7 @@ describe("Admin rooms", function() {
 
         // make sure the AS creates a new PRIVATE matrix room.
         var createdMatrixRoom = false;
+        var sdk = env.clientMock._client(botUserId);
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.visibility).toEqual("private");
             expect(opts.invite).toEqual([userId]);

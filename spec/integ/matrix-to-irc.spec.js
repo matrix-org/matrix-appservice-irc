@@ -212,7 +212,7 @@ describe("Matrix-to-IRC message bridging", function() {
         var tBody = "the_image.jpg";
         var tMxcSegment = "somedomain.com/somecontentid";
         var tHttpUri = "http://" + tMxcSegment;
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk.mxcUrlToHttp.andReturn(tHttpUri);
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
@@ -243,7 +243,7 @@ describe("Matrix-to-IRC message bridging", function() {
         var tBody = "a_file.apk";
         var tMxcSegment = "somedomain.com/somecontentid";
         var tHttpUri = "http://" + tMxcSegment;
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk.mxcUrlToHttp.andReturn(tHttpUri);
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",

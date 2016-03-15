@@ -11,6 +11,7 @@
     "_chan": "#coffee",
     "_roomid": "!foo:bar",
     "_botnick": "ro_bot_nick",
+    "_botUserId": "@monkeybot:some.home.server",
 
 
     "homeserver": {

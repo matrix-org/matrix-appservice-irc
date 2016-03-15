@@ -35,7 +35,7 @@ describe("Homeserver user queries", function() {
 
     it("should always create a new Matrix user for the specified ID",
     function(done) {
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
 
         var askedWhois = false; // eslint-disable-line no-unused-vars
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
@@ -87,7 +87,7 @@ describe("Homeserver alias queries", function() {
 
     it("should make the AS start tracking the channel specified in the alias.",
     function(done) {
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.room_alias_name).toEqual(testLocalpart);
             expect(opts.visibility).toEqual("public");

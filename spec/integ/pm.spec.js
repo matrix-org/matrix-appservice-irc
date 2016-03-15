@@ -73,7 +73,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it tries to register, join the room and get state, accept them
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(tIrcUserId);
         sdk._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId,
@@ -145,7 +145,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it tries to register, join the room and get state, accept them
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(tIrcUserId);
         sdk._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId,
@@ -222,7 +222,7 @@ describe("IRC-to-Matrix PMing", function() {
 
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
-        sdk = env.clientMock._client();
+        sdk = env.clientMock._client(tVirtualUserId);
 
         // add registration mock impl:
         // registering should be for the REAL irc user

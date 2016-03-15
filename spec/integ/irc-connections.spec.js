@@ -72,7 +72,7 @@ describe("IRC connections", function() {
         });
 
         // mock a response for the state event.
-        env.clientMock._client().getStateEvent.andCallFake(function() {
+        env.clientMock._client(config._botUserId).getStateEvent.andCallFake(function() {
             return Promise.resolve({
                 displayname: displayName
             });
@@ -110,7 +110,7 @@ describe("IRC connections", function() {
         var assignedNick = "monkeys";
 
         // catch attempts to send messages and fail coherently
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk._onHttpRegister({
             expectLocalpart: roomMapping.server + "_" + testUser.nick,
             returnUserId: testUser.id
@@ -248,7 +248,7 @@ describe("IRC connections", function() {
         });
 
         // catch attempts to send messages and fail coherently
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk._onHttpRegister({
             expectLocalpart: roomMapping.server + "_" + users[0].assignedNick,
             returnUserId: users[0].id
@@ -343,7 +343,7 @@ describe("IRC connections", function() {
         });
 
         // mock a response for the state event.
-        env.clientMock._client().getStateEvent.andCallFake(function() {
+        env.clientMock._client(config._botUserId).getStateEvent.andCallFake(function() {
             return Promise.resolve({});
         });
 
@@ -407,7 +407,7 @@ describe("IRC connections", function() {
         });
 
         // mock a response for the state event.
-        env.clientMock._client().getStateEvent.andCallFake(function() {
+        env.clientMock._client(config._botUserId).getStateEvent.andCallFake(function() {
             return Promise.resolve({});
         });
 

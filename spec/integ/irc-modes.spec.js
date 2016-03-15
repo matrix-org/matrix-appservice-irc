@@ -31,7 +31,7 @@ describe("IRC-to-Matrix mode bridging", function() {
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
-        sdk = env.clientMock._client();
+        sdk = env.clientMock._client(config._botUserId);
         // add registration mock impl:
         // registering should be for the irc user
         sdk._onHttpRegister({

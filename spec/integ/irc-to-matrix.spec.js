@@ -35,7 +35,7 @@ describe("IRC-to-Matrix message bridging", function() {
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
-        sdk = env.clientMock._client();
+        sdk = env.clientMock._client(tUserId);
         // add registration mock impl:
         // registering should be for the irc user
         sdk._onHttpRegister({
