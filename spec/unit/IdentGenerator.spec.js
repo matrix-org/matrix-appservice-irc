@@ -7,7 +7,7 @@ describe("Username generation", function() {
     var identGenerator;
     var storeMock = {};
     var existingUsernames = {};
-    var ircUser;
+    var ircClientConfig;
 
     var mkMatrixUser = function(uid) {
         return {
@@ -19,17 +19,16 @@ describe("Username generation", function() {
     beforeEach(function() {
         test.log(this); // eslint-disable-line no-invalid-this
         existingUsernames = {};
-        ircUser = {
-            nick: "MyCrazyNick",
-            server: {
-                domain: "somedomain.com"
-            },
-            getUsername: function() {
-                return this._uname;
+        var _uname;
+        ircClientConfig = {
+            getDesiredNick: () => { return "MyCrazyNick"; },
+            getDomain: () => { return "somedomain.com"; },
+            getUsername: () => {
+                return _uname;
             },
             getUserId: function() {},
             setUsername: function(u) {
-                this._uname = u;
+                _uname = u;
             }
         };
         storeMock.getMatrixUserByUsername = function(domain, uname) {
@@ -55,7 +54,7 @@ describe("Username generation", function() {
     it("should attempt a truncated user ID on a long user ID", function(done) {
         var userId = "@myreallylonguseridhere:localhost";
         var uname = "myreally";
-        identGenerator.getIrcNames(ircUser, mkMatrixUser(userId)).done(function(info) {
+        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
             expect(info.username).toEqual(uname);
             done();
         });
@@ -65,7 +64,7 @@ describe("Username generation", function() {
         var userId = "@myreallylonguseridhere:localhost";
         var uname = "myreal_1";
         existingUsernames.myreally = "@someone:else";
-        identGenerator.getIrcNames(ircUser, mkMatrixUser(userId)).done(function(info) {
+        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
             expect(info.username).toEqual(uname);
             done();
         });
@@ -78,7 +77,7 @@ describe("Username generation", function() {
         for (var i = 1; i < 10; i++) {
             existingUsernames["myreal_" + i] = "@someone:else";
         }
-        identGenerator.getIrcNames(ircUser, mkMatrixUser(userId)).done(function(info) {
+        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
             expect(info.username).toEqual(uname);
             done();
         });
@@ -91,7 +90,7 @@ describe("Username generation", function() {
             myreally: "@someone:else",
             myreal_1: "@someone:else"
         };
-        identGenerator.getIrcNames(ircUser, mkMatrixUser(userId)).done(function(info) {
+        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
             expect(info.username).toEqual(uname);
             done();
         });
@@ -103,7 +102,7 @@ describe("Username generation", function() {
             return Promise.resolve({getId: function() { return "@someone:else"} });
         };
         var userId = "@myreallylonguseridhere:localhost";
-        identGenerator.getIrcNames(ircUser, mkMatrixUser(userId)).done(function(info) {
+        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
             expect(true).toBe(false, "Promise was unexpectedly resolved.");
             done();
         }, function(err) {
