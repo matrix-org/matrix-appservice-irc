@@ -1,6 +1,5 @@
 "use strict";
 var Promise = require("bluebird");
-var test = require("../util/test");
 var Queue = require("../../lib/util/Queue.js");
 
 describe("Queue", function() {
