@@ -220,4 +220,11 @@ properties:
                                     minimum: 0
                                 allowNickChanges:
                                     type: "boolean"
+                                ipv6:
+                                    type: "object"
+                                    required: ["prefix"]
+                                    properties:
+                                        prefix:
+                                            type: "string"
+                                            pattern: "[ABCDEFabcdef0123456789:]+"
         required: ["databaseUri", "servers"]

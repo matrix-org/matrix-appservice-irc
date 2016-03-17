@@ -192,13 +192,19 @@ ircService:
         # disconnected and replaced.
         # Optional. Default: 30.
         maxClients: 30
+        #
+        # [!]EXPERIMENTAL. THIS MAY NOT WORK.
+        # Optional. The IPv6 prefix to use for generating unique addresses for each
+        # connected user. If not specified, all users will connect from the same
+        # (default) address.
+        # ipv6:
+        #   prefix: "2001:0db8:85a3::"  # modify appropriately
+        #
         # The maximum amount of time in seconds that the client can exist
         # without sending another message before being disconnected. Use 0 to
         # not apply an idle timeout. This value is ignored if this IRC server is
         # mirroring matrix membership lists to IRC. Default: 172800 (48 hours)
         idleTimeout: 10800
-        # DEPRECATED: Use membershipLists.global.matrixToIrc.incremental: true
-        # mirrorJoinPart: true
   
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users
