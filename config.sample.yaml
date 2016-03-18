@@ -1,24 +1,11 @@
 # Configuration specific to AS registration. Unless other marked, all fields
 # are *REQUIRED*.
-appService:
-  homeserver:
-    # The URL to the home server for client-server API calls.
-    url: "http://localhost:8008"
-    # The 'domain' part for user IDs on this home server. Usually (but not always)
-    # is the "domain name" part of the HS URL.
-    domain: "localhost"
-  appservice:
-    # The application service token to use. Please use a secure random token! You
-    # can generate a secure random token by typing into the terminal:
-    # node -e "console.log(require('crypto').randomBytes(20).toString('hex'));"
-    token: "f0c03ebff14c223b57a3afdffe42ffd9c5875e9b"
-    # The webhook URL for the home server to hit on new events.
-    url: "http://localhost:3500"
-  http:
-    # The port to listen on.
-    port: 3500
-  # Optional. The desired user ID localpart for the AS bot.
-  localpart: "appservice_irc"
+homeserver:
+  # The URL to the home server for client-server API calls.
+  url: "http://localhost:8008"
+  # The 'domain' part for user IDs on this home server. Usually (but not always)
+  # is the "domain name" part of the HS URL.
+  domain: "localhost"
 
 # Configuration specific to the IRC service
 ircService:
@@ -31,8 +18,10 @@ ircService:
       ssl: true
       # Whether or not IRC server is using a self-signed cert or not providing CA Chain
       sslselfsign: false
+      #
       # The connection password to send for all clients as a PASS command. Optional.
-      password: 'pa$$w0rd'
+      # password: 'pa$$w0rd'
+      #
       # Whether or not to send connection/error notices to real Matrix users. Default: true.
       sendConnectionMessages: true
 
@@ -53,9 +42,10 @@ ircService:
         #     join the target IRC channel.
         enabled: true
         # The nickname to give the AS bot.
-        nick: "appservicebot"
+        nick: "MatrixBot"
         # The password to give to NickServ or IRC Server for this nick. Optional.
-        password: "helloworld"
+        # password: "helloworld"
+        #
         # Join channels even if there are no Matrix users on the other side of
         # the bridge. Set to false to prevent the bot from joining channels which have no
         # real matrix users in them, even if there is a mapping for the channel.
@@ -69,7 +59,7 @@ ircService:
         enabled: true
         # Prevent Matrix users from sending PMs to the following IRC nicks.
         # Optional. Default: [].
-        exclude: ["Alice", "Bob"] # NOT YET IMPLEMENTED
+        # exclude: ["Alice", "Bob"] # NOT YET IMPLEMENTED
 
       # Configuration for mappings not explicitly listed in the 'mappings' 
       # section.
@@ -103,12 +93,13 @@ ircService:
         aliasTemplate: "#irc_$CHANNEL"
         # A list of user IDs which the AS bot will send invites to in response
         # to a !join. Only applies if joinRule is 'invite'. Default: []
-        whitelist:
-          - "@foo:example.com"
-          - "@bar:example.com"
+        # whitelist:
+        #   - "@foo:example.com"
+        #   - "@bar:example.com"
+        #
         # Prevent the given list of channels from being mapped under any 
         # circumstances.
-        exclude: ["#foo", "#bar"]
+        # exclude: ["#foo", "#bar"]
 
       # Configuration for controlling how Matrix and IRC membership lists are
       # synced.
@@ -182,7 +173,7 @@ ircService:
         # The template to apply to every IRC client nick. This MUST have either
         # $DISPLAY or $USERID or $LOCALPART somewhere in it.
         # Optional. Default: "M-$DISPLAY". Example: "M-Alice".
-        nickTemplate: "M-$DISPLAY"
+        nickTemplate: "$DISPLAY[m]"
         # True to allow virtual IRC clients to change their nick on this server
         # by issuing !nick <server> <nick> commands to the IRC AS bot.
         # This is completely freeform: it will NOT follow the nickTemplate.
@@ -242,10 +233,10 @@ ircService:
 
   # Optional. The endpoint for a statsd server. If not specified, stats will not
   # be sent. Stats are sent as UDP.
-  statsd:
-    hostname: "127.0.0.1"
-    port: 9878
-    jobName: "instance_name"
+  # statsd:
+  #   hostname: "127.0.0.1"
+  #   port: 9878
+  #   jobName: "irc_bridge"
 
   # The nedb database URI to connect to. This is the name of the directory to
   # dump .db files to. This is relative to the project directory.

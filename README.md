@@ -2,40 +2,74 @@ Matrix IRC Application Service
 ------------------------------
 [![Build Status](http://matrix.org/jenkins/buildStatus/icon?job=IRC-AS)](http://matrix.org/jenkins/job/IRC-AS/)
 
-This is a Node.js IRC bridge for Matrix, using the Application Services (AS) API. This requires **Synapse 0.9** or above as this AS uses the new registration format. This also requires **at least Node v4** or above.
+This is a Node.js IRC bridge for Matrix, using the Application Services (AS) API.
 
-```
- $ npm install matrix-appservice-irc
-```
+# Setup
+There are 4 stages to setting up the IRC bridge which are outlined below.
 
-What does it do?
-----------------
-This bridges IRC channels into Matrix, allowing IRC users to communicate with
-Matrix users and vice versa. The application service creates 'virtual' IRC clients for real Matrix
-users. It also creates 'virtual' Matrix users for real IRC clients. It currently has support for:
- - Bridging specific (specified in the config) IRC channels and specific Matrix rooms.
- - Bridging of private conversations, which can be initiated both from IRC (as PMs) and from 
-   Matrix (as invites to virtual Matrix users).
- - Dynamically bridging *any IRC channels on a network*
-
-Quick Start
------------
 For more information, check out the [how-to guide](HOWTO.md).
-- ``git clone`` this repository.
-- Run ``npm install``.
-- Optional: Run the tests by running ``npm test``.
-- Copy ``config.sample.yaml`` to ``config.yaml`` and configure it for your IRC server / home server.
-- Generate the registration YAML using ``node app.js --generate-registration``. The output needs to be
-  listed in the ``homeserver.yaml`` config file:
 
-  ```
-  app_service_config_files: ["appservice-registration-irc.yaml"]
-  ```
-  
-- Run the app service using ``node app.js``.
+## 1. Installation
+To install all dependencies and add a binary `matrix-appservice-irc`:
+```
+ $ npm install matrix-appservice-irc --global
+```
 
-Usage
------
+Alternatively, `git clone` this repository on the `master` branch, then run `npm install`. If
+you use this method, the bridge can be run via `node app.js`.
+
+
+### Requirements
+ - Node.js v4 or above.
+ - A Matrix homeserver you control running Synapse 0.9 or above.
+
+## 2. Configuration
+The bridge must be configured before it can be run. This tells the bridge where to find the homeserver
+and how to bridge IRC channels/users.
+
+ - Copy `config.sample.yaml` to `config.yaml`.
+ - Modify `config.yaml` to point to your homeserver and IRC network of choice.
+
+For more information, check out the [how-to guide](HOWTO.md).
+
+## 3. Registration
+The bridge needs to generate a registration file which can be passed to the homeserver to tell the
+homeserver which Matrix events the bridge should receive. Execute the following command:
+
+```
+$ node app.js -r -f my_registration_file.yaml -u "http://where.the.appservice.listens:9999" -c config.yaml -l my_bot
+
+Loading config file /home/github/matrix-appservice-irc/config.yaml
+Output registration to: /home/github/matrix-appservice-irc/my_registration_file.yaml
+```
+
+*More information on the CLI args can be found by running* `$ node app.js --help`
+
+This will create a registration YAML file. Edit your **homeserver** config file (e.g. `homeserver.yaml`) to
+point to this registration file:
+
+```yaml
+# homeserver.yaml
+app_service_config_files: ["my_registration_file.yaml"]
+```
+
+## 4. Running
+Finally, the bridge can be run using the following command:
+
+```
+$ node app.js -c config.yaml -f my_registration_file.yaml -p 9999 
+```
+
+
+# What does it do?
+On startup, the bridge will join IRC clients to the channels specified in the configuration file. It
+will then listen for incoming IRC messages and forward them through to Matrix rooms. Each real Matrix
+user is represented by an IRC client, and each real IRC client is represented by a Matrix user. Full
+two-way communication in channels and PMs are supported, along with a huge array of customisation options.
+
+For more information on how you can customise the bridge, check out the [how-to guide](HOWTO.md).
+
+# Usage
 To join a channel on an IRC network configured for public use:
  - Join a room with the alias ``#<alias_prefix><channel_name>:<homeserver_hosting_the_appservice>`` e.g. ``#irc_#python:example.com``. The template for this can be configured at `config.yaml:ircService.servers.<servername>.dynamicChannels.aliasTemplate`.
 
@@ -47,11 +81,9 @@ To send a PM to someone on an IRC network:
  - Start a conversation with a user ID ``@<user_prefix><nick>:<homeserver_hosting_the_appservice>`` e.g.
    ``@irc_Alice:example.com``. The template for this can be configured at `config.yaml:ircService.servers.<servername>.matrixClients.userTemplate`.
 
-Configuration
--------------
+# Configuration
 See [the sample config file](config.sample.yaml) for an explanation of the
 configuration options available.
 
-Contributing
-------------
+# Contributing
 Please see the [HOW TO](HOWTO.md#contributing) for information on contributing.
