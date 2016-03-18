@@ -1,9 +1,12 @@
 {
   "name": "matrix-appservice-irc",
   "version": "0.1.1",
-  "description": "IRC Bridge for matrix-appservice",
+  "description": "An IRC Bridge for Matrix",
   "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",
+  "engines": {
+    "node": ">=4.0"
+  },
   "scripts": {
     "test": "BLUEBIRD_DEBUG=1 jasmine-node spec --verbose --forceexit --captureExceptions",
     "lint": "eslint lib spec",
@@ -29,8 +32,7 @@
     "irc": "matrix-org/node-irc",
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
-    "matrix-appservice": "^0.2.3",
-    "matrix-appservice-bridge": "matrix-org/matrix-appservice-bridge#develop",
+    "matrix-appservice-bridge": "^0.3.2",
     "matrix-js-sdk": "0.3.0",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
