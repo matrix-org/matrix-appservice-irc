@@ -8,6 +8,9 @@ var nopt = require("nopt");
 var path = require("path");
 var fs = require("fs");
 
+const ROOM_DB = "0.2-db/rooms.db";
+const USER_DB = "0.2-db/users.db"
+
 var opts = nopt({
     "help": Boolean,
     rooms: path,
@@ -69,7 +72,7 @@ var upgradeUsers = Promise.coroutine(function*(usersDb, clientDb) {
     //                   localpart: <localpart>
     //                 }
     var newUserStore = new Datastore({
-        filename: "0.2-db/users.db",
+        filename: USER_DB,
         autoload: true
     });
     var insertions = Object.keys(userMap).map((userId) => {
@@ -114,19 +117,59 @@ var upgradeRooms = Promise.coroutine(function*(db) {
     // type=matrix, id=<room_id> data={extras:{admin_id:<user_id>}}
     //
     // PM
+    // type=matrix, id=<room_id>  data={extras:{}}
     // type=remote, id=<domain_@_nick> data={domain,channel,type(pm)}
     // type=union, link_key="PM real_user_id virt_user_id", remote_id, matrix_id,
     //                                                      data={real_user_id, virtual_user_id}
     var newRoomStore = new Datastore({
-        filename: "0.2-db/rooms.db",
+        filename: ROOM_DB,
         autoload: true
     });
     var insertions = [];
     rooms.forEach((room) => {
         switch (room.type) {
             case "pm":
+                var remote_id = room.irc_addr + "_@_" + room.irc_chan;
+                insertions.push({
+                    type: "matrix", id: room.room_id, data: {
+                        extras: {}
+                    }
+                });
+                insertions.push({
+                    type: "remote", id: remote_id, data: {
+                        domain: room.irc_addr,
+                        channel: room.irc_chan,
+                        type: "pm"
+                    }
+                });
+                insertions.push({
+                    type: "union", link_key: "PM " + room.real_user_id + " " + room.virtual_user_id,
+                    remote_id: remote_id, matrix_id: room.room_id, data: {
+                        real_user_id: room.real_user_id,
+                        virtual_user_id: room.virtual_user_id,
+                    }
+                });
                 break;
             case "channel":
+                var remote_id = room.irc_addr + "_@_" + room.irc_chan;
+                insertions.push({
+                    type: "matrix", id: room.room_id, data: {
+                        extras: {}
+                    }
+                });
+                insertions.push({
+                    type: "remote", id: remote_id, data: {
+                        domain: room.irc_addr,
+                        channel: room.irc_chan,
+                        type: "channel"
+                    }
+                }); // type=union, link_key=<room_id remote_id>, remote_id, matrix_id, data:{from_config}
+                insertions.push({
+                    type: "union", link_key: room.room_id + " " + remote_id,
+                    remote_id: remote_id, matrix_id: room.room_id, data: {
+                        from_config: room.from_config
+                    }
+                });
                 break;
             case "admin":
                 insertions.push({
@@ -150,6 +193,8 @@ Promise.coroutine(function*() {
     }
     catch (err) {
         if (err.code !== "EEXIST") { throw err; }
+        try { fs.unlinkSync(ROOM_DB); } catch (e) {}
+        try { fs.unlinkSync(USER_DB); } catch (e) {}
     }
     var userStore = new Datastore({
         filename: opts.users,
