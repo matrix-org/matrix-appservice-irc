@@ -71,12 +71,12 @@ describe("Matrix-to-IRC message bridging", function() {
 
     it("should bridge formatted matrix messages as formatted IRC text",
     function(done) {
-        var tFormattedBody = "I support <strong>strong bold</strong> and <b>" +
+        var tFormattedBody = "I support <em>em</em>, <strong>strong bold</strong> and <b>" +
         'normal bold</b> and <b>bold <u>and underline</u><font color="green"> ' +
         "including green</font></b>";
-        var tFallback = "I support strong bold and normal bold and " +
+        var tFallback = "I support em, strong bold and normal bold and " +
         "bold and underline including green";
-        var tIrcBody = "I support \u0002strong bold\u000f and \u0002normal bold" +
+        var tIrcBody = "I support \u001dem\u000f, \u0002strong bold\u000f and \u0002normal bold" +
         "\u000f and \u0002bold \u001fand underline\u000f\u0002\u000303 including" +
         " green\u000f\u0002\u000f"; // last 2 codes not necessary!
 
