@@ -182,7 +182,7 @@ describe("Admin rooms", function() {
             user_id: botUserId,
             room_id: adminRoomId,
             type: "m.room.message"
-        }).catch(function(e) {
+        }).done(function(e) {
             done();
         });
     });
