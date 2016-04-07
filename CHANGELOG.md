@@ -1,3 +1,37 @@
+Changes in 0.2.0
+================
+This update implements full `matrix-appservice-bridge` support in the IRC bridge and adds a number of smaller features.
+
+**BREAKING CHANGES:**
+ - The structure of the NEDB databases has changed. You must run the [the upgrade script](https://github.com/matrix-org/matrix-appservice-irc/blob/develop/scripts/upgrade-db-0.1-to-0.2.js) in order to continue running the bridge.
+ - The CLI args have changed in this version to bring them in-line with [the bridge library](https://github.com/matrix-org/matrix-appservice-bridge):
+    * To generate a registration file:
+
+        ```
+        node app.js -r [-f /path/to/save/registration.yaml] -u 'http://localhost:6789/appservice' -c CONFIG_FILE [-l my-app-service]
+        ```
+    * To run the bridge:
+    
+      ```
+      node -c CONFIG_FILE [-f /path/to/load/registration.yaml] [-p NUMBER]
+      ```
+
+
+
+Features:
+ - Nicks set via `!nick` will now be preserved across bridge restarts.
+ - EXPERIMENTAL: IRC clients created by the bridge can be assigned their own IPv6 address.
+ - The bridge will now send connection status information to real Matrix users via the admin room (the same room `!nick` commands are issued).
+ - Added `!help`.
+ - The bridge will now fallback to `body` if the HTML content contains *any* unrecognised tags.
+
+Bug fixes:
+ - Escape HTML entities when sending from IRC to Matrix. This prevents munging occurring between IRC formatting and textual < element > references, whereby if you sent a tag and some colour codes from IRC it would not escape the tag and therefore send invalid HTML to Matrix.
+ - User IDs starting with `-` are temporarily filtered out from being bridged.
+ - Deterministically generate the configuration file.
+ - Recognise more IRC error codes as non-fatal to avoid IRC clients reconnecting unecessarily.
+ - Add a timeout to join events injected via the `MemberListSyncer` to avoid HOL blocking.
+
 Changes in 0.1.1
 ================
 **Requires Node v4+**
