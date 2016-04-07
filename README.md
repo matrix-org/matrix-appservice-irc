@@ -2,7 +2,7 @@ Matrix IRC Application Service
 ------------------------------
 [![Build Status](http://matrix.org/jenkins/buildStatus/icon?job=IRC-AS)](http://matrix.org/jenkins/job/IRC-AS/)
 
-This is a Node.js IRC bridge for Matrix, using the Application Services (AS) API.
+This is a Node.js IRC bridge for Matrix, using the Application Services (AS) API. If you're upgrading from an old release, be sure to read the [CHANGELOG](CHANGELOG.md) as there may be breaking changes between releases.
 
 # Setup
 There are 4 stages to setting up the IRC bridge which are outlined below.
