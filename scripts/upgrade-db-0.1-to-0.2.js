@@ -109,8 +109,8 @@ var upgradeRooms = Promise.coroutine(function*(db) {
 
     // 0.2 rooms.db =>
     // CHANNELS
-    // type=matrix, id=<room_id>  data={extras:{}}
-    // type=remote, id=<domain_@_chan> data={domain,channel,type(channel)}
+    // type=matrix, id=<room_id>  data={extras:{}}  -- UNIQUE(id)
+    // type=remote, id=<domain_@_chan> data={domain,channel,type(channel)}  -- UNIQUE(id)
     // type=union, link_key=<room_id remote_id>, remote_id, matrix_id, data:{from_config}
     //
     // ADMIN
@@ -126,22 +126,30 @@ var upgradeRooms = Promise.coroutine(function*(db) {
         autoload: true
     });
     var insertions = [];
+    var matrixRoomsAdded = new Set();
+    var remoteRoomsAdded = new Set();
     rooms.forEach((room) => {
         switch (room.type) {
             case "pm":
                 var remote_id = room.irc_addr + "_@_" + room.irc_chan;
-                insertions.push({
-                    type: "matrix", id: room.room_id, data: {
-                        extras: {}
-                    }
-                });
-                insertions.push({
-                    type: "remote", id: remote_id, data: {
-                        domain: room.irc_addr,
-                        channel: room.irc_chan,
-                        type: "pm"
-                    }
-                });
+                if (!matrixRoomsAdded.has(room.room_id)) {
+                    matrixRoomsAdded.add(room.room_id);
+                    insertions.push({
+                        type: "matrix", id: room.room_id, data: {
+                            extras: {}
+                        }
+                    });
+                }
+                if (!remoteRoomsAdded.has(remote_id)) {
+                    remoteRoomsAdded.add(remote_id);
+                    insertions.push({
+                        type: "remote", id: remote_id, data: {
+                            domain: room.irc_addr,
+                            channel: room.irc_chan,
+                            type: "pm"
+                        }
+                    });
+                }
                 insertions.push({
                     type: "union", link_key: "PM " + room.real_user_id + " " + room.virtual_user_id,
                     remote_id: remote_id, matrix_id: room.room_id, data: {
@@ -152,18 +160,25 @@ var upgradeRooms = Promise.coroutine(function*(db) {
                 break;
             case "channel":
                 var remote_id = room.irc_addr + "_@_" + room.irc_chan;
-                insertions.push({
-                    type: "matrix", id: room.room_id, data: {
-                        extras: {}
-                    }
-                });
-                insertions.push({
-                    type: "remote", id: remote_id, data: {
-                        domain: room.irc_addr,
-                        channel: room.irc_chan,
-                        type: "channel"
-                    }
-                }); // type=union, link_key=<room_id remote_id>, remote_id, matrix_id, data:{from_config}
+                if (!matrixRoomsAdded.has(room.room_id)) {
+                    matrixRoomsAdded.add(room.room_id);
+                    insertions.push({
+                        type: "matrix", id: room.room_id, data: {
+                            extras: {}
+                        }
+                    });
+                }
+                if (!remoteRoomsAdded.has(remote_id)) {
+                    remoteRoomsAdded.add(remote_id);
+                    insertions.push({
+                        type: "remote", id: remote_id, data: {
+                            domain: room.irc_addr,
+                            channel: room.irc_chan,
+                            type: "channel"
+                        }
+                    });
+                }
+                // type=union, link_key=<room_id remote_id>, remote_id, matrix_id, data:{from_config}
                 insertions.push({
                     type: "union", link_key: room.room_id + " " + remote_id,
                     remote_id: remote_id, matrix_id: room.room_id, data: {
@@ -172,13 +187,16 @@ var upgradeRooms = Promise.coroutine(function*(db) {
                 });
                 break;
             case "admin":
-                insertions.push({
-                    type: "matrix", id: room.room_id, data: {
-                        extras: {
-                            admin_id: room.user_id
+                if (!matrixRoomsAdded.has(room.room_id)) {
+                    matrixRoomsAdded.add(room.room_id);
+                    insertions.push({
+                        type: "matrix", id: room.room_id, data: {
+                            extras: {
+                                admin_id: room.user_id
+                            }
                         }
-                    }
-                });
+                    });
+                }
                 break;
             default:
                 throw new Error("Unknown room type " + room.type);
