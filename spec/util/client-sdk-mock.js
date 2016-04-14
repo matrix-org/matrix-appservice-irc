@@ -8,6 +8,7 @@ var mockClients = {
 };
 
 function MockClient(config) {
+    var self = this;
     this.credentials = {
         userId: config.userId
     };
@@ -44,8 +45,16 @@ function MockClient(config) {
         return Promise.resolve({});
     });
 
+    // TEMPORARY: FIXME TODO XXX Shim authedRequestWithPrefix calls to /register to register()
+    this._http.authedRequestWithPrefix = jasmine.createSpy("authedRequestWithPrefix");
+    this._http.authedRequestWithPrefix.andCallFake(function(a, method, path, d, data) {
+        if (method === "POST" && path === "/register") {
+            return self.register(data.user);
+        }
+    });
+
+
     // Helper to succeed sdk registration calls.
-    var self = this;
     this._onHttpRegister = function(params) {
         self.register.andCallFake(function(username, password) {
             expect(username).toEqual(params.expectLocalpart);
