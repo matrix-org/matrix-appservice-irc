@@ -222,3 +222,51 @@ describe("IRC-to-Matrix message bridging", function() {
         });
     });
 });
+
+describe("IRC-to-Matrix name bridging", function() {
+    var sdk;
+    var tFromNick = "mike";
+    var tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
+                  config.homeserver.domain;
+
+    beforeEach(function(done) {
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+
+        config.ircService.servers[roomMapping.server].matrixClients.displayName = "Test $NICK and $SERVER";
+
+        sdk = env.clientMock._client(tUserId);
+
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+
+        test.initEnv(env).done(function() {
+            done();
+        });
+    });
+
+    it("should set the matrix display name from the config file template", function(done) {
+        // don't care about registration / sending the event
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+            return Promise.resolve();
+        });
+        sdk.register.andCallFake(function(username, password) {
+            return Promise.resolve({
+                user_id: tUserId
+            });
+        });
+
+        sdk.setDisplayName.andCallFake(function(name) {
+            expect(name).toEqual("Test mike and " + roomMapping.server);
+            done();
+        });
+
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        function(client) {
+            client.emit("message", tFromNick, roomMapping.channel, "ping");
+        });
+    });
+});
