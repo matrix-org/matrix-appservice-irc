@@ -232,7 +232,9 @@ describe("IRC-to-Matrix name bridging", function() {
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
-        config.ircService.servers[roomMapping.server].matrixClients.displayName = "Test $NICK and $SERVER";
+        config.ircService.servers[roomMapping.server].matrixClients.displayName = (
+            "Test $NICK and $SERVER"
+        );
 
         sdk = env.clientMock._client(tUserId);
 

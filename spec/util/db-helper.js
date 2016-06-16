@@ -4,8 +4,6 @@
 "use strict";
 var Promise = require("bluebird");
 var fs = require("fs");
-var promiseutil = require("../../lib/promiseutil");
-var Datastore = require("nedb");
 
 /**
  * Reset the database, wiping all data.
@@ -35,7 +33,6 @@ module.exports._reset = function(databaseUri) {
                     resolve();
                 }
             });
-            
         });
     }
 
