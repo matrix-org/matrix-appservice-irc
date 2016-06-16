@@ -3,6 +3,7 @@
  */
 "use strict";
 var Promise = require("bluebird");
+var fs = require("fs");
 var promiseutil = require("../../lib/promiseutil");
 var Datastore = require("nedb");
 
@@ -18,23 +19,24 @@ module.exports._reset = function(databaseUri) {
     var baseDbName = databaseUri.substring("nedb://".length);
 
     function delDatabase(name) {
-        var d = promiseutil.defer();
-        var db = new Datastore({
-            filename: baseDbName + name,
-            autoload: true,
-            onload: function() {
-                db.remove({}, {multi: true}, function(err, docs) {
-                    if (err) {
-                        console.error("db-helper %s Failed to delete: %s", name, err);
-                        console.error(err.stack);
-                        d.reject(err);
-                        return;
+        var dbPath = baseDbName + name;
+        return new Promise(function(resolve, reject) {
+            // nuke the world
+            fs.unlink(dbPath, function(err) {
+                if (err) {
+                    if (err.code == "ENOENT") { // already deleted
+                        resolve();
                     }
-                    d.resolve(docs);
-                });
-            }
+                    else {
+                        reject(err);
+                    }
+                }
+                else {
+                    resolve();
+                }
+            });
+            
         });
-        return d.promise;
     }
 
     return Promise.all([
