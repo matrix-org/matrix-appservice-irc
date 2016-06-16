@@ -156,12 +156,11 @@ ircService:
         # Optional. Default: "@$SERVER_$NICK".
         # Example: "@irc.example.com_Alice:example.com"
         userTemplate: "@irc_$NICK"
-        # The display name to use for created matrix clients. This MUST have
-        # $NICK somewhere in it if it is specified.
+        # The display name to use for created matrix clients. This should have
+        # $NICK somewhere in it if it is specified. Can also use $SERVER to
+        # insert the IRC domain.
         # Optional. Default: "$NICK (IRC)". Example: "Alice (IRC)"
-        displayName: "$NICK (IRC)" # NOT YET IMPLEMENTED
-        # DEPRECATED: Use membershipLists.global.ircToMatrix.incremental: true
-        # mirrorJoinPart: true
+        displayName: "$NICK (IRC)"
 
       # Configuration for virtual IRC users. The following variables are exposed:
       # $LOCALPART => The user ID localpart ("alice" in @alice:localhost)
