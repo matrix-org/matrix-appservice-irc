@@ -9,18 +9,16 @@ var path = require("path");
 var fs = require("fs");
 
 const ROOM_DB = "0.3-db/rooms.db";
-const USER_DB = "0.3-db/users.db"
 
 var opts = nopt({
     "help": Boolean,
     rooms: path,
-    users: path,
 }, {
     "h": "--help"
 });
 
-if (!opts.help && (!opts.rooms || !opts.users)) {
-    console.log("--rooms and --users are required.");
+if (!opts.help && !opts.rooms) {
+    console.log("--rooms is required.");
     opts.help = true;
 }
 
@@ -34,16 +32,10 @@ v0.3-ready database files will be dumped to a directory called "0.3-db" in the
 current working directory.
 
  Usage:
-   --rooms   The path to rooms.db. Required.
-   --users   The path to users.db. Required.`
+   --rooms   The path to rooms.db. Required.`
 );
 process.exit(0);
 }
-
-
-var upgradeUsers = Promise.coroutine(function*(usersDb) {
-    console.log("Upgrading users database"); // TODO
-});
 
 var upgradeRooms = Promise.coroutine(function*(db) {
     console.log("Upgrading rooms database");
@@ -204,13 +196,7 @@ Promise.coroutine(function*() {
     catch (err) {
         if (err.code !== "EEXIST") { throw err; }
         try { fs.unlinkSync(ROOM_DB); } catch (e) {}
-        try { fs.unlinkSync(USER_DB); } catch (e) {}
     }
-    var userStore = new Datastore({
-        filename: opts.users,
-        autoload: true
-    });
-    yield upgradeUsers(userStore);
     var roomStore = new Datastore({
         filename: opts.rooms,
         autoload: true
