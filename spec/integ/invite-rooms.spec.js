@@ -41,11 +41,12 @@ describe("Invite-only rooms", function() {
 
     it("should be joined by the bot if the AS does know the room ID",
     function(done) {
+        var adminRoomId = "!adminroom:id";
         var sdk = env.clientMock._client(botUserId);
-        var joinedRoom = false;
+        var joinRoomCount = 0;
         sdk.joinRoom.andCallFake(function(roomId) {
-            expect(roomId).toEqual(roomMapping.roomId);
-            joinedRoom = true;
+            expect(roomId).toEqual(adminRoomId);
+            joinRoomCount += 1;
             return Promise.resolve({});
         });
 
@@ -55,12 +56,26 @@ describe("Invite-only rooms", function() {
             },
             state_key: botUserId,
             user_id: testUser.id,
-            room_id: roomMapping.roomId,
+            room_id: adminRoomId,
             type: "m.room.member"
         }).then(function() {
-            if (joinedRoom) {
-                done();
-            }
+            expect(joinRoomCount).toEqual(1, "Failed to join admin room");
+            // inviting them AGAIN to an existing known ADMIN room should trigger a join
+            return env.mockAppService._trigger("type:m.room.member", {
+                content: {
+                    membership: "invite",
+                },
+                state_key: botUserId,
+                user_id: testUser.id,
+                room_id: adminRoomId,
+                type: "m.room.member"
+            });
+        }).done(function() {
+            expect(joinRoomCount).toEqual(2, "Failed to join admin room again");
+            done();
+        }, function(err) {
+            expect(true).toBe(false, "Failed to join admin room again: " + err);
+            done();
         });
     });
 
