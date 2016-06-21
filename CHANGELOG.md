@@ -1,9 +1,9 @@
-Changes in 0.2.0
+Changes in 0.3.0
 ================
 This update implements full `matrix-appservice-bridge` support in the IRC bridge and adds a number of smaller features.
 
 **BREAKING CHANGES:**
- - The structure of the NEDB databases has changed. You must run the [the upgrade script](https://github.com/matrix-org/matrix-appservice-irc/blob/develop/scripts/upgrade-db-0.1-to-0.2.js) in order to continue running the bridge.
+ - The structure of the NEDB databases has changed. You must run the [the upgrade script](https://github.com/matrix-org/matrix-appservice-irc/blob/develop/scripts/upgrade-db-0.1-to-0.2.js) in order to continue running the bridge. This must then be followed by [another upgrade script](https://github.com/matrix-org/matrix-appservice-irc/blob/develop/scripts/upgrade-db-0.2-to-0.3.js).
  - The CLI args have changed in this version to bring them in-line with [the bridge library](https://github.com/matrix-org/matrix-appservice-bridge):
     * To generate a registration file:
 
@@ -16,21 +16,27 @@ This update implements full `matrix-appservice-bridge` support in the IRC bridge
       node -c CONFIG_FILE [-f /path/to/load/registration.yaml] [-p NUMBER]
       ```
 
-
-
-Features:
+New Features:
  - Nicks set via `!nick` will now be preserved across bridge restarts.
  - EXPERIMENTAL: IRC clients created by the bridge can be assigned their own IPv6 address.
  - The bridge will now send connection status information to real Matrix users via the admin room (the same room `!nick` commands are issued).
  - Added `!help`.
- - The bridge will now fallback to `body` if the HTML content contains *any* unrecognised tags.
+ - The bridge will now fallback to `body` if the HTML content contains *any* unrecognised tags. This makes passing Markdown from Matrix to IRC much nicer.
+ - The bridge will now send more metrics to the statsd server, including the join/part rate to and from IRC.
+ - The config option `matrixClients.displayName` is now implemented.
 
 Bug fixes:
  - Escape HTML entities when sending from IRC to Matrix. This prevents munging occurring between IRC formatting and textual < element > references, whereby if you sent a tag and some colour codes from IRC it would not escape the tag and therefore send invalid HTML to Matrix.
  - User IDs starting with `-` are temporarily filtered out from being bridged.
  - Deterministically generate the configuration file.
  - Recognise more IRC error codes as non-fatal to avoid IRC clients reconnecting unecessarily.
- - Add a timeout to join events injected via the `MemberListSyncer` to avoid HOL blocking.
+ - Add a 10 second timeout to join events injected via the `MemberListSyncer` to avoid HOL blocking.
+ - 'Frontier' Matrix users will be forcibly joined to IRC channels even if membership list syncing I->M is disabled. This ensures that there is always a Matrix user in the channel being bridged to avoid losing traffic.
+ - Cache the `/initialSync` request to avoid hitting this endpoint more than once, as it may be very slow.
+ - Indexes have been added to the NeDB .db files to improve lookup times.
+ - Do not recheck if the bridge bot should part the channel if a virtual user leaves the channel: we know it shouldn't.
+ - Refine what counts as a "request" for metrics, reducing the amount of double-counting as requests echo back from the remote side.
+ - Fixed a bug which caused users to be provisioned off their `user_id` even if they had a display name set.
 
 Changes in 0.1.1
 ================
