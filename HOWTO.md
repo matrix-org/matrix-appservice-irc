@@ -292,14 +292,7 @@ Contributing
 
 ### Reporting a bug
 Think you've found a bug? Want a new feature on the client? Please open an
-issue on JIRA:
-
-- Create an account and login to https://matrix.org/jira
-- Navigate to the ``BOTS`` project.
-- Click **Create Issue** - Please be as descriptive as possible, with reproduction
-  steps if possible, and mention "IRC AS" in your issue.
-
-All issues in JIRA are **public**.
+issue on Github!
 
 ### Helping out
 Please fork this project, make your fix and then send us a pull request. Please
