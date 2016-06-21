@@ -8,8 +8,13 @@ var test = require("../util/test");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.appConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
 
 describe("Matrix-to-IRC message bridging", function() {
     var testUser = {
@@ -53,7 +58,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: testText,
                 msgtype: "m.text"
@@ -66,12 +71,12 @@ describe("Matrix-to-IRC message bridging", function() {
 
     it("should bridge formatted matrix messages as formatted IRC text",
     function(done) {
-        var tFormattedBody = "I support <strong>strong bold</strong> and <b>" +
+        var tFormattedBody = "I support <em>em</em>, <strong>strong bold</strong> and <b>" +
         'normal bold</b> and <b>bold <u>and underline</u><font color="green"> ' +
         "including green</font></b>";
-        var tFallback = "I support strong bold and normal bold and " +
+        var tFallback = "I support em, strong bold and normal bold and " +
         "bold and underline including green";
-        var tIrcBody = "I support \u0002strong bold\u000f and \u0002normal bold" +
+        var tIrcBody = "I support \u001dem\u000f, \u0002strong bold\u000f and \u0002normal bold" +
         "\u000f and \u0002bold \u001fand underline\u000f\u0002\u000303 including" +
         " green\u000f\u0002\u000f"; // last 2 codes not necessary!
 
@@ -85,7 +90,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: tFallback,
                 format: "org.matrix.custom.html",
@@ -117,7 +122,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: tFallback,
                 format: "org.matrix.custom.html",
@@ -144,7 +149,35 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tFallback,
+                format: "org.matrix.custom.html",
+                formatted_body: tFormattedBody,
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+    });
+
+    // to prevent formatting text like * from being dropped on the floor IRC side
+    it("should use the fallback text if there are unrecognised tags", function(done) {
+        var tFormattedBody = "Here is <foo>baz</foo> text";
+        var tFallback = "Here is *baz* text";
+
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        function(client, channel, text) {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            expect(text.length).toEqual(tFallback.length);
+            expect(text).toEqual(tFallback);
+            done();
+        });
+
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: tFallback,
                 format: "org.matrix.custom.html",
@@ -169,7 +202,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: testEmote,
                 msgtype: "m.emote"
@@ -192,7 +225,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: testNotice,
                 msgtype: "m.notice"
@@ -207,7 +240,7 @@ describe("Matrix-to-IRC message bridging", function() {
         var tBody = "the_image.jpg";
         var tMxcSegment = "somedomain.com/somecontentid";
         var tHttpUri = "http://" + tMxcSegment;
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk.mxcUrlToHttp.andReturn(tHttpUri);
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
@@ -222,7 +255,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: tBody,
                 url: "mxc://" + tMxcSegment,
@@ -238,7 +271,7 @@ describe("Matrix-to-IRC message bridging", function() {
         var tBody = "a_file.apk";
         var tMxcSegment = "somedomain.com/somecontentid";
         var tHttpUri = "http://" + tMxcSegment;
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk.mxcUrlToHttp.andReturn(tHttpUri);
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
@@ -253,7 +286,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: tBody,
                 url: "mxc://" + tMxcSegment,
@@ -278,7 +311,7 @@ describe("Matrix-to-IRC message bridging", function() {
             done();
         });
 
-        env.mockAsapiController._trigger("type:m.room.topic", {
+        env.mockAppService._trigger("type:m.room.topic", {
             content: {
                 topic: testTopic
             },

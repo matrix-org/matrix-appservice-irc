@@ -9,8 +9,13 @@ var Promise = require("bluebird");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.appConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
 
 describe("IRC connections", function() {
     var testUser = {
@@ -67,7 +72,7 @@ describe("IRC connections", function() {
         });
 
         // mock a response for the state event.
-        env.clientMock._client().getStateEvent.andCallFake(function() {
+        env.clientMock._client(config._botUserId).getStateEvent.andCallFake(function() {
             return Promise.resolve({
                 displayname: displayName
             });
@@ -83,7 +88,7 @@ describe("IRC connections", function() {
         });
 
         // send a message to kick start the AS
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -105,12 +110,12 @@ describe("IRC connections", function() {
         var assignedNick = "monkeys";
 
         // catch attempts to send messages and fail coherently
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk._onHttpRegister({
             expectLocalpart: roomMapping.server + "_" + testUser.nick,
             returnUserId: testUser.id
         });
-        sdk.sendMessage.andCallFake(function(roomId, c) {
+        sdk.sendEvent.andCallFake(function(roomId, type, c) {
             expect(false).toBe(
                 true, "bridge tried to send a msg to matrix from a virtual " +
                 "irc user with a nick assigned from rpl_welcome."
@@ -131,8 +136,13 @@ describe("IRC connections", function() {
             });
         });
 
+        // we're not interested in the joins, so autojoin them.
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, assignedNick, roomMapping.channel
+        );
+
         // send a message from matrix to make them join the room.
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -175,7 +185,7 @@ describe("IRC connections", function() {
 
         var promises = [];
 
-        promises.push(env.mockAsapiController._trigger("type:m.room.message", {
+        promises.push(env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -185,7 +195,7 @@ describe("IRC connections", function() {
             type: "m.room.message"
         }));
 
-        promises.push(env.mockAsapiController._trigger("type:m.room.message", {
+        promises.push(env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "Another message",
                 msgtype: "m.text"
@@ -238,12 +248,12 @@ describe("IRC connections", function() {
         });
 
         // catch attempts to send messages and fail coherently
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(config._botUserId);
         sdk._onHttpRegister({
             expectLocalpart: roomMapping.server + "_" + users[0].assignedNick,
             returnUserId: users[0].id
         });
-        sdk.sendMessage.andCallFake(function(roomId, c) {
+        sdk.sendEvent.andCallFake(function(roomId, type, c) {
             expect(false).toBe(
                 true, "bridge tried to send a msg to matrix from a virtual " +
                 "irc user (clashing nicks)."
@@ -253,7 +263,7 @@ describe("IRC connections", function() {
         });
 
         // send a message from the first guy
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -263,7 +273,7 @@ describe("IRC connections", function() {
             type: "m.room.message"
         }).then(function() {
             // send a message from the second guy
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "Another message",
                     msgtype: "m.text"
@@ -274,7 +284,7 @@ describe("IRC connections", function() {
             });
         }).then(function() {
             // send a message from the first guy
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "3rd message",
                     msgtype: "m.text"
@@ -333,12 +343,12 @@ describe("IRC connections", function() {
         });
 
         // mock a response for the state event.
-        env.clientMock._client().getStateEvent.andCallFake(function() {
+        env.clientMock._client(config._botUserId).getStateEvent.andCallFake(function() {
             return Promise.resolve({});
         });
 
         // send a message to kick start the AS
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -347,7 +357,7 @@ describe("IRC connections", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         }).then(function() {
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "A message2",
                     msgtype: "m.text"
@@ -397,12 +407,12 @@ describe("IRC connections", function() {
         });
 
         // mock a response for the state event.
-        env.clientMock._client().getStateEvent.andCallFake(function() {
+        env.clientMock._client(config._botUserId).getStateEvent.andCallFake(function() {
             return Promise.resolve({});
         });
 
         // send a message to kick start the AS
-        var p1 = env.mockAsapiController._trigger("type:m.room.message", {
+        var p1 = env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -411,7 +421,7 @@ describe("IRC connections", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
-        var p2 = env.mockAsapiController._trigger("type:m.room.message", {
+        var p2 = env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message2",
                 msgtype: "m.text"
@@ -444,7 +454,7 @@ describe("IRC connections", function() {
             });
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -473,7 +483,7 @@ describe("IRC connections", function() {
                 connectCount += 1;
             });
 
-            env.mockAsapiController._trigger("type:m.room.message", {
+            env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "Another message",
                     msgtype: "m.text"
@@ -489,8 +499,8 @@ describe("IRC connections", function() {
             function nextCycle() {
                 setImmediate(function() {
                     if (minutesDone === minutesToDo) {
-                        // expect at the slowest once per 3 min
-                        expect(connectCount).toBeGreaterThan(40);
+                        // expect at the slowest once per 4 min
+                        expect(connectCount).toBeGreaterThan(30);
                         done();
                         return;
                     }

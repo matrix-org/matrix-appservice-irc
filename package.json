@@ -1,15 +1,18 @@
 {
   "name": "matrix-appservice-irc",
-  "version": "0.1.1",
-  "description": "IRC Bridge for matrix-appservice",
-  "main": "index.js",
+  "version": "0.3.0",
+  "description": "An IRC Bridge for Matrix",
+  "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",
+  "engines": {
+    "node": ">=4.0"
+  },
   "scripts": {
-    "test": "jasmine-node spec --verbose --forceexit --captureExceptions",
+    "test": "BLUEBIRD_DEBUG=1 jasmine-node spec --verbose --forceexit --captureExceptions",
     "lint": "eslint lib spec",
     "check": "npm test && npm run lint",
     "ci-lint": "eslint lib spec --format checkstyle > ci-lint.xml || true",
-    "ci-test": "istanbul cover --report cobertura jasmine-node -- spec --verbose --junitreport --forceexit --captureExceptions",
+    "ci-test": "istanbul cover -x \"**/spec/**\" --report cobertura jasmine-node -- spec --verbose --junitreport --forceexit --captureExceptions",
     "ci": "npm run ci-lint && npm run ci-test"
   },
   "repository": {
@@ -29,8 +32,7 @@
     "irc": "matrix-org/node-irc",
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
-    "matrix-appservice": "0.1.0",
-    "matrix-js-sdk": "0.3.0",
+    "matrix-appservice-bridge": "^1.0.1",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
     "request": "^2.54.0",
@@ -39,7 +41,7 @@
   },
   "devDependencies": {
     "eslint": "^1.10.3",
-    "istanbul": "^0.3.13",
+    "istanbul": "^0.3.17",
     "jasmine-node": "^1.14.5",
     "proxyquire": "^1.4.0"
   }

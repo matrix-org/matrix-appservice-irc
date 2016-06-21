@@ -6,12 +6,16 @@ var test = require("../util/test");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.appConfig;
-var ircConfig = appConfig.ircConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
+var botUserId = config._botUserId;
 
 describe("Creating admin rooms", function() {
-    var botUserId = "@" + appConfig.botLocalpart + ":" + appConfig.homeServerDomain;
 
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
@@ -31,14 +35,14 @@ describe("Creating admin rooms", function() {
     it("should be possible by sending an invite to the bot's user ID",
     function(done) {
         var botJoinedRoom = false;
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(botUserId);
         sdk.joinRoom.andCallFake(function(roomId) {
             expect(roomId).toEqual("!adminroomid:here");
             botJoinedRoom = true;
             return Promise.resolve({});
         });
 
-        env.mockAsapiController._trigger("type:m.room.member", {
+        env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
             },
@@ -54,24 +58,23 @@ describe("Creating admin rooms", function() {
 });
 
 describe("Admin rooms", function() {
-    var sdk = null;
-
     var adminRoomId = "!adminroomid:here";
     var userId = "@someone:somewhere";
     var userIdNick = "M-someone";
-    var botUserId = "@" + appConfig.botLocalpart + ":" + appConfig.homeServerDomain;
-
-    // enable nick changes
-    ircConfig.servers[roomMapping.server].ircClients.allowNickChanges = true;
-    // enable private dynamic channels with the user ID in a whitelist
-    ircConfig.servers[roomMapping.server].dynamicChannels.enabled = true;
-    ircConfig.servers[roomMapping.server].dynamicChannels.whitelist = [
-        userId
-    ];
-    ircConfig.servers[roomMapping.server].dynamicChannels.visibility = "private";
 
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+
+        // enable nick changes
+        config.ircService.servers[roomMapping.server].ircClients.allowNickChanges = true;
+        // enable private dynamic channels with the user ID in a whitelist
+        config.ircService.servers[roomMapping.server].dynamicChannels.enabled = true;
+        config.ircService.servers[roomMapping.server].dynamicChannels.whitelist = [
+            userId
+        ];
+        config.ircService.servers[roomMapping.server].dynamicChannels.joinRule = "invite";
+        config.ircService.servers[roomMapping.server].dynamicChannels.published = false;
+        config.ircService.servers[roomMapping.server].dynamicChannels.createAlias = false;
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -87,21 +90,15 @@ describe("Admin rooms", function() {
         );
 
         // auto-join an admin room
-        sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(userId);
         sdk.joinRoom.andCallFake(function(roomId) {
-            expect(roomId).toEqual(adminRoomId);
+            expect([adminRoomId, roomMapping.roomId]).toContain(roomId);
             return Promise.resolve({});
         });
 
-        // do the init
-        env.dbHelper._reset(appConfig.databaseUri).then(function() {
-            env.ircService.configure(appConfig.ircConfig);
-            return env.ircService.register(
-                env.mockAsapiController, appConfig.serviceConfig
-            );
-        }).then(function() {
+        test.initEnv(env, config).then(function() {
             // auto-setup an admin room
-            return env.mockAsapiController._trigger("type:m.room.member", {
+            return env.mockAppService._trigger("type:m.room.member", {
                 content: {
                     membership: "invite"
                 },
@@ -112,7 +109,7 @@ describe("Admin rooms", function() {
             });
         }).then(function() {
             // send a message to register the userId on the IRC network
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "ping",
                     msgtype: "m.text"
@@ -122,23 +119,22 @@ describe("Admin rooms", function() {
                 type: "m.room.message"
             });
         }).done(function() {
-            console.log("Before each done");
             done();
         });
-        console.log("Before each post");
     });
 
     it("should respond to bad !nick commands with a help notice",
     function(done) {
         var sentNotice = false;
-        sdk.sendMessage.andCallFake(function(roomId, content) {
+        var sdk = env.clientMock._client(botUserId);
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentNotice = true;
             return Promise.resolve();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!nick blargle wargle",
                 msgtype: "m.text"
@@ -155,14 +151,15 @@ describe("Admin rooms", function() {
     it("should respond to bad !join commands with a help notice",
     function(done) {
         var sentNotice = false;
-        sdk.sendMessage.andCallFake(function(roomId, content) {
+        var sdk = env.clientMock._client(botUserId);
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentNotice = true;
             return Promise.resolve();
         });
 
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!join blargle",
                 msgtype: "m.text"
@@ -177,7 +174,7 @@ describe("Admin rooms", function() {
     });
 
     it("should ignore messages sent by the bot", function(done) {
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!join blargle",
                 msgtype: "m.text"
@@ -185,7 +182,7 @@ describe("Admin rooms", function() {
             user_id: botUserId,
             room_id: adminRoomId,
             type: "m.room.message"
-        }).catch(function(e) {
+        }).done(function(e) {
             done();
         });
     });
@@ -221,7 +218,8 @@ describe("Admin rooms", function() {
         // make sure the AS sends an ACK of the request as a notice in the admin
         // room
         var sentAckNotice = false;
-        sdk.sendMessage.andCallFake(function(roomId, content) {
+        var sdk = env.clientMock._client(botUserId);
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentAckNotice = true;
@@ -229,7 +227,7 @@ describe("Admin rooms", function() {
         });
 
         // trigger the request to change the nick
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!nick " + roomMapping.server + " " + newNick,
                 msgtype: "m.text"
@@ -239,7 +237,7 @@ describe("Admin rooms", function() {
             type: "m.room.message"
         }).then(function() {
             // trigger the message which should use the new nick
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: testText,
                     msgtype: "m.text"
@@ -274,27 +272,18 @@ describe("Admin rooms", function() {
 
         // make sure the AS creates a new PRIVATE matrix room.
         var createdMatrixRoom = false;
+        var sdk = env.clientMock._client(botUserId);
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.visibility).toEqual("private");
+            expect(opts.invite).toEqual([userId]);
             createdMatrixRoom = true;
             return Promise.resolve({
                 room_id: newRoomId
             });
         });
 
-        // make sure the AS invites the user to the new room
-        var sentInvite = false;
-        sdk.invite.andCallFake(function(roomId, inviteeUserId) {
-            expect(roomId).toEqual(newRoomId);
-            expect(inviteeUserId).toEqual(userId);
-            sentInvite = true;
-            return Promise.resolve({
-                room_id: newRoomId
-            });
-        });
-
         // trigger the request to join a channel
-        env.mockAsapiController._trigger("type:m.room.message", {
+        env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!join " + roomMapping.server + " " + newChannel,
                 msgtype: "m.text"
@@ -304,9 +293,8 @@ describe("Admin rooms", function() {
             type: "m.room.message"
         }).done(function() {
             // make sure everything was called
-            expect(createdMatrixRoom).toBe(true, "created matrix room");
-            expect(sentInvite).toBe(true, "sent matrix invite");
-            expect(joinedChannel).toBe(true, "bot didn't join channel");
+            expect(createdMatrixRoom).toBe(true, "Did not create matrix room");
+            expect(joinedChannel).toBe(true, "Bot didn't join channel");
             done();
         });
     });

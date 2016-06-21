@@ -9,24 +9,29 @@ var test = require("../util/test");
 var env = test.mkEnv();
 
 // set up test config
-var appConfig = env.appConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
 
 describe("IRC-to-Matrix mode bridging", function() {
     var sdk = null;
 
     var tFromNick = "mike";
     var tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
-                  appConfig.homeServerDomain;
+                  config.homeserver.domain;
 
-    var configJoinRule = appConfig.ircConfig.servers[
+    var configJoinRule = config.ircService.servers[
             roomMapping.server
         ].dynamicChannels.joinRule;
 
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
-        sdk = env.clientMock._client();
+        sdk = env.clientMock._client(config._botUserId);
         // add registration mock impl:
         // registering should be for the irc user
         sdk._onHttpRegister({
@@ -35,10 +40,10 @@ describe("IRC-to-Matrix mode bridging", function() {
         });
 
         env.ircMock._autoJoinChannels(
-            roomMapping.server, roomMapping.botNick, roomMapping.channel
+            roomMapping.server, roomMapping.botNick, roomMapping.server
         );
         env.ircMock._autoConnectNetworks(
-            roomMapping.server, roomMapping.botNick, roomMapping.channel
+            roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
         // do the init

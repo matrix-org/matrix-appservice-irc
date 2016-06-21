@@ -9,16 +9,19 @@ var test = require("../util/test");
 // set up integration testing mocks
 var env = test.mkEnv();
 
-
-// set up test config
-var appConfig = env.appConfig;
-var roomMapping = appConfig.roomMapping;
+var config = env.config;
+var roomMapping = {
+    server: config._server,
+    botNick: config._botnick,
+    channel: config._chan,
+    roomId: config._roomid
+};
 
 describe("Matrix-to-IRC PMing", function() {
     var tUserId = "@flibble:wibble";
     var tIrcNick = "someone";
     var tUserLocalpart = roomMapping.server + "_" + tIrcNick;
-    var tIrcUserId = "@" + tUserLocalpart + ":" + appConfig.homeServerDomain;
+    var tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
     var registerDefer, joinRoomDefer, roomStateDefer;
 
@@ -48,7 +51,7 @@ describe("Matrix-to-IRC PMing", function() {
         ]);
 
         // get the ball rolling
-        env.mockAsapiController._trigger("type:m.room.member", {
+        env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite"
             },
@@ -70,7 +73,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it tries to register, join the room and get state, accept them
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(tIrcUserId);
         sdk._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId,
@@ -120,7 +123,7 @@ describe("Matrix-to-IRC PMing", function() {
         ]);
 
         // get the ball rolling
-        env.mockAsapiController._trigger("type:m.room.member", {
+        env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite"
             },
@@ -142,7 +145,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it tries to register, join the room and get state, accept them
-        var sdk = env.clientMock._client();
+        var sdk = env.clientMock._client(tIrcUserId);
         sdk._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId,
@@ -156,8 +159,9 @@ describe("Matrix-to-IRC PMing", function() {
             return Promise.resolve({});
         });
         // see if it sends a message (to say it doesn't do group chat)
-        sdk.sendMessage.andCallFake(function(roomId, content) {
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
+            expect(type).toEqual("m.room.message");
             sendMessageDefer.resolve();
             return Promise.resolve({});
         });
@@ -207,7 +211,7 @@ describe("IRC-to-Matrix PMing", function() {
 
     var tRealIrcUserNick = "bob";
     var tVirtualUserId = "@" + roomMapping.server + "_" + tRealIrcUserNick + ":" +
-                          appConfig.homeServerDomain;
+                          config.homeserver.domain;
 
     var tRealMatrixUserNick = "M-alice";
     var tRealUserId = "@alice:anotherhomeserver";
@@ -218,7 +222,7 @@ describe("IRC-to-Matrix PMing", function() {
 
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
-        sdk = env.clientMock._client();
+        sdk = env.clientMock._client(tVirtualUserId);
 
         // add registration mock impl:
         // registering should be for the REAL irc user
@@ -231,6 +235,9 @@ describe("IRC-to-Matrix PMing", function() {
         env.ircMock._autoConnectNetworks(
             roomMapping.server, tRealMatrixUserNick, roomMapping.server
         );
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
         env.ircMock._autoJoinChannels(
             roomMapping.server, tRealMatrixUserNick, roomMapping.channel
         );
@@ -239,7 +246,7 @@ describe("IRC-to-Matrix PMing", function() {
         test.initEnv(env).then(function() {
             // send a message in the linked room (so the service provisions a
             // virtual IRC user which the 'real' IRC users can speak to)
-            return env.mockAsapiController._trigger("type:m.room.message", {
+            return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "get me in",
                     msgtype: "m.text"
@@ -257,29 +264,23 @@ describe("IRC-to-Matrix PMing", function() {
     "it receives a PM directed at a virtual user from a real IRC user",
     function(done) {
         var createRoomDefer = promiseutil.defer();
-        var inviteDefer = promiseutil.defer();
         var sendMsgDefer = promiseutil.defer();
         var promises = Promise.all([
-            createRoomDefer.promise, inviteDefer.promise, sendMsgDefer.promise
+            createRoomDefer.promise, sendMsgDefer.promise
         ]);
         // mock create room impl
         sdk.createRoom.andCallFake(function(opts) {
             expect(opts.visibility).toEqual("private");
+            expect(opts.invite).toEqual([tRealUserId]);
             createRoomDefer.resolve();
             return Promise.resolve({
                 room_id: tCreatedRoomId
             });
         });
-        // mock invite impl
-        sdk.invite.andCallFake(function(roomId, userId) {
-            expect(roomId).toEqual(tCreatedRoomId);
-            expect(userId).toEqual(tRealUserId);
-            inviteDefer.resolve();
-            return Promise.resolve({});
-        });
         // mock send message impl
-        sdk.sendMessage.andCallFake(function(roomId, content) {
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
             expect(roomId).toEqual(tCreatedRoomId);
+            expect(type).toEqual("m.room.message");
             expect(content).toEqual({
                 body: tText,
                 msgtype: "m.text"

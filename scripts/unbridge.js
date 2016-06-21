@@ -1,5 +1,6 @@
+#!/usr/bin/env node
 "use strict";
-var promiseutil = require("./lib/promiseutil");
+var promiseutil = require("../lib/promiseutil");
 var nopt = require("nopt");
 var request = require("request");
 var joinUrl = require("url").resolve;

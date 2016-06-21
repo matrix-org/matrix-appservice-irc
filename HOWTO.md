@@ -7,14 +7,13 @@ the features of this AS.
 
 Installing
 ----------
-If you haven't already, check out the ``README`` for 
-[Quick Start](README.md#quick-start) instructions on how to install the AS.
-This project requires ``nodejs`` in order to run, and has been tested on 
-``v0.10.25``.
+If you haven't already, check out the [README](README.md) for instructions on how
+to install the AS. This project requires ``nodejs`` in order to run, and has been
+tested on ``v4.4.0``.
 ```
 $ git clone git@github.com:matrix-org/matrix-appservice-irc.git
 $ cd matrix-appservice-irc
-$ npm install  # may require sudo if you haven't told npm to install elsewhere
+$ npm install
 $ npm test  # make sure these pass!
 ```
 Once that is done, you're ready to configure the AS.
@@ -42,29 +41,15 @@ directory. You can override this by passing ``--config some_file.yaml`` or
 The following options are **REQUIRED** in order to point the AS to the
 homeserver (HS) and vice versa:
 ```yaml
-appService:
-  # This section contains information about the HS
-  homeserver:
-    # This url will be used by the AS to perform Client-Server API calls.
-    url: "http://localhost:8008"
-    # This value will be used when forming user IDs under certain
-    # circumstances. This is typically the domain part of the 'url' field
-    # above.
-    domain: "localhost"
-  # This section contains information about the AS
-  appservice:
-    # This is an arbitrary string: it can be anything you want. It is
-    # strongly advised that it is a secure random string. This token
-    # grants the AS power over the HS, so a weak token here could
-    # compromise the security of the HS.
-    token: "some_very_long_string"
-    # This is the webhook that the HS will use to send events to.
-    url: "http://localhost:3500"
-  http:
-    # This is the port that the AS should listen on.
-    port: 3500
+# This section contains information about the HS
+homeserver:
+  # This url will be used by the AS to perform Client-Server API calls.
+  url: "http://localhost:8008"
+  # This value will be used when forming user IDs under certain
+  # circumstances. This is typically the domain part of the 'url' field
+  # above.
+  domain: "localhost"
 ```
-
 
 ### Pointing the AS at your chosen IRC network
 You probably already have an IRC network in mind that you want to bridge.
@@ -156,11 +141,17 @@ Registering
 Before the HS will send the AS any events, you need to register it. You can
 generate a *registration file* for the AS by typing:
 ```
- $ node app.js --generate-registration
+ $ node app.js -r -f appservice-registration-irc.yaml -u "http://where.the.appservice.listens" -c config.yaml -l irc_bot
 ```
-This will create a file ``appservice-registration-irc.yaml``. The HS is still
-unaware of this file currently. In order to tell the HS about the registration,
-you need to modify the **homeserver** configuration file (``homeserver.yaml``).
+This will create a registration file called ``appservice-registration-irc.yaml``.
+In this file, it will include the URL where the IRC bridge can be reached from the HS
+(in this case `http://where.the.appservice.listens`) and the user ID localpart of the
+AS (in this case `irc_bot` to form the AS user ID `@irc_bot:localhost`). The config
+file is passed in during the registration phase so the bridge can calculate the regex
+strings it needs to work.
+
+The HS is still unaware of this file currently. In order to tell the HS about the
+registration, you need to modify the **homeserver** configuration file (``homeserver.yaml``).
 The **homeserver** configuration file needs to have:
 ```yaml
 app_service_config_files:
@@ -190,36 +181,19 @@ app_service_config_files:
 3) Both AS and HS communicate over HTTP using the assigned tokens.
 ```
 
-### Safety checks
+### Registration
 It is possible for the registration files being used between AS and HS to get
 out of sync. If this happens, the AS will not recognize the homeserver token
 and will produce errors ``Invalid homeserver token``. Likewise, the AS may
-receive errors from the HS ``Invalid application service token.``. This is
-annoying but possible to deal with.
-
-What's more sinister is if the application specific regex changes. The tokens
-may not have changed, but the AS may think it is in charge of a namespace it
-doesn't have permission to use (e.g. thinking it has ``@irc_.*`` but it really
-has ``@xmpp_.*``). This produces undefined behaviour in the AS. In order to
-reduce the risk of the registrations getting out of sync like this, the IRC AS
-appends a CRC of the AS configuration file to the homeserver token whenever the
-AS configuration file is modified. If the configuration was changed, the CRC
-check will fail when compared to the homeserver token and the IRC AS can fail
-early. If you know for certain that your modifications to the configuration
-file is safe (doesn't alter the registration regex), you can disable the CRC
-check by passing ``--skip-crc-check`` or ``-s``. This is useful since otherwise
-you would need to restart the HS for the new registration file to take effect.
+receive errors from the HS ``Invalid application service token.``. Make sure
+your registration files are in sync!
 
 Features
 --------
 Some of the features listed below require Matrix users the ability to talk to
 the AS directly. This is done by creating a Matrix room and inviting the AS bot
 to it. The AS bot's ``user_id`` defaults to ``@matrix-appservice-irc:<domain>``
-but can be changed like so:
-```yaml
-appService:
-  localpart: "ircas"  # Creates a user ID @ircas:<domain>
-```
+but can be changed by the `-l` CLI flag when generating the registration file.
 
 ### Changing Nicks
 By default, Matrix users are assigned a nick from the nick template and 
@@ -324,6 +298,5 @@ issue on Github!
 Please fork this project, make your fix and then send us a pull request. Please
 reference any issue this fix is addressing in your pull request. This project
 uses a variety of automated tools to check for things like style violations,
-missing semicolons, etc. To run your fix through these tools, please run
-`npm run check`. You will need to have ``jshint`` and ``gjslint``
-(Google Closure Linter) installed.
+missing semicolons, etc. To run your fix through these tools *and* the tests,
+please run `npm run check`.
