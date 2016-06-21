@@ -1,13 +1,17 @@
-Matrix IRC Application Service
-------------------------------
+Matrix <--> IRC Bridge
+----------------------
 [![Build Status](http://matrix.org/jenkins/buildStatus/icon?job=IRC-AS)](http://matrix.org/jenkins/job/IRC-AS/)
 
-This is a Node.js IRC bridge for Matrix, using the Application Services (AS) API. If you're upgrading from an old release, be sure to read the [CHANGELOG](CHANGELOG.md) as there may be breaking changes between releases.
+This is an IRC bridge for Matrix using the Application Services (AS) API. If you're upgrading from an old release, be sure to read the [CHANGELOG](CHANGELOG.md) as there may be breaking changes between releases.
+
+This bridge will pass all IRC messages through to Matrix, and all Matrix messages through to IRC. It is highly configurable and is currently used on the matrix.org homeserver to bridge a number of popular IRC networks including Freenode and Moznet.
 
 # Setup
 There are 4 stages to setting up the IRC bridge which are outlined below.
 
 For more information, check out the [how-to guide](HOWTO.md).
+
+**WARNING: You should seek permission from the operator of the bridged IRC network before running this bridge. Bridging may be against the IRC network's Terms of Use.**
 
 ## 1. Installation
 To install all dependencies and add a binary `matrix-appservice-irc`:
@@ -30,7 +34,7 @@ and how to bridge IRC channels/users.
  - Copy `config.sample.yaml` to `config.yaml`.
  - Modify `config.yaml` to point to your homeserver and IRC network of choice.
 
-For more information, check out the [how-to guide](HOWTO.md).
+For more information, check out the [how-to guide](HOWTO.md) and/or [the sample config](config.sample.yaml).
 
 ## 3. Registration
 The bridge needs to generate a registration file which can be passed to the homeserver to tell the
@@ -62,7 +66,7 @@ $ node app.js -c config.yaml -f my_registration_file.yaml -p 9999
 
 
 # What does it do?
-On startup, the bridge will join IRC clients to the channels specified in the configuration file. It
+On startup, the bridge will join Matrix clients to the IRC channels specified in the configuration file. It
 will then listen for incoming IRC messages and forward them through to Matrix rooms. Each real Matrix
 user is represented by an IRC client, and each real IRC client is represented by a Matrix user. Full
 two-way communication in channels and PMs are supported, along with a huge array of customisation options.
