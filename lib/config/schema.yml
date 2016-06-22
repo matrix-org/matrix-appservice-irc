@@ -54,6 +54,14 @@ properties:
                     port:
                         type: "integer"
                 required: ["enabled"]
+            debugApi:
+                type: "object"
+                properties:
+                    enabled:
+                        type: "boolean"
+                    port:
+                        type: "integer"
+                required: ["enabled", "port"]
             logging:
                 type: "object"
                 properties:

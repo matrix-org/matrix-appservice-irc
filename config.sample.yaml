@@ -241,3 +241,17 @@ ircService:
   # dump .db files to. This is relative to the project directory.
   # Required.
   databaseUri: "nedb://data"
+
+  # Configuration options for the debug HTTP API.
+  # The debug API exposes the following endpoints:
+  #
+  #   GET /irc/$domain/user/$user_id => Return internal state for the IRC client for this user ID.
+  #
+  #   POST /irc/$domain/user/$user_id => Issue a raw IRC command down this connection.
+  #                                      Format: new line delimited commands as per IRC protocol.
+  #
+  debugApi:
+    # True to enable the HTTP API endpoint. Default: false.
+    enabled: false
+    # The port to host the HTTP API.
+    port: 11100
