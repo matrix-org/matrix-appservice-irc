@@ -255,6 +255,78 @@ describe("Admin rooms", function() {
         });
     });
 
+    it("should reject !nick changes for IRC errors", function(done) {
+        var newNick = "Blurple";
+        var testText = "I don't know what colour I am.";
+
+        // make sure that the nick command is sent
+        var sentNickCommand = false;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client, command, arg) {
+            expect(client.nick).toEqual(userIdNick, "use the old nick on /nick");
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(command).toEqual("NICK");
+            expect(arg).toEqual(newNick);
+            client.emit("error", {
+                commandType: "error",
+                command: "err_nicktoofast"
+            })
+            sentNickCommand = true;
+        });
+
+        // make sure that when a message is sent it uses the old nick
+        var sentSay = false;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "say",
+        function(client, channel, text) {
+            expect(client.nick).toEqual(userIdNick, "use the new nick on /say");
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            expect(text.length).toEqual(testText.length);
+            expect(text).toEqual(testText);
+            sentSay = true;
+        });
+
+        // make sure the AS sends an ACK of the request as a notice in the admin
+        // room
+        var sentAckNotice = false;
+        var sdk = env.clientMock._client(botUserId);
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body.indexOf("err_nicktoofast")).not.toEqual(-1);
+            sentAckNotice = true;
+            return Promise.resolve();
+        });
+
+        // trigger the request to change the nick
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!nick " + roomMapping.server + " " + newNick,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        }).then(function() {
+            // trigger the message which should use the OLD nick
+            return env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: testText,
+                    msgtype: "m.text"
+                },
+                user_id: userId,
+                room_id: roomMapping.roomId,
+                type: "m.room.message"
+            });
+        }).done(function() {
+            // make sure everything was called
+            expect(sentNickCommand).toBe(true, "sent nick IRC command");
+            expect(sentAckNotice).toBe(true, "sent ACK m.notice");
+            expect(sentSay).toBe(true, "sent say IRC command");
+            done();
+        });
+    });
+
     it("should be able to join a channel with !join if they are on the whitelist",
     function(done) {
         var newChannel = "#awooga";
