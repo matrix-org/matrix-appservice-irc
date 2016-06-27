@@ -327,6 +327,56 @@ describe("Admin rooms", function() {
         });
     });
 
+    it("should timeout !nick changes after 10 seconds", function(done) {
+        jasmine.Clock.useMock();
+        var newNick = "Blurple";
+        var testText = "I don't know what colour I am.";
+
+        // make sure that the NICK command is sent
+        var sentNickCommand = false;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client, command, arg) {
+            expect(client.nick).toEqual(userIdNick, "use the old nick on /nick");
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(command).toEqual("NICK");
+            expect(arg).toEqual(newNick);
+            // don't emit anything.. and speed up time
+            setImmediate(function() {
+                jasmine.Clock.tick(1000 * 11);
+            });
+
+            sentNickCommand = true;
+        });
+
+        // make sure the AS sends a timeout error as a notice in the admin
+        // room
+        var sentAckNotice = false;
+        var sdk = env.clientMock._client(botUserId);
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body.indexOf("Timed out")).not.toEqual(-1);
+            sentAckNotice = true;
+            return Promise.resolve();
+        });
+
+        // trigger the request to change the nick
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!nick " + roomMapping.server + " " + newNick,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        }).then(function() {
+            // make sure everything was called
+            expect(sentNickCommand).toBe(true, "sent nick IRC command");
+            expect(sentAckNotice).toBe(true, "sent ACK m.notice");
+            done();
+        });
+    });
+
     it("should be able to join a channel with !join if they are on the whitelist",
     function(done) {
         var newChannel = "#awooga";
