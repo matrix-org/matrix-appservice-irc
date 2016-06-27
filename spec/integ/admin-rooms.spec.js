@@ -330,7 +330,6 @@ describe("Admin rooms", function() {
     it("should timeout !nick changes after 10 seconds", function(done) {
         jasmine.Clock.useMock();
         var newNick = "Blurple";
-        var testText = "I don't know what colour I am.";
 
         // make sure that the NICK command is sent
         var sentNickCommand = false;
