@@ -40,6 +40,10 @@ ircService:
         #     on, else there will be no users and no bot in a channel (meaning no
         #     messages to Matrix!) until a Matrix user speaks which makes a client
         #     join the target IRC channel.
+        # NBB: The bridge bot IRC client will still join the target IRC network so
+        #      it can service bridge-specific queries from the IRC-side e.g. so
+        #      real IRC clients have a way to change their Matrix display name.
+        #      See https://github.com/matrix-org/matrix-appservice-irc/issues/55
         enabled: true
         # The nickname to give the AS bot.
         nick: "MatrixBot"
