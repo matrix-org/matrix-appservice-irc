@@ -112,6 +112,7 @@ module.exports.coroutine = function(generatorFn) {
             done();
         }, function(err) {
             expect(true).toBe(false, "Coroutine threw: " + err + "\n" + err.stack);
+            done();
         })
     };
 };
