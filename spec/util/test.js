@@ -4,6 +4,7 @@ var extend = require("extend");
 var proxyquire = require('proxyquire');
 var AppServiceRegistration = require("matrix-appservice-bridge").AppServiceRegistration;
 var MockAppService = require("./app-service-mock");
+var Promise = require("bluebird");
 
 /**
  * Construct a new test environment with mock modules.
@@ -90,3 +91,27 @@ module.exports.beforeEach = function(testCase, env) {
     });
 };
 
+/**
+ * Transform a given generator function into a coroutine and wrap it up in a Jasmine
+ * async test function. This allows seamless use of async function(done) tests using
+ * yield. For example:
+ * <pre>
+ *   it("should do stuff", test.coroutine(function*() {
+ *     var something = yield doThing();
+ *   }));
+ * </pre>
+ * When the promise RESOLVES it will call done() on the Jasmine async test function.
+ * When the promise REJECTS it will fail an assertion.
+ * @param {Function} generatorFn The generator function to wrap e.g
+ * @return {Function} A jasmine async test function.
+ */
+module.exports.coroutine = function(generatorFn) {
+    return function(done) {
+        var fn = Promise.coroutine(generatorFn);
+        fn().then(function() {
+            done();
+        }, function(err) {
+            expect(true).toBe(false, "Coroutine threw: " + err + "\n" + err.stack);
+        })
+    };
+};

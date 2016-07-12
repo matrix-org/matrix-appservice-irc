@@ -33,7 +33,7 @@ describe("Creating admin rooms", function() {
     });
 
     it("should be possible by sending an invite to the bot's user ID",
-    function(done) {
+    test.coroutine(function*() {
         var botJoinedRoom = false;
         var sdk = env.clientMock._client(botUserId);
         sdk.joinRoom.andCallFake(function(roomId) {
@@ -42,7 +42,7 @@ describe("Creating admin rooms", function() {
             return Promise.resolve({});
         });
 
-        env.mockAppService._trigger("type:m.room.member", {
+        yield env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
             },
@@ -50,11 +50,9 @@ describe("Creating admin rooms", function() {
             user_id: "@someone:somewhere",
             room_id: "!adminroomid:here",
             type: "m.room.member"
-        }).done(function(e) {
-            expect(botJoinedRoom).toBe(true);
-            done();
         });
-    });
+        expect(botJoinedRoom).toBe(true);
+    }));
 });
 
 describe("Admin rooms", function() {
@@ -124,7 +122,7 @@ describe("Admin rooms", function() {
     });
 
     it("should respond to bad !nick commands with a help notice",
-    function(done) {
+    test.coroutine(function*() {
         var sentNotice = false;
         var sdk = env.clientMock._client(botUserId);
         sdk.sendEvent.andCallFake(function(roomId, type, content) {
@@ -134,7 +132,7 @@ describe("Admin rooms", function() {
             return Promise.resolve();
         });
 
-        env.mockAppService._trigger("type:m.room.message", {
+        yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!nick blargle wargle",
                 msgtype: "m.text"
@@ -142,14 +140,12 @@ describe("Admin rooms", function() {
             user_id: userId,
             room_id: adminRoomId,
             type: "m.room.message"
-        }).done(function() {
-            expect(sentNotice).toBe(true);
-            done();
         });
-    });
+        expect(sentNotice).toBe(true);
+    }));
 
     it("should respond to bad !join commands with a help notice",
-    function(done) {
+    test.coroutine(function*() {
         var sentNotice = false;
         var sdk = env.clientMock._client(botUserId);
         sdk.sendEvent.andCallFake(function(roomId, type, content) {
@@ -159,7 +155,7 @@ describe("Admin rooms", function() {
             return Promise.resolve();
         });
 
-        env.mockAppService._trigger("type:m.room.message", {
+        yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!join blargle",
                 msgtype: "m.text"
@@ -167,14 +163,12 @@ describe("Admin rooms", function() {
             user_id: userId,
             room_id: adminRoomId,
             type: "m.room.message"
-        }).done(function() {
-            expect(sentNotice).toBe(true);
-            done();
-        });
-    });
+        })
+        expect(sentNotice).toBe(true);
+    }));
 
-    it("should ignore messages sent by the bot", function(done) {
-        env.mockAppService._trigger("type:m.room.message", {
+    it("should ignore messages sent by the bot", test.coroutine(function*() {
+        yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!join blargle",
                 msgtype: "m.text"
@@ -182,12 +176,11 @@ describe("Admin rooms", function() {
             user_id: botUserId,
             room_id: adminRoomId,
             type: "m.room.message"
-        }).done(function(e) {
-            done();
         });
-    });
+    }));
 
-    it("should be able to change their nick using !nick", function(done) {
+    it("should be able to change their nick using !nick",
+    test.coroutine(function*() {
         var newNick = "Blurple";
         var testText = "I don't know what colour I am.";
 
@@ -227,7 +220,7 @@ describe("Admin rooms", function() {
         });
 
         // trigger the request to change the nick
-        env.mockAppService._trigger("type:m.room.message", {
+        yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!nick " + roomMapping.server + " " + newNick,
                 msgtype: "m.text"
@@ -235,27 +228,26 @@ describe("Admin rooms", function() {
             user_id: userId,
             room_id: adminRoomId,
             type: "m.room.message"
-        }).then(function() {
-            // trigger the message which should use the new nick
-            return env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: testText,
-                    msgtype: "m.text"
-                },
-                user_id: userId,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
-        }).done(function() {
-            // make sure everything was called
-            expect(sentNickCommand).toBe(true, "sent nick IRC command");
-            expect(sentAckNotice).toBe(true, "sent ACK m.notice");
-            expect(sentSay).toBe(true, "sent say IRC command");
-            done();
         });
-    });
+        // trigger the message which should use the new nick
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: testText,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
 
-    it("should reject !nick changes for IRC errors", function(done) {
+        // make sure everything was called
+        expect(sentNickCommand).toBe(true, "sent nick IRC command");
+        expect(sentAckNotice).toBe(true, "sent ACK m.notice");
+        expect(sentSay).toBe(true, "sent say IRC command");
+    }));
+
+    it("should reject !nick changes for IRC errors",
+    test.coroutine(function*() {
         var newNick = "Blurple";
         var testText = "I don't know what colour I am.";
 
@@ -299,7 +291,7 @@ describe("Admin rooms", function() {
         });
 
         // trigger the request to change the nick
-        env.mockAppService._trigger("type:m.room.message", {
+        yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!nick " + roomMapping.server + " " + newNick,
                 msgtype: "m.text"
@@ -307,27 +299,25 @@ describe("Admin rooms", function() {
             user_id: userId,
             room_id: adminRoomId,
             type: "m.room.message"
-        }).then(function() {
-            // trigger the message which should use the OLD nick
-            return env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: testText,
-                    msgtype: "m.text"
-                },
-                user_id: userId,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
-        }).done(function() {
-            // make sure everything was called
-            expect(sentNickCommand).toBe(true, "sent nick IRC command");
-            expect(sentAckNotice).toBe(true, "sent ACK m.notice");
-            expect(sentSay).toBe(true, "sent say IRC command");
-            done();
         });
-    });
+        // trigger the message which should use the OLD nick
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: testText,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
 
-    it("should timeout !nick changes after 10 seconds", function(done) {
+        // make sure everything was called
+        expect(sentNickCommand).toBe(true, "sent nick IRC command");
+        expect(sentAckNotice).toBe(true, "sent ACK m.notice");
+        expect(sentSay).toBe(true, "sent say IRC command");
+    }));
+
+    it("should timeout !nick changes after 10 seconds", test.coroutine(function*() {
         jasmine.Clock.useMock();
         var newNick = "Blurple";
 
@@ -360,7 +350,7 @@ describe("Admin rooms", function() {
         });
 
         // trigger the request to change the nick
-        env.mockAppService._trigger("type:m.room.message", {
+        yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!nick " + roomMapping.server + " " + newNick,
                 msgtype: "m.text"
@@ -368,16 +358,15 @@ describe("Admin rooms", function() {
             user_id: userId,
             room_id: adminRoomId,
             type: "m.room.message"
-        }).then(function() {
-            // make sure everything was called
-            expect(sentNickCommand).toBe(true, "sent nick IRC command");
-            expect(sentAckNotice).toBe(true, "sent ACK m.notice");
-            done();
         });
-    });
+
+        // make sure everything was called
+        expect(sentNickCommand).toBe(true, "sent nick IRC command");
+        expect(sentAckNotice).toBe(true, "sent ACK m.notice");
+    }));
 
     it("should be able to join a channel with !join if they are on the whitelist",
-    function(done) {
+    test.coroutine(function*() {
         var newChannel = "#awooga";
         var newRoomId = "!aasifuhawei:efjkwehfi";
 
@@ -404,7 +393,7 @@ describe("Admin rooms", function() {
         });
 
         // trigger the request to join a channel
-        env.mockAppService._trigger("type:m.room.message", {
+        yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!join " + roomMapping.server + " " + newChannel,
                 msgtype: "m.text"
@@ -412,11 +401,54 @@ describe("Admin rooms", function() {
             user_id: userId,
             room_id: adminRoomId,
             type: "m.room.message"
-        }).done(function() {
-            // make sure everything was called
-            expect(createdMatrixRoom).toBe(true, "Did not create matrix room");
-            expect(joinedChannel).toBe(true, "Bot didn't join channel");
-            done();
+        })
+
+        // make sure everything was called
+        expect(createdMatrixRoom).toBe(true, "Did not create matrix room");
+        expect(joinedChannel).toBe(true, "Bot didn't join channel");
+    }));
+
+    it("should be able to join a channel with !join and a key",
+    test.coroutine(function*() {
+        var newChannel = "#awooga";
+        var newRoomId = "!aasifuhawei:efjkwehfi";
+        var key = "secret";
+
+        // let the bot join the irc channel
+        var joinedChannel = false;
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
+        function(client, chan, cb) {
+            if (chan === (newChannel + " " + key)) {
+                joinedChannel = true;
+                if (cb) { cb(); }
+            }
         });
-    });
+
+        // make sure the AS creates a new PRIVATE matrix room.
+        var createdMatrixRoom = false;
+        var sdk = env.clientMock._client(botUserId);
+        sdk.createRoom.andCallFake(function(opts) {
+            expect(opts.visibility).toEqual("private");
+            expect(opts.invite).toEqual([userId]);
+            createdMatrixRoom = true;
+            return Promise.resolve({
+                room_id: newRoomId
+            });
+        });
+
+        // trigger the request to join a channel
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!join " + roomMapping.server + " " + newChannel + " " + key,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        })
+
+        // make sure everything was called
+        expect(createdMatrixRoom).toBe(true, "Did not create matrix room");
+        expect(joinedChannel).toBe(true, "Bot didn't join channel");
+    }));
 });
