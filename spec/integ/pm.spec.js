@@ -3,7 +3,6 @@
  */
 "use strict";
 var Promise = require("bluebird");
-var promiseutil = require("../../lib/promiseutil");
 var test = require("../util/test");
 
 // set up integration testing mocks
@@ -151,7 +150,7 @@ describe("Matrix-to-IRC PMing", function() {
                 return Promise.resolve({});
             });
         });
-        
+
         // when it tries to leave, accept it
         let leaveRoomPromise = new Promise((resolve, reject) => {
             sdk.leave.andCallFake(function(roomId) {
@@ -160,7 +159,7 @@ describe("Matrix-to-IRC PMing", function() {
                 return Promise.resolve({});
             });
         });
-        
+
         let roomStatePromise = new Promise((resolve, reject) => {
             sdk.roomState.andCallFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
@@ -191,7 +190,7 @@ describe("Matrix-to-IRC PMing", function() {
                 ]);
             });
         });
-        
+
         // wait on things to happen
         yield joinRoomPromise;
         yield roomStatePromise;

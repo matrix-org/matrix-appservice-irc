@@ -3,7 +3,6 @@
  */
 "use strict";
 var Promise = require("bluebird");
-var promiseutil = require("../../lib/promiseutil");
 var util = require("util");
 var EventEmitter = require('events').EventEmitter;
 
