@@ -424,6 +424,16 @@ describe("Admin rooms", function() {
             }
         });
 
+        // Because we gave a key, we expect the user to be joined (with the key)
+        // immediately.
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "join",
+        function(client, chan, cb) {
+            if (chan === (newChannel + " " + key)) {
+                joinedChannel = true;
+                if (cb) { cb(); }
+            }
+        });
+
         // make sure the AS creates a new PRIVATE matrix room.
         var createdMatrixRoom = false;
         var sdk = env.clientMock._client(botUserId);
