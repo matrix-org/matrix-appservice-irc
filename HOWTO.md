@@ -286,17 +286,3 @@ ircService:
 Logging is configurable in the yaml, but there is also an extra verbose setting
 you can enable. This is done by passing ``--verbose`` or ``-v`` to 
 ``node app.js``.
-
-Contributing
-------------
-
-### Reporting a bug
-Think you've found a bug? Want a new feature on the client? Please open an
-issue on Github!
-
-### Helping out
-Please fork this project, make your fix and then send us a pull request. Please
-reference any issue this fix is addressing in your pull request. This project
-uses a variety of automated tools to check for things like style violations,
-missing semicolons, etc. To run your fix through these tools *and* the tests,
-please run `npm run check`.
