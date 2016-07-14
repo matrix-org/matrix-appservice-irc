@@ -236,7 +236,9 @@ describe("IRC-to-Matrix name bridging", function() {
             "Test $NICK and $SERVER"
         );
         config.ircService.servers[roomMapping.server].membershipLists.enabled = true;
-        config.ircService.servers[roomMapping.server].membershipLists.global.ircToMatrix.initial = true;
+        config.ircService.servers[
+            roomMapping.server
+        ].membershipLists.global.ircToMatrix.initial = true;
 
         sdk = env.clientMock._client(tUserId);
 
