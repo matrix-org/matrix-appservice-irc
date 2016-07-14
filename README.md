@@ -90,4 +90,4 @@ See [the sample config file](config.sample.yaml) for an explanation of the
 configuration options available.
 
 # Contributing
-Please see the [HOW TO](HOWTO.md#contributing) for information on contributing.
+Please see the [CONTRIBUTING](CONTRIBUTING.md) file for information on contributing.
