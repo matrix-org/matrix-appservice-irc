@@ -317,6 +317,7 @@ describe("Matrix-to-IRC message bridging", function() {
             },
             user_id: testUser.id,
             room_id: roomMapping.roomId,
+            state_key: "",
             type: "m.room.topic"
         });
     });

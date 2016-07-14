@@ -20,6 +20,9 @@
     },
     "ircService": {
         "databaseUri": "nedb://spec-db",
+        "debugApi": {
+            "enabled": false
+        },
         "ident": {
             "enabled": false,
             "port": 113
