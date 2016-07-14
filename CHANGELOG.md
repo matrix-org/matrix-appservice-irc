@@ -1,3 +1,42 @@
+Changes in 0.3.1
+================
+New Features:
+ - A "debug API" has been added and can be enabled via `ircService.debugApi.enabled: true`.
+   See `config.sample.yaml` for the exposed REST API.
+ - A new command `!whois Nick` has been added.
+ - IRC channels with `+k` (a password is required) can now be accessed via the bridge using
+   the `!join` command, which now has an optional `key` parameter.
+
+Improvements:
+ - Nickname validation logic now more accurately tracks RFC 2812 - in particular the allowed
+   *first* character of a nick. The max nickname length (9) in RFC 2812 is ignored, as most
+   servers have a higher limit (30) and connecting with a shortened form and then expanding
+   it based on the `RPL_ISUPPORT NICKLEN` is needlessly tedious given most IRC servers
+   automatically truncate long nicknames.
+ - If a Matrix user leaves a PM room with an IRC user and the IRC user sends a message to
+   them, the bridge will now automatically re-invite the Matrix user back into the room
+   they left.
+ - Issuing a `!join` command will now make the connected IRC client send a `JOIN` under
+   the following circumstances:
+     * The `!join` has a `key` - This is necessary because the bridge does not store channel keys.
+     * The bridge is mirroring Matrix-to-IRC joins.
+
+Bug fixes:
+ - Fixed various issues with responses to the `!nick` command. It will now time out after
+   10 seconds, rather than listen indefinitely for the next `NICK` reply. It will also
+   listen for a wide variety of `NICK` error replies, including some server-specific error
+   codes, in order to fail faster. In addition, the `|` character is now correctly allowed
+   as part of a nickname for `!nick` commands.
+ - Fixed a bug whereby starting the bridge pointed to an inactive Homeserver would cause
+   the bridge to fail to start up and not terminate the process. The bridge will now retry
+   `/initialSync` indefinitely so it can start up as soon as the Homeserver becomes active
+   again.
+ - Fixed a bug which caused the bridge to terminate due to `ECONNRESET`.
+ - Fixed a bug which caused the bridge to attempt to set the `TOPIC` of an IRC channel
+   based on an `m.room.topic` which did not have a `state_key` of `""`.
+ - Fixed a bug which caused initial IRC-to-Matrix membership list syncing to not occur,
+   even if it was enabled in `config.yaml`.
+
 Changes in 0.3.0
 ================
 This update implements full `matrix-appservice-bridge` support in the IRC bridge and adds a number of smaller features.

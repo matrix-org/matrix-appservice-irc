@@ -248,7 +248,9 @@ ircService:
   # Required.
   databaseUri: "nedb://data"
 
-  # Configuration options for the debug HTTP API.
+  # Configuration options for the debug HTTP API. To access this API, you must
+  # append ?access_token=$APPSERVICE_TOKEN (from the registration file) to the requests.
+  #
   # The debug API exposes the following endpoints:
   #
   #   GET /irc/$domain/user/$user_id => Return internal state for the IRC client for this user ID.
