@@ -40,6 +40,10 @@ ircService:
         #     on, else there will be no users and no bot in a channel (meaning no
         #     messages to Matrix!) until a Matrix user speaks which makes a client
         #     join the target IRC channel.
+        # NBB: The bridge bot IRC client will still join the target IRC network so
+        #      it can service bridge-specific queries from the IRC-side e.g. so
+        #      real IRC clients have a way to change their Matrix display name.
+        #      See https://github.com/matrix-org/matrix-appservice-irc/issues/55
         enabled: true
         # The nickname to give the AS bot.
         nick: "MatrixBot"
@@ -243,3 +247,19 @@ ircService:
   # dump .db files to. This is relative to the project directory.
   # Required.
   databaseUri: "nedb://data"
+
+  # Configuration options for the debug HTTP API. To access this API, you must
+  # append ?access_token=$APPSERVICE_TOKEN (from the registration file) to the requests.
+  #
+  # The debug API exposes the following endpoints:
+  #
+  #   GET /irc/$domain/user/$user_id => Return internal state for the IRC client for this user ID.
+  #
+  #   POST /irc/$domain/user/$user_id => Issue a raw IRC command down this connection.
+  #                                      Format: new line delimited commands as per IRC protocol.
+  #
+  debugApi:
+    # True to enable the HTTP API endpoint. Default: false.
+    enabled: false
+    # The port to host the HTTP API.
+    port: 11100

@@ -3,7 +3,6 @@
  */
 "use strict";
 var Promise = require("bluebird");
-var promiseutil = require("../../lib/promiseutil");
 var util = require("util");
 var EventEmitter = require('events').EventEmitter;
 
@@ -86,14 +85,14 @@ function Client(addr, nick, opts) {
     };
 
     this._invokeCallback = function(cb) {
-        var d = promiseutil.defer();
-        process.nextTick(function() {
-            if (cb) {
-                cb();
-            }
-            d.resolve();
+        return new Promise(function(resolve, reject) {
+            process.nextTick(function() {
+                if (cb) {
+                    cb();
+                }
+                resolve();
+            });
         });
-        return d.promise;
     };
 
     setClient(self, addr, nick);
@@ -116,11 +115,12 @@ module.exports._findClientAsync = function(addr, nick) {
     if (client) {
         return Promise.resolve(client);
     }
-    var d = promiseutil.defer();
-    instanceEmitter.once("client_" + addr + "_" + nick, function(cli) {
-        d.resolve(cli);
+
+    return new Promise(function(resolve, reject) {
+        instanceEmitter.once("client_" + addr + "_" + nick, function(cli) {
+            resolve(cli);
+        });
     });
-    return d.promise;
 };
 
 /**

@@ -3,7 +3,6 @@
  */
 "use strict";
 var Promise = require("bluebird");
-var promiseutil = require("../../lib/promiseutil");
 var test = require("../util/test");
 
 // set up integration testing mocks
@@ -23,15 +22,8 @@ describe("Matrix-to-IRC PMing", function() {
     var tUserLocalpart = roomMapping.server + "_" + tIrcNick;
     var tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
-    var registerDefer, joinRoomDefer, roomStateDefer;
-
     beforeEach(function(done) {
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
-
-        // reset the deferreds
-        registerDefer = promiseutil.defer();
-        joinRoomDefer = promiseutil.defer();
-        roomStateDefer = promiseutil.defer();
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -42,16 +34,10 @@ describe("Matrix-to-IRC PMing", function() {
         });
     });
 
-    it("should join 1:1 rooms invited from matrix", function(done) {
-        // there's a number of actions we want this to do, so track them to make
-        // sure they are all called.
-        var globalPromise = Promise.all([
-            registerDefer.promise, joinRoomDefer.promise,
-            roomStateDefer.promise
-        ]);
-
+    it("should join 1:1 rooms invited from matrix",
+    test.coroutine(function*() {
         // get the ball rolling
-        env.mockAppService._trigger("type:m.room.member", {
+        let requestPromise = env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite"
             },
@@ -73,57 +59,52 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it tries to register, join the room and get state, accept them
-        var sdk = env.clientMock._client(tIrcUserId);
+        let sdk = env.clientMock._client(tIrcUserId);
         sdk._onHttpRegister({
             expectLocalpart: tUserLocalpart,
-            returnUserId: tIrcUserId,
-            andResolve: registerDefer
-        });
-        sdk.joinRoom.andCallFake(function(roomId) {
-            expect(roomId).toEqual(roomMapping.roomId);
-            joinRoomDefer.resolve();
-            return Promise.resolve({});
-        });
-        sdk.roomState.andCallFake(function(roomId) {
-            expect(roomId).toEqual(roomMapping.roomId);
-            roomStateDefer.resolve({});
-            return Promise.resolve([
-            {
-                content: {membership: "join"},
-                user_id: tIrcUserId,
-                state_key: tIrcUserId,
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            },
-            {
-                content: {membership: "join"},
-                user_id: tUserId,
-                state_key: tUserId,
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            }
-            ]);
+            returnUserId: tIrcUserId
         });
 
-        globalPromise.done(function() {
-            done();
-        }, function() {});
-    });
+        let joinRoomPromise = new Promise((resolve, reject) => {
+            sdk.joinRoom.andCallFake(function(roomId) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                resolve();
+                return Promise.resolve({});
+            });
+        });
+
+        let roomStatePromise = new Promise((resolve, reject) => {
+            sdk.roomState.andCallFake(function(roomId) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                resolve();
+                return Promise.resolve([
+                    {
+                        content: {membership: "join"},
+                        user_id: tIrcUserId,
+                        state_key: tIrcUserId,
+                        room_id: roomMapping.roomId,
+                        type: "m.room.member"
+                    },
+                    {
+                        content: {membership: "join"},
+                        user_id: tUserId,
+                        state_key: tUserId,
+                        room_id: roomMapping.roomId,
+                        type: "m.room.member"
+                    }
+                ]);
+            });
+        });
+
+        yield joinRoomPromise;
+        yield roomStatePromise;
+        yield requestPromise;
+    }));
 
     it("should join group chat rooms invited from matrix then leave them",
-    function(done) {
-        // additional actions on group chat rooms
-        var sendMessageDefer = promiseutil.defer();
-        var leaveRoomDefer = promiseutil.defer();
-
-        var globalPromise = Promise.all([
-            registerDefer.promise, joinRoomDefer.promise,
-            roomStateDefer.promise, leaveRoomDefer.promise,
-            sendMessageDefer.promise
-        ]);
-
+    test.coroutine(function*() {
         // get the ball rolling
-        env.mockAppService._trigger("type:m.room.member", {
+        let requestPromise = env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite"
             },
@@ -148,62 +129,75 @@ describe("Matrix-to-IRC PMing", function() {
         var sdk = env.clientMock._client(tIrcUserId);
         sdk._onHttpRegister({
             expectLocalpart: tUserLocalpart,
-            returnUserId: tIrcUserId,
-            andResolve: registerDefer
+            returnUserId: tIrcUserId
         });
 
         // when it tries to join, accept it
-        sdk.joinRoom.andCallFake(function(roomId) {
-            expect(roomId).toEqual(roomMapping.roomId);
-            joinRoomDefer.resolve();
-            return Promise.resolve({});
-        });
-        // see if it sends a message (to say it doesn't do group chat)
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
-            expect(roomId).toEqual(roomMapping.roomId);
-            expect(type).toEqual("m.room.message");
-            sendMessageDefer.resolve();
-            return Promise.resolve({});
-        });
-        // when it tries to leave, accept it
-        sdk.leave.andCallFake(function(roomId) {
-            expect(roomId).toEqual(roomMapping.roomId);
-            leaveRoomDefer.resolve();
-            return Promise.resolve({});
-        });
-        sdk.roomState.andCallFake(function(roomId) {
-            expect(roomId).toEqual(roomMapping.roomId);
-            roomStateDefer.resolve({});
-            return Promise.resolve([
-            {
-                content: {membership: "join"},
-                user_id: tIrcUserId,
-                state_key: tIrcUserId,
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            },
-            {
-                content: {membership: "join"},
-                user_id: tUserId,
-                state_key: tUserId,
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            },
-            // Group chat, so >2 users!
-            {
-                content: {membership: "join"},
-                user_id: "@someone:else",
-                state_key: "@someone:else",
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            }
-            ]);
+        let joinRoomPromise = new Promise((resolve, reject) => {
+            sdk.joinRoom.andCallFake(function(roomId) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                resolve();
+                return Promise.resolve({});
+            });
         });
 
-        globalPromise.done(function() {
-            done();
-        }, function() {});
-    });
+        // see if it sends a message (to say it doesn't do group chat)
+        let sendMessagePromise = new Promise((resolve, reject) => {
+            sdk.sendEvent.andCallFake(function(roomId, type, content) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                expect(type).toEqual("m.room.message");
+                resolve();
+                return Promise.resolve({});
+            });
+        });
+
+        // when it tries to leave, accept it
+        let leaveRoomPromise = new Promise((resolve, reject) => {
+            sdk.leave.andCallFake(function(roomId) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                resolve();
+                return Promise.resolve({});
+            });
+        });
+
+        let roomStatePromise = new Promise((resolve, reject) => {
+            sdk.roomState.andCallFake(function(roomId) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                resolve();
+                return Promise.resolve([
+                {
+                    content: {membership: "join"},
+                    user_id: tIrcUserId,
+                    state_key: tIrcUserId,
+                    room_id: roomMapping.roomId,
+                    type: "m.room.member"
+                },
+                {
+                    content: {membership: "join"},
+                    user_id: tUserId,
+                    state_key: tUserId,
+                    room_id: roomMapping.roomId,
+                    type: "m.room.member"
+                },
+                // Group chat, so >2 users!
+                {
+                    content: {membership: "join"},
+                    user_id: "@someone:else",
+                    state_key: "@someone:else",
+                    room_id: roomMapping.roomId,
+                    type: "m.room.member"
+                }
+                ]);
+            });
+        });
+
+        // wait on things to happen
+        yield joinRoomPromise;
+        yield roomStatePromise;
+        yield sendMessagePromise;
+        yield leaveRoomPromise;
+        yield requestPromise;
+    }));
 });
 
 describe("IRC-to-Matrix PMing", function() {
@@ -262,44 +256,42 @@ describe("IRC-to-Matrix PMing", function() {
 
     it("should create a 1:1 matrix room and invite the real matrix user when " +
     "it receives a PM directed at a virtual user from a real IRC user",
-    function(done) {
-        var createRoomDefer = promiseutil.defer();
-        var sendMsgDefer = promiseutil.defer();
-        var promises = Promise.all([
-            createRoomDefer.promise, sendMsgDefer.promise
-        ]);
+    test.coroutine(function*() {
         // mock create room impl
-        sdk.createRoom.andCallFake(function(opts) {
-            expect(opts.visibility).toEqual("private");
-            expect(opts.invite).toEqual([tRealUserId]);
-            createRoomDefer.resolve();
-            return Promise.resolve({
-                room_id: tCreatedRoomId
+        let createRoomPromise = new Promise(function(resolve, reject) {
+            sdk.createRoom.andCallFake(function(opts) {
+                expect(opts.visibility).toEqual("private");
+                expect(opts.invite).toEqual([tRealUserId]);
+                resolve();
+                return Promise.resolve({
+                    room_id: tCreatedRoomId
+                });
             });
-        });
-        // mock send message impl
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
-            expect(roomId).toEqual(tCreatedRoomId);
-            expect(type).toEqual("m.room.message");
-            expect(content).toEqual({
-                body: tText,
-                msgtype: "m.text"
-            });
-            sendMsgDefer.resolve();
-            return Promise.resolve({});
         });
 
-        // test completes after all the matrix actions are done
-        promises.done(function() {
-            done();
+        // mock send message impl
+        let sentMessagePromise = new Promise(function(resolve, reject) {
+            sdk.sendEvent.andCallFake(function(roomId, type, content) {
+                expect(roomId).toEqual(tCreatedRoomId);
+                expect(type).toEqual("m.room.message");
+                expect(content).toEqual({
+                    body: tText,
+                    msgtype: "m.text"
+                });
+                resolve();
+                return Promise.resolve({});
+            });
         });
 
         // find the *VIRTUAL CLIENT* (not the bot) and send the irc message
-        env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick).done(
-        function(client) {
-            client.emit(
-                "message", tRealIrcUserNick, tRealMatrixUserNick, tText
-            );
-        });
-    });
+        let client = yield env.ircMock._findClientAsync(
+            roomMapping.server, tRealMatrixUserNick
+        );
+        client.emit(
+            "message", tRealIrcUserNick, tRealMatrixUserNick, tText
+        );
+
+        yield createRoomPromise;
+        yield sentMessagePromise;
+    }));
 });

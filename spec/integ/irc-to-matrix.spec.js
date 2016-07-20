@@ -235,6 +235,10 @@ describe("IRC-to-Matrix name bridging", function() {
         config.ircService.servers[roomMapping.server].matrixClients.displayName = (
             "Test $NICK and $SERVER"
         );
+        config.ircService.servers[roomMapping.server].membershipLists.enabled = true;
+        config.ircService.servers[
+            roomMapping.server
+        ].membershipLists.global.ircToMatrix.initial = true;
 
         sdk = env.clientMock._client(tUserId);
 
@@ -269,6 +273,52 @@ describe("IRC-to-Matrix name bridging", function() {
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
         function(client) {
             client.emit("message", tFromNick, roomMapping.channel, "ping");
+        });
+    });
+
+    it("should process all NAMEs entries", function(done) {
+        var nicks = {
+            Alicia: {
+                uid: "@" + roomMapping.server + "_Alicia:" + config.homeserver.domain,
+            },
+            Bertha: {
+                uid: "@" + roomMapping.server + "_Bertha:" + config.homeserver.domain,
+            },
+            Clarissa: {
+                uid: "@" + roomMapping.server + "_Clarissa:" + config.homeserver.domain,
+            }
+        };
+
+        var joined = new Set();
+        Object.keys(nicks).forEach(function(n) {
+            var cli = env.clientMock._client(nicks[n].uid);
+            cli._onHttpRegister({
+                expectLocalpart: roomMapping.server + "_" + n,
+                returnUserId: nicks[n].uid
+            });
+            cli.joinRoom.andCallFake(function(r, opts) {
+                expect(r).toEqual(roomMapping.roomId);
+                joined.add(n);
+                if (joined.size === 3) {
+                    done();
+                }
+                return Promise.resolve({room_id: r});
+            });
+
+            // don't care about display name
+            cli.setDisplayName.andCallFake(function(name) {
+                return Promise.resolve({});
+            });
+        });
+
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        function(client) {
+            var names = {
+                Alicia: {},
+                Bertha: {},
+                Clarissa: {}
+            };
+            client.emit("names", roomMapping.channel, names);
         });
     });
 });
