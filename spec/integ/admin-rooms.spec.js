@@ -246,6 +246,88 @@ describe("Admin rooms", function() {
         expect(sentSay).toBe(true, "sent say IRC command");
     }));
 
+    it("should be able to change their nick using !nick and have it persist across disconnects",
+    test.coroutine(function*() {
+        jasmine.Clock.useMock();
+        var newNick = "Blurple";
+        var testText = "I don't know what colour I am.";
+        // we will be disconnecting the user so we want to accept incoming connects/joins
+        // as the new nick.
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, newNick, roomMapping.server
+        );
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, newNick, roomMapping.channel
+        );
+
+        // make sure that the nick command is sent
+        var sentNickCommand = false;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client, command, arg) {
+            expect(client.nick).toEqual(userIdNick, "use the old nick on /nick");
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(command).toEqual("NICK");
+            expect(arg).toEqual(newNick);
+            client._changeNick(userIdNick, newNick);
+            sentNickCommand = true;
+        });
+
+        // make sure that when a message is sent it uses the new nick
+        var sentSay = false;
+        env.ircMock._whenClient(roomMapping.server, newNick, "say",
+        function(client, channel, text) {
+            expect(client.nick).toEqual(newNick, "use the new nick on /say");
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            expect(text.length).toEqual(testText.length);
+            expect(text).toEqual(testText);
+            sentSay = true;
+        });
+
+        // make sure the AS sends an ACK of the request as a notice in the admin
+        // room
+        var sdk = env.clientMock._client(botUserId);
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+            return Promise.resolve();
+        });
+
+        // trigger the request to change the nick
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!nick " + roomMapping.server + " " + newNick,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        // disconnect the user
+        var cli = yield env.ircMock._findClientAsync(roomMapping.server, newNick);
+        cli.emit("error", {command: "err_testsezno"});
+
+        // wait a bit for reconnect timers
+        setImmediate(function() {
+            jasmine.Clock.tick(1000 * 11);
+        });
+
+
+        // trigger the message which should use the new nick
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: testText,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+
+        // make sure everything was called
+        expect(sentNickCommand).toBe(true, "Client did not send nick IRC command");
+        expect(sentSay).toBe(true, "Client did not send message as new nick");
+    }));
+
     it("should reject !nick changes for IRC errors",
     test.coroutine(function*() {
         var newNick = "Blurple";
