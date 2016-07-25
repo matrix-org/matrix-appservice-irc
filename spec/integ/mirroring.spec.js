@@ -204,5 +204,42 @@ describe("Mirroring", function() {
                 client.emit("part", roomMapping.channel, ircUser.nick);
             });
         });
+
+        it("should be kicked from the matrix room when the IRC user is kicked",
+        test.coroutine(function*() {
+            // join the room so they can be kicked
+            env.ircMock._autoJoinChannels(
+                roomMapping.server, testUser.nick, roomMapping.channel
+            );
+            yield env.mockAppService._trigger("type:m.room.member", {
+                content: {
+                    membership: "join"
+                },
+                user_id: testUser.id,
+                state_key: testUser.id,
+                room_id: roomMapping.roomId,
+                type: "m.room.member"
+            })
+
+            var userKickedPromise = new Promise(function(resolve, reject) {
+                // assert function call when the bot attempts to kick
+                var botSdk = env.clientMock._client(config._botUserId);
+                botSdk.kick.andCallFake(function(roomId, userId, reason) {
+                    expect(roomId).toEqual(roomMapping.roomId);
+                    expect(userId).toEqual(testUser.id);
+                    expect(reason.indexOf("KickerNick")).not.toEqual(-1,
+                        "Reason doesn't contain the kicker's nick");
+                    resolve();
+                    return Promise.resolve();
+                });
+            });
+
+            // send the KICK command
+            var botCli = yield env.ircMock._findClientAsync(
+                roomMapping.server, roomMapping.botNick
+            );
+            botCli.emit("kick", roomMapping.channel, testUser.nick, "KickerNick", "Reasons");
+            yield userKickedPromise;
+        }));
     });
 });
