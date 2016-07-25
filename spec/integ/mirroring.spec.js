@@ -113,7 +113,8 @@ describe("Mirroring", function() {
             });
         });
 
-        it("should part the IRC channel when the Matrix user is kicked", function(done) {
+        it("should part the IRC channel if the kicker and kickee are both on Matrix",
+        function(done) {
             var parted = false;
             env.ircMock._autoJoinChannels(
                 roomMapping.server, testUser.nick, roomMapping.channel
