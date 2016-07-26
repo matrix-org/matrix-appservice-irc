@@ -65,6 +65,11 @@ ircService:
         # Optional. Default: [].
         # exclude: ["Alice", "Bob"] # NOT YET IMPLEMENTED
 
+        # Should created Matrix PM rooms be federated? If false, only users on the
+        # HS attached to this AS will be able to interact with this room.
+        # Optional. Default: true.
+        federate: true
+
       # Configuration for mappings not explicitly listed in the 'mappings' 
       # section.
       dynamicChannels:
