@@ -186,11 +186,13 @@ describe("IRC connections", function() {
         // let the user connect
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect",
         function(client, cb) {
-            // after the connect callback, modify their nick and emit an event.
-            client._invokeCallback(cb).done(function() {
+            // cb fires *AFTER* the 'registered' event. The 'registered' event
+            // fires on receipt of rpl_welcome which may modify the underlying nick.
+            // Change the nick and then invoke the callback.
+            process.nextTick(function() {
+                client.nick = assignedNick;
                 process.nextTick(function() {
-                    client.nick = assignedNick;
-                    client.emit("registered");
+                    cb();
                 });
             });
         });

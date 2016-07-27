@@ -1,0 +1,60 @@
+# Filing Issues
+A good issue can mean the difference between a quick fix and a long, painful fixing process. That's why the
+following guidelines exist:
+
+ - Use the [Github issue tracker](https://github.com/matrix-org/matrix-appservice-irc/issues) to file your issues.
+   Do **not** use the matrix.org JIRA project.
+ - Write a short title which neatly summaries the *problem*. Do **not** write the *solution* in the issue title.
+   For example: `Cannot create a nick with | in it` is a good issue title. `Filter nicks according to RFC 2812`
+   is not a good issue title.
+ - Give a summary and as much information (along with proposed solutions) as possible in the body of the issue.
+ - Include reproduction steps where possible.
+ - Provide the commit SHA or version number of the IRC bridge being used.
+ - Provide the kind and version of the IRCd where known (e.g. `Unreal3.2.10.4`) - This information is usually
+   provided when you initially connect to the IRC network. If unknown, provide the domain name of the IRC network.
+   
+Here is a good issue which takes into account these points:
+```
+Cannot create a nick with | in it
+---------------------------------
+
+I tried to change my nick using "!nick Foo|" but it was rejected with the error
+message "Nick 'Foo|' contains illegal characters.". It is a valid character
+according to RFC 2812, so the bridge shouldn't be rejecting it.
+
+Reproduction:
+ - Make a 1:1 room with the IRC bot.
+ - Send the message "!nick Foo|".
+ 
+Version: 0.3.0
+IRC network: irc.freenode.net
+```
+
+# Making Pull Requests
+This project follows "git flow" semantics. In practice, this means:
+ - The `master` branch is latest current stable release.
+ - The `develop` branch is where all the new code ends up.
+ - When forking the project, fork from `develop` and then write your code.
+ - Make sure your new code passes all the code checks (tests and linting). Do this by running
+   `npm run check`.
+ - Create a pull request. If this PR fixes an issue, link to it by referring to its number.
+
+## Coding notes
+The IRC bridge is compatible on Node.js v4+. It does not use a transpiler like Babel. As such,
+only a subset of ES6 features are natively supported. Some of the common ones which are supported
+are listed below (see http://node.green/ for the full list):
+ - Generators
+ - \`template ${strings}\`
+ - ES6 `class`es
+ - `let`, `const`
+ - `Map`, `Set`
+ - `(arrow) => { } // functions`
+ 
+Tests are written in Jasmine. Depending on the pull request, you may be asked to write tests for
+new code.
+
+## Release notes
+ - Changes are put in `CHANGELOG.md`.
+ - Each formal release corresponds to a branch which is of the form `vX.Y.Z` where `X.Y.Z` maps
+   directly onto the `package.json` (NPM) version.
+ - Releases are also tagged so they are present on the Releases page on Github.

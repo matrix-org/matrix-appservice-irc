@@ -32,7 +32,7 @@
     "irc": "matrix-org/node-irc#45d7ca190477bd545817e8152f2e626c9166cf6b",
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
-    "matrix-appservice-bridge": "^1.0.1",
+    "matrix-appservice-bridge": "^1.2.0",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
     "request": "^2.54.0",
