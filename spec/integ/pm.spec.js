@@ -262,47 +262,6 @@ describe("IRC-to-Matrix PMing", function() {
             sdk.createRoom.andCallFake(function(opts) {
                 expect(opts.visibility).toEqual("private");
                 expect(opts.invite).toEqual([tRealUserId]);
-                resolve();
-                return Promise.resolve({
-                    room_id: tCreatedRoomId
-                });
-            });
-        });
-
-        // mock send message impl
-        let sentMessagePromise = new Promise(function(resolve, reject) {
-            sdk.sendEvent.andCallFake(function(roomId, type, content) {
-                expect(roomId).toEqual(tCreatedRoomId);
-                expect(type).toEqual("m.room.message");
-                expect(content).toEqual({
-                    body: tText,
-                    msgtype: "m.text"
-                });
-                resolve();
-                return Promise.resolve({});
-            });
-        });
-
-        // find the *VIRTUAL CLIENT* (not the bot) and send the irc message
-        let client = yield env.ircMock._findClientAsync(
-            roomMapping.server, tRealMatrixUserNick
-        );
-        client.emit(
-            "message", tRealIrcUserNick, tRealMatrixUserNick, tText
-        );
-
-        yield createRoomPromise;
-        yield sentMessagePromise;
-    }));
-
-    it("should create a federated (by default) 1:1 matrix room and invite the real matrix user when " +
-    "it receives a PM directed at a virtual user from a real IRC user",
-    test.coroutine(function*() {
-        // mock create room impl
-        let createRoomPromise = new Promise(function(resolve, reject) {
-            sdk.createRoom.andCallFake(function(opts) {
-                expect(opts.visibility).toEqual("private");
-                expect(opts.invite).toEqual([tRealUserId]);
                 expect(opts.creation_content["m.federate"]).toEqual(true);
                 resolve();
                 return Promise.resolve({
@@ -434,4 +393,4 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
         yield createRoomPromise;
         yield sentMessagePromise;
     }));
-});    
+});
