@@ -113,47 +113,6 @@ describe("Mirroring", function() {
             });
         });
 
-        it("should part the IRC channel if the kicker and kickee are both on Matrix",
-        function(done) {
-            var parted = false;
-            env.ircMock._autoJoinChannels(
-                roomMapping.server, testUser.nick, roomMapping.channel
-            );
-            env.ircMock._whenClient(roomMapping.server, testUser.nick, "part",
-            function(client, channel, msg, cb) {
-                expect(client.nick).toEqual(testUser.nick);
-                expect(client.addr).toEqual(roomMapping.server);
-                expect(channel).toEqual(roomMapping.channel);
-                expect(msg.indexOf("@the_kicker:localhost")).not.toEqual(-1,
-                    "Part message doesn't contain kicker's user ID");
-                parted = true;
-                client._invokeCallback(cb);
-            });
-
-            env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "dummy text to get it to join",
-                    msgtype: "m.text"
-                },
-                user_id: testUser.id,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            }).then(function() {
-                return env.mockAppService._trigger("type:m.room.member", {
-                    content: {
-                        membership: "leave"
-                    },
-                    user_id: "@the_kicker:localhost",
-                    state_key: testUser.id,
-                    room_id: roomMapping.roomId,
-                    type: "m.room.member"
-                });
-            }).done(function() {
-                expect(parted).toBe(true, "Didn't part");
-                done();
-            });
-        });
-
         it("should no-op if a Matrix user joins a room not being tracked",
         function(done) {
             env.ircMock._whenClient(roomMapping.server, testUser.nick, "join",
@@ -245,42 +204,5 @@ describe("Mirroring", function() {
                 client.emit("part", roomMapping.channel, ircUser.nick);
             });
         });
-
-        it("should be kicked from the matrix room when the IRC user is kicked",
-        test.coroutine(function*() {
-            // join the room so they can be kicked
-            env.ircMock._autoJoinChannels(
-                roomMapping.server, testUser.nick, roomMapping.channel
-            );
-            yield env.mockAppService._trigger("type:m.room.member", {
-                content: {
-                    membership: "join"
-                },
-                user_id: testUser.id,
-                state_key: testUser.id,
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            })
-
-            var userKickedPromise = new Promise(function(resolve, reject) {
-                // assert function call when the bot attempts to kick
-                var botSdk = env.clientMock._client(config._botUserId);
-                botSdk.kick.andCallFake(function(roomId, userId, reason) {
-                    expect(roomId).toEqual(roomMapping.roomId);
-                    expect(userId).toEqual(testUser.id);
-                    expect(reason.indexOf("KickerNick")).not.toEqual(-1,
-                        "Reason doesn't contain the kicker's nick");
-                    resolve();
-                    return Promise.resolve();
-                });
-            });
-
-            // send the KICK command
-            var botCli = yield env.ircMock._findClientAsync(
-                roomMapping.server, roomMapping.botNick
-            );
-            botCli.emit("kick", roomMapping.channel, testUser.nick, "KickerNick", "Reasons");
-            yield userKickedPromise;
-        }));
     });
 });
