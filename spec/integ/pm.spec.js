@@ -312,7 +312,7 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
     var tText = "ello ello ello";
 
     beforeEach(function(done) {
-        config.ircService.servers[roomMapping.server].privateMessages.federate = false; 
+        config.ircService.servers[roomMapping.server].privateMessages.federate = false;
         test.beforeEach(this, env); // eslint-disable-line no-invalid-this
         sdk = env.clientMock._client(tVirtualUserId);
 
