@@ -68,11 +68,27 @@ describe("Kicking", function() {
     });
 
     describe("IRC users on IRC", function() {
+        it("should make the kickee leave the Matrix room", test.coroutine(function*() {
+            var kickPromise = new Promise(function(resolve, reject) {
+                var ircUserSdk = env.clientMock._client(ircUser.id);
+                ircUserSdk.leave.andCallFake(function(roomId) {
+                    expect(roomId).toEqual(config._roomid);
+                    resolve();
+                    return Promise.resolve();
+                });
+            });
 
+            // send the KICK command
+            var ircUserCli = yield env.ircMock._findClientAsync(
+                config._server, config._botnick
+            );
+            ircUserCli.emit("kick", config._chan, ircUser.nick, "KickerNick", "Reasons");
+            yield kickPromise;
+        }));
     });
 
     describe("Matrix users on Matrix", function() {
-        it("should make the kickee part the IRC channel", function(done) {
+        it("should make the kickee part the IRC channel", test.coroutine(function*() {
             var parted = false;
             env.ircMock._whenClient(config._server, mxUser.nick, "part",
             function(client, channel, msg, cb) {
@@ -85,7 +101,7 @@ describe("Kicking", function() {
                 client._invokeCallback(cb);
             });
 
-            env.mockAppService._trigger("type:m.room.member", {
+            yield env.mockAppService._trigger("type:m.room.member", {
                 content: {
                     membership: "leave"
                 },
@@ -93,11 +109,9 @@ describe("Kicking", function() {
                 state_key: mxUser.id,
                 room_id: config._roomid,
                 type: "m.room.member"
-            }).done(function() {
-                expect(parted).toBe(true, "Didn't part");
-                done();
             });
-        });
+            expect(parted).toBe(true, "Didn't part");
+        }));
     });
 
     describe("Matrix users on IRC", function() {
@@ -126,6 +140,35 @@ describe("Kicking", function() {
     });
 
     describe("IRC users on Matrix", function() {
+        it("should make the virtual IRC client KICK the real IRC user",
+        test.coroutine(function*() {
+            var reason = "they are a fish";
+            var userKickedPromise = new Promise(function(resolve, reject) {
+                env.ircMock._whenClient(config._server, mxUser.nick, "send",
+                function(client, cmd, chan, nick, kickReason) {
+                    expect(client.nick).toEqual(mxUser.nick);
+                    expect(client.addr).toEqual(config._server);
+                    expect(nick).toEqual(ircUser.nick);
+                    expect(chan).toEqual(config._chan);
+                    expect(cmd).toEqual("KICK");
+                    expect(kickReason.indexOf(reason)).not.toEqual(-1,
+                        `kick reason was not mirrored to IRC. Got '${kickReason}',
+                        expected '${reason}'.`);
+                    resolve();
+                });
+            });
 
+            yield env.mockAppService._trigger("type:m.room.member", {
+                content: {
+                    reason: reason,
+                    membership: "leave"
+                },
+                user_id: mxUser.id,
+                state_key: ircUser.id,
+                room_id: config._roomid,
+                type: "m.room.member"
+            });
+            yield userKickedPromise;
+        }));
     });
 });
