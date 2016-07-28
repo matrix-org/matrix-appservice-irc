@@ -25,6 +25,7 @@ function MockClient(config) {
     this.sendEvent = jasmine.createSpy("sdk.sendEvent(roomId,type,content)");
     this.invite = jasmine.createSpy("sdk.invite(roomId, userId)");
     this.leave = jasmine.createSpy("sdk.leave(roomId)");
+    this.kick = jasmine.createSpy("sdk.kick(roomId, target)");
     this.createAlias = jasmine.createSpy("sdk.createAlias(alias, roomId)");
     this.mxcUrlToHttp = jasmine.createSpy("sdk.mxcUrlToHttp(mxc, w, h, method)");
 
