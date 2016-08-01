@@ -237,4 +237,6 @@ properties:
                                         prefix:
                                             type: "string"
                                             pattern: "[ABCDEFabcdef0123456789:]+"
+                                lineLimit:
+                                    type: "integer"
         required: ["databaseUri", "servers"]
