@@ -4,16 +4,46 @@ var util = require("util");
 var instance = null;
 
 function MockAppService() {
+    let self = this;
 
     this.app = {
-        post: function() {
-            //stub (to prevent crashing when provisioner is created)
+        post: function(path, handler) {
+            // Assume that the first post handler will be for the /link path
+            if (!self.link) {
+                self.link = handler;
+            }
+            else {
+                self.unlink = handler;
+            }
         }
     };
 
     EventEmitter.call(this);
 }
 util.inherits(MockAppService, EventEmitter);
+
+MockAppService.prototype._linkaction = function(parameters, statusCallback, jsonCallback, link) {
+    // Call handler with params
+    if (link ? !this.link : !this.unlink) {
+        throw new Error("IRC AS hasn't hooked into link/unlink yet.");
+    }
+
+    let req = {
+        body : parameters
+    };
+
+    let res = {
+        status : function (number) { statusCallback(number); return res;},
+        json : function (obj) { jsonCallback(obj); return res;},
+    }
+
+    if (link) {
+        return this.link(req, res);
+    } else {
+        return this.unlink(req, res);
+    }
+};
+
 
 MockAppService.prototype.listen = function(port) {
     // NOP
