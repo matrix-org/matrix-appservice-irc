@@ -4,6 +4,13 @@ var util = require("util");
 var instance = null;
 
 function MockAppService() {
+
+    this.app = {
+        post: function() {
+            //stub (to prevent crashing when provisioner is created)
+        }
+    };
+
     EventEmitter.call(this);
 }
 util.inherits(MockAppService, EventEmitter);
