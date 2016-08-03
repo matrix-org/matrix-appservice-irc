@@ -15,6 +15,53 @@ describe("Provisioning API", function() {
         localpart: config._server + "_bob",
         id: "@" + config._server + "_bob:" + config.homeserver.domain
     };
+
+    // Create a coroutine to test certain API parameters.
+    //  parameters {object} - the API parameters
+    //  shouldSucceed {boolean} - true if the request should succeed
+    //  link {boolean} - true if this is a link request (false if unlink)
+    let mockLink = function (parameters, shouldSucceed, link) {
+
+        return test.coroutine(function*() {
+            let json = jasmine.createSpy("json(obj)").andCallFake(function(obj){console.log('JSON ' + JSON.stringify(obj))});
+            let status = jasmine.createSpy("status(num)").andCallFake(function(number){console.log(`HTTP STATUS ${number}`)});
+
+            // Defaults
+            if (!parameters.matrix_room_id) {
+                parameters.matrix_room_id = "!foo:bar";
+            }
+            if (!parameters.remote_room_server) {
+                parameters.remote_room_server = "irc.example";
+            }
+            if (!parameters.remote_room_channel) {
+                parameters.remote_room_channel = "#provisionedchannel";
+            }
+
+            // When the _link promise resolves
+            let resolve = shouldSucceed ?
+                // success is indicated with empty object
+                () => { expect(json.calls[0].args[0]).toEqual({}); }:
+                // failure with 500 and JSON error message
+                () => {
+                    expect(json).toHaveBeenCalled();
+                    expect(status).toHaveBeenCalled();
+                    expect(status.calls[0].args[0]).toEqual(500);
+                    expect(json.calls[0].args[0].error).toBeDefined();
+                };
+
+            // When the _link fails
+            let reject = shouldSucceed ?
+                // but it should have succeeded
+                (err) => { return Promise.reject(err) }: // propagate rejection
+                // and it should have failed
+                (err) => { expect(err).toBeDefined(); }; // error should be given
+
+            return env.mockAppService._linkAction(
+               parameters, status, json, link
+            ).then(resolve, reject);
+        });
+    };
+
     describe("room setup", function() {
         beforeEach(function(done) {
             test.beforeEach(this, env); // eslint-disable-line no-invalid-this
@@ -45,52 +92,6 @@ describe("Provisioning API", function() {
                 done();
             });
         });
-
-        // Create a coroutine to test certain API parameters.
-        //  parameters {object} - the API parameters
-        //  shouldSucceed {boolean} - true if the request should succeed
-        //  link {boolean} - true if this is a link request (false if unlink)
-        let mockLink = function (parameters, shouldSucceed, link) {
-
-            return test.coroutine(function*() {
-                let json = jasmine.createSpy("json(obj)");
-                let status = jasmine.createSpy("status(num)");
-
-                // Defaults
-                if (!parameters.matrix_room_id) {
-                    parameters.matrix_room_id = "!foo:bar";
-                }
-                if (!parameters.remote_room_server) {
-                    parameters.remote_room_server = "irc.example";
-                }
-                if (!parameters.remote_room_channel) {
-                    parameters.remote_room_channel = "#coffee";
-                }
-
-                // When the _link promise resolves
-                let resolve = shouldSucceed ?
-                    // success is indicated with empty object
-                    () => { expect(json.calls[0].args[0]).toEqual({}); }:
-                    // failure with 500 and JSON error message
-                    () => {
-                        expect(json).toHaveBeenCalled();
-                        expect(status).toHaveBeenCalled();
-                        expect(status.calls[0].args[0]).toEqual(500);
-                        expect(json.calls[0].args[0].error).toBeDefined();
-                    };
-
-                // When the _link fails
-                let reject = shouldSucceed ?
-                    // but it should have succeeded
-                    (err) => { return Promise.reject(err) }: // propagate rejection
-                    // and it should have failed
-                    (err) => { expect(err).toBeDefined(); }; // error should be given
-
-                return env.mockAppService._linkAction(
-                   parameters, status, json, link
-                ).then(resolve, reject);
-            });
-        };
 
         describe("link endpoint", function() {
 
@@ -124,8 +125,47 @@ describe("Provisioning API", function() {
         });
     });
 
+    describe("with config links existing",function(){
+        beforeEach(function(done){
+            config.ircService.servers[config._server].mappings['#provisionedchannel'] = ['!foo:bar'];
+
+            test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+
+            // accept connection requests from eeeeeeeeveryone!
+            env.ircMock._autoConnectNetworks(
+                config._server, mxUser.nick, config._server
+            );
+            env.ircMock._autoConnectNetworks(
+                config._server, ircUser.nick, config._server
+            );
+            env.ircMock._autoConnectNetworks(
+                config._server, config._botnick, config._server
+            );
+            // accept join requests from eeeeeeeeveryone!
+            env.ircMock._autoJoinChannels(
+                config._server, mxUser.nick, config._chan
+            );
+            env.ircMock._autoJoinChannels(
+                config._server, ircUser.nick, config._chan
+            );
+            env.ircMock._autoJoinChannels(
+                config._server, config._botnick, config._chan
+            );
+
+            // do the init
+            test.initEnv(env).done(function() {
+                done();
+            });
+        });
+
+        it("should not create a M<--->I link of the same link id",
+            mockLink({}, false, true)
+        );
+    });
+
     describe("message sending and joining", function() {
         beforeEach(function(done) {
+            config.ircService.servers[config._server].mappings = {};
             test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
             // Ignore bot connecting
@@ -148,7 +188,7 @@ describe("Provisioning API", function() {
                 let parameters = {
                     matrix_room_id : "!foo:bar",
                     remote_room_server : "irc.example",
-                    remote_room_channel : "#coffee"
+                    remote_room_channel : "#provisionedchannel"
                 };
 
                 let roomMapping = {
@@ -217,7 +257,7 @@ describe("Provisioning API", function() {
                 let parameters = {
                     matrix_room_id : "!foo:bar",
                     remote_room_server : "irc.example",
-                    remote_room_channel : "#coffee"
+                    remote_room_channel : "#provisionedchannel"
                 };
 
                 let roomMapping = {
