@@ -206,6 +206,13 @@ ircService:
         # not apply an idle timeout. This value is ignored if this IRC server is
         # mirroring matrix membership lists to IRC. Default: 172800 (48 hours)
         idleTimeout: 10800
+        # The number of lines to allow being sent by the IRC client that has received
+        # a large block of text to send from matrix. If the number of lines that would
+        # be sent is > lineLimit, the text will instead be uploaded to matrix and the
+        # resulting URI is treated as a file. As such, a link will be sent to the IRC
+        # side instead of potentially spamming IRC and getting the IRC client kicked.
+        # Default: 3.
+        lineLimit: 3
   
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users
