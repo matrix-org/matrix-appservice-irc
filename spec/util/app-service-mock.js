@@ -22,8 +22,12 @@ function MockAppService() {
 }
 util.inherits(MockAppService, EventEmitter);
 
-MockAppService.prototype._linkaction = function(parameters, statusCallback, jsonCallback, link) {
-    // Call handler with params
+// Simulate a request to the link provisioning API
+//  parameters {object} - the API parameters
+//  statusCallback {function} - Called when the server returns a HTTP response code.
+//  jsonCallback {function} - Called when the server returns a JSON object.
+//  link {boolean} - true if this is a link request (false if unlink).
+MockAppService.prototype._linkAction = function(parameters, statusCallback, jsonCallback, link) {
     if (link ? !this.link : !this.unlink) {
         throw new Error("IRC AS hasn't hooked into link/unlink yet.");
     }
@@ -39,9 +43,8 @@ MockAppService.prototype._linkaction = function(parameters, statusCallback, json
 
     if (link) {
         return this.link(req, res);
-    } else {
-        return this.unlink(req, res);
     }
+    return this.unlink(req, res);
 };
 
 
