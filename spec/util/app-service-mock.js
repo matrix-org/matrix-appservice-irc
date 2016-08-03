@@ -9,11 +9,14 @@ function MockAppService() {
     this.app = {
         post: function(path, handler) {
             // Assume that the first post handler will be for the /link path
-            if (!self.link) {
+            if (path === '/_matrix/provision/link') {
                 self.link = handler;
             }
-            else {
+            else if (path === '/_matrix/provision/unlink') {
                 self.unlink = handler;
+            }
+            else {
+                throw new Error(`Unrecognised path for mock provisioning endpoint \"${path}\"`);
             }
         }
     };

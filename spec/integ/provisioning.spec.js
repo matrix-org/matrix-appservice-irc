@@ -99,7 +99,7 @@ describe("Provisioning API", function() {
             );
 
             it("should not create a M<--->I link when room_id is malformed",
-                mockLink({matrix_room_id : '!f!!oo:ba::r'}, false, true));
+                mockLink({matrix_room_id : '!fooooooo'}, false, true));
 
             it("should not create a M<--->I link when remote_room_server is malformed",
                 mockLink({remote_room_server : 'irc./example'}, false, true));
@@ -114,7 +114,7 @@ describe("Provisioning API", function() {
             );
 
             it("should not remove a M<--->I link when room_id is malformed",
-                mockLink({matrix_room_id : '!f!!oo:ba::r'}, false, false));
+                mockLink({matrix_room_id : '!fooooooooo'}, false, false));
 
             it("should not remove a M<--->I link when remote_room_server is malformed",
                 mockLink({remote_room_server : 'irc./example'}, false, false));
