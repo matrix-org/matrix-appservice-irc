@@ -23,8 +23,14 @@ describe("Provisioning API", function() {
     let mockLink = function (parameters, shouldSucceed, link) {
 
         return test.coroutine(function*() {
-            let json = jasmine.createSpy("json(obj)").andCallFake(function(obj){console.log('JSON ' + JSON.stringify(obj))});
-            let status = jasmine.createSpy("status(num)").andCallFake(function(number){console.log(`HTTP STATUS ${number}`)});
+            let json = jasmine.createSpy("json(obj)")
+            .andCallFake(function(obj) {
+                console.log('JSON ' + JSON.stringify(obj))
+            });
+            let status = jasmine.createSpy("status(num)")
+            .andCallFake(function(number) {
+                console.log(`HTTP STATUS ${number}`)
+            });
 
             // Defaults
             if (!parameters.matrix_room_id) {
@@ -125,9 +131,11 @@ describe("Provisioning API", function() {
         });
     });
 
-    describe("with config links existing",function(){
-        beforeEach(function(done){
-            config.ircService.servers[config._server].mappings['#provisionedchannel'] = ['!foo:bar'];
+    describe("with config links existing", function() {
+        beforeEach(function(done) {
+            config.ircService
+                .servers[config._server]
+                .mappings['#provisionedchannel'] = ['!foo:bar'];
 
             test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
