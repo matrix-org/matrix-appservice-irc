@@ -62,6 +62,20 @@ describe("Provisioning API", function() {
                 // and it should have failed
                 (err) => { expect(err).toBeDefined(); }; // error should be given
 
+
+            // Unlink needs an existing link to remove, so add one first
+            // but only if it should succeed. If it should fail due to
+            // validation, there does not need to be an existing link
+            if (shouldSucceed && !link) {
+                return env.mockAppService._linkAction(
+                   parameters, status, json, true
+                ).then(() => {
+                    return env.mockAppService._linkAction(
+                       parameters, status, json, false
+                    ).then(resolve, reject);
+                });
+            }
+
             return env.mockAppService._linkAction(
                parameters, status, json, link
             ).then(resolve, reject);
@@ -102,8 +116,13 @@ describe("Provisioning API", function() {
         describe("link endpoint", function() {
 
             it("should create a M<--->I link",
-                mockLink({}, true, true)
-            );
+                mockLink({}, true, true));
+
+            it("should not create a M<--->I link with the same id as one existing",
+                mockLink({
+                    matrix_room_id : '!foo:bar',
+                    remote_room_server : 'irc.example',
+                    remote_room_channel : '#coffee'}, false, true));
 
             it("should not create a M<--->I link when room_id is malformed",
                 mockLink({matrix_room_id : '!fooooooo'}, false, true));
@@ -116,9 +135,17 @@ describe("Provisioning API", function() {
         });
 
         describe("unlink endpoint", function() {
-            it("should remove a M<--->I link",
-                mockLink({}, true, false)
-            );
+            it("should remove an existing M<--->I link",
+                mockLink({}, true, false));
+
+            it("should not remove a non-existing M<--->I link",
+                mockLink({matrix_room_id : '!idonot:exist'}, false, false));
+
+            it("should not remove a non-provision M<--->I link",
+                mockLink({
+                    matrix_room_id : '!foo:bar',
+                    remote_room_server : 'irc.example',
+                    remote_room_channel : '#coffee'}, false, false));
 
             it("should not remove a M<--->I link when room_id is malformed",
                 mockLink({matrix_room_id : '!fooooooooo'}, false, false));
@@ -327,7 +354,9 @@ describe("Provisioning API", function() {
                                     expect(gotJoinCall).toBe(
                                         true, nickForDisplayName + " failed to join IRC channel."
                                     );
-                                    expect(countSays).toBe(1, "Should have only sent one message");
+                                    expect(countSays).toBe(
+                                        1, "Should have only sent one message"
+                                    );
                                 })
                             }
                         )
