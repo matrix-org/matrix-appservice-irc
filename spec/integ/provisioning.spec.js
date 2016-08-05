@@ -46,21 +46,24 @@ describe("Provisioning API", function() {
             // When the _link promise resolves
             let resolve = shouldSucceed ?
                 // success is indicated with empty object
-                () => { expect(json.calls[0].args[0]).toEqual({}); }:
-                // failure with 500 and JSON error message
                 () => {
-                    expect(json).toHaveBeenCalled();
-                    expect(status).toHaveBeenCalled();
-                    expect(status.calls[0].args[0]).toEqual(500);
-                    expect(json.calls[0].args[0].error).toBeDefined();
-                };
+                    expect(json).toHaveBeenCalledWith({});
+                }:
+                // but it should not have resolved
+                () => { return Promise.reject(err) };
 
             // When the _link fails
             let reject = shouldSucceed ?
                 // but it should have succeeded
                 (err) => { return Promise.reject(err) }: // propagate rejection
                 // and it should have failed
-                (err) => { expect(err).toBeDefined(); }; // error should be given
+                (err) => {
+                    expect(err).toBeDefined();
+                    expect(status).toHaveBeenCalledWith(500);
+                    expect(json).toHaveBeenCalled();
+                    // Make sure the first call to JSON has error defined
+                    expect(json.calls[0].args[0].error).toBeDefined();
+                };
 
 
             // Unlink needs an existing link to remove, so add one first

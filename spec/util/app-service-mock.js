@@ -15,7 +15,7 @@ function MockAppService() {
                 self.unlink = handler;
             }
             else {
-                throw new Error(`Unrecognised path for mock provisioning endpoint \"${path}\"`);
+                throw new Error(`Unrecognised path for mock provisioning endpoint "${path}"`);
             }
         }
     };
@@ -25,7 +25,7 @@ function MockAppService() {
 util.inherits(MockAppService, EventEmitter);
 
 // Simulate a request to the link provisioning API
-//  parameters {object} - the API parameters
+//  parameters {object} - the API request parameters
 //  statusCallback {function} - Called when the server returns a HTTP response code.
 //  jsonCallback {function} - Called when the server returns a JSON object.
 //  link {boolean} - true if this is a link request (false if unlink).
@@ -48,6 +48,14 @@ MockAppService.prototype._linkAction = function(parameters, statusCallback, json
     }
     return this.unlink(req, res);
 };
+
+MockAppService.prototype._link = function(parameters, statusCallback, jsonCallback) {
+    return this._linkAction(parameters, statusCallback, jsonCallback, true);
+}
+
+MockAppService.prototype._unlink = function(parameters, statusCallback, jsonCallback) {
+    return this._linkAction(parameters, statusCallback, jsonCallback, false);
+}
 
 
 MockAppService.prototype.listen = function(port) {
