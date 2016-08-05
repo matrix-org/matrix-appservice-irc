@@ -1,5 +1,6 @@
 "use strict";
 var Cli = require("matrix-appservice-bridge").Cli;
+var log = require("./lib/logging").get("CLI");
 var main = require("./lib/main");
 
 const REG_PATH = "appservice-registration-irc.yaml";
@@ -20,7 +21,7 @@ new Cli({
     },
     run: function(port, config, reg) {
         main.runBridge(port, config, reg).catch(function(err) {
-            console.error("Failed to run bridge.");
+            log.error("Failed to run bridge.");
             throw err;
         });
     }
