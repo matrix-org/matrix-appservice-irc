@@ -61,14 +61,12 @@ describe("Provisioning API", function() {
                     // but it should have succeeded
                     return Promise.reject(err);
                 }
-                else {
-                    // and it should have failed
-                    expect(err).toBeDefined();
-                    expect(status).toHaveBeenCalledWith(500);
-                    expect(json).toHaveBeenCalled();
-                    // Make sure the first call to JSON has error defined
-                    expect(json.calls[0].args[0].error).toBeDefined();
-                }
+                // and it should have failed
+                expect(err).toBeDefined();
+                expect(status).toHaveBeenCalledWith(500);
+                expect(json).toHaveBeenCalled();
+                // Make sure the first call to JSON has error defined
+                expect(json.calls[0].args[0].error).toBeDefined();
             };
 
             // Unlink needs an existing link to remove, so add one first
@@ -88,11 +86,10 @@ describe("Provisioning API", function() {
                 return env.mockAppService._link(
                    parameters, status, json
                 ).then(resolve, reject);
-            } else {
-                return env.mockAppService._unlink(
-                   parameters, status, json
-                ).then(resolve, reject);
             }
+            return env.mockAppService._unlink(
+               parameters, status, json
+            ).then(resolve, reject);
         });
     };
 
