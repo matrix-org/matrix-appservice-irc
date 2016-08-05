@@ -543,4 +543,90 @@ describe("Admin rooms", function() {
         expect(createdMatrixRoom).toBe(true, "Did not create matrix room");
         expect(joinedChannel).toBe(true, "Bot didn't join channel");
     }));
+
+    it("should allow arbitrary IRC commands to be issued",
+    test.coroutine(function*() {
+        var newChannel = "#coffee";
+
+        var cmdCount = 0;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client) {
+            cmdCount++;
+        });
+
+        // 5 commands should be executed
+        // rubbishserver should throw and prevent more commands
+        let command = `${roomMapping.server}\n` +
+                        `JOIN ${newChannel}\n` +
+                        `TOPIC ${newChannel} :some new fancy topic\n` +
+                        `PART ${newChannel}\n` +
+                        `STUPID COMMANDS\n` +
+                        `${roomMapping.server}\n` +
+                        `SOME COMMAND\n` +
+                        `rubbishserver\n` +
+                        `PART ${newChannel}`;
+        // trigger the request to join a channel
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: command,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        expect(cmdCount).toBe(5);
+    }));
+
+    it("should allow arbitrary IRC commands to be issued when server has not been set",
+    test.coroutine(function*() {
+        var newChannel = "#coffee";
+
+        var cmdCount = 0;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client) {
+            cmdCount++;
+        });
+
+        // 3 commands should be executed
+        let command = `JOIN ${newChannel}\n` +
+                        `TOPIC ${newChannel} :some new fancy topic\n` +
+                        `PART ${newChannel}`;
+        // trigger the request to join a channel
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: command,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        expect(cmdCount).toBe(3);
+    }));
+
+    it("should reject malformed commands (new form)",
+    test.coroutine(function*() {
+        var cmdCount = 0;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client) {
+            cmdCount++;
+        });
+
+        let command = `M4LF0RM3D command`;
+        // trigger the request to join a channel
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: command,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        expect(cmdCount).toBe(0);
+    }));
 });
