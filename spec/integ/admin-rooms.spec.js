@@ -563,15 +563,15 @@ describe("Admin rooms", function() {
 
         // 5 commands should be executed
         // rubbishserver should throw and prevent more commands
-        let command = `${roomMapping.server}\n` +
-                        `JOIN ${newChannel}\n` +
-                        `TOPIC ${newChannel} :some new fancy topic\n` +
-                        `PART ${newChannel}\n` +
-                        `STUPID COMMANDS\n` +
-                        `${roomMapping.server}\n` +
-                        `SOME COMMAND\n` +
-                        `rubbishserver\n` +
-                        `PART ${newChannel}`;
+        let command = `${roomMapping.server}
+                        JOIN ${newChannel}
+                        TOPIC ${newChannel} :some new fancy topic
+                        PART ${newChannel}
+                        STUPID COMMANDS
+                        ${roomMapping.server}
+                        SOME COMMAND
+                        rubbishserver
+                        PART ${newChannel}`;
         // trigger the request to join a channel
         yield env.mockAppService._trigger("type:m.room.message", {
             content: {
@@ -604,9 +604,9 @@ describe("Admin rooms", function() {
         });
 
         // 3 commands should be executed
-        let command = `JOIN ${newChannel}\n` +
-                        `TOPIC ${newChannel} :some new fancy topic\n` +
-                        `PART ${newChannel}`;
+        let command = `JOIN ${newChannel}
+                        TOPIC ${newChannel} :some new fancy topic
+                        PART ${newChannel}`;
         // trigger the request to join a channel
         yield env.mockAppService._trigger("type:m.room.message", {
             content: {
