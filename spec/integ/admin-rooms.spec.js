@@ -543,4 +543,130 @@ describe("Admin rooms", function() {
         expect(createdMatrixRoom).toBe(true, "Did not create matrix room");
         expect(joinedChannel).toBe(true, "Bot didn't join channel");
     }));
+
+    it("should allow arbitrary IRC commands to be issued",
+    test.coroutine(function*() {
+        var newChannel = "#coffee";
+
+        // Expect the following commands to be sent in order
+        let recvCommands = ["JOIN", "TOPIC", "PART", "STUPID", "SOME"];
+
+        var cmdIx = 0;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client) {
+            let args = Array.from(arguments).splice(1);
+            let keyword = args[0];
+
+            expect(keyword).toBe(recvCommands[cmdIx]);
+            cmdIx++;
+        });
+
+        // 5 commands should be executed
+        // rubbishserver should throw and prevent more commands
+        let command = `${roomMapping.server}
+                        JOIN ${newChannel}
+                        TOPIC ${newChannel} :some new fancy topic
+                        PART ${newChannel}
+                        STUPID COMMANDS
+                        ${roomMapping.server}
+                        SOME COMMAND
+                        rubbishserver
+                        PART ${newChannel}`;
+        // send commands
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: command,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        expect(cmdIx).toBe(5);
+    }));
+
+    it("should allow arbitrary IRC commands to be issued when server has not been set",
+    test.coroutine(function*() {
+        var newChannel = "#coffee";
+
+        // Expect the following commands to be sent in order
+        let recvCommands = ["JOIN", "TOPIC", "PART"];
+
+        var cmdIx = 0;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client) {
+            let args = Array.from(arguments).splice(1);
+            let keyword = args[0];
+
+            expect(keyword).toBe(recvCommands[cmdIx]);
+            cmdIx++;
+        });
+
+        // 3 commands should be executed
+        let command = `JOIN ${newChannel}
+                        TOPIC ${newChannel} :some new fancy topic
+                        PART ${newChannel}`;
+
+        // send commands
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: command,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        expect(cmdIx).toBe(3);
+    }));
+
+    it("should reject malformed commands (new form)",
+    test.coroutine(function*() {
+        var cmdCount = 0;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client) {
+            cmdCount++;
+        });
+
+        let command = `M4LF0RM3D command`;
+
+        // send command
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: command,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        expect(cmdCount).toBe(0);
+    }));
+
+    it("should reject PROTOCTL commands",
+    test.coroutine(function*() {
+        var cmdCount = 0;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client) {
+            cmdCount++;
+        });
+
+        let command = `PROTOCTL command`;
+
+        // send command
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: command,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        expect(cmdCount).toBe(0);
+    }));
 });
