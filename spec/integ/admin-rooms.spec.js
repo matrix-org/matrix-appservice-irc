@@ -548,10 +548,17 @@ describe("Admin rooms", function() {
     test.coroutine(function*() {
         var newChannel = "#coffee";
 
-        var cmdCount = 0;
+        // Expect the following commands to be sent in order
+        let recvCommands = ["JOIN", "TOPIC", "PART", "STUPID", "SOME"];
+
+        var cmdIx = 0;
         env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
         function(client) {
-            cmdCount++;
+            let args = Array.from(arguments).splice(1);
+            let keyword = args[0];
+
+            expect(keyword).toBe(recvCommands[cmdIx]);
+            cmdIx++;
         });
 
         // 5 commands should be executed
@@ -576,17 +583,24 @@ describe("Admin rooms", function() {
             type: "m.room.message"
         });
 
-        expect(cmdCount).toBe(5);
+        expect(cmdIx).toBe(5);
     }));
 
     it("should allow arbitrary IRC commands to be issued when server has not been set",
     test.coroutine(function*() {
         var newChannel = "#coffee";
 
-        var cmdCount = 0;
+        // Expect the following commands to be sent in order
+        let recvCommands = ["JOIN", "TOPIC", "PART"];
+
+        var cmdIx = 0;
         env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
         function(client) {
-            cmdCount++;
+            let args = Array.from(arguments).splice(1);
+            let keyword = args[0];
+
+            expect(keyword).toBe(recvCommands[cmdIx]);
+            cmdIx++;
         });
 
         // 3 commands should be executed
@@ -604,7 +618,7 @@ describe("Admin rooms", function() {
             type: "m.room.message"
         });
 
-        expect(cmdCount).toBe(3);
+        expect(cmdIx).toBe(3);
     }));
 
     it("should reject malformed commands (new form)",
