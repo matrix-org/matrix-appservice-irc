@@ -43,45 +43,56 @@ describe("Provisioning API", function() {
                 parameters.remote_room_channel = "#provisionedchannel";
             }
 
-            // When the _link promise resolves
-            let resolve = shouldSucceed ?
-                // success is indicated with empty object
-                () => {
+            // When the _link promise resolves...
+            let resolve = function () {
+                if (shouldSucceed) {
+                    // success is indicated with empty object
                     expect(json).toHaveBeenCalledWith({});
-                }:
-                // but it should not have resolved
-                () => { return Promise.reject(err) };
+                }
+                else {
+                    // but it should not have resolved
+                    return Promise.reject('Expected to fail');
+                }
+            };
 
             // When the _link fails
-            let reject = shouldSucceed ?
-                // but it should have succeeded
-                (err) => { return Promise.reject(err) }: // propagate rejection
-                // and it should have failed
-                (err) => {
+            let reject = function (err) {
+                if (shouldSucceed) {
+                    // but it should have succeeded
+                    return Promise.reject(err);
+                }
+                else {
+                    // and it should have failed
                     expect(err).toBeDefined();
                     expect(status).toHaveBeenCalledWith(500);
                     expect(json).toHaveBeenCalled();
                     // Make sure the first call to JSON has error defined
                     expect(json.calls[0].args[0].error).toBeDefined();
-                };
-
+                }
+            };
 
             // Unlink needs an existing link to remove, so add one first
             // but only if it should succeed. If it should fail due to
             // validation, there does not need to be an existing link
             if (shouldSucceed && !link) {
-                return env.mockAppService._linkAction(
-                   parameters, status, json, true
+                return env.mockAppService._link(
+                   parameters, status, json
                 ).then(() => {
-                    return env.mockAppService._linkAction(
-                       parameters, status, json, false
+                    return env.mockAppService._unlink(
+                       parameters, status, json
                     ).then(resolve, reject);
                 });
             }
 
-            return env.mockAppService._linkAction(
-               parameters, status, json, link
-            ).then(resolve, reject);
+            if (link) {
+                return env.mockAppService._link(
+                   parameters, status, json
+                ).then(resolve, reject);
+            } else {
+                return env.mockAppService._unlink(
+                   parameters, status, json
+                ).then(resolve, reject);
+            }
         });
     };
 
