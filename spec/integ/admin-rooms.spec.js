@@ -572,7 +572,7 @@ describe("Admin rooms", function() {
                         SOME COMMAND
                         rubbishserver
                         PART ${newChannel}`;
-        // trigger the request to join a channel
+        // send commands
         yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: command,
@@ -607,7 +607,8 @@ describe("Admin rooms", function() {
         let command = `JOIN ${newChannel}
                         TOPIC ${newChannel} :some new fancy topic
                         PART ${newChannel}`;
-        // trigger the request to join a channel
+
+        // send commands
         yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: command,
@@ -630,7 +631,8 @@ describe("Admin rooms", function() {
         });
 
         let command = `M4LF0RM3D command`;
-        // trigger the request to join a channel
+
+        // send command
         yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: command,
@@ -653,7 +655,8 @@ describe("Admin rooms", function() {
         });
 
         let command = `PROTOCTL command`;
-        // trigger the request to join a channel
+
+        // send command
         yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: command,
