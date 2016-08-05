@@ -629,4 +629,27 @@ describe("Admin rooms", function() {
 
         expect(cmdCount).toBe(0);
     }));
+
+    it("should reject PROTOCTL commands",
+    test.coroutine(function*() {
+        var cmdCount = 0;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client) {
+            cmdCount++;
+        });
+
+        let command = `PROTOCTL command`;
+        // trigger the request to join a channel
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: command,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        expect(cmdCount).toBe(0);
+    }));
 });
