@@ -17,6 +17,12 @@ function MockAppService() {
             else {
                 throw new Error(`Unrecognised path for mock provisioning endpoint "${path}"`);
             }
+        },
+        get: function(path, handler) {
+            //stub
+        },
+        use: function(req, res, next) {
+            //stub
         }
     };
 
