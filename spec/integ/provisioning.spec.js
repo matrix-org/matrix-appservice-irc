@@ -268,8 +268,8 @@ describe("Provisioning API", function() {
                     gotSayCall = true;
                 });
 
-                return env.mockAppService._linkAction(
-                   parameters, status, json, true
+                return env.mockAppService._link(
+                   parameters, status, json
                 ).then(
                     () => {
                         return env.mockAppService._trigger("type:m.room.message", {
@@ -337,7 +337,7 @@ describe("Provisioning API", function() {
                     countSays++;
                 });
 
-                return env.mockAppService._linkAction(parameters, status, json, true)
+                return env.mockAppService._link(parameters, status, json)
                     .then(() => {
                         return env.mockAppService._trigger("type:m.room.message", {
                             content: {
@@ -348,7 +348,7 @@ describe("Provisioning API", function() {
                             room_id: roomMapping.roomId,
                             type: "m.room.message"
                     }).then(() => {
-                        return env.mockAppService._linkAction(parameters, status, json, false)
+                        return env.mockAppService._unlink(parameters, status, json)
                         .then(() => {
                                 return env.mockAppService._trigger("type:m.room.message", {
                                     content: {
@@ -375,5 +375,140 @@ describe("Provisioning API", function() {
                 });
             })
         );
+    });
+
+    describe("listings endpoint", function() {
+        beforeEach(function(done) {
+            test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+
+            // accept connection requests from eeeeeeeeveryone!
+            env.ircMock._autoConnectNetworks(
+                config._server, mxUser.nick, config._server
+            );
+            env.ircMock._autoConnectNetworks(
+                config._server, ircUser.nick, config._server
+            );
+            env.ircMock._autoConnectNetworks(
+                config._server, config._botnick, config._server
+            );
+            // accept join requests from eeeeeeeeveryone!
+            env.ircMock._autoJoinChannels(
+                config._server, mxUser.nick, config._chan
+            );
+            env.ircMock._autoJoinChannels(
+                config._server, ircUser.nick, config._chan
+            );
+            env.ircMock._autoJoinChannels(
+                config._server, config._botnick, config._chan
+            );
+
+            // do the init
+            test.initEnv(env).done(function() {
+                done();
+            });
+        });
+
+        it("should return an empty list when no mappings have been provisioned",
+            test.coroutine(function*() {
+                let json = jasmine.createSpy("json(obj)");
+                let status = jasmine.createSpy("status(num)");
+
+                return env.mockAppService
+                    ._listLinks({roomId : '!someroom:somedomain'}, status, json)
+                    .then(() => {
+                        expect(json).toHaveBeenCalledWith([]);
+                    });
+        }));
+
+        it("should return a list with a mapping that has been previously provisioned",
+            test.coroutine(function*() {
+                let json = jasmine.createSpy("json(obj)");
+                let status = jasmine.createSpy("status(num)");
+
+                let parameters = {
+                    matrix_room_id : "!foo:bar",
+                    remote_room_server : "irc.example",
+                    remote_room_channel : "#provisionedchannel"
+                };
+
+                return env.mockAppService._link(parameters, status, json)
+                    .then(() => {
+                        return env.mockAppService
+                            ._listLinks({roomId : parameters.matrix_room_id}, status, json)
+                            .then(() => {
+                                expect(json).toHaveBeenCalledWith([parameters]);
+                            });
+                    });
+        }));
+
+        it("should return a list of mappings that have been previously provisioned",
+            test.coroutine(function*() {
+                let json = jasmine.createSpy("json(obj)");
+                let status = jasmine.createSpy("status(num)");
+
+                let roomId = "!foo:bar";
+                let mappings = [{
+                    matrix_room_id : roomId,
+                    remote_room_server : "irc.example",
+                    remote_room_channel : "#provisionedchannel1"
+                }, {
+                    matrix_room_id : roomId,
+                    remote_room_server : "irc.example",
+                    remote_room_channel : "#provisionedchannel2"
+                }];
+
+                return env.mockAppService
+                    ._link(mappings[0], status, json)
+                    .then(()=>{
+                        return env.mockAppService
+                            ._link(mappings[1], status, json)
+                            .then(() => {
+                                return env.mockAppService
+                                    ._listLinks({roomId : roomId}, status, json)
+                                    .then(() => {
+                                        expect(json).toHaveBeenCalledWith(mappings);
+                                    });
+                            });
+                    });
+        }));
+
+        it("should return a list of mappings that have been previously provisioned," +
+            " but not those that have been unlinked",
+            test.coroutine(function*() {
+                let json = jasmine.createSpy("json(obj)");
+                let status = jasmine.createSpy("status(num)");
+
+                let listingsjson = jasmine.createSpy("json(obj)");
+
+                let roomId = "!foo:bar";
+                let mappings = [{
+                    matrix_room_id : roomId,
+                    remote_room_server : "irc.example",
+                    remote_room_channel : "#provisionedchannel1"
+                }, {
+                    matrix_room_id : roomId,
+                    remote_room_server : "irc.example",
+                    remote_room_channel : "#provisionedchannel2"
+                }];
+
+                return env.mockAppService
+                    ._link(mappings[0], status, json)
+                    .then(()=>{
+                        return env.mockAppService
+                            ._link(mappings[1], status, json)
+                            .then(() => {
+                                return env.mockAppService
+                                    ._unlink(mappings[0], status, json)
+                                    .then(() => {
+                                        return env.mockAppService
+                                            ._listLinks({roomId : roomId}, status, listingsjson)
+                                            .then(() => {
+                                                expect(listingsjson)
+                                                    .toHaveBeenCalledWith([mappings[1]]);
+                                            });
+                                });
+                            });
+                    });
+        }));
     });
 });
