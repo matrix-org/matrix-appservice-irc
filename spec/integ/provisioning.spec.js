@@ -268,28 +268,30 @@ describe("Provisioning API", function() {
                     gotSayCall = true;
                 });
 
-                return env.mockAppService._link(
+                // Create a link
+                yield env.mockAppService._link(
                    parameters, status, json
-                ).then(
-                    () => {
-                        return env.mockAppService._trigger("type:m.room.message", {
-                            content: {
-                                body: "A message",
-                                msgtype: "m.text"
-                            },
-                            user_id: mxUser.id,
-                            room_id: roomMapping.roomId,
-                            type: "m.room.message"
-                        }).then(function() {
-                            expect(gotConnectCall).toBe(
-                                true, nickForDisplayName + " failed to connect to IRC."
-                            );
-                            expect(gotJoinCall).toBe(
-                                true, nickForDisplayName + " failed to join IRC channel."
-                            );
-                            expect(gotSayCall).toBe(true, "Didn't get say");
-                        })
+                );
+
+                // Send a message
+                yield env.mockAppService._trigger(
+                    "type:m.room.message",
+                    {content: {
+                        body: "A message",
+                        msgtype: "m.text"
+                    },
+                    user_id: mxUser.id,
+                    room_id: roomMapping.roomId,
+                    type: "m.room.message"
                 });
+
+                expect(gotConnectCall).toBe(
+                    true, nickForDisplayName + " failed to connect to IRC."
+                );
+                expect(gotJoinCall).toBe(
+                    true, nickForDisplayName + " failed to join IRC channel."
+                );
+                expect(gotSayCall).toBe(true, "Didn't get say");
             })
         );
 
@@ -337,42 +339,45 @@ describe("Provisioning API", function() {
                     countSays++;
                 });
 
-                return env.mockAppService._link(parameters, status, json)
-                    .then(() => {
-                        return env.mockAppService._trigger("type:m.room.message", {
-                            content: {
-                                body: "First message",
-                                msgtype: "m.text"
-                            },
-                            user_id: mxUser.id,
-                            room_id: roomMapping.roomId,
-                            type: "m.room.message"
-                    }).then(() => {
-                        return env.mockAppService._unlink(parameters, status, json)
-                        .then(() => {
-                                return env.mockAppService._trigger("type:m.room.message", {
-                                    content: {
-                                        body: "This message should not be sent",
-                                        msgtype: "m.text"
-                                    },
-                                    user_id: mxUser.id,
-                                    room_id: roomMapping.roomId,
-                                    type: "m.room.message"
-                                }).then(() => {
-                                    expect(gotConnectCall).toBe(
-                                        true, nickForDisplayName + " failed to connect to IRC."
-                                    );
-                                    expect(gotJoinCall).toBe(
-                                        true, nickForDisplayName + " failed to join IRC channel."
-                                    );
-                                    expect(countSays).toBe(
-                                        1, "Should have only sent one message"
-                                    );
-                                })
-                            }
-                        )
-                    })
+                // Create the link
+                yield env.mockAppService._link(parameters, status, json);
+
+                // Send a message
+                yield env.mockAppService._trigger(
+                    "type:m.room.message",
+                    {content: {
+                        body: "First message",
+                        msgtype: "m.text"
+                    },
+                    user_id: mxUser.id,
+                    room_id: roomMapping.roomId,
+                    type: "m.room.message"
                 });
+
+                //Remove the link
+                yield env.mockAppService._unlink(parameters, status, json);
+
+                // Send a message that should not get passed through
+                yield env.mockAppService._trigger(
+                    "type:m.room.message",
+                    {content: {
+                        body: "This message should not be sent",
+                        msgtype: "m.text"
+                    },
+                    user_id: mxUser.id,
+                    room_id: roomMapping.roomId,
+                    type: "m.room.message"
+                });
+
+                expect(gotConnectCall).toBe(
+                    true, nickForDisplayName + " failed to connect to IRC."
+                );
+                expect(gotJoinCall).toBe(
+                    true, nickForDisplayName + " failed to join IRC channel."
+                );
+                expect(countSays).toBe(
+                    1, "Should have only sent one message"
+                );
             })
         );
     });
@@ -413,12 +418,12 @@ describe("Provisioning API", function() {
                 let json = jasmine.createSpy("json(obj)");
                 let status = jasmine.createSpy("status(num)");
 
-                return env.mockAppService
-                    ._listLinks({roomId : '!someroom:somedomain'}, status, json)
-                    .then(() => {
-                        expect(json).toHaveBeenCalledWith([]);
-                    });
-        }));
+                yield env.mockAppService
+                    ._listLinks({roomId : '!someroom:somedomain'}, status, json);
+
+                expect(json).toHaveBeenCalledWith([]);
+            })
+        );
 
         it("should return a list with a mapping that has been previously provisioned",
             test.coroutine(function*() {
@@ -431,15 +436,13 @@ describe("Provisioning API", function() {
                     remote_room_channel : "#provisionedchannel"
                 };
 
-                return env.mockAppService._link(parameters, status, json)
-                    .then(() => {
-                        return env.mockAppService
-                            ._listLinks({roomId : parameters.matrix_room_id}, status, json)
-                            .then(() => {
-                                expect(json).toHaveBeenCalledWith([parameters]);
-                            });
-                    });
-        }));
+                yield env.mockAppService._link(parameters, status, json);
+                yield env.mockAppService
+                    ._listLinks({roomId : parameters.matrix_room_id}, status, json);
+
+                expect(json).toHaveBeenCalledWith([parameters]);
+            })
+        );
 
         it("should return a list of mappings that have been previously provisioned",
             test.coroutine(function*() {
@@ -457,20 +460,13 @@ describe("Provisioning API", function() {
                     remote_room_channel : "#provisionedchannel2"
                 }];
 
-                return env.mockAppService
-                    ._link(mappings[0], status, json)
-                    .then(()=>{
-                        return env.mockAppService
-                            ._link(mappings[1], status, json)
-                            .then(() => {
-                                return env.mockAppService
-                                    ._listLinks({roomId : roomId}, status, json)
-                                    .then(() => {
-                                        expect(json).toHaveBeenCalledWith(mappings);
-                                    });
-                            });
-                    });
-        }));
+                yield env.mockAppService._link(mappings[0], status, json);
+                yield env.mockAppService._link(mappings[1], status, json);
+                yield env.mockAppService._listLinks({roomId : roomId}, status, json);
+
+                expect(json).toHaveBeenCalledWith(mappings);
+            })
+        );
 
         it("should return a list of mappings that have been previously provisioned," +
             " but not those that have been unlinked",
@@ -491,24 +487,13 @@ describe("Provisioning API", function() {
                     remote_room_channel : "#provisionedchannel2"
                 }];
 
-                return env.mockAppService
-                    ._link(mappings[0], status, json)
-                    .then(()=>{
-                        return env.mockAppService
-                            ._link(mappings[1], status, json)
-                            .then(() => {
-                                return env.mockAppService
-                                    ._unlink(mappings[0], status, json)
-                                    .then(() => {
-                                        return env.mockAppService
-                                            ._listLinks({roomId : roomId}, status, listingsjson)
-                                            .then(() => {
-                                                expect(listingsjson)
-                                                    .toHaveBeenCalledWith([mappings[1]]);
-                                            });
-                                });
-                            });
-                    });
-        }));
+                yield env.mockAppService._link(mappings[0], status, json);
+                yield env.mockAppService._link(mappings[1], status, json);
+                yield env.mockAppService._unlink(mappings[0], status, json);
+                yield env.mockAppService._listLinks({roomId : roomId}, status, listingsjson);
+
+                expect(listingsjson).toHaveBeenCalledWith([mappings[1]]);
+            })
+        );
     });
 });
