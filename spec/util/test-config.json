@@ -56,7 +56,7 @@
                     "federate": true,
                     "aliasTemplate": "#irc_$SERVER_$CHANNEL",
                     "whitelist": [],
-                    "exclude": []
+                    "exclude": [ "#excluded_channel" ]
                 },
                 "matrixClients": {
                     "userTemplate": "@$SERVER_$NICK",
