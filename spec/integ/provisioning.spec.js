@@ -145,7 +145,8 @@ describe("Provisioning API", function() {
                 mockLink({remote_room_channel : 'coffe####e'}, false, true));
 
             // See dynamicChannels.exclude in config file
-            it("should not create a M<--->I link when remote_room_channel is excluded by the config",
+            it("should not create a M<--->I link when remote_room_channel is " +
+                "excluded by the config",
                 mockLink({remote_room_channel : '#excluded_channel'}, false, true));
         });
 
