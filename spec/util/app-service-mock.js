@@ -17,6 +17,14 @@ function MockAppService() {
             else {
                 throw new Error(`Unrecognised path for mock provisioning endpoint "${path}"`);
             }
+        },
+        get: function(path, handler) {
+            if (path === '/_matrix/provision/listlinks/:roomId') {
+                self.listLinks = handler;
+            }
+        },
+        use: function(req, res, next) {
+            //stub
         }
     };
 
@@ -25,17 +33,17 @@ function MockAppService() {
 util.inherits(MockAppService, EventEmitter);
 
 // Simulate a request to the link provisioning API
-//  parameters {object} - the API request parameters
+//  reqBody {object} - the API request body
 //  statusCallback {function} - Called when the server returns a HTTP response code.
 //  jsonCallback {function} - Called when the server returns a JSON object.
 //  link {boolean} - true if this is a link request (false if unlink).
-MockAppService.prototype._linkAction = function(parameters, statusCallback, jsonCallback, link) {
+MockAppService.prototype._linkAction = function(reqBody, statusCallback, jsonCallback, link) {
     if (link ? !this.link : !this.unlink) {
         throw new Error("IRC AS hasn't hooked into link/unlink yet.");
     }
 
     let req = {
-        body : parameters
+        body : reqBody
     };
 
     let res = {
@@ -49,14 +57,29 @@ MockAppService.prototype._linkAction = function(parameters, statusCallback, json
     return this.unlink(req, res);
 };
 
-MockAppService.prototype._link = function(parameters, statusCallback, jsonCallback) {
-    return this._linkAction(parameters, statusCallback, jsonCallback, true);
+MockAppService.prototype._link = function(reqBody, statusCallback, jsonCallback) {
+    return this._linkAction(reqBody, statusCallback, jsonCallback, true);
 }
 
-MockAppService.prototype._unlink = function(parameters, statusCallback, jsonCallback) {
-    return this._linkAction(parameters, statusCallback, jsonCallback, false);
+MockAppService.prototype._unlink = function(reqBody, statusCallback, jsonCallback) {
+    return this._linkAction(reqBody, statusCallback, jsonCallback, false);
 }
 
+// Simulate a request to get provisioned mappings
+//  reqParameters {object} - the API request parameters
+//  statusCallback {function} - Called when the server returns a HTTP response code.
+//  jsonCallback {function} - Called when the server returns a JSON object.
+MockAppService.prototype._listLinks = function(reqParameters, statusCallback, jsonCallback) {
+    let req = {
+        params : reqParameters
+    };
+
+    let res = {
+        status : function (number) { statusCallback(number); return res;},
+        json : function (obj) { jsonCallback(obj); return res;},
+    }
+    return this.listLinks(req, res);
+}
 
 MockAppService.prototype.listen = function(port) {
     // NOP

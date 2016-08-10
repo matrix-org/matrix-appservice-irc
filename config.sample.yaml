@@ -70,7 +70,7 @@ ircService:
         # Optional. Default: true.
         federate: true
 
-      # Configuration for mappings not explicitly listed in the 'mappings' 
+      # Configuration for mappings not explicitly listed in the 'mappings'
       # section.
       dynamicChannels:
         # Enable the ability for Matrix users to join *any* channel on this IRC
@@ -106,7 +106,7 @@ ircService:
         #   - "@foo:example.com"
         #   - "@bar:example.com"
         #
-        # Prevent the given list of channels from being mapped under any 
+        # Prevent the given list of channels from being mapped under any
         # circumstances.
         # exclude: ["#foo", "#bar"]
 
@@ -213,7 +213,7 @@ ircService:
         # side instead of potentially spamming IRC and getting the IRC client kicked.
         # Default: 3.
         lineLimit: 3
-  
+
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users
   # rather than the application service itself.
@@ -275,3 +275,13 @@ ircService:
     enabled: false
     # The port to host the HTTP API.
     port: 11100
+
+  # Configuration for the provisioning API.
+  #
+  # GET /_matrix/provision/link
+  # GET /_matrix/provision/unlink
+  # GET /_matrix/provision/listlinks
+  #
+  provisioning:
+    # True to enable the provisioning HTTP endpoint. Default: true.
+    enabled: true
