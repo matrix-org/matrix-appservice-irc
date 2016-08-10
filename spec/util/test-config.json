@@ -87,6 +87,9 @@
                     "#coffee": ["!foo:bar"]
                 }
             }
+        },
+        "provisioning": {
+            "enabled": true
         }
     }
 }
