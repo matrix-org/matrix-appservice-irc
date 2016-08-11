@@ -46,6 +46,11 @@ function MockClient(config) {
         return Promise.resolve({});
     });
 
+    // mock up roomState
+    this.roomState.andCallFake(function() {
+        return Promise.resolve([{}]);
+    });
+
     // Helper to succeed sdk registration calls.
     this._onHttpRegister = function(params) {
         self.register.andCallFake(function(username, password) {
