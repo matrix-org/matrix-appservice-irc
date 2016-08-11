@@ -678,9 +678,21 @@ describe("Admin rooms", function() {
             function (roomId) {
                 expect(roomId).toBe(adminRoomId, 'Room state returned should be for admin room');
                 return Promise.resolve([
-                    {content: {membership: "join"}, type: "m.room.member", state_key: "fake bot state"},
-                    {content: {membership: "join"}, type: "m.room.member", state_key: "fake user1 state"},
-                    {content: {membership: "join"}, type: "m.room.member", state_key: "fake user2 state"}
+                    {
+                        content: {membership: "join"},
+                        type: "m.room.member",
+                        state_key: "fake bot state"
+                    },
+                    {
+                        content: {membership: "join"},
+                        type: "m.room.member",
+                        state_key: "fake user1 state"
+                    },
+                    {content:
+                        {membership: "join"},
+                        type: "m.room.member",
+                        state_key: "fake user2 state"
+                    }
                 ]);
             }
         );
