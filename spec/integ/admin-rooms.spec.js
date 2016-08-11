@@ -669,4 +669,123 @@ describe("Admin rooms", function() {
 
         expect(cmdCount).toBe(0);
     }));
+
+    it("mx bot should be kicked when there are > 2 users in room and a message is sent",
+    test.coroutine(function*() {
+
+        var sdk = env.clientMock._client(botUserId);
+        sdk.roomState.andCallFake(
+            function (roomId) {
+                expect(roomId).toBe(adminRoomId, 'Room state returned should be for admin room');
+                return Promise.resolve([
+                    {
+                        content: {membership: "join"},
+                        type: "m.room.member",
+                        state_key: "fake bot state"
+                    },
+                    {
+                        content: {membership: "join"},
+                        type: "m.room.member",
+                        state_key: "fake user1 state"
+                    },
+                    {content:
+                        {membership: "join"},
+                        type: "m.room.member",
+                        state_key: "fake user2 state"
+                    }
+                ]);
+            }
+        );
+
+        var botLeft = false
+        sdk.leave.andCallFake(function(roomId) {
+            expect(roomId).toBe(adminRoomId, 'Bot did not leave admin room');
+            botLeft = true;
+            return Promise.resolve();
+        });
+
+        yield env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "join",
+            },
+            state_key: botUserId,
+            user_id: "@user1:localhost",
+            room_id: adminRoomId,
+            type: "m.room.member"
+        });
+
+        yield env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "join",
+            },
+            state_key: botUserId,
+            user_id: "@user2:localhost",
+            room_id: adminRoomId,
+            type: "m.room.member"
+        });
+
+        // trigger the bot to leave
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "ping",
+                msgtype: "m.text"
+            },
+            user_id: "@user2:localhost",
+            room_id: adminRoomId,
+            type: "m.room.message"
+        }).then(
+            () => {
+                expect(botLeft).toBe(true);
+            },
+            (err) => {console.log(err)}
+        );
+    }));
+
+    it("mx bot should NOT be kicked when there are 2 users in room and a message is sent",
+    test.coroutine(function*() {
+
+        var sdk = env.clientMock._client(botUserId);
+        sdk.roomState.andCallFake(
+            function (roomId) {
+                expect(roomId).toBe(adminRoomId, 'Room state returned should be for admin room');
+                return Promise.resolve([
+                    {content: {membership: "join"}, type: "m.room.member", state_key: ":)"},
+                    {content: {membership: "join"}, type: "m.room.member", state_key: ";)"}
+                ]);
+            }
+        );
+
+        var botLeft = false
+        sdk.leave.andCallFake(function(roomId) {
+            expect(roomId).toBe(adminRoomId, 'Bot did not leave admin room');
+            botLeft = true;
+            return Promise.resolve();
+        });
+
+        yield env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "join",
+            },
+            state_key: botUserId,
+            user_id: "@user1:localhost",
+            room_id: adminRoomId,
+            type: "m.room.member"
+        });
+
+        // trigger the bot to leave
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "ping",
+                msgtype: "m.text"
+            },
+            user_id: "@user2:localhost",
+            room_id: adminRoomId,
+            type: "m.room.message"
+        }).then(
+            () => {
+                expect(botLeft).toBe(false);
+            },
+            (err) => {console.log(err)}
+        );
+    }));
 });
