@@ -549,7 +549,7 @@ describe("Admin rooms", function() {
         var newChannel = "#coffee";
 
         // Expect the following commands to be sent in order
-        let recvCommands = ["JOIN", "TOPIC", "PART", "STUPID", "SOME"];
+        let recvCommands = ["JOIN", "TOPIC", "PART", "STUPID"];
 
         var cmdIx = 0;
         env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
@@ -562,28 +562,28 @@ describe("Admin rooms", function() {
         });
 
         // 5 commands should be executed
-        // rubbishserver should throw and prevent more commands
-        let command = `${roomMapping.server}
-                        JOIN ${newChannel}
-                        TOPIC ${newChannel} :some new fancy topic
-                        PART ${newChannel}
-                        STUPID COMMANDS
-                        ${roomMapping.server}
-                        SOME COMMAND
-                        rubbishserver
-                        PART ${newChannel}`;
-        // send commands
-        yield env.mockAppService._trigger("type:m.room.message", {
-            content: {
-                body: command,
-                msgtype: "m.text"
-            },
-            user_id: userId,
-            room_id: adminRoomId,
-            type: "m.room.message"
-        });
+        // rubbishserver should not be accepted
+        let commands = [
+            `!cmd ${roomMapping.server} JOIN ${newChannel}`,
+            `!cmd ${roomMapping.server} TOPIC ${newChannel} :some new fancy topic`,
+            `!cmd ${roomMapping.server} PART ${newChannel}`,
+            `!cmd ${roomMapping.server} STUPID COMMANDS`,
+            `!cmd rubbishserver SOME COMMAND`];
 
-        expect(cmdIx).toBe(5);
+        for (var i = 0; i < commands.length; i++) {
+            // send commands
+            yield env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: commands[i],
+                    msgtype: "m.text"
+                },
+                user_id: userId,
+                room_id: adminRoomId,
+                type: "m.room.message"
+            });
+        }
+
+        expect(cmdIx).toBe(recvCommands.length);
     }));
 
     it("should allow arbitrary IRC commands to be issued when server has not been set",
@@ -591,7 +591,7 @@ describe("Admin rooms", function() {
         var newChannel = "#coffee";
 
         // Expect the following commands to be sent in order
-        let recvCommands = ["JOIN", "TOPIC", "PART"];
+        let recvCommands = ["JOIN", "TOPIC", "PART", "STUPID"];
 
         var cmdIx = 0;
         env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
@@ -603,23 +603,26 @@ describe("Admin rooms", function() {
             cmdIx++;
         });
 
-        // 3 commands should be executed
-        let command = `JOIN ${newChannel}
-                        TOPIC ${newChannel} :some new fancy topic
-                        PART ${newChannel}`;
+        let commands = [
+            `!cmd JOIN ${newChannel}`,
+            `!cmd TOPIC ${newChannel} :some new fancy topic`,
+            `!cmd PART ${newChannel}`,
+            `!cmd STUPID COMMANDS`];
 
-        // send commands
-        yield env.mockAppService._trigger("type:m.room.message", {
-            content: {
-                body: command,
-                msgtype: "m.text"
-            },
-            user_id: userId,
-            room_id: adminRoomId,
-            type: "m.room.message"
-        });
+        for (var i = 0; i < commands.length; i++) {
+            // send commands
+            yield env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: commands[i],
+                    msgtype: "m.text"
+                },
+                user_id: userId,
+                room_id: adminRoomId,
+                type: "m.room.message"
+            });
+        }
 
-        expect(cmdIx).toBe(3);
+        expect(cmdIx).toBe(recvCommands.length);
     }));
 
     it("should reject malformed commands (new form)",
@@ -630,7 +633,7 @@ describe("Admin rooms", function() {
             cmdCount++;
         });
 
-        let command = `M4LF0RM3D command`;
+        let command = `!cmd M4LF0RM3D command`;
 
         // send command
         yield env.mockAppService._trigger("type:m.room.message", {
@@ -654,7 +657,7 @@ describe("Admin rooms", function() {
             cmdCount++;
         });
 
-        let command = `PROTOCTL command`;
+        let command = `!cmd PROTOCTL command`;
 
         // send command
         yield env.mockAppService._trigger("type:m.room.message", {
