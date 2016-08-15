@@ -529,7 +529,6 @@ describe("IRC connections", function() {
         });
     });
 
-
     describe("reconnects", function() {
 
         beforeEach(function() {
