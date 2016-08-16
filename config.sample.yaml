@@ -1,8 +1,8 @@
 # Configuration specific to AS registration. Unless other marked, all fields
 # are *REQUIRED*.
 homeserver:
-  # The URL to the home server for client-server API calls.
-  url: "http://localhost:8008"
+  # The URL to posted files on your home server as they are displayed in links in the bridged IRC channels:
+  url: "http://localhost"
   # The 'domain' part for user IDs on this home server. Usually (but not always)
   # is the "domain name" part of the HS URL.
   domain: "localhost"
