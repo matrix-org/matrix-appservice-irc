@@ -208,7 +208,7 @@ ircService:
         idleTimeout: 10800
         # The number of millseconds to wait between consecutive reconnections if a
         # client gets disconnected. Default: 5000 (5 seconds)
-        reconnectInterval: 5000
+        reconnectIntervalMs: 5000
         # The number of lines to allow being sent by the IRC client that has received
         # a large block of text to send from matrix. If the number of lines that would
         # be sent is > lineLimit, the text will instead be uploaded to matrix and the

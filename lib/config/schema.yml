@@ -233,7 +233,7 @@ properties:
                                 idleTimeout:
                                     type: "integer"
                                     minimum: 0
-                                reconnectInterval:
+                                reconnectIntervalMs:
                                     type: "integer"
                                     minimum: 0
                                 allowNickChanges:
