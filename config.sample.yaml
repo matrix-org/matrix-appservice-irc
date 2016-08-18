@@ -1,7 +1,8 @@
 # Configuration specific to AS registration. Unless other marked, all fields
 # are *REQUIRED*.
 homeserver:
-  # The URL to the home server for client-server API calls.
+  # The URL to the home server for client-server API calls, also used to form the
+  # media URLs as displayed in bridged IRC channels:
   url: "http://localhost:8008"
   # The 'domain' part for user IDs on this home server. Usually (but not always)
   # is the "domain name" part of the HS URL.
