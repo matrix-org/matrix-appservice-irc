@@ -534,7 +534,9 @@ describe("Provisioning API", function() {
             // Bot now joins the provisioned channel to check for ops
             env.ircMock._autoJoinChannels(
                 config._server, config._botnick,
-                ['#provisionedchannel','#provisionedchannel1','#provisionedchannel2']
+                ['#provisionedchannel',
+                '#provisionedchannel1',
+                '#provisionedchannel2']
             );
 
             // Allow receiving of names by bot
@@ -644,7 +646,7 @@ describe("Provisioning API", function() {
                     // Listen for m.room.bridging success
                     console.log('Waiting for m.room.bridging');
                     var sdk = env.clientMock._client(config._botUserId);
-                    sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                    sdk.sendStateEvent.andCallFake((stateRoomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
                             isLinked[i++].resolve();
@@ -703,7 +705,7 @@ describe("Provisioning API", function() {
                 env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
                     // Listen for m.room.bridging success
                     var sdk = env.clientMock._client(config._botUserId);
-                    sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                    sdk.sendStateEvent.andCallFake((stateRoomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
                             isLinked[i++].resolve();
