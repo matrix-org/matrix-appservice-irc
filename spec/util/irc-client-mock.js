@@ -54,7 +54,7 @@ function Client(addr, nick, opts) {
 
     var spies = [
         "connect", "whois", "join", "send", "action", "ctcp", "say",
-        "disconnect", "notice", "part"
+        "disconnect", "notice", "part", "names"
     ];
     spies.forEach(function(fnName) {
         self[fnName] = jasmine.createSpy("Client." + fnName);
@@ -182,3 +182,9 @@ module.exports._autoConnectNetworks = function(addr, nick, networks) {
         }
     });
 };
+
+// For imitating events received by the client (such as an IRC op replying
+//  to a request for plumbing)
+module.exports.getClientEmitter = function () {
+    return clientEmitter;
+}

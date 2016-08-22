@@ -1,6 +1,7 @@
 "use strict";
 var Promise = require("bluebird");
 var test = require("../util/test");
+var promiseutil = require("../../lib/promiseutil.js");
 var env = test.mkEnv();
 var config = env.config;
 
@@ -14,6 +15,10 @@ describe("Provisioning API", function() {
         nick: "bob",
         localpart: config._server + "_bob",
         id: "@" + config._server + "_bob:" + config.homeserver.domain
+    };
+
+    var receivingOp = {
+        nick: "oprah"
     };
 
     // Create a coroutine to test certain API parameters.
@@ -42,6 +47,29 @@ describe("Provisioning API", function() {
             if (!parameters.remote_room_channel) {
                 parameters.remote_room_channel = "#provisionedchannel";
             }
+            if (!parameters.op_nick) {
+                parameters.op_nick = receivingOp.nick;
+            }
+            if (!parameters.bridger_id) {
+                parameters.bridger_id = mxUser.id;
+            }
+
+            let isLinked = promiseutil.defer();
+
+            env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                // Listen for m.room.bridging success
+                var sdk = env.clientMock._client(config._botUserId);
+                sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                    // Status of m.room.bridging is a success
+                    if (kind === "m.room.bridging" && content.status === "success") {
+                        isLinked.resolve();
+                    }
+                    return Promise.resolve({});
+                });
+
+                // Say yes back to the bot
+                self.emit("message", receivingOp.nick, config._botnick, 'yes');
+            });
 
             // When the _link promise resolves...
             let resolve = function () {
@@ -73,13 +101,16 @@ describe("Provisioning API", function() {
             // but only if it should succeed. If it should fail due to
             // validation, there does not need to be an existing link
             if (shouldSucceed && !link) {
-                return env.mockAppService._link(
+                yield env.mockAppService._link(
                    parameters, status, json
-                ).then(() => {
-                    return env.mockAppService._unlink(
-                       parameters, status, json
-                    ).then(resolve, reject);
-                });
+                );
+
+                yield isLinked.promise;
+
+                // Wait until received 'yes' from receivingOp
+                return env.mockAppService._unlink(
+                   parameters, status, json
+                ).then(resolve, reject);
             }
 
             if (link) {
@@ -118,6 +149,20 @@ describe("Provisioning API", function() {
                 config._server, config._botnick, config._chan
             );
 
+            // Bot now joins the provisioned channel to check for ops
+            env.ircMock._autoJoinChannels(
+                config._server, config._botnick, '#provisionedchannel'
+            );
+
+            // Allow receiving of names by bot
+            env.ircMock._whenClient(config._server, config._botnick, "names",
+                function(client, chan, cb) {
+                    let names = {};
+                    names[receivingOp.nick] = '@'; // is op
+                    cb(chan, names);
+                }
+            );
+
             // do the init
             test.initEnv(env).done(function() {
                 done();
@@ -147,6 +192,10 @@ describe("Provisioning API", function() {
             // See dynamicChannels.exclude in config file
             it("should not create a M<--->I link when remote_room_channel is " +
                 "excluded by the config",
+                mockLink({remote_room_channel : '#excluded_channel'}, false, true));
+
+            it("should not create a M<--->I link when op_nick is " +
+                "not defined",
                 mockLink({remote_room_channel : '#excluded_channel'}, false, true));
         });
 
@@ -203,6 +252,20 @@ describe("Provisioning API", function() {
                 config._server, config._botnick, config._chan
             );
 
+            // Bot now joins the provisioned channel to check for ops
+            env.ircMock._autoJoinChannels(
+                config._server, config._botnick, '#provisionedchannel'
+            );
+
+            // Allow receiving of names by bot
+            env.ircMock._whenClient(config._server, config._botnick, "names",
+                function(client, chan, cb) {
+                    let names = {};
+                    names[receivingOp.nick] = '@'; // is op
+                    cb(chan, names);
+                }
+            );
+
             // do the init
             test.initEnv(env).done(function() {
                 done();
@@ -224,6 +287,20 @@ describe("Provisioning API", function() {
                 config._server, config._botnick, config._server
             );
 
+            // Bot now joins the provisioned channel to check for ops
+            env.ircMock._autoJoinChannels(
+                config._server, config._botnick, '#provisionedchannel'
+            );
+
+            // Allow receiving of names by bot
+            env.ircMock._whenClient(config._server, config._botnick, "names",
+                function(client, chan, cb) {
+                    let names = {};
+                    names[receivingOp.nick] = '@'; // is op
+                    cb(chan, names);
+                }
+            );
+
             // do the init
             test.initEnv(env).done(function() {
                 done();
@@ -239,7 +316,9 @@ describe("Provisioning API", function() {
                 let parameters = {
                     matrix_room_id : "!foo:bar",
                     remote_room_server : "irc.example",
-                    remote_room_channel : "#provisionedchannel"
+                    remote_room_channel : "#provisionedchannel",
+                    op_nick : receivingOp.nick,
+                    bridger_id : mxUser.id
                 };
 
                 let roomMapping = {
@@ -273,10 +352,29 @@ describe("Provisioning API", function() {
                     gotSayCall = true;
                 });
 
+                let isLinked = promiseutil.defer();
+
+                env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                    // Listen for m.room.bridging success
+                    var sdk = env.clientMock._client(config._botUserId);
+                    sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                        // Status of m.room.bridging is a success
+                        if (kind === "m.room.bridging" && content.status === "success") {
+                            isLinked.resolve();
+                        }
+                        return Promise.resolve({});
+                    });
+
+                    // Say yes back to the bot
+                    self.emit("message", receivingOp.nick, config._botnick, 'yes');
+                });
+
                 // Create a link
                 yield env.mockAppService._link(
                    parameters, status, json
                 );
+
+                yield isLinked.promise;
 
                 // Send a message
                 yield env.mockAppService._trigger(
@@ -310,7 +408,9 @@ describe("Provisioning API", function() {
                 let parameters = {
                     matrix_room_id : "!foo:bar",
                     remote_room_server : "irc.example",
-                    remote_room_channel : "#provisionedchannel"
+                    remote_room_channel : "#provisionedchannel",
+                    op_nick : receivingOp.nick,
+                    bridger_id : mxUser.id
                 };
 
                 let roomMapping = {
@@ -344,8 +444,27 @@ describe("Provisioning API", function() {
                     countSays++;
                 });
 
+                let isLinked = promiseutil.defer();
+
+                env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                    // Listen for m.room.bridging success
+                    var sdk = env.clientMock._client(config._botUserId);
+                    sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                        // Status of m.room.bridging is a success
+                        if (kind === "m.room.bridging" && content.status === "success") {
+                            isLinked.resolve();
+                        }
+                        return Promise.resolve({});
+                    });
+
+                    // Say yes back to the bot
+                    self.emit("message", receivingOp.nick, config._botnick, 'yes');
+                });
+
                 // Create the link
                 yield env.mockAppService._link(parameters, status, json);
+
+                yield isLinked.promise;
 
                 // Send a message
                 yield env.mockAppService._trigger(
@@ -412,6 +531,21 @@ describe("Provisioning API", function() {
                 config._server, config._botnick, config._chan
             );
 
+            // Bot now joins the provisioned channel to check for ops
+            env.ircMock._autoJoinChannels(
+                config._server, config._botnick,
+                ['#provisionedchannel','#provisionedchannel1','#provisionedchannel2']
+            );
+
+            // Allow receiving of names by bot
+            env.ircMock._whenClient(config._server, config._botnick, "names",
+                function(client, chan, cb) {
+                    let names = {};
+                    names[receivingOp.nick] = '@'; // is op
+                    cb(chan, names);
+                }
+            );
+
             // do the init
             test.initEnv(env).done(function() {
                 done();
@@ -435,17 +569,43 @@ describe("Provisioning API", function() {
                 let json = jasmine.createSpy("json(obj)");
                 let status = jasmine.createSpy("status(num)");
 
+                let expectedListings = [{
+                    matrix_room_id : "!foo:bar",
+                    remote_room_server : "irc.example",
+                    remote_room_channel : "#provisionedchannel"}];
+
                 let parameters = {
                     matrix_room_id : "!foo:bar",
                     remote_room_server : "irc.example",
-                    remote_room_channel : "#provisionedchannel"
+                    remote_room_channel : "#provisionedchannel",
+                    op_nick : receivingOp.nick,
+                    bridger_id : mxUser.id
                 };
 
+                let isLinked = promiseutil.defer();
+
+                env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                    // Listen for m.room.bridging success
+                    var sdk = env.clientMock._client(config._botUserId);
+                    sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                        // Status of m.room.bridging is a success
+                        if (kind === "m.room.bridging" && content.status === "success") {
+                            isLinked.resolve();
+                        }
+                        return Promise.resolve({});
+                    });
+
+                    // Say yes back to the bot
+                    self.emit("message", receivingOp.nick, config._botnick, 'yes');
+                });
+
                 yield env.mockAppService._link(parameters, status, json);
+                yield isLinked.promise;
+
                 yield env.mockAppService
                     ._listLinks({roomId : parameters.matrix_room_id}, status, json);
 
-                expect(json).toHaveBeenCalledWith([parameters]);
+                expect(json).toHaveBeenCalledWith(expectedListings);
             })
         );
 
@@ -455,21 +615,54 @@ describe("Provisioning API", function() {
                 let status = jasmine.createSpy("status(num)");
 
                 let roomId = "!foo:bar";
-                let mappings = [{
+                let parameters = [{
                     matrix_room_id : roomId,
                     remote_room_server : "irc.example",
-                    remote_room_channel : "#provisionedchannel1"
+                    remote_room_channel : "#provisionedchannel1",
+                    op_nick : receivingOp.nick,
+                    bridger_id : mxUser.id
                 }, {
                     matrix_room_id : roomId,
                     remote_room_server : "irc.example",
-                    remote_room_channel : "#provisionedchannel2"
+                    remote_room_channel : "#provisionedchannel2",
+                    op_nick : receivingOp.nick,
+                    bridger_id : mxUser.id
                 }];
 
-                yield env.mockAppService._link(mappings[0], status, json);
-                yield env.mockAppService._link(mappings[1], status, json);
+                let listings = parameters.map((mapping) => {
+                    return {
+                        matrix_room_id: mapping.matrix_room_id,
+                        remote_room_server: mapping.remote_room_server,
+                        remote_room_channel: mapping.remote_room_channel
+                    };
+                });
+
+                let isLinked = [promiseutil.defer(), promiseutil.defer()];
+                let i = 0;
+
+                env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                    // Listen for m.room.bridging success
+                    console.log('Waiting for m.room.bridging');
+                    var sdk = env.clientMock._client(config._botUserId);
+                    sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                        // Status of m.room.bridging is a success
+                        if (kind === "m.room.bridging" && content.status === "success") {
+                            isLinked[i++].resolve();
+                        }
+                        return Promise.resolve({});
+                    });
+
+                    // Say yes back to the bot
+                    self.emit("message", receivingOp.nick, config._botnick, 'yes');
+                });
+
+                yield env.mockAppService._link(parameters[0], status, json);
+                yield env.mockAppService._link(parameters[1], status, json);
+                yield Promise.all(isLinked.map((d)=>{return d.promise;}));
+
                 yield env.mockAppService._listLinks({roomId : roomId}, status, json);
 
-                expect(json).toHaveBeenCalledWith(mappings);
+                expect(json).toHaveBeenCalledWith(listings);
             })
         );
 
@@ -482,22 +675,54 @@ describe("Provisioning API", function() {
                 let listingsjson = jasmine.createSpy("json(obj)");
 
                 let roomId = "!foo:bar";
-                let mappings = [{
+                let parameters = [{
                     matrix_room_id : roomId,
                     remote_room_server : "irc.example",
-                    remote_room_channel : "#provisionedchannel1"
+                    remote_room_channel : "#provisionedchannel1",
+                    op_nick : receivingOp.nick,
+                    bridger_id : mxUser.id
                 }, {
                     matrix_room_id : roomId,
                     remote_room_server : "irc.example",
-                    remote_room_channel : "#provisionedchannel2"
+                    remote_room_channel : "#provisionedchannel2",
+                    op_nick : receivingOp.nick,
+                    bridger_id : mxUser.id
                 }];
 
-                yield env.mockAppService._link(mappings[0], status, json);
-                yield env.mockAppService._link(mappings[1], status, json);
-                yield env.mockAppService._unlink(mappings[0], status, json);
+                let listings = parameters.map((mapping) => {
+                    return {
+                        matrix_room_id: mapping.matrix_room_id,
+                        remote_room_server: mapping.remote_room_server,
+                        remote_room_channel: mapping.remote_room_channel
+                    };
+                });
+
+                let isLinked = [promiseutil.defer(), promiseutil.defer()];
+                let i = 0;
+
+                env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                    // Listen for m.room.bridging success
+                    var sdk = env.clientMock._client(config._botUserId);
+                    sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                        // Status of m.room.bridging is a success
+                        if (kind === "m.room.bridging" && content.status === "success") {
+                            isLinked[i++].resolve();
+                        }
+                        return Promise.resolve({});
+                    });
+
+                    // Say yes back to the bot
+                    self.emit("message", receivingOp.nick, config._botnick, 'yes');
+                });
+
+                yield env.mockAppService._link(parameters[0], status, json);
+                yield env.mockAppService._link(parameters[1], status, json);
+                yield Promise.all(isLinked.map((d)=>{return d.promise;}));
+
+                yield env.mockAppService._unlink(parameters[0], status, json);
                 yield env.mockAppService._listLinks({roomId : roomId}, status, listingsjson);
 
-                expect(listingsjson).toHaveBeenCalledWith([mappings[1]]);
+                expect(listingsjson).toHaveBeenCalledWith([listings[1]]);
             })
         );
     });
