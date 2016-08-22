@@ -50,8 +50,8 @@ describe("Provisioning API", function() {
             if (!parameters.op_nick) {
                 parameters.op_nick = receivingOp.nick;
             }
-            if (!parameters.bridger_id) {
-                parameters.bridger_id = mxUser.id;
+            if (!parameters.user_id) {
+                parameters.user_id = mxUser.id;
             }
 
             let isLinked = promiseutil.defer();
@@ -318,7 +318,7 @@ describe("Provisioning API", function() {
                     remote_room_server : "irc.example",
                     remote_room_channel : "#provisionedchannel",
                     op_nick : receivingOp.nick,
-                    bridger_id : mxUser.id
+                    user_id : mxUser.id
                 };
 
                 let roomMapping = {
@@ -410,7 +410,7 @@ describe("Provisioning API", function() {
                     remote_room_server : "irc.example",
                     remote_room_channel : "#provisionedchannel",
                     op_nick : receivingOp.nick,
-                    bridger_id : mxUser.id
+                    user_id : mxUser.id
                 };
 
                 let roomMapping = {
@@ -579,7 +579,7 @@ describe("Provisioning API", function() {
                     remote_room_server : "irc.example",
                     remote_room_channel : "#provisionedchannel",
                     op_nick : receivingOp.nick,
-                    bridger_id : mxUser.id
+                    user_id : mxUser.id
                 };
 
                 let isLinked = promiseutil.defer();
@@ -620,13 +620,13 @@ describe("Provisioning API", function() {
                     remote_room_server : "irc.example",
                     remote_room_channel : "#provisionedchannel1",
                     op_nick : receivingOp.nick,
-                    bridger_id : mxUser.id
+                    user_id : mxUser.id
                 }, {
                     matrix_room_id : roomId,
                     remote_room_server : "irc.example",
                     remote_room_channel : "#provisionedchannel2",
                     op_nick : receivingOp.nick,
-                    bridger_id : mxUser.id
+                    user_id : mxUser.id
                 }];
 
                 let listings = parameters.map((mapping) => {
@@ -680,13 +680,13 @@ describe("Provisioning API", function() {
                     remote_room_server : "irc.example",
                     remote_room_channel : "#provisionedchannel1",
                     op_nick : receivingOp.nick,
-                    bridger_id : mxUser.id
+                    user_id : mxUser.id
                 }, {
                     matrix_room_id : roomId,
                     remote_room_server : "irc.example",
                     remote_room_channel : "#provisionedchannel2",
                     op_nick : receivingOp.nick,
-                    bridger_id : mxUser.id
+                    user_id : mxUser.id
                 }];
 
                 let listings = parameters.map((mapping) => {
