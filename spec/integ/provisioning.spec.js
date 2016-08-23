@@ -243,6 +243,18 @@ describe("Provisioning API", function() {
 
             it("should not remove a M<--->I link when remote_room_channel is malformed",
                 mockLink({remote_room_channel : 'coffe####e'}, false, false));
+
+            it("should not remove a M<--->I link when matrix_room_id is " +
+                "not defined",
+                mockLink({matrix_room_id : null}, false, true));
+
+            it("should not remove a M<--->I link when remote_room_server is " +
+                "not defined",
+                mockLink({remote_room_server : null}, false, true));
+
+            it("should not remove a M<--->I link when remote_room_channel is " +
+                "not defined",
+                mockLink({remote_room_channel : null}, false, true));
         });
     });
 
