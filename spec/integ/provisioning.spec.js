@@ -201,9 +201,25 @@ describe("Provisioning API", function() {
                 "excluded by the config",
                 mockLink({remote_room_channel : '#excluded_channel'}, false, true));
 
+            it("should not create a M<--->I link when matrix_room_id is " +
+                "not defined",
+                mockLink({matrix_room_id : null}, false, true));
+
+            it("should not create a M<--->I link when remote_room_server is " +
+                "not defined",
+                mockLink({remote_room_server : null}, false, true));
+
+            it("should not create a M<--->I link when remote_room_channel is " +
+                "not defined",
+                mockLink({remote_room_channel : null}, false, true));
+
             it("should not create a M<--->I link when op_nick is " +
                 "not defined",
                 mockLink({op_nick : null}, false, true));
+
+            it("should not create a M<--->I link when op_nick is " +
+                "not in the room",
+                mockLink({op_nick : 'somenonexistantop'}, false, true));
         });
 
         describe("unlink endpoint", function() {
