@@ -38,21 +38,28 @@ describe("Provisioning API", function() {
             });
 
             // Defaults
-            if (!parameters.matrix_room_id) {
+            if (parameters.matrix_room_id === undefined) {
                 parameters.matrix_room_id = "!foo:bar";
             }
-            if (!parameters.remote_room_server) {
+            if (parameters.remote_room_server === undefined) {
                 parameters.remote_room_server = "irc.example";
             }
-            if (!parameters.remote_room_channel) {
+            if (parameters.remote_room_channel === undefined) {
                 parameters.remote_room_channel = "#provisionedchannel";
             }
-            if (!parameters.op_nick) {
+            if (parameters.op_nick === undefined) {
                 parameters.op_nick = receivingOp.nick;
             }
-            if (!parameters.user_id) {
+            if (parameters.user_id === undefined) {
                 parameters.user_id = mxUser.id;
             }
+
+            for (var p in parameters) {
+                if (parameters[p] === null) {
+                    parameters[p] = undefined;
+                }
+            }
+
 
             let isLinked = promiseutil.defer();
 
@@ -196,7 +203,7 @@ describe("Provisioning API", function() {
 
             it("should not create a M<--->I link when op_nick is " +
                 "not defined",
-                mockLink({remote_room_channel : '#excluded_channel'}, false, true));
+                mockLink({op_nick : null}, false, true));
         });
 
         describe("unlink endpoint", function() {
