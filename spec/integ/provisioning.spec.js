@@ -21,6 +21,10 @@ describe("Provisioning API", function() {
         nick: "oprah"
     };
 
+    var notOp = {
+        nick: "notoprah"
+    };
+
     // Create a coroutine to test certain API parameters.
     //  parameters {object} - the API parameters
     //  shouldSucceed {boolean} - true if the request should succeed
@@ -166,6 +170,7 @@ describe("Provisioning API", function() {
                 function(client, chan, cb) {
                     let names = {};
                     names[receivingOp.nick] = '@'; // is op
+                    names[notOp.nick] = ''; // is not op
                     cb(chan, names);
                 }
             );
@@ -220,6 +225,10 @@ describe("Provisioning API", function() {
             it("should not create a M<--->I link when op_nick is " +
                 "not in the room",
                 mockLink({op_nick : 'somenonexistantop'}, false, true));
+
+            it("should not create a M<--->I link when op_nick is " +
+                "not an operator, but is in the room",
+                mockLink({op_nick : notOp.nick}, false, true));
         });
 
         describe("unlink endpoint", function() {
@@ -297,6 +306,7 @@ describe("Provisioning API", function() {
                 function(client, chan, cb) {
                     let names = {};
                     names[receivingOp.nick] = '@'; // is op
+                    names[notOp.nick] = ''; // is not op
                     cb(chan, names);
                 }
             );
@@ -332,6 +342,7 @@ describe("Provisioning API", function() {
                 function(client, chan, cb) {
                     let names = {};
                     names[receivingOp.nick] = '@'; // is op
+                    names[notOp.nick] = ''; // is not op
                     cb(chan, names);
                 }
             );
@@ -579,6 +590,7 @@ describe("Provisioning API", function() {
                 function(client, chan, cb) {
                     let names = {};
                     names[receivingOp.nick] = '@'; // is op
+                    names[notOp.nick] = ''; // is not op
                     cb(chan, names);
                 }
             );
