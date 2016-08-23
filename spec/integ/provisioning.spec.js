@@ -65,15 +65,15 @@ describe("Provisioning API", function() {
         );
 
         // Use these to determine what bridging state has been sent to the room
+        //  these effectively represent the status of the entire provisioning process
+        //  and NOT just the sending of the link request to the op
         env.isPending = promiseutil.defer();
         env.isFailed = promiseutil.defer();
         env.isSuccess = promiseutil.defer();
 
-        // Listen for m.room.bridging filure
+        // Listen for m.room.bridging
         var sdk = env.clientMock._client(config._botUserId);
         sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
-            // Status of m.room.bridging is a success
-            // console.log(roomId, kind, content);
             console.log(roomId, kind, content);
             if (kind === "m.room.bridging") {
                 if (content.status === "pending") {
@@ -203,13 +203,14 @@ describe("Provisioning API", function() {
                     return resolve();
                 }
 
-                // Wait for the link to be successful before unlinking
+                // If a link was made
                 if (doLinkBeforeUnlink) {
+                    // Wait for the link to be success or failure
                     if (shouldSucceed) {
                         yield env.isSuccess.promise;
                     }
                     else {
-                        yield env.isFailed.promise; // Could be wrong
+                        yield env.isFailed.promise;
                     }
                 }
 
