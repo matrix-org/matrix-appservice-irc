@@ -29,7 +29,12 @@ describe("Provisioning API", function() {
     //  parameters {object} - the API parameters
     //  shouldSucceed {boolean} - true if the request should succeed
     //  link {boolean} - true if this is a link request (false if unlink)
-    let mockLink = function (parameters, shouldSucceed, link) {
+    //  doLinkBeforeUnlink {boolean} - Optional. true if the link action
+    //      before an unlink should be done. Default true.
+    let mockLink = function (parameters, shouldSucceed, link, doLinkBeforeUnlink) {
+        if (doLinkBeforeUnlink === undefined) {
+            doLinkBeforeUnlink = true;
+        }
 
         return test.coroutine(function*() {
             let json = jasmine.createSpy("json(obj)")
@@ -64,7 +69,6 @@ describe("Provisioning API", function() {
                 }
             }
 
-
             let isLinked = promiseutil.defer();
 
             env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
@@ -87,18 +91,18 @@ describe("Provisioning API", function() {
                 if (shouldSucceed) {
                     // success is indicated with empty object
                     expect(json).toHaveBeenCalledWith({});
+                    return Promise.resolve();
                 }
-                else {
-                    // but it should not have resolved
-                    return Promise.reject('Expected to fail');
-                }
+                // but it should not have resolved
+                return Promise.reject(new Error('Expected to fail'));
             };
 
             // When the _link fails
             let reject = function (err) {
+                // but it should have succeeded
                 if (shouldSucceed) {
-                    // but it should have succeeded
-                    return Promise.reject(err);
+                    console.error(err.stack);
+                    return Promise.reject(new Error('Expected to succeeded'));
                 }
                 // and it should have failed
                 expect(err).toBeDefined();
@@ -106,32 +110,34 @@ describe("Provisioning API", function() {
                 expect(json).toHaveBeenCalled();
                 // Make sure the first call to JSON has error defined
                 expect(json.calls[0].args[0].error).toBeDefined();
+                return Promise.resolve();
             };
 
-            // Unlink needs an existing link to remove, so add one first
-            // but only if it should succeed. If it should fail due to
-            // validation, there does not need to be an existing link
-            if (shouldSucceed && !link) {
-                yield env.mockAppService._link(
+
+            try {
+                // Unlink needs an existing link to remove, so add one first
+                if (doLinkBeforeUnlink) {
+                    yield env.mockAppService._link(
+                       parameters, status, json
+                    );
+
+                    // Wait until isLinked
+                    yield isLinked.promise;
+                }
+
+                // Only link is required, resolve early
+                if (link) {
+                    return resolve();
+                }
+
+                yield env.mockAppService._unlink(
                    parameters, status, json
                 );
-
-                yield isLinked.promise;
-
-                // Wait until received 'yes' from receivingOp
-                return env.mockAppService._unlink(
-                   parameters, status, json
-                ).then(resolve, reject);
+                return resolve();
             }
-
-            if (link) {
-                return env.mockAppService._link(
-                   parameters, status, json
-                ).then(resolve, reject);
+            catch (err) {
+                return reject(err);
             }
-            return env.mockAppService._unlink(
-               parameters, status, json
-            ).then(resolve, reject);
         });
     };
 
@@ -234,7 +240,7 @@ describe("Provisioning API", function() {
                 mockLink({}, true, false));
 
             it("should not remove a non-existing M<--->I link",
-                mockLink({matrix_room_id : '!idonot:exist'}, false, false));
+                mockLink({matrix_room_id : '!idonot:exist'}, false, false, false));
 
             it("should not remove a non-provision M<--->I link",
                 mockLink({
