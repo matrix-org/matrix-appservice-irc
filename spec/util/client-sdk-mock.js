@@ -48,7 +48,9 @@ function MockClient(config) {
         if (type === 'm.room.power_levels') {
             result = {
                 users_default: 100,
-                users : {},
+                users : {
+                    'powerless': 0
+                },
                 events : {
                     'm.room.power_levels' : 100
                 }

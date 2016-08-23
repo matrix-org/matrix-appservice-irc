@@ -202,33 +202,31 @@ describe("Provisioning API", function() {
                 mockLink({remote_room_channel : 'coffe####e'}, false, true));
 
             // See dynamicChannels.exclude in config file
-            it("should not create a M<--->I link when remote_room_channel is " +
-                "excluded by the config",
+            it("should not create a M<--->I link when remote_room_channel is excluded by the " +
+                "config",
                 mockLink({remote_room_channel : '#excluded_channel'}, false, true));
 
-            it("should not create a M<--->I link when matrix_room_id is " +
-                "not defined",
+            it("should not create a M<--->I link when matrix_room_id is not defined",
                 mockLink({matrix_room_id : null}, false, true));
 
-            it("should not create a M<--->I link when remote_room_server is " +
-                "not defined",
+            it("should not create a M<--->I link when remote_room_server is not defined",
                 mockLink({remote_room_server : null}, false, true));
 
-            it("should not create a M<--->I link when remote_room_channel is " +
-                "not defined",
+            it("should not create a M<--->I link when remote_room_channel is not defined",
                 mockLink({remote_room_channel : null}, false, true));
 
-            it("should not create a M<--->I link when op_nick is " +
-                "not defined",
+            it("should not create a M<--->I link when op_nick is not defined",
                 mockLink({op_nick : null}, false, true));
 
-            it("should not create a M<--->I link when op_nick is " +
-                "not in the room",
+            it("should not create a M<--->I link when op_nick is not in the room",
                 mockLink({op_nick : 'somenonexistantop'}, false, true));
 
-            it("should not create a M<--->I link when op_nick is " +
-                "not an operator, but is in the room",
+            it("should not create a M<--->I link when op_nick is not an operator, but is in the " +
+                "room",
                 mockLink({op_nick : notOp.nick}, false, true));
+
+            it("should not create a M<--->I link when user does not have enough power in room",
+                mockLink({user_id: 'powerless'}, false, true));
         });
 
         describe("unlink endpoint", function() {
