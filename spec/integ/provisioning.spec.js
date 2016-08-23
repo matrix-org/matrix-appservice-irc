@@ -25,18 +25,99 @@ describe("Provisioning API", function() {
         nick: "notoprah"
     };
 
+    let doSetup = function(done) {
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+
+        // accept connection requests from eeeeeeeeveryone!
+        env.ircMock._autoConnectNetworks(
+            config._server, mxUser.nick, config._server
+        );
+        env.ircMock._autoConnectNetworks(
+            config._server, ircUser.nick, config._server
+        );
+        env.ircMock._autoConnectNetworks(
+            config._server, config._botnick, config._server
+        );
+        // accept join requests from eeeeeeeeveryone!
+        env.ircMock._autoJoinChannels(
+            config._server, mxUser.nick, config._chan
+        );
+        env.ircMock._autoJoinChannels(
+            config._server, ircUser.nick, config._chan
+        );
+        env.ircMock._autoJoinChannels(
+            config._server, config._botnick, config._chan
+        );
+
+        // Bot now joins the provisioned channel to check for ops
+        env.ircMock._autoJoinChannels(
+            config._server, config._botnick, '#provisionedchannel'
+        );
+
+        // Allow receiving of names by bot
+        env.ircMock._whenClient(config._server, config._botnick, "names",
+            function(client, chan, cb) {
+                let names = {};
+                names[receivingOp.nick] = '@'; // is op
+                names[notOp.nick] = ''; // is not op
+                cb(chan, names);
+            }
+        );
+
+        // Use these to determine what bridging state has been sent to the room
+        env.isPending = promiseutil.defer();
+        env.isFailed = promiseutil.defer();
+        env.isSuccess = promiseutil.defer();
+
+        // Listen for m.room.bridging filure
+        var sdk = env.clientMock._client(config._botUserId);
+        sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+            // Status of m.room.bridging is a success
+            // console.log(roomId, kind, content);
+            console.log(roomId, kind, content);
+            if (kind === "m.room.bridging") {
+                if (content.status === "pending") {
+                    env.isPending.resolve();
+                }
+                else {
+                    if (content.status === "failure") {
+                        env.isFailed.resolve();
+                    }
+                    else if (content.status == "success") {
+                        env.isSuccess.resolve();
+                    }
+                }
+            }
+            return Promise.resolve({});
+        });
+
+        // do the init
+        test.initEnv(env).done(function() {
+            done();
+        });
+    }
+
     // Create a coroutine to test certain API parameters.
     //  parameters {object} - the API parameters
-    //  shouldSucceed {boolean} - true if the request should succeed
+    //  shouldSucceed {boolean} - true if the request should succeed (not the overall link process)
     //  link {boolean} - true if this is a link request (false if unlink)
-    //  doLinkBeforeUnlink {boolean} - Optional. true if the link action
-    //      before an unlink should be done. Default true.
-    let mockLink = function (parameters, shouldSucceed, link, doLinkBeforeUnlink) {
-        if (doLinkBeforeUnlink === undefined) {
-            doLinkBeforeUnlink = true;
-        }
+    //  doLinkBeforeUnlink {boolean} - Optional. Default true. true if the link action
+    //      before an unlink should be done.
+    //  opAuth {boolean} - Optional. Default true. true if the op will send reply 'yes'
+    //      to the link request.
+    let mockLinkCR = Promise.coroutine(
+        function*(parameters, shouldSucceed, link, doLinkBeforeUnlink, opAuth) {
+            if (!env.isPending) {
+                throw new Error('Expected env.isPending to be defined!');
+            }
 
-        return test.coroutine(function*() {
+            if (doLinkBeforeUnlink === undefined) {
+                doLinkBeforeUnlink = true;
+            }
+            if (opAuth === undefined) {
+                opAuth = true;
+            }
+
             let json = jasmine.createSpy("json(obj)")
             .andCallFake(function(obj) {
                 console.log('JSON ' + JSON.stringify(obj))
@@ -69,31 +150,13 @@ describe("Provisioning API", function() {
                 }
             }
 
-            let isPending = promiseutil.defer();
-            let isLinked = promiseutil.defer();
-
-            // Listen for m.room.bridging success
-            var sdk = env.clientMock._client(config._botUserId);
-            sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
-                // Status of m.room.bridging is a success
-                if (kind === "m.room.bridging") {
-                    if (content.status === "pending") {
-                        isPending.resolve();
-                    }
-                    else {
-                        if (content.status === "success") {
-                            isLinked.resolve();
-                        }
-                    }
-                }
-                return Promise.resolve({});
-            });
-
             // Listen for message from bot
-            env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
-                // Say yes back to the bot
-                self.emit("message", receivingOp.nick, config._botnick, 'yes');
-            });
+            if (opAuth) {
+                env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                    // Say yes back to the bot
+                    self.emit("message", receivingOp.nick, config._botnick, 'yes');
+                });
+            }
 
             // When the _link promise resolves...
             let resolve = function () {
@@ -109,9 +172,9 @@ describe("Provisioning API", function() {
 
             // When the _link fails
             let reject = function (err) {
+                console.error(err.stack);
                 // but it should have succeeded
                 if (shouldSucceed) {
-                    console.error(err.stack);
                     return Promise.reject(new Error('Expected to succeeded'));
                 }
                 // and it should have failed
@@ -132,13 +195,22 @@ describe("Provisioning API", function() {
                     );
 
                     // Wait until m.room.bridging has been set accordingly
-                    yield isPending.promise;
-                    yield isLinked.promise;
+                    yield env.isPending.promise;
                 }
 
                 // Only link is required, resolve early
                 if (link) {
                     return resolve();
+                }
+
+                // Wait for the link to be successful before unlinking
+                if (doLinkBeforeUnlink) {
+                    if (shouldSucceed) {
+                        yield env.isSuccess.promise;
+                    }
+                    else {
+                        yield env.isFailed.promise; // Could be wrong
+                    }
                 }
 
                 yield env.mockAppService._unlink(
@@ -149,54 +221,21 @@ describe("Provisioning API", function() {
             catch (err) {
                 return reject(err);
             }
+        }
+    );
+
+    let mockLink = function() {
+        // args to pass to mockLinkCR
+        let args = Array.from(arguments);
+
+        return test.coroutine(function*() {
+            yield mockLinkCR.apply(mockLinkCR, args);
+            return Promise.resolve();
         });
-    };
+    }
 
     describe("room setup", function() {
-        beforeEach(function(done) {
-            test.beforeEach(this, env); // eslint-disable-line no-invalid-this
-
-            // accept connection requests from eeeeeeeeveryone!
-            env.ircMock._autoConnectNetworks(
-                config._server, mxUser.nick, config._server
-            );
-            env.ircMock._autoConnectNetworks(
-                config._server, ircUser.nick, config._server
-            );
-            env.ircMock._autoConnectNetworks(
-                config._server, config._botnick, config._server
-            );
-            // accept join requests from eeeeeeeeveryone!
-            env.ircMock._autoJoinChannels(
-                config._server, mxUser.nick, config._chan
-            );
-            env.ircMock._autoJoinChannels(
-                config._server, ircUser.nick, config._chan
-            );
-            env.ircMock._autoJoinChannels(
-                config._server, config._botnick, config._chan
-            );
-
-            // Bot now joins the provisioned channel to check for ops
-            env.ircMock._autoJoinChannels(
-                config._server, config._botnick, '#provisionedchannel'
-            );
-
-            // Allow receiving of names by bot
-            env.ircMock._whenClient(config._server, config._botnick, "names",
-                function(client, chan, cb) {
-                    let names = {};
-                    names[receivingOp.nick] = '@'; // is op
-                    names[notOp.nick] = ''; // is not op
-                    cb(chan, names);
-                }
-            );
-
-            // do the init
-            test.initEnv(env).done(function() {
-                done();
-            });
-        });
+        beforeEach(doSetup);
 
         describe("link endpoint", function() {
 
@@ -288,6 +327,10 @@ describe("Provisioning API", function() {
                 .servers[config._server]
                 .mappings['#provisionedchannel'] = ['!foo:bar'];
 
+            // The following is copy of doSetup
+            //  It is a copy because otherwise there is not other way
+            //  to alter config before running.
+
             test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
             // accept connection requests from eeeeeeeeveryone!
@@ -325,6 +368,33 @@ describe("Provisioning API", function() {
                     cb(chan, names);
                 }
             );
+
+            // Use these to determine what bridging state has been sent to the room
+            env.isPending = promiseutil.defer();
+            env.isFailed = promiseutil.defer();
+            env.isSuccess = promiseutil.defer();
+
+            // Listen for m.room.bridging filure
+            var sdk = env.clientMock._client(config._botUserId);
+            sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                // Status of m.room.bridging is a success
+                // console.log(roomId, kind, content);
+                console.log(roomId, kind, content);
+                if (kind === "m.room.bridging") {
+                    if (content.status === "pending") {
+                        env.isPending.resolve();
+                    }
+                    else {
+                        if (content.status === "failure") {
+                            env.isFailed.resolve();
+                        }
+                        else if (content.status == "success") {
+                            env.isSuccess.resolve();
+                        }
+                    }
+                }
+                return Promise.resolve({});
+            });
 
             // do the init
             test.initEnv(env).done(function() {
@@ -787,6 +857,39 @@ describe("Provisioning API", function() {
                 yield env.mockAppService._listLinks({roomId : roomId}, status, listingsjson);
 
                 expect(listingsjson).toHaveBeenCalledWith([listings[1]]);
+            })
+        );
+    });
+
+    describe("should set m.room.bridging=success", function() {
+        beforeEach(doSetup);
+
+        it("when the link is successful",
+            test.coroutine(function*() {
+                yield mockLinkCR({}, true, true, true, true);
+                yield env.isPending.promise;
+                yield env.isSuccess.promise;
+
+                return Promise.resolve();
+            })
+        );
+    });
+
+    describe("should set m.room.bridging=failed", function() {
+        beforeEach(doSetup);
+
+        it("when the op did not authorise after a certain timeout",
+            test.coroutine(function*() {
+                // shouldSucceed refers to the linkRequest only, not the overall success
+                //  so whilst the request is expected to succeed, the bridging status is
+                //  expected to be failure (because the op will not respond)
+                let shouldSucceed = true;
+                let opShouldRespond = false;
+                yield mockLinkCR({}, shouldSucceed, true, true, opShouldRespond);
+                yield env.isPending.promise;
+                yield env.isFailed.promise;
+
+                return Promise.resolve();
             })
         );
     });
