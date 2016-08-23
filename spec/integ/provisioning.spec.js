@@ -69,19 +69,28 @@ describe("Provisioning API", function() {
                 }
             }
 
+            let isPending = promiseutil.defer();
             let isLinked = promiseutil.defer();
 
-            env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
-                // Listen for m.room.bridging success
-                var sdk = env.clientMock._client(config._botUserId);
-                sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
-                    // Status of m.room.bridging is a success
-                    if (kind === "m.room.bridging" && content.status === "success") {
-                        isLinked.resolve();
+            // Listen for m.room.bridging success
+            var sdk = env.clientMock._client(config._botUserId);
+            sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                // Status of m.room.bridging is a success
+                if (kind === "m.room.bridging") {
+                    if (content.status === "pending") {
+                        isPending.resolve();
                     }
-                    return Promise.resolve({});
-                });
+                    else {
+                        if (content.status === "success") {
+                            isLinked.resolve();
+                        }
+                    }
+                }
+                return Promise.resolve({});
+            });
 
+            // Listen for message from bot
+            env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
                 // Say yes back to the bot
                 self.emit("message", receivingOp.nick, config._botnick, 'yes');
             });
@@ -91,6 +100,7 @@ describe("Provisioning API", function() {
                 if (shouldSucceed) {
                     // success is indicated with empty object
                     expect(json).toHaveBeenCalledWith({});
+
                     return Promise.resolve();
                 }
                 // but it should not have resolved
@@ -121,7 +131,8 @@ describe("Provisioning API", function() {
                        parameters, status, json
                     );
 
-                    // Wait until isLinked
+                    // Wait until m.room.bridging has been set accordingly
+                    yield isPending.promise;
                     yield isLinked.promise;
                 }
 
