@@ -208,12 +208,10 @@ ircService:
         idleTimeout: 10800
         # The number of millseconds to wait between consecutive reconnections if a
         # client gets disconnected. Setting to 0 will cause the scheduling to be
-        # disabled, i.e. it will be scheduled immediately. Otherwise, the scheduling
-        # interval will be used such that one client reconnect for this server will
-        # be handled every reconnectIntervalMs ms using a FIFO queue. Regardless of
-        # scheduling, a delay will be added to the reconnect process:
-        #   addedDelay = 5000 + (1000 * attempts) * Math.random()
-        #                + 20000 // if throttled
+        # disabled, i.e. it will be scheduled immediately (with jitter.
+        # Otherwise, the scheduling interval will be used such that one client
+        # reconnect for this server will be handled every reconnectIntervalMs ms using
+        # a FIFO queue.
         # Default: 5000 (5 seconds)
         reconnectIntervalMs: 5000
         # The number of lines to allow being sent by the IRC client that has received
