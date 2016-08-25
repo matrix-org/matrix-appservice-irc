@@ -182,9 +182,3 @@ module.exports._autoConnectNetworks = function(addr, nick, networks) {
         }
     });
 };
-
-// For imitating events received by the client (such as an IRC op replying
-//  to a request for plumbing)
-module.exports.getClientEmitter = function () {
-    return clientEmitter;
-}
