@@ -34,10 +34,29 @@ function MockClient(config) {
         return Promise.resolve({});
     });
 
+    // mock up sendStateEvent
+    this.sendStateEvent.andCallFake(function() {
+        return Promise.resolve({});
+    });
+
     // mock up getStateEvent immediately since it is called for every new IRC
     // connection.
-    this.getStateEvent.andCallFake(function() {
-        return Promise.resolve({});
+    this.getStateEvent.andCallFake(function(roomId, type, skey, callback) {
+        let result = {};
+
+        // Mocks a user having the ability to change power levels
+        if (type === 'm.room.power_levels') {
+            result = {
+                users_default: 100,
+                users : {
+                    'powerless': 0
+                },
+                events : {
+                    'm.room.power_levels' : 100
+                }
+            };
+        }
+        return Promise.resolve(result);
     });
 
     // mock up registration since we make them if they aren't in the DB (which they won't be

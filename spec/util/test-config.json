@@ -89,7 +89,8 @@
             }
         },
         "provisioning": {
-            "enabled": true
+            "enabled": true,
+            "requestTimeoutSeconds": 1
         }
     }
 }

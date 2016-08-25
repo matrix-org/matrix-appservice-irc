@@ -286,3 +286,8 @@ ircService:
   provisioning:
     # True to enable the provisioning HTTP endpoint. Default: true.
     enabled: true
+    # The number of seconds to wait before giving up on getting a response from
+    # an IRC channel operator. If the channel operator does not respond within the
+    # allotted time period, the provisioning request will fail.
+    # Default: 300 seconds (5 mins)
+    requestTimeoutSeconds: 300

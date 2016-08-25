@@ -83,6 +83,8 @@ properties:
                 properties:
                     enabled:
                         type: "boolean"
+                    requestTimeoutSeconds:
+                        type: "number"
             servers:
                 type: "object"
                 # all properties must follow the following
