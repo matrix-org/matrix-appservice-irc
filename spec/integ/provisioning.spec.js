@@ -283,7 +283,7 @@ describe("Provisioning API", function() {
                 mockLink({op_nick : notOp.nick}, false, true));
 
             it("should not create a M<--->I link when user does not have enough power in room",
-                mockLink({user_id: 'powerless'}, false, true));
+                mockLink({user_id: 'powerless'}, true, true));
         });
 
         describe("unlink endpoint", function() {
