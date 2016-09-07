@@ -1,0 +1,5 @@
+language: node_js
+node_js:
+  - "4"
+install: npm install
+script:  let "n = 0";npm run lint; let "n = n + $?";npm run ci-test; let "n = n + $?";(exit $n)

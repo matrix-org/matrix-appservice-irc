@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "BLUEBIRD_DEBUG=1 jasmine-node spec --verbose --forceexit --captureExceptions",
-    "lint": "eslint lib spec",
+    "lint": "eslint --max-warnings 0 lib spec",
     "check": "npm test && npm run lint",
     "ci-lint": "eslint lib spec --format checkstyle > ci-lint.xml || true",
     "ci-test": "istanbul cover -x \"**/spec/**\" --report cobertura jasmine-node -- spec --verbose --junitreport --forceexit --captureExceptions",
