@@ -14,9 +14,6 @@ function MockAppService() {
             else if (path === '/_matrix/provision/unlink') {
                 self.unlink = handler;
             }
-            else {
-                throw new Error(`Unrecognised path for mock provisioning endpoint "${path}"`);
-            }
         },
         get: function(path, handler) {
             if (path === '/_matrix/provision/listlinks/:roomId') {
