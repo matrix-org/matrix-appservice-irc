@@ -54,6 +54,8 @@ describe("Provisioning API", function() {
             config._server, config._botnick, '#provisionedchannel'
         );
 
+        env.ircMock._autoJoinChannels(config._server, mxUser.nick, '#provisionedchannel');
+
         // Allow receiving of names by bot
         env.ircMock._whenClient(config._server, config._botnick, "names",
             function(client, chan, cb) {
@@ -61,6 +63,15 @@ describe("Provisioning API", function() {
                 names[receivingOp.nick] = '@'; // is op
                 names[notOp.nick] = ''; // is not op
                 cb(chan, names);
+            }
+        );
+
+        // Allow bot parting a room
+        env.ircMock._whenClient(config._server, config._botnick, "part",
+            function(client, chan, reason, cb) {
+                if (typeof cb === 'function') {
+                    cb(chan);
+                }
             }
         );
 
@@ -150,10 +161,17 @@ describe("Provisioning API", function() {
                 }
             }
 
+            let sentReply = false;
+
             // Listen for message from bot
             if (opAuth) {
-                env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                env.ircMock._whenClient(config._server, config._botnick, 'say', (self, message) => {
                     // Say yes back to the bot
+                    if (sentReply) {
+                        return;
+                    }
+                    sentReply = true;
+
                     self.emit("message", receivingOp.nick, config._botnick, 'yes');
                 });
             }
@@ -370,6 +388,15 @@ describe("Provisioning API", function() {
                 }
             );
 
+            // Allow bot parting a room
+            env.ircMock._whenClient(config._server, config._botnick, "part",
+                function(client, chan, reason, cb) {
+                    if (typeof cb === 'function') {
+                        cb(chan);
+                    }
+                }
+            );
+
             // Use these to determine what bridging state has been sent to the room
             env.isPending = promiseutil.defer();
             env.isFailed = promiseutil.defer();
@@ -418,6 +445,10 @@ describe("Provisioning API", function() {
                 config._server, config._botnick, config._server
             );
 
+            env.ircMock._autoJoinChannels(
+                config._server, config._botnick, config._chan
+            );
+
             // Bot now joins the provisioned channel to check for ops
             env.ircMock._autoJoinChannels(
                 config._server, config._botnick, '#provisionedchannel'
@@ -430,6 +461,15 @@ describe("Provisioning API", function() {
                     names[receivingOp.nick] = '@'; // is op
                     names[notOp.nick] = ''; // is not op
                     cb(chan, names);
+                }
+            );
+
+            // Allow bot parting a room
+            env.ircMock._whenClient(config._server, config._botnick, "part",
+                function(client, chan, reason, cb) {
+                    if (typeof cb === 'function') {
+                        cb(chan);
+                    }
                 }
             );
 
@@ -486,7 +526,13 @@ describe("Provisioning API", function() {
 
                 let isLinked = promiseutil.defer();
 
+                let replySent = false;
+
                 env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                    if (replySent) {
+                        return;
+                    }
+                    replySent = true;
                     // Listen for m.room.bridging success
                     var sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
@@ -529,7 +575,6 @@ describe("Provisioning API", function() {
                 expect(gotSayCall).toBe(true, "Didn't get say");
             })
         );
-
 
         it("should not allow IRC to send messages following unlink",
             test.coroutine(function*() {
@@ -578,7 +623,13 @@ describe("Provisioning API", function() {
 
                 let isLinked = promiseutil.defer();
 
+                let replySent = false;
+
                 env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                    if (replySent) {
+                        return;
+                    }
+                    replySent = true;
                     // Listen for m.room.bridging success
                     var sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
@@ -671,6 +722,13 @@ describe("Provisioning API", function() {
                 '#provisionedchannel2']
             );
 
+            env.ircMock._autoJoinChannels(
+                config._server, mxUser.nick,
+                ['#provisionedchannel',
+                '#provisionedchannel1',
+                '#provisionedchannel2']
+            );
+
             // Allow receiving of names by bot
             env.ircMock._whenClient(config._server, config._botnick, "names",
                 function(client, chan, cb) {
@@ -678,6 +736,15 @@ describe("Provisioning API", function() {
                     names[receivingOp.nick] = '@'; // is op
                     names[notOp.nick] = ''; // is not op
                     cb(chan, names);
+                }
+            );
+
+            // Allow bot parting a room
+            env.ircMock._whenClient(config._server, config._botnick, "part",
+                function(client, chan, reason, cb) {
+                    if (typeof cb === 'function') {
+                        cb(chan);
+                    }
                 }
             );
 
@@ -718,8 +785,13 @@ describe("Provisioning API", function() {
                 };
 
                 let isLinked = promiseutil.defer();
+                let replySent = false;
 
                 env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                    if (replySent) {
+                        return;
+                    }
+                    replySent = true;
                     // Listen for m.room.bridging success
                     var sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
@@ -729,7 +801,6 @@ describe("Provisioning API", function() {
                         }
                         return Promise.resolve({});
                     });
-
                     // Say yes back to the bot
                     self.emit("message", receivingOp.nick, config._botnick, 'yes');
                 });
@@ -775,7 +846,13 @@ describe("Provisioning API", function() {
                 let isLinked = [promiseutil.defer(), promiseutil.defer()];
                 let i = 0;
 
+                let ignoreNextBotMessage = false;
+
                 env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                    if (ignoreNextBotMessage) {
+                        ignoreNextBotMessage = false;
+                        return;
+                    }
                     // Listen for m.room.bridging success
                     console.log('Waiting for m.room.bridging');
                     var sdk = env.clientMock._client(config._botUserId);
@@ -787,6 +864,8 @@ describe("Provisioning API", function() {
                         return Promise.resolve({});
                     });
 
+                    // Ignore the response from the bot, which will be "Thanks", or similar
+                    ignoreNextBotMessage = true;
                     // Say yes back to the bot
                     self.emit("message", receivingOp.nick, config._botnick, 'yes');
                 });
@@ -835,7 +914,13 @@ describe("Provisioning API", function() {
                 let isLinked = [promiseutil.defer(), promiseutil.defer()];
                 let i = 0;
 
+                let ignoreNextBotMessage = false;
+
                 env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
+                    if (ignoreNextBotMessage) {
+                        ignoreNextBotMessage = false;
+                        return;
+                    }
                     // Listen for m.room.bridging success
                     var sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.andCallFake((stateRoomId, kind, content) => {
@@ -846,6 +931,8 @@ describe("Provisioning API", function() {
                         return Promise.resolve({});
                     });
 
+                    // Ignore the response from the bot, which will be "Thanks", or similar
+                    ignoreNextBotMessage = true;
                     // Say yes back to the bot
                     self.emit("message", receivingOp.nick, config._botnick, 'yes');
                 });

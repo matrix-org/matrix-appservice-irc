@@ -528,49 +528,4 @@ describe("IRC connections", function() {
             done();
         });
     });
-
-
-    describe("reconnects", function() {
-
-        beforeEach(function() {
-            jasmine.Clock.useMock();
-        });
-
-        it("should keep reconnecting clients FOREVER!", function(done) {
-            var connectCount = 0;
-
-            env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect",
-            function(client, cb) {
-                connectCount += 1;
-            });
-
-            env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "Another message",
-                    msgtype: "m.text"
-                },
-                user_id: testUser.id,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
-
-            var minutesDone = 0;
-            var minutesToDo = 120;
-
-            function nextCycle() {
-                setImmediate(function() {
-                    if (minutesDone === minutesToDo) {
-                        // expect at the slowest once per 4 min
-                        expect(connectCount).toBeGreaterThan(30);
-                        done();
-                        return;
-                    }
-                    minutesDone += 1;
-                    jasmine.Clock.tick(1000 * 60);
-                    nextCycle();
-                });
-            }
-            nextCycle();
-        });
-    });
 });

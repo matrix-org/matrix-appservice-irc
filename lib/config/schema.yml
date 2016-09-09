@@ -235,6 +235,9 @@ properties:
                                 idleTimeout:
                                     type: "integer"
                                     minimum: 0
+                                reconnectIntervalMs:
+                                    type: "integer"
+                                    minimum: 0
                                 allowNickChanges:
                                     type: "boolean"
                                 ipv6:

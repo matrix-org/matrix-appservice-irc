@@ -144,6 +144,14 @@ module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
         for (var i = 1; i < arguments.length; i++) {
             args.push(arguments[i]);
         }
+
+        // Remove the retry count, which was added during the implementation of
+        //  Scheduler. The node-irc library accepts a retryCount optionally as
+        //  the first argument. This is given as 1 in ConnectionInstance.connect
+        if (invokedFnName === "connect") {
+            args.splice(1, 1);
+        }
+
         invokeFn.apply(client, args);
     });
 };
