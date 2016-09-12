@@ -13,6 +13,8 @@ ircService:
   servers:
     # The address of the server to connect to.
     irc.example.com:
+      # A human-readable description string
+      description: "The example.com IRC network"
       # The port to connect to. Optional.
       port: 6697
       # Whether to use SSL or not. Default: false.
