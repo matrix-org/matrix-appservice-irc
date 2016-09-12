@@ -101,6 +101,10 @@ properties:
                             type: "string"
                         sendConnectionMessages:
                             type: "boolean"
+                        description:
+                            type: "string"
+                        icon:
+                            type: "string"
                         botConfig:
                             type: "object"
                             properties:
