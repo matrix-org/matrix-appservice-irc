@@ -29,7 +29,7 @@
     "crc": "^3.2.1",
     "extend": "^2.0.0",
     "fs": "0.0.2",
-    "irc": "matrix-org/node-irc#cce6e683d9f4edadf7c932859cb596e2f835bb1e",
+    "irc": "matrix-org/node-irc#381009bcd43b2923605a7c3b67d04f8482cee269",
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
     "matrix-appservice-bridge": "^1.3",
