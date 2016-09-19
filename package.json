@@ -28,7 +28,6 @@
     "bluebird": "^3.1.1",
     "crc": "^3.2.1",
     "extend": "^2.0.0",
-    "fs": "0.0.2",
     "irc": "matrix-org/node-irc#381009bcd43b2923605a7c3b67d04f8482cee269",
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
