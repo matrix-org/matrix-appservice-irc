@@ -19,20 +19,19 @@ module.exports._reset = function(databaseUri) {
     function delDatabase(name) {
         var dbPath = baseDbName + name;
         return new Promise(function(resolve, reject) {
-            // nuke the world
-            fs.unlink(dbPath, function(err) {
-                if (err) {
-                    if (err.code == "ENOENT") { // already deleted
-                        resolve();
-                    }
-                    else {
-                        reject(err);
-                    }
+            try {
+                // nuke the world
+                fs.unlinkSync(dbPath);
+                resolve();
+            }
+            catch (err) {
+                if (err.code === "ENOENT") {
+                    resolve(); // already deleted
                 }
                 else {
-                    resolve();
+                    reject(err);
                 }
-            });
+            }
         });
     }
 
