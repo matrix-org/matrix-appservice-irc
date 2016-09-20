@@ -390,7 +390,8 @@ describe("Matrix-to-Matrix message bridging", function() {
         });
     });
 
-    it("should NOT bridge matrix messages to other mapped matrix rooms for PMs", test.coroutine(function*() {
+    it("should NOT bridge matrix messages to other mapped matrix rooms for PMs",
+    test.coroutine(function*() {
         // Set up two PM rooms between:
         // testUser ==> NickServ (room A)
         // anotherUser ==> NickServ (room B)
