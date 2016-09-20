@@ -322,3 +322,158 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 });
+
+describe("Matrix-to-Matrix message bridging", function() {
+    let testUser = {
+        id: "@flibble:" + config.homeserver.domain,
+        nick: "M-flibble"
+    };
+    let secondRoomId = "!second:roomid";
+    let mirroredUserId =`@${roomMapping.server}_${testUser.nick}:${config.homeserver.domain}`;
+
+    beforeEach(function(done) {
+        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+
+        // accept connection requests
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, testUser.nick, roomMapping.server
+        );
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, testUser.nick, roomMapping.channel
+        );
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, roomMapping.botNick, roomMapping.channel
+        );
+
+        // Add in a 2nd mapping so it's #chan => [ !one:bar, !two:bar ]
+        config.ircService.servers[roomMapping.server].mappings = {
+            [roomMapping.channel]: [roomMapping.roomId, secondRoomId]
+        };
+
+        // Let the virtual matrix user register
+        let botSdk = env.clientMock._client(config._botUserId);
+        botSdk._onHttpRegister({
+            expectLocalpart: roomMapping.server + "_" + testUser.nick,
+            returnUserId: mirroredUserId
+        });
+
+        // do the init
+        test.initEnv(env).done(function() {
+            done();
+        });
+    });
+
+    it("should bridge matrix messages to other mapped matrix rooms", function(done) {
+        let testText = "Here is some test text.";
+        let sdk = env.clientMock._client(mirroredUserId);
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+            expect(roomId).toEqual(secondRoomId);
+            expect(content).toEqual({
+                body: testText,
+                msgtype: "m.text"
+            });
+            done();
+            return Promise.resolve();
+        });
+
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: testText,
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+    });
+
+    it("should NOT bridge matrix messages to other mapped matrix rooms for PMs", test.coroutine(function*() {
+        // Set up two PM rooms between:
+        // testUser ==> NickServ (room A)
+        // anotherUser ==> NickServ (room B)
+        // Send a message in one room. It should not be mapped through.
+        const nickServUserId = `@${roomMapping.server}_nickserv:${config.homeserver.domain}`;
+        const pmRoomIdA = "!private:room";
+        const pmRoomIdB = "!private:room2";
+        const anotherUserId = "@someotherguy:wibble";
+
+        // Let nickserv virtual matrix user register, join rooms and get state
+        let botSdk = env.clientMock._client(config._botUserId);
+        botSdk._onHttpRegister({
+            expectLocalpart: `${roomMapping.server}_nickserv`,
+            returnUserId: nickServUserId
+        });
+
+        let joinedRooms = new Set();
+        let nickservSdk = env.clientMock._client(nickServUserId);
+        nickservSdk.joinRoom.andCallFake(function(roomId) {
+            joinedRooms.add(roomId);
+            return Promise.resolve({});
+        });
+        nickservSdk.roomState.andCallFake(function(roomId) {
+            let uid = roomId === pmRoomIdA ? testUser.id : anotherUserId;
+            return Promise.resolve([
+                {
+                    content: {membership: "join"},
+                    user_id: nickServUserId,
+                    state_key: nickServUserId,
+                    room_id: roomId,
+                    type: "m.room.member"
+                },
+                {
+                    content: {membership: "join"},
+                    user_id: uid,
+                    state_key: uid,
+                    room_id: roomId,
+                    type: "m.room.member"
+                }
+            ]);
+        });
+
+        // Get nick serv into the 2 PM rooms
+        yield env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "invite"
+            },
+            state_key: nickServUserId,
+            user_id: testUser.id,
+            room_id: pmRoomIdA,
+            type: "m.room.member"
+        });
+        yield env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "invite"
+            },
+            state_key: nickServUserId,
+            user_id: anotherUserId,
+            room_id: pmRoomIdB,
+            type: "m.room.member"
+        });
+        expect(joinedRooms.has(pmRoomIdA)).toBe(true);
+        expect(joinedRooms.has(pmRoomIdB)).toBe(true);
+
+        // Send a message in one room. Make sure it does not go to the other room.
+        let testText = "Here is some test text.";
+        let sdk = env.clientMock._client(mirroredUserId);
+        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+            expect(true).toBe(
+                false, "Bridge incorrectly tried to send a matrix event into room " + roomId
+            );
+            return Promise.resolve();
+        });
+
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: testText,
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: pmRoomIdA,
+            type: "m.room.message"
+        });
+
+    }));
+});
