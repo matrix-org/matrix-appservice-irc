@@ -232,6 +232,29 @@ describe("Provisioning API", function() {
                     }
                 }
 
+                let sdk = env.clientMock._client(config._botUserId);
+                sdk.roomState.andCallFake((roomId) => {
+                    return Promise.resolve([{
+                        type: "m.room.member",
+                        state_key: parameters.user_id,
+                        user_id: parameters.user_id,
+                        content: {
+                            membership: "join"
+                        }
+                    }, {
+                        type: "m.room.power_levels",
+                        state_key: "",
+                        user_id: "@someone:here",
+                        content:{
+                            users_default: 0,
+                            users: {
+                                [parameters.user_id]: 100
+                            },
+                            state_default: 100
+                        }
+                    }]);
+                });
+
                 yield env.mockAppService._unlink(
                    parameters, status, json
                 );
@@ -249,7 +272,6 @@ describe("Provisioning API", function() {
 
         return test.coroutine(function*() {
             yield mockLinkCR.apply(mockLinkCR, args);
-            return Promise.resolve();
         });
     }
 
@@ -661,6 +683,26 @@ describe("Provisioning API", function() {
                     type: "m.room.message"
                 });
 
+                var sdk = env.clientMock._client(config._botUserId);
+                sdk.roomState.andCallFake((roomId) => {
+                    return Promise.resolve([{
+                        type: "m.room.member",
+                        state_key: parameters.user_id,
+                        user_id: parameters.user_id,
+                        content: {
+                            membership: "join"
+                        }
+                    }, {
+                        type: "m.room.power_levels",
+                        state_key: "",
+                        user_id: "@someone:here",
+                        content:{
+                            users_default: 100,
+                            state_default: 100
+                        }
+                    }]);
+                });
+
                 //Remove the link
                 yield env.mockAppService._unlink(parameters, status, json);
 
@@ -940,6 +982,27 @@ describe("Provisioning API", function() {
                 yield env.mockAppService._link(parameters[0], status, json);
                 yield env.mockAppService._link(parameters[1], status, json);
                 yield Promise.all(isLinked.map((d)=>{return d.promise;}));
+
+
+                var sdk = env.clientMock._client(config._botUserId);
+                sdk.roomState.andCallFake((rid) => {
+                    return Promise.resolve([{
+                        type: "m.room.member",
+                        state_key: mxUser.id,
+                        user_id: mxUser.id,
+                        content: {
+                            membership: "join"
+                        }
+                    }, {
+                        type: "m.room.power_levels",
+                        state_key: "",
+                        user_id: "@someone:here",
+                        content:{
+                            users_default: 100,
+                            state_default: 100
+                        }
+                    }]);
+                });
 
                 yield env.mockAppService._unlink(parameters[0], status, json);
                 yield env.mockAppService._listLinks({roomId : roomId}, status, listingsjson);
