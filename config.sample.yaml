@@ -4,6 +4,13 @@ homeserver:
   # The URL to the home server for client-server API calls, also used to form the
   # media URLs as displayed in bridged IRC channels:
   url: "http://localhost:8008"
+  #
+  # The URL of the homeserver hosting media files. This is only used to transform
+  # mxc URIs to http URIs when bridging m.room.[file|image] events. Optional. By
+  # default, this is the homeserver URL, specified above.
+  #
+  # media_url: "http://media.repo:8008"
+
   # The 'domain' part for user IDs on this home server. Usually (but not always)
   # is the "domain name" part of the HS URL.
   domain: "localhost"
