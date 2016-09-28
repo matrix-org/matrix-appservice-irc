@@ -1,5 +1,4 @@
 "use strict";
-var heapdump = require("heapdump");
 var Cli = require("matrix-appservice-bridge").Cli;
 var log = require("./lib/logging").get("CLI");
 var main = require("./lib/main");
