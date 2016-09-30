@@ -73,15 +73,25 @@ module.exports.beforeEach = function(testCase, env) {
     if (env) {
         env.ircMock._reset();
         env.clientMock._reset();
-        env.main = proxyquire("../../lib/main.js", {
-            "matrix-appservice": {
-                AppService: MockAppService,
-                "@global": true
-            },
-            "matrix-js-sdk": env.clientMock,
-            "irc": env.ircMock
-        });
-        env.mockAppService = MockAppService.instance();
+
+        let done = () => {
+            env.main = proxyquire("../../lib/main.js", {
+                "matrix-appservice": {
+                    AppService: MockAppService,
+                    "@global": true
+                },
+                "matrix-js-sdk": env.clientMock,
+                "irc": env.ircMock
+            });
+            env.mockAppService = MockAppService.instance();
+        };
+
+        if (env.main) {
+            env.main.killBridge().then(done);
+        }
+        else {
+            done();
+        }
     }
 
     process.on("unhandledRejection", function(reason, promise) {
@@ -91,14 +101,6 @@ module.exports.beforeEach = function(testCase, env) {
         throw new Error("Unhandled rejection: " + reason);
     });
 };
-
-// Returns promise to clean up after a test
-module.exports.afterEach = function(testCase, env) {
-    if (!env) {
-        return Promise.resolve({});
-    }
-    return env.main.killBridge();
-}
 
 /**
  * Transform a given generator function into a coroutine and wrap it up in a Jasmine
