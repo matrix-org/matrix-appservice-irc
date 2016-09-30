@@ -38,12 +38,10 @@ module.exports.initEnv = function(env, customConfig) {
     // service.
 
     return env.dbHelper._reset(env.config.ircService.databaseUri).then(function() {
-        return env.main.killBridge().then(function() {
-            return env.main.runBridge(
-                env.config._port, customConfig || env.config,
-                AppServiceRegistration.fromObject(env.config._registration)
-            );
-        });
+        return env.main.runBridge(
+            env.config._port, customConfig || env.config,
+            AppServiceRegistration.fromObject(env.config._registration)
+        );
     }).catch(function(e) {
         var msg = JSON.stringify(e);
         if (e.stack) {
@@ -93,6 +91,14 @@ module.exports.beforeEach = function(testCase, env) {
         throw new Error("Unhandled rejection: " + reason);
     });
 };
+
+// Returns promise to clean up after a test
+module.exports.afterEach = function(testCase, env) {
+    if (!env) {
+        return Promise.resolve({});
+    }
+    return env.main.killBridge();
+}
 
 /**
  * Transform a given generator function into a coroutine and wrap it up in a Jasmine
