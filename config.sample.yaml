@@ -122,6 +122,11 @@ ircService:
         # effect. Default: false.
         enabled: false
 
+        # Syncing membership lists at startup can result in hundreds of members to
+        # process all at once. This timer drip feeds membership entries at the
+        # specified rate. Default: 10000. (10s)
+        floodDelayMs: 10000
+
         global:
           ircToMatrix:
             # Get a snapshot of all real IRC users on a channel (via NAMES) and
