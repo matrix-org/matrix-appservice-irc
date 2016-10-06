@@ -132,6 +132,8 @@ properties:
                             properties:
                                 enabled:
                                     type: "boolean"
+                                floodDelayMs:
+                                    type: "integer"
                                 global:
                                     type: "object"
                                     properties:
