@@ -93,7 +93,6 @@ module.exports.beforeEach = function(testCase, env) {
             });
             env.mockAppService = MockAppService.instance();
 
-            console.log('###########Finished beforeEach###########');
             res();
         };
 
