@@ -1,5 +1,5 @@
 Changes in 0.5.0 (2016-10-06)
-================
+=============================
 
 New features:
  - A new server config item, ```reconnectIntervalMs``` has been added and is used to throttle reconnections to an IRC server in a queue, where one reconnection is serviced per interval.
@@ -25,15 +25,15 @@ Improvements:
    - Better error message are given when linking.
    - Only moderators in a matrix room can unlink.
  - The wording of messages sent to admin rooms has been improved, as well as a helpful message to get things started.
- - Sync +s mode in chanels with room visibility. +s = 'hidden from public room directory', -s = 'listed on the public room directory'.
+ - Sync +s mode in channels with room visibility. +s = 'hidden from published room directory', -s = 'listed on the published room directory'.
 
 Bug fixes:
  - Room alias requests can only be done for channels that start with ```#``` to avoid confusion with people not being able to join ```#ircnetwork_somechannel:domain.com```. The important thing being the missing ```#``` before ```somechannel```.
  - Prevent admin room from being created when plumbing. Previously, the bot would treat a linked room as an admin room, and so allow users to issue commands in it (but only after unlinking again).
  - If the bot is enabled, join a channel when linked.
  - Part IRC clients which should no longer be in a channel due to unlinking.
- - When an IPv6 prefix is provided, assume outgoing IRC connections will be IPv6, instead of relying on the specified IRC domain only resolving to IPv6 addresses. Previsouly, this would cause issues with IPv6 bound outgoing connections attempting to connect to IPv4 addresses.
- - Do not cache stale clients in the client pool. Previously, stale BridgedClients would be left in the client pool if the bot was disconnected and then reconnected. These stale clients would be returned by clientPool.getBot(server).
+ - When an IPv6 prefix is provided, assume outgoing IRC connections will be IPv6, instead of relying on the specified IRC domain only resolving to IPv6 addresses. Previously, this would cause issues with IPv6 bound outgoing connections attempting to connect to IPv4 addresses.
+ - Do not cache stale clients in the client pool. Previously, stale BridgedClients would be left in the client pool if the bot was disconnected and then reconnected. This resulted in the bot being unable to respond or join/leave channels when requested to by provisioning request.
 
 
 Changes in 0.4.0
