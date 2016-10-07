@@ -67,41 +67,29 @@ module.exports.log = function(testCase) {
  * @param {TestCase} testCase : The new test case.
  * @param {Object} env : The pre-initialised test environment.
  */
-module.exports.beforeEach = function(testCase, env) {
+module.exports.beforeEach = Promise.coroutine(function*(testCase, env) {
     module.exports.log(testCase);
-
-    let res;
-    let p = new Promise(
-        (resolve, reject) => {
-            res = resolve;
-        }
-    );
 
     MockAppService.resetInstance();
     if (env) {
         env.ircMock._reset();
         env.clientMock._reset();
 
-        let done = () => {
-            env.main = proxyquire("../../lib/main.js", {
-                "matrix-appservice": {
-                    AppService: MockAppService,
-                    "@global": true
-                },
-                "matrix-js-sdk": env.clientMock,
-                "irc": env.ircMock
-            });
-            env.mockAppService = MockAppService.instance();
-
-            res();
-        };
-
+        // If there was a previous bridge running, kill it
+        // This is prevent IRC clients spamming the logs
         if (env.main) {
-            env.main.killBridge().then(done);
+            yield env.main.killBridge();
         }
-        else {
-            done();
-        }
+
+        env.main = proxyquire("../../lib/main.js", {
+            "matrix-appservice": {
+                AppService: MockAppService,
+                "@global": true
+            },
+            "matrix-js-sdk": env.clientMock,
+            "irc": env.ircMock
+        });
+        env.mockAppService = MockAppService.instance();
     }
 
     process.on("unhandledRejection", function(reason, promise) {
@@ -110,9 +98,7 @@ module.exports.beforeEach = function(testCase, env) {
         }
         throw new Error("Unhandled rejection: " + reason);
     });
-
-    return p;
-};
+});
 
 /**
  * Transform a given generator function into a coroutine and wrap it up in a Jasmine
