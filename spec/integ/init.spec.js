@@ -22,12 +22,10 @@ describe("Initialisation", function() {
     var ircChannel = roomMapping.channel;
     var databaseUri = config.ircService.databaseUri;
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
-        env.dbHelper._reset(databaseUri).done(function() {
-            done();
-        });
-    });
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield env.dbHelper._reset(databaseUri);
+    }));
 
     it("should connect to the IRC network and channel in the config",
     function(done) {

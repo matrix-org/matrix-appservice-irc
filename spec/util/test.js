@@ -69,6 +69,14 @@ module.exports.log = function(testCase) {
  */
 module.exports.beforeEach = function(testCase, env) {
     module.exports.log(testCase);
+
+    let res;
+    let p = new Promise(
+        (resolve, reject) => {
+            res = resolve;
+        }
+    );
+
     MockAppService.resetInstance();
     if (env) {
         env.ircMock._reset();
@@ -84,6 +92,9 @@ module.exports.beforeEach = function(testCase, env) {
                 "irc": env.ircMock
             });
             env.mockAppService = MockAppService.instance();
+
+            console.log('###########Finished beforeEach###########');
+            res();
         };
 
         if (env.main) {
@@ -100,6 +111,8 @@ module.exports.beforeEach = function(testCase, env) {
         }
         throw new Error("Unhandled rejection: " + reason);
     });
+
+    return p;
 };
 
 /**
@@ -119,7 +132,7 @@ module.exports.beforeEach = function(testCase, env) {
 module.exports.coroutine = function(generatorFn) {
     return function(done) {
         var fn = Promise.coroutine(generatorFn);
-        fn().then(function() {
+        fn.apply(this).then(function() {  // eslint-disable-line no-invalid-this
             done();
         }, function(err) {
             expect(true).toBe(false, "Coroutine threw: " + err + "\n" + err.stack);
