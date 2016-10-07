@@ -13,8 +13,13 @@ ircService:
   servers:
     # The address of the server to connect to.
     irc.example.com:
+      # A human-readable short name. Defaults to the first word of the description
+      # (the characters before the first instance of whitespace or the end of the
+      # description). This is used to label IRC status rooms where matrix users
+      # control their connections. E.g. 'ExampleNet IRC Bridge status'.
+      name: "ExampleNet"
       # A human-readable description string
-      description: "The example.com IRC network"
+      description: "Example.com IRC network"
       # The port to connect to. Optional.
       port: 6697
       # Whether to use SSL or not. Default: false.
