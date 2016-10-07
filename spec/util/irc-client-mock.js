@@ -75,6 +75,10 @@ function Client(addr, nick, opts) {
         });
     });
 
+    this.disconnect.andCallFake((msg, cb) => {
+        cb();
+    });
+
     this._changeNick = function(oldNick, newNick) {
         setClientNick(self.addr, oldNick, newNick);
         // emit the nick message from the server
