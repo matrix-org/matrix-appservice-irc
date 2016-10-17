@@ -17,8 +17,8 @@ var botUserId = config._botUserId;
 
 describe("Creating admin rooms", function() {
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -27,10 +27,8 @@ describe("Creating admin rooms", function() {
             roomMapping.server, roomMapping.botNick, roomMapping.channel
         );
 
-        test.initEnv(env).done(function() {
-            done();
-        });
-    });
+        yield test.initEnv(env);
+    }));
 
     it("should be possible by sending an invite to the bot's user ID",
     test.coroutine(function*() {
@@ -60,8 +58,8 @@ describe("Admin rooms", function() {
     var userId = "@someone:somewhere";
     var userIdNick = "M-someone";
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // enable nick changes
         config.ircService.servers[roomMapping.server].ircClients.allowNickChanges = true;
@@ -94,7 +92,7 @@ describe("Admin rooms", function() {
             return Promise.resolve({});
         });
 
-        test.initEnv(env, config).then(function() {
+        yield test.initEnv(env, config).then(function() {
             // auto-setup an admin room
             return env.mockAppService._trigger("type:m.room.member", {
                 content: {
@@ -116,10 +114,8 @@ describe("Admin rooms", function() {
                 room_id: roomMapping.roomId,
                 type: "m.room.message"
             });
-        }).done(function() {
-            done();
         });
-    });
+    }));
 
     it("should respond to bad !nick commands with a help notice",
     test.coroutine(function*() {

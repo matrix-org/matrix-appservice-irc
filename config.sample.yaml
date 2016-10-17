@@ -20,14 +20,29 @@ ircService:
   servers:
     # The address of the server to connect to.
     irc.example.com:
+      # A human-readable short name. This is used to label IRC status rooms
+      # where matrix users control their connections.
+      # E.g. 'ExampleNet IRC Bridge status'.
+      # It is also used in the Third Party Lookup API as the instance `desc`
+      # property, where each server is an instance.
+      name: "ExampleNet"
+      #
+      # [DEPRECATED] Use `name`, above, instead.
       # A human-readable description string
-      description: "The example.com IRC network"
+      # description: "Example.com IRC network"
+
       # The port to connect to. Optional.
       port: 6697
       # Whether to use SSL or not. Default: false.
       ssl: true
       # Whether or not IRC server is using a self-signed cert or not providing CA Chain
       sslselfsign: false
+      # A specific CA to trust instead of the default CAs. Optional.
+      #ca: |
+      #  -----BEGIN CERTIFICATE-----
+      #  ...
+      #  -----END CERTIFICATE-----
+
       #
       # The connection password to send for all clients as a PASS command. Optional.
       # password: 'pa$$w0rd'
@@ -128,6 +143,11 @@ ircService:
         # synced. This must be enabled for anything else in this section to take
         # effect. Default: false.
         enabled: false
+
+        # Syncing membership lists at startup can result in hundreds of members to
+        # process all at once. This timer drip feeds membership entries at the
+        # specified rate. Default: 10000. (10s)
+        floodDelayMs: 10000
 
         global:
           ircToMatrix:

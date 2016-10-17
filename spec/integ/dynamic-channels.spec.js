@@ -19,9 +19,9 @@ describe("Dynamic channels", function() {
         nick: "flibble"
     };
 
-    beforeEach(function(done) {
+    beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].dynamicChannels.enabled = true;
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -34,10 +34,8 @@ describe("Dynamic channels", function() {
             roomMapping.server, testUser.nick, roomMapping.channel
         );
 
-        test.initEnv(env, config).done(function() {
-            done();
-        });
-    });
+        yield test.initEnv(env, config);
+    }));
 
     it("should join IRC channels when it receives special alias queries",
     function(done) {
@@ -183,8 +181,9 @@ describe("Dynamic channels (federation disabled)", function() {
         nick: "flibble"
     };
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+
         config.ircService.servers[
             roomMapping.server].dynamicChannels.enabled = true;
         config.ircService.servers[
@@ -200,10 +199,8 @@ describe("Dynamic channels (federation disabled)", function() {
         env.ircMock._autoJoinChannels(
             roomMapping.server, testUser.nick, roomMapping.channel
         );
-        test.initEnv(env, config).done(function() {
-            done();
-        });
-    });
+        yield test.initEnv(env, config);
+    }));
 
     it("should create non federated room when joining channel and federation is disabled",
     function(done) {
@@ -253,9 +250,9 @@ describe("Dynamic channels (disabled)", function() {
         nick: "flibble"
     };
 
-    beforeEach(function(done) {
+    beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].dynamicChannels.enabled = false;
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -269,10 +266,8 @@ describe("Dynamic channels (disabled)", function() {
         );
 
         // do the init
-        test.initEnv(env, config).done(function() {
-            done();
-        });
-    });
+        yield test.initEnv(env, config);
+    }));
 
     it("should NOT join IRC channels when it receives special alias queries",
     function(done) {

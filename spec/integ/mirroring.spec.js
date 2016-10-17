@@ -29,8 +29,8 @@ describe("Mirroring", function() {
         nick: "M-flibble"
     };
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -44,10 +44,8 @@ describe("Mirroring", function() {
         );
 
         // do the init
-        test.initEnv(env).done(function() {
-            done();
-        });
-    });
+        yield test.initEnv(env);
+    }));
 
     describe("Matrix users on IRC", function() {
         it("should join the IRC channel when the Matrix user joins", function(done) {

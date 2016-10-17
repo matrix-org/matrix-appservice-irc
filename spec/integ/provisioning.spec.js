@@ -25,8 +25,8 @@ describe("Provisioning API", function() {
         nick: "notoprah"
     };
 
-    let doSetup = function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    let doSetup = test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests from eeeeeeeeveryone!
         env.ircMock._autoConnectNetworks(
@@ -103,10 +103,8 @@ describe("Provisioning API", function() {
         });
 
         // do the init
-        test.initEnv(env).done(function() {
-            done();
-        });
-    }
+        yield test.initEnv(env);
+    });
 
     // Create a coroutine to test certain API parameters.
     //  parameters {object} - the API parameters
@@ -363,7 +361,7 @@ describe("Provisioning API", function() {
     });
 
     describe("with config links existing", function() {
-        beforeEach(function(done) {
+        beforeEach(test.coroutine(function*() {
             config.ircService
                 .servers[config._server]
                 .mappings['#provisionedchannel'] = ['!foo:bar'];
@@ -372,7 +370,7 @@ describe("Provisioning API", function() {
             //  It is a copy because otherwise there is not other way
             //  to alter config before running.
 
-            test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
             // accept connection requests from eeeeeeeeveryone!
             env.ircMock._autoConnectNetworks(
@@ -447,10 +445,8 @@ describe("Provisioning API", function() {
             });
 
             // do the init
-            test.initEnv(env).done(function() {
-                done();
-            });
-        });
+            yield test.initEnv(env);
+        }));
 
         it("should not create a M<--->I link of the same link id",
             mockLink({}, false, true)
@@ -458,9 +454,9 @@ describe("Provisioning API", function() {
     });
 
     describe("message sending and joining", function() {
-        beforeEach(function(done) {
+        beforeEach(test.coroutine(function*() {
             config.ircService.servers[config._server].mappings = {};
-            test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
             // Ignore bot connecting
             env.ircMock._autoConnectNetworks(
@@ -496,10 +492,8 @@ describe("Provisioning API", function() {
             );
 
             // do the init
-            test.initEnv(env).done(function() {
-                done();
-            });
-        });
+            yield test.initEnv(env);
+        }));
 
         it("should allow IRC to send messages via the new link",
             test.coroutine(function*() {
@@ -732,8 +726,8 @@ describe("Provisioning API", function() {
     });
 
     describe("listings endpoint", function() {
-        beforeEach(function(done) {
-            test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        beforeEach(test.coroutine(function*() {
+            yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
             // accept connection requests from eeeeeeeeveryone!
             env.ircMock._autoConnectNetworks(
@@ -791,10 +785,8 @@ describe("Provisioning API", function() {
             );
 
             // do the init
-            test.initEnv(env).done(function() {
-                done();
-            });
-        });
+            yield test.initEnv(env);
+        }));
 
         it("should return an empty list when no mappings have been provisioned",
             test.coroutine(function*() {
