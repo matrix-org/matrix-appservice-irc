@@ -85,6 +85,33 @@ function MockClient(config) {
             return Promise.resolve({});
         });
     };
+
+    // Helper to create alias rooms
+    this._setupRoomByAlias = function (env, tBotNick, tChannel, tRoomId, tServer, tDomain) {
+        var tAliasLocalpart = "irc_" + tServer + "_" + tChannel;
+        var tAlias = "#" + tAliasLocalpart + ":" + tDomain;
+
+        // when we get the connect/join requests, accept them.
+        env.ircMock._whenClient(tServer, tBotNick, "join",
+            function(client, chan, cb) {
+                if (chan === tChannel) {
+                    if (cb) { cb(); }
+                }
+            }
+        );
+
+        this.createRoom.andCallFake(function(opts) {
+            return Promise.resolve({
+                room_id: tRoomId
+            });
+        });
+
+        this.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+            return Promise.resolve({});
+        });
+
+        return env.mockAppService._queryAlias(tAlias);
+    }
 }
 
 /**

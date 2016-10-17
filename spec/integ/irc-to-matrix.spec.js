@@ -115,22 +115,39 @@ describe("IRC-to-Matrix message bridging", function() {
         });
     });
 
-    it("should bridge IRC topics as Matrix m.room.topic",
+    it("should bridge IRC topics as Matrix m.room.topic in aliased rooms",
     function(done) {
         var testTopic = "Topics are liek the best thing evarz!";
-        sdk.sendStateEvent.andCallFake(function(roomId, type, content, skey) {
-            expect(roomId).toEqual(roomMapping.roomId);
-            expect(content).toEqual({ topic: testTopic });
-            expect(type).toEqual("m.room.topic");
-            expect(skey).toEqual("");
-            done();
-            return Promise.resolve();
-        });
 
-        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
-        function(client) {
-            client.emit("topic", roomMapping.channel, testTopic, tFromNick);
-        });
+        var tChannel = "#someotherchannel";
+        var tRoomId = roomMapping.roomId;
+        var tServer = roomMapping.server;
+        var tBotNick = roomMapping.botNick;
+
+        // Use bot client for mocking responses
+        var cli = env.clientMock._client(config._botUserId);
+
+        cli._setupRoomByAlias(
+            env, tBotNick, tChannel, tRoomId, tServer, config.homeserver.domain
+        ).done(
+            function() {
+                cli.sendStateEvent.andCallFake(function(roomId, type, content, skey) {
+                    expect(roomId).toEqual(roomMapping.roomId);
+                    expect(content).toEqual({ topic: testTopic });
+                    expect(type).toEqual("m.room.topic");
+                    expect(skey).toEqual("");
+                    done();
+                    return Promise.resolve();
+                });
+
+                env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+                function(client) {
+                    client.emit("topic", tChannel, testTopic, tFromNick);
+                });
+            }, function(e) {
+                console.error("Failed to join IRC channel: %s", JSON.stringify(e));
+            }
+        );
     });
 
     it("should be insensitive to the case of the channel",
