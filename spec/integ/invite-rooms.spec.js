@@ -26,18 +26,16 @@ describe("Invite-only rooms", function() {
         nick: "foobar"
     };
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
         // do the init
-        test.initEnv(env).done(function() {
-            done();
-        });
-    });
+        yield test.initEnv(env);
+    }));
 
     it("should be joined by the bot if the AS does know the room ID",
     function(done) {

@@ -19,8 +19,8 @@ var roomMapping = {
 describe("IRC client cycling", function() {
     var testUsers = null;
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // set client cycling to 2 for these tests. This is slightly brittle since we
         // assume that this means when the limit is reached we disconnect a client
@@ -73,10 +73,8 @@ describe("IRC client cycling", function() {
         });
 
         // do the init
-        test.initEnv(env).done(function() {
-            done();
-        });
-    });
+        yield test.initEnv(env);
+    }));
 
     it("should disconnect the oldest (last message time) client",
     function(done) {
