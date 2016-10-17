@@ -451,6 +451,8 @@ describe("Admin rooms", function() {
     test.coroutine(function*() {
         var newChannel = "#awooga";
         var newRoomId = "!aasifuhawei:efjkwehfi";
+        var serverConfig = env.config.ircService.servers[roomMapping.server];
+        var serverJoinRule = serverConfig.dynamicChannels.joinRule;
 
         // let the bot join the irc channel
         var joinedChannel = false;
@@ -466,7 +468,7 @@ describe("Admin rooms", function() {
         var createdMatrixRoom = false;
         var sdk = env.clientMock._client(botUserId);
         sdk.createRoom.andCallFake(function(opts) {
-            expect(opts.visibility).toEqual("private");
+            expect(opts.visibility).toEqual(serverJoinRule);
             expect(opts.invite).toEqual([userId]);
             createdMatrixRoom = true;
             return Promise.resolve({
@@ -495,6 +497,8 @@ describe("Admin rooms", function() {
         var newChannel = "#awooga";
         var newRoomId = "!aasifuhawei:efjkwehfi";
         var key = "secret";
+        var serverConfig = env.config.ircService.servers[roomMapping.server];
+        var serverJoinRule = serverConfig.dynamicChannels.joinRule;
 
         // let the bot join the irc channel
         var joinedChannel = false;
@@ -520,7 +524,7 @@ describe("Admin rooms", function() {
         var createdMatrixRoom = false;
         var sdk = env.clientMock._client(botUserId);
         sdk.createRoom.andCallFake(function(opts) {
-            expect(opts.visibility).toEqual("private");
+            expect(opts.visibility).toEqual(serverJoinRule);
             expect(opts.invite).toEqual([userId]);
             createdMatrixRoom = true;
             return Promise.resolve({
