@@ -75,7 +75,17 @@ function Client(addr, nick, opts) {
         });
     });
 
-    this.disconnect.andCallFake((msg, cb) => {
+    this.disconnect = jasmine.createSpy("Client.disconnect");
+
+    this.disconnect.andCallFake(function (msg, cb) {
+        var args = [self.addr + "_" + self.nick, 'disconnect', self];
+        for (var i = 0; i < arguments.length; i++) {
+            args.push(arguments[i]);
+        }
+        console.log("IrcClient.emit => %s", JSON.stringify(args));
+        clientEmitter.emit.apply(clientEmitter, args);
+
+        // Auto callback for all disconnect calls
         cb();
     });
 
