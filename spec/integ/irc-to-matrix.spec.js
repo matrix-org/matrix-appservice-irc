@@ -131,17 +131,21 @@ describe("IRC-to-Matrix message bridging", function() {
             env, tBotNick, tChannel, tRoomId, tServer, config.homeserver.domain
         );
 
-        cli.sendStateEvent.andCallFake(function(roomId, type, content, skey) {
-            expect(roomId).toEqual(roomMapping.roomId);
-            expect(content).toEqual({ topic: testTopic });
-            expect(type).toEqual("m.room.topic");
-            expect(skey).toEqual("");
-            done();
-            return Promise.resolve();
+        let p = new Promise((resolve, reject) => {
+            cli.sendStateEvent.andCallFake(function(roomId, type, content, skey) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                expect(content).toEqual({ topic: testTopic });
+                expect(type).toEqual("m.room.topic");
+                expect(skey).toEqual("");
+                resolve();
+                return Promise.resolve();
+            });
         });
 
         let client = yield env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
         client.emit("topic", tChannel, testTopic, tFromNick);
+
+        return p;
     }));
 
     it("should be insensitive to the case of the channel",
