@@ -22,8 +22,8 @@ describe("Matrix-to-IRC message bridging", function() {
         nick: "M-flibble"
     };
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -40,10 +40,8 @@ describe("Matrix-to-IRC message bridging", function() {
         );
 
         // do the init
-        test.initEnv(env).done(function() {
-            done();
-        });
-    });
+        yield test.initEnv(env);
+    }));
 
     it("should bridge matrix messages as IRC text", function(done) {
         var testText = "Here is some test text.";
@@ -331,8 +329,8 @@ describe("Matrix-to-Matrix message bridging", function() {
     let secondRoomId = "!second:roomid";
     let mirroredUserId =`@${roomMapping.server}_${testUser.nick}:${config.homeserver.domain}`;
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -361,10 +359,8 @@ describe("Matrix-to-Matrix message bridging", function() {
         });
 
         // do the init
-        test.initEnv(env).done(function() {
-            done();
-        });
-    });
+        yield test.initEnv(env);
+    }));
 
     it("should bridge matrix messages to other mapped matrix rooms", function(done) {
         let testText = "Here is some test text.";

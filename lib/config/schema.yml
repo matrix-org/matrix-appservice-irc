@@ -101,6 +101,8 @@ properties:
                             type: "string"
                         sendConnectionMessages:
                             type: "boolean"
+                        name:
+                            type: "string"
                         description:
                             type: "string"
                         icon:
@@ -132,6 +134,8 @@ properties:
                             properties:
                                 enabled:
                                     type: "boolean"
+                                floodDelayMs:
+                                    type: "integer"
                                 global:
                                     type: "object"
                                     properties:

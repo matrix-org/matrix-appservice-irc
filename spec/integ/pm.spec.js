@@ -22,17 +22,15 @@ describe("Matrix-to-IRC PMing", function() {
     var tUserLocalpart = roomMapping.server + "_" + tIrcNick;
     var tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        test.initEnv(env).done(function() {
-            done();
-        });
-    });
+        yield test.initEnv(env);
+    }));
 
     it("should join 1:1 rooms invited from matrix",
     test.coroutine(function*() {
@@ -214,8 +212,8 @@ describe("IRC-to-Matrix PMing", function() {
 
     var tText = "ello ello ello";
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
         sdk = env.clientMock._client(tVirtualUserId);
 
         // add registration mock impl:
@@ -237,7 +235,7 @@ describe("IRC-to-Matrix PMing", function() {
         );
 
         // do the init
-        test.initEnv(env).then(function() {
+        yield test.initEnv(env).then(function() {
             // send a message in the linked room (so the service provisions a
             // virtual IRC user which the 'real' IRC users can speak to)
             return env.mockAppService._trigger("type:m.room.message", {
@@ -249,10 +247,8 @@ describe("IRC-to-Matrix PMing", function() {
                 room_id: roomMapping.roomId,
                 type: "m.room.message"
             });
-        }).done(function() {
-            done();
         });
-    });
+    }));
 
     it("should create a 1:1 matrix room and invite the real matrix user when " +
     "it receives a PM directed at a virtual user from a real IRC user",
@@ -311,9 +307,9 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
 
     var tText = "ello ello ello";
 
-    beforeEach(function(done) {
+    beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].privateMessages.federate = false;
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
         sdk = env.clientMock._client(tVirtualUserId);
 
         // add registration mock impl:
@@ -335,7 +331,7 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
         );
 
         // do the init
-        test.initEnv(env).then(function() {
+        yield test.initEnv(env).then(function() {
             // send a message in the linked room (so the service provisions a
             // virtual IRC user which the 'real' IRC users can speak to)
             return env.mockAppService._trigger("type:m.room.message", {
@@ -347,10 +343,8 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
                 room_id: roomMapping.roomId,
                 type: "m.room.message"
             });
-        }).done(function() {
-            done();
         });
-    });
+    }));
 
     it("should create a non-federated 1:1 matrix room and invite the real matrix user when " +
     "it receives a PM directed at a virtual user from a real IRC user",
