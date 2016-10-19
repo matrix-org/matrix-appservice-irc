@@ -109,6 +109,10 @@ function Client(addr, nick, opts) {
         });
     };
 
+    this._toLowerCase = function(channel) {
+        return channel.toLowerCase();
+    }
+
     setClient(self, addr, nick);
 }
 util.inherits(Client, EventEmitter);

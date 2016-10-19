@@ -43,6 +43,10 @@ describe("Matrix-to-IRC message bridging", function() {
         yield test.initEnv(env);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should bridge matrix messages as IRC text", function(done) {
         var testText = "Here is some test text.";
 
@@ -360,6 +364,10 @@ describe("Matrix-to-Matrix message bridging", function() {
 
         // do the init
         yield test.initEnv(env);
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
     }));
 
     it("should bridge matrix messages to other mapped matrix rooms", function(done) {

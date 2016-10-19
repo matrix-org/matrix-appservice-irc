@@ -47,6 +47,10 @@ describe("Mirroring", function() {
         yield test.initEnv(env);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     describe("Matrix users on IRC", function() {
         it("should join the IRC channel when the Matrix user joins", function(done) {
             var joined = false;

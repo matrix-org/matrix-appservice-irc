@@ -37,6 +37,10 @@ describe("Invite-only rooms", function() {
         yield test.initEnv(env);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should be joined by the bot if the AS does know the room ID",
     function(done) {
         var adminRoomId = "!adminroom:id";
