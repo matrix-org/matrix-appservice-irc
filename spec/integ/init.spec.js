@@ -20,11 +20,9 @@ describe("Initialisation", function() {
     var ircAddr = roomMapping.server;
     var ircNick = roomMapping.botNick;
     var ircChannel = roomMapping.channel;
-    var databaseUri = config.ircService.databaseUri;
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
-        yield env.dbHelper._reset(databaseUri);
     }));
 
     afterEach(test.coroutine(function*() {
