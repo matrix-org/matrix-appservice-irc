@@ -30,6 +30,10 @@ describe("Creating admin rooms", function() {
         yield test.initEnv(env);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should be possible by sending an invite to the bot's user ID",
     test.coroutine(function*() {
         var botJoinedRoom = false;
@@ -115,6 +119,10 @@ describe("Admin rooms", function() {
                 type: "m.room.message"
             });
         });
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
     }));
 
     it("should respond to bad !nick commands with a help notice",

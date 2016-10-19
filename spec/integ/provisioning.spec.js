@@ -278,6 +278,10 @@ describe("Provisioning API", function() {
     describe("room setup", function() {
         beforeEach(doSetup);
 
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        }));
+
         describe("link endpoint", function() {
 
             it("should create a M<--->I link",
@@ -454,6 +458,10 @@ describe("Provisioning API", function() {
             yield test.initEnv(env);
         }));
 
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        }));
+
         it("should not create a M<--->I link of the same link id",
             mockLink({}, false, true)
         );
@@ -499,6 +507,10 @@ describe("Provisioning API", function() {
 
             // do the init
             yield test.initEnv(env);
+        }));
+
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
         }));
 
         it("should allow IRC to send messages via the new link",
@@ -794,6 +806,10 @@ describe("Provisioning API", function() {
             yield test.initEnv(env);
         }));
 
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        }));
+
         it("should return an empty list when no mappings have been provisioned",
             test.coroutine(function*() {
                 let json = jasmine.createSpy("json(obj)");
@@ -1013,6 +1029,10 @@ describe("Provisioning API", function() {
     describe("should set m.room.bridging=success", function() {
         beforeEach(doSetup);
 
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        }));
+
         it("when the link is successful",
             test.coroutine(function*() {
                 yield mockLinkCR({}, true, true, true, true);
@@ -1026,6 +1046,10 @@ describe("Provisioning API", function() {
 
     describe("should set m.room.bridging=failed", function() {
         beforeEach(doSetup);
+
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        }));
 
         it("when the op did not authorise after a certain timeout",
             test.coroutine(function*() {

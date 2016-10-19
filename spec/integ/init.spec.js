@@ -27,6 +27,10 @@ describe("Initialisation", function() {
         yield env.dbHelper._reset(databaseUri);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should connect to the IRC network and channel in the config",
     function(done) {
         var clientConnected = false;

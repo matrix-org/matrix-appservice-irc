@@ -31,6 +31,10 @@ describe("Homeserver user queries", function() {
         yield test.initEnv(env);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should always create a new Matrix user for the specified ID",
     function(done) {
         var sdk = env.clientMock._client(config._botUserId);
@@ -81,6 +85,10 @@ describe("Homeserver alias queries", function() {
             console.error(err);
             expect(false).toBe(true, "onUserQuery failed request.");
         }
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
     }));
 
     it("should make the AS start tracking the channel specified in the alias.",
