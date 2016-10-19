@@ -51,10 +51,10 @@ describe("Provisioning API", function() {
 
         // Bot now joins the provisioned channel to check for ops
         env.ircMock._autoJoinChannels(
-            config._server, config._botnick, '#provisionedchannel'
+            config._server, config._botnick, ['#provisionedchannel', '#somecaps']
         );
 
-        env.ircMock._autoJoinChannels(config._server, mxUser.nick, '#provisionedchannel');
+        env.ircMock._autoJoinChannels(config._server, mxUser.nick, ['#provisionedchannel', '#somecaps']);
 
         // Allow receiving of names by bot
         env.ircMock._whenClient(config._server, config._botnick, "names",
@@ -281,6 +281,9 @@ describe("Provisioning API", function() {
             it("should create a M<--->I link",
                 mockLink({}, true, true));
 
+            it("should create a M<--->I link for a channel that has capital letters in it",
+                mockLink({remote_room_channel: '#SomeCaps'}, true, true));
+
             it("should not create a M<--->I link with the same id as one existing",
                 mockLink({
                     matrix_room_id : '!foo:bar',
@@ -322,6 +325,7 @@ describe("Provisioning API", function() {
 
             it("should not create a M<--->I link when user does not have enough power in room",
                 mockLink({user_id: 'powerless'}, false, true));
+
         });
 
         describe("unlink endpoint", function() {
