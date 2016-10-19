@@ -54,7 +54,9 @@ describe("Provisioning API", function() {
             config._server, config._botnick, ['#provisionedchannel', '#somecaps']
         );
 
-        env.ircMock._autoJoinChannels(config._server, mxUser.nick, ['#provisionedchannel', '#somecaps']);
+        env.ircMock._autoJoinChannels(
+            config._server, mxUser.nick, ['#provisionedchannel', '#somecaps']
+        );
 
         // Allow receiving of names by bot
         env.ircMock._whenClient(config._server, config._botnick, "names",
