@@ -145,7 +145,7 @@ describe("IRC-to-Matrix message bridging", function() {
         let client = yield env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
         client.emit("topic", tChannel, testTopic, tFromNick);
 
-        return p;
+        yield p;
     }));
 
     it("should be insensitive to the case of the channel",
