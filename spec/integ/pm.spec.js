@@ -32,6 +32,10 @@ describe("Matrix-to-IRC PMing", function() {
         yield test.initEnv(env);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should join 1:1 rooms invited from matrix",
     test.coroutine(function*() {
         // get the ball rolling
@@ -250,6 +254,10 @@ describe("IRC-to-Matrix PMing", function() {
         });
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should create a 1:1 matrix room and invite the real matrix user when " +
     "it receives a PM directed at a virtual user from a real IRC user",
     test.coroutine(function*() {
@@ -344,6 +352,10 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
                 type: "m.room.message"
             });
         });
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
     }));
 
     it("should create a non-federated 1:1 matrix room and invite the real matrix user when " +

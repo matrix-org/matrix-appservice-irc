@@ -28,7 +28,7 @@
     "bluebird": "^3.1.1",
     "crc": "^3.2.1",
     "extend": "^2.0.0",
-    "irc": "matrix-org/node-irc#cd27d6a7e804c286233f009e51d4deb778da3a69",
+    "irc": "matrix-org/node-irc#2fb12af750be6142c7ae42dd7111a919b8d543e6",
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
     "matrix-appservice-bridge": "^1.3",

@@ -43,6 +43,10 @@ describe("IRC connections", function() {
         yield test.initEnv(env);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should use the matrix user's display name if they have one",
     function(done) {
         var displayName = "Some_Name";
