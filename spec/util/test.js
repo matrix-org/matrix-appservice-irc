@@ -63,6 +63,20 @@ module.exports.log = function(testCase) {
 };
 
 /**
+ * Reset the test environment for a new test case that has just run.
+ * This kills the bridge.
+ * @param {TestCase} testCase : The finished test case.
+ * @param {Object} env : The test environment.
+ */
+module.exports.afterEach = Promise.coroutine(function*(testCase, env) {
+    // If there was a previous bridge running, kill it
+    // This is prevent IRC clients spamming the logs
+    if (env.main) {
+        yield env.main.killBridge();
+    }
+});
+
+/**
  * Reset the test environment for a new test case. This resets all mocks.
  * @param {TestCase} testCase : The new test case.
  * @param {Object} env : The pre-initialised test environment.
@@ -74,12 +88,6 @@ module.exports.beforeEach = Promise.coroutine(function*(testCase, env) {
     if (env) {
         env.ircMock._reset();
         env.clientMock._reset();
-
-        // If there was a previous bridge running, kill it
-        // This is prevent IRC clients spamming the logs
-        if (env.main) {
-            yield env.main.killBridge();
-        }
 
         env.main = proxyquire("../../lib/main.js", {
             "matrix-appservice": {
