@@ -16,6 +16,8 @@ var roomMapping = {
     roomId: config._roomid
 };
 
+var mediaUrl = "http://some-media-repo.com";
+
 describe("Matrix-to-IRC message bridging", function() {
     var testUser = {
         id: "@flibble:wibble",
@@ -41,6 +43,10 @@ describe("Matrix-to-IRC message bridging", function() {
 
         // do the init
         yield test.initEnv(env);
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
     }));
 
     it("should bridge matrix messages as IRC text", function(done) {
@@ -236,10 +242,11 @@ describe("Matrix-to-IRC message bridging", function() {
 
     it("should bridge matrix images as IRC text with a URL", function(done) {
         var tBody = "the_image.jpg";
-        var tMxcSegment = "somedomain.com/somecontentid";
-        var tHttpUri = "http://" + tMxcSegment;
+        var tMxcSegment = "/somecontentid";
+        var tHsUrl = "http://somedomain.com";
         var sdk = env.clientMock._client(config._botUserId);
-        sdk.mxcUrlToHttp.andReturn(tHttpUri);
+
+        sdk.getHomeserverUrl.andReturn(tHsUrl);
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
@@ -247,9 +254,10 @@ describe("Matrix-to-IRC message bridging", function() {
             expect(client.addr).toEqual(roomMapping.server);
             expect(channel).toEqual(roomMapping.channel);
             // don't be too brittle when checking this, but I expect to see the
-            // image filename (body) and the http url.
+            // filename (body) and the http url.
             expect(text.indexOf(tBody)).not.toEqual(-1);
-            expect(text.indexOf(tHttpUri)).not.toEqual(-1);
+            expect(text.indexOf(tHsUrl)).not.toEqual(-1);
+            expect(text.indexOf(tMxcSegment)).not.toEqual(-1);
             done();
         });
 
@@ -267,10 +275,11 @@ describe("Matrix-to-IRC message bridging", function() {
 
     it("should bridge matrix files as IRC text with a URL", function(done) {
         var tBody = "a_file.apk";
-        var tMxcSegment = "somedomain.com/somecontentid";
-        var tHttpUri = "http://" + tMxcSegment;
+        var tMxcSegment = "/somecontentid";
+        var tHsUrl = "http://somedomain.com";
         var sdk = env.clientMock._client(config._botUserId);
-        sdk.mxcUrlToHttp.andReturn(tHttpUri);
+
+        sdk.getHomeserverUrl.andReturn(tHsUrl);
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
@@ -280,7 +289,8 @@ describe("Matrix-to-IRC message bridging", function() {
             // don't be too brittle when checking this, but I expect to see the
             // filename (body) and the http url.
             expect(text.indexOf(tBody)).not.toEqual(-1);
-            expect(text.indexOf(tHttpUri)).not.toEqual(-1);
+            expect(text.indexOf(tHsUrl)).not.toEqual(-1);
+            expect(text.indexOf(tMxcSegment)).not.toEqual(-1);
             done();
         });
 
@@ -360,6 +370,10 @@ describe("Matrix-to-Matrix message bridging", function() {
 
         // do the init
         yield test.initEnv(env);
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
     }));
 
     it("should bridge matrix messages to other mapped matrix rooms", function(done) {
@@ -473,4 +487,78 @@ describe("Matrix-to-Matrix message bridging", function() {
         });
 
     }));
+});
+
+describe("Matrix-to-IRC message bridging with media URL set", function() {
+    var testUser = {
+        id: "@flibble:wibble",
+        nick: "M-flibble"
+    };
+
+    beforeEach(test.coroutine(function*() {
+        // Set the media URL
+        env.config.homeserver.media_url = mediaUrl;
+
+        console.log(env.config.homeserver);
+
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+
+        // accept connection requests
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, testUser.nick, roomMapping.server
+        );
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, testUser.nick, roomMapping.channel
+        );
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, roomMapping.botNick, roomMapping.channel
+        );
+
+        // do the init
+        yield test.initEnv(env);
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
+    it("should bridge matrix files as IRC text with a configured media URL", function(done) {
+        var tBody = "a_file.apk";
+        var tMxcSegment = "/somecontentid";
+        var tMediaUrl = mediaUrl;
+        var tHsUrl = "http://somedomain.com";
+        var sdk = env.clientMock._client(config._botUserId);
+
+        // Not expected to be caleld, but hook to catch the error
+        // see expectation not to see HS URL, below
+        sdk.getHomeserverUrl.andReturn(tHsUrl);
+
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        function(client, channel, text) {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            // don't be too brittle when checking this, but I expect to see the
+            // filename (body) and the http url.
+            expect(text.indexOf(tBody)).not.toEqual(-1, "File name not present");
+            expect(text.indexOf(tHsUrl)).toEqual(-1, "HS URL present instead of media URL");
+            expect(text.indexOf(tMediaUrl)).not.toEqual(-1, "No media URL");
+            expect(text.indexOf(tMxcSegment)).not.toEqual(-1, "No Mxc segment");
+            done();
+        });
+
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tBody,
+                url: "mxc://" + tMxcSegment,
+                msgtype: "m.file"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+    });
 });

@@ -54,6 +54,10 @@ describe("IRC-to-Matrix message bridging", function() {
         yield test.initEnv(env);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should bridge IRC text as Matrix message's m.text",
     function(done) {
         var testText = "this is some test text.";
@@ -263,6 +267,10 @@ describe("IRC-to-Matrix name bridging", function() {
         );
 
         yield test.initEnv(env);
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
     }));
 
     it("should set the matrix display name from the config file template", function(done) {

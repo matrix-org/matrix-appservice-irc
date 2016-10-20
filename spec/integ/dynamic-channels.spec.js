@@ -37,6 +37,10 @@ describe("Dynamic channels", function() {
         yield test.initEnv(env, config);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should join IRC channels when it receives special alias queries",
     function(done) {
         // Default mapping => #irc_$SERVER_$CHANNEL
@@ -202,6 +206,10 @@ describe("Dynamic channels (federation disabled)", function() {
         yield test.initEnv(env, config);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should create non federated room when joining channel and federation is disabled",
     function(done) {
         var tChannel = "#foobar";
@@ -267,6 +275,10 @@ describe("Dynamic channels (disabled)", function() {
 
         // do the init
         yield test.initEnv(env, config);
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
     }));
 
     it("should NOT join IRC channels when it receives special alias queries",
