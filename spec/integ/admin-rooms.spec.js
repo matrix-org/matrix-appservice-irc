@@ -455,6 +455,9 @@ describe("Admin rooms", function() {
     test.coroutine(function*() {
         var newChannel = "#awooga";
         var newRoomId = "!aasifuhawei:efjkwehfi";
+        var serverConfig = env.config.ircService.servers[roomMapping.server];
+        var serverShouldPublishRooms = serverConfig.dynamicChannels.published;
+        var serverJoinRule = serverConfig.dynamicChannels.joinRule;
 
         // let the bot join the irc channel
         var joinedChannel = false;
@@ -470,7 +473,12 @@ describe("Admin rooms", function() {
         var createdMatrixRoom = false;
         var sdk = env.clientMock._client(botUserId);
         sdk.createRoom.andCallFake(function(opts) {
-            expect(opts.visibility).toEqual("private");
+            expect(opts.visibility).toEqual(serverShouldPublishRooms ? "public" : "private");
+            expect(
+                opts.initial_state.find(
+                    (s)=> s.type === 'm.room.join_rules'
+                ).content.join_rule
+            ).toEqual(serverJoinRule);
             expect(opts.invite).toEqual([userId]);
             createdMatrixRoom = true;
             return Promise.resolve({
@@ -499,6 +507,9 @@ describe("Admin rooms", function() {
         var newChannel = "#awooga";
         var newRoomId = "!aasifuhawei:efjkwehfi";
         var key = "secret";
+        var serverConfig = env.config.ircService.servers[roomMapping.server];
+        var serverShouldPublishRooms = serverConfig.dynamicChannels.published;
+        var serverJoinRule = serverConfig.dynamicChannels.joinRule;
 
         // let the bot join the irc channel
         var joinedChannel = false;
@@ -524,7 +535,12 @@ describe("Admin rooms", function() {
         var createdMatrixRoom = false;
         var sdk = env.clientMock._client(botUserId);
         sdk.createRoom.andCallFake(function(opts) {
-            expect(opts.visibility).toEqual("private");
+            expect(opts.visibility).toEqual(serverShouldPublishRooms ? "public" : "private");
+            expect(
+                opts.initial_state.find(
+                    (s)=> s.type === 'm.room.join_rules'
+                ).content.join_rule
+            ).toEqual(serverJoinRule);
             expect(opts.invite).toEqual([userId]);
             createdMatrixRoom = true;
             return Promise.resolve({
