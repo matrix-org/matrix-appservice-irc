@@ -50,6 +50,14 @@ ircService:
       # Whether or not to send connection/error notices to real Matrix users. Default: true.
       sendConnectionMessages: true
 
+      # Whether parts due to net-splits are debounced for debouncePartsMs, to allow
+      # time for the net-split to resolve itself. A net-split is detected as being
+      # a QUIT frequency higher than 5Hz.
+      debounceParts: true
+
+      # The time to wait before bridging a QUIT to a leave that occured during a net-split.
+      debouncePartsMs: 3600000 # 60mins
+
       botConfig:
         # Enable the presence of the bot in IRC channels. The bot serves as the entity
         # which maps from IRC -> Matrix. You can disable the bot entirely which
