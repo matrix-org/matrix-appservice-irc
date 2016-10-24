@@ -76,6 +76,10 @@ describe("IRC client cycling", function() {
         yield test.initEnv(env);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should disconnect the oldest (last message time) client",
     function(done) {
         env.mockAppService._trigger("type:m.room.message", {

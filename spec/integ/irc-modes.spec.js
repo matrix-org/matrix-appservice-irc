@@ -50,6 +50,10 @@ describe("IRC-to-Matrix mode bridging", function() {
         yield test.initEnv(env);
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     it("should set join_rules to 'invite' on +k.",
     function(done) {
         sdk.sendStateEvent.andCallFake(function(roomId, type, content, key) {

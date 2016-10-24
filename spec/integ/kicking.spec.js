@@ -66,6 +66,10 @@ describe("Kicking", function() {
         })
     }));
 
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
     describe("IRC users on IRC", function() {
         it("should make the kickee leave the Matrix room", test.coroutine(function*() {
             var kickPromise = new Promise(function(resolve, reject) {

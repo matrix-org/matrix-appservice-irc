@@ -9,6 +9,8 @@ properties:
                 properties:
                     url:
                         type: "string"
+                    media_url:
+                        type: "string"
                     domain:
                         type: "string"
                 required: ["url", "domain"]
