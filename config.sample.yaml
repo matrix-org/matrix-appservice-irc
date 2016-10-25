@@ -328,3 +328,14 @@ ircService:
     # allotted time period, the provisioning request will fail.
     # Default: 300 seconds (5 mins)
     requestTimeoutSeconds: 300
+
+  # WARNING - STORING PASSWORDS ENCRYPTED IS PRECAUTIONARY TO MAKE COMPROMISE LESS
+  #           LIKELY. THIS MEASURE IS ONLY AS SECURE AS THE KEY FILE, BELOW.
+  #
+  # The path to the RSA PEM-formatted key to use when encrypting and decrypting
+  # IRC passwords that have been stored in the database. Passwords are stored by
+  # using the admin room `!storepass server.name passw0rd. When a connection is
+  # made for the corresponding virtual IRC user of the matrix user that has issued
+  # !storepass, they will connect with the password that has been persisted, if
+  # there is one.
+  passwordEncryptionKeyPath: "passkey.pem"
