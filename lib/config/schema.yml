@@ -109,6 +109,15 @@ properties:
                             type: "string"
                         icon:
                             type: "string"
+                        quitDebounce:
+                            type: "object"
+                            properties:
+                                enabled:
+                                    type: "boolean"
+                                quitsPerSecond:
+                                    type: "number"
+                                delayMs:
+                                    type: "number"
                         botConfig:
                             type: "object"
                             properties:
