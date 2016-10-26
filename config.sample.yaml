@@ -50,6 +50,20 @@ ircService:
       # Whether or not to send connection/error notices to real Matrix users. Default: true.
       sendConnectionMessages: true
 
+      quitDebounce:
+        # Whether parts due to net-splits are debounced for delayMs, to allow
+        # time for the netsplit to resolve itself. A netsplit is detected as being
+        # a QUIT rate higher than quitsPerSecond. Default: false.
+        enabled: false
+        # The maximum number of quits per second acceptable above which a netsplit is
+        # considered ongoing. Default: 5.
+        quitsPerSecond: 5
+        # The time to wait before bridging a QUIT to Matrix that occured during a netsplit.
+        # If the user with the same IRC nick as the one who sent the quit rejoins a channel
+        # before delayMs, consider them back online and do not bridge the quit.
+        # Default: 3600000, = 1h
+        delayMs: 3600000 # 1h
+
       botConfig:
         # Enable the presence of the bot in IRC channels. The bot serves as the entity
         # which maps from IRC -> Matrix. You can disable the bot entirely which
