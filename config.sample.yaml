@@ -53,7 +53,7 @@ ircService:
       quitDebounce:
         # Whether parts due to net-splits are debounced for debouncePartsMs, to allow
         # time for the netsplit to resolve itself. A netsplit is detected as being
-        # a QUIT frequency higher than 5Hz. Default: false.
+        # a QUIT rate higher than quitsPerSecond. Default: false.
         enabled: true
         # The maximum number of quits per second acceptable above which a netsplit is
         # considered ongoing. Default: 5.
