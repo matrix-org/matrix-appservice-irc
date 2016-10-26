@@ -10,7 +10,6 @@ New features:
 Improvements:
  - Add `!quit server.name` admin room command to disconnect an associated virtual IRC user from a given IRC server.
  - Turn of AS rate limiting when generating registration files.
- - The bridge no longer takes forever calling `/initialSync` on the HS, and instead uses `/$room_id/state` for each bridged room.
  - `!join` admin room command now creates rooms with the join rule set to `dynamicChannels.joinRule` instead of always being private.
 
 Bug fixes:
@@ -18,6 +17,7 @@ Bug fixes:
  - The bridge now ignores NickServ and ChanServ PMs that previously it was trying to bridge erroneously.
  - Fix plumbing channels with capital letters in them.
  - Fix flaky tests(!) due to not killing bridged client instances between tests.
+ - Fix the bridge taking forever calling `/initialSync` on the HS when a user leaves a room bridged into >1 channel. It instead uses `/$room_id/state` for each bridged room.
 
 Changes in 0.5.0 (2016-10-06)
 =============================
