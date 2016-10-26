@@ -58,7 +58,9 @@ ircService:
         # The maximum number of quits per second acceptable above which a netsplit is
         # considered ongoing. Default: 5.
         quitsPerSecond: 5
-        # The time to wait before bridging a QUIT to a leave that occured during a netsplit.
+        # The time to wait before bridging a QUIT to Matrix that occured during a netsplit.
+        # If the user with the same IRC nick as the one who sent the quit rejoins a channel
+        # before delayMs, consider them back online and do not bridge the quit.
         # Default: 3600000, = 1h
         delayMs: 3600000 # 1h
 
