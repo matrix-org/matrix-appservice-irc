@@ -24,7 +24,7 @@ you use this method, the bridge can be run via `node app.js`.
 
 
 ### Requirements
- - Node.js v4 or above.
+ - Node.js v4.5 or above.
  - A Matrix homeserver you control running Synapse 0.9 or above.
 
 ## 2. Configuration

@@ -5,7 +5,7 @@
   "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",
   "engines": {
-    "node": ">=4.0"
+    "node": ">=4.5"
   },
   "scripts": {
     "test": "BLUEBIRD_DEBUG=1 jasmine-node spec --verbose --forceexit --captureExceptions",
