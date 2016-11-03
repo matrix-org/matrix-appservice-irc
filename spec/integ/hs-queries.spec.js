@@ -19,8 +19,8 @@ describe("Homeserver user queries", function() {
         "@" + testLocalpart + ":" + config.homeserver.domain
     );
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -28,10 +28,12 @@ describe("Homeserver user queries", function() {
         );
 
         // do the init
-        test.initEnv(env).done(function() {
-            done();
-        });
-    });
+        yield test.initEnv(env);
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
 
     it("should always create a new Matrix user for the specified ID",
     function(done) {
@@ -67,8 +69,8 @@ describe("Homeserver alias queries", function() {
         "#" + testLocalpart + ":" + config.homeserver.domain
     );
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -76,14 +78,18 @@ describe("Homeserver alias queries", function() {
         );
 
         // do the init
-        test.initEnv(env).done(function() {
-            done();
-        }, function(err) {
+        try {
+            yield test.initEnv(env);
+        }
+        catch (err) {
             console.error(err);
             expect(false).toBe(true, "onUserQuery failed request.");
-            done();
-        });
-    });
+        }
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
 
     it("should make the AS start tracking the channel specified in the alias.",
     function(done) {

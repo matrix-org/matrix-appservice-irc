@@ -15,11 +15,9 @@ module.exports.mkEnv = function() {
     clientMock["@global"] = true;
     var ircMock = require("./irc-client-mock");
     ircMock["@global"] = true;
-    var dbHelper = require("./db-helper");
     var config = extend(true, {}, require("../util/test-config.json"));
     return {
         config: config,
-        dbHelper: dbHelper,
         ircMock: ircMock,
         clientMock: clientMock,
         mockAppService: null // reset each test
@@ -34,14 +32,10 @@ module.exports.mkEnv = function() {
  * @return {Promise} which is resolved when the app has finished initiliasing.
  */
 module.exports.initEnv = function(env, customConfig) {
-    // wipe the database entirely then call configure and register on the IRC
-    // service.
-    return env.dbHelper._reset(env.config.ircService.databaseUri).then(function() {
-        return env.main.runBridge(
-            env.config._port, customConfig || env.config,
-            AppServiceRegistration.fromObject(env.config._registration)
-        );
-    }).catch(function(e) {
+    return env.main.runBridge(
+        env.config._port, customConfig || env.config,
+        AppServiceRegistration.fromObject(env.config._registration), true
+    ).catch(function(e) {
         var msg = JSON.stringify(e);
         if (e.stack) {
             msg = e.stack;
@@ -62,16 +56,36 @@ module.exports.log = function(testCase) {
 };
 
 /**
+ * Reset the test environment for a new test case that has just run.
+ * This kills the bridge.
+ * @param {TestCase} testCase : The finished test case.
+ * @param {Object} env : The test environment.
+ */
+module.exports.afterEach = Promise.coroutine(function*(testCase, env) {
+    // If there was a previous bridge running, kill it
+    // This is prevent IRC clients spamming the logs
+    if (env.main) {
+        yield env.main.killBridge();
+        console.log(
+            '\nKilled bridge'
+        );
+    }
+    console.log('afterEach done');
+});
+
+/**
  * Reset the test environment for a new test case. This resets all mocks.
  * @param {TestCase} testCase : The new test case.
  * @param {Object} env : The pre-initialised test environment.
  */
-module.exports.beforeEach = function(testCase, env) {
+module.exports.beforeEach = Promise.coroutine(function*(testCase, env) {
     module.exports.log(testCase);
+
     MockAppService.resetInstance();
     if (env) {
         env.ircMock._reset();
         env.clientMock._reset();
+
         env.main = proxyquire("../../lib/main.js", {
             "matrix-appservice": {
                 AppService: MockAppService,
@@ -89,7 +103,7 @@ module.exports.beforeEach = function(testCase, env) {
         }
         throw new Error("Unhandled rejection: " + reason);
     });
-};
+});
 
 /**
  * Transform a given generator function into a coroutine and wrap it up in a Jasmine
@@ -108,7 +122,7 @@ module.exports.beforeEach = function(testCase, env) {
 module.exports.coroutine = function(generatorFn) {
     return function(done) {
         var fn = Promise.coroutine(generatorFn);
-        fn().then(function() {
+        fn.apply(this).then(function() {  // eslint-disable-line no-invalid-this
             done();
         }, function(err) {
             expect(true).toBe(false, "Coroutine threw: " + err + "\n" + err.stack);

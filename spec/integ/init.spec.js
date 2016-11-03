@@ -20,14 +20,14 @@ describe("Initialisation", function() {
     var ircAddr = roomMapping.server;
     var ircNick = roomMapping.botNick;
     var ircChannel = roomMapping.channel;
-    var databaseUri = config.ircService.databaseUri;
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
-        env.dbHelper._reset(databaseUri).done(function() {
-            done();
-        });
-    });
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
 
     it("should connect to the IRC network and channel in the config",
     function(done) {

@@ -1,3 +1,24 @@
+Changes in 0.6.0 (2016-10-26)
+=============================
+
+New features:
+ - Presence Syncing / Quit Debouncing / Net Split Handling: When a net split occurs on IRC and incremental membership list syncing was set to true in previous versions, a lot of spam would be sent to the HS despite the possibility of the same clients reconnecting shortly afterwards. With this new update, QUITs received from IRC are debounced if a net split is considered ongoing. This uses the heuristic of QUITs per second being greater than a certain threshold. If the threshold is reached, debouncing kicks in, delaying the bridging QUITs to the HS for `delayMs`. If the clients reconnect during this grace period, the QUIT is not bridged. In the meantime, Matrix presence is used to indicate that the user is offline. The associated configuration for this can be found in `config.sample.yaml` as `quitDebounce`.
+ - Topic Bridging: Topics are now bridged from IRC to Matrix in aliased rooms or rooms created via `!join` in the admin room.
+ - Custom CA: A custom Certificate Authority certificate can now be given in the config file for using SSL to connect to IRC servers. (Thanks, @Waldteufel!)
+ - Custom Media Repo: `media_url` in the bridge config file can now be set for setups where media uploaded on the Matrix side is not stored at the connected HS.
+
+Improvements:
+ - Add `!quit server.name` admin room command to disconnect an associated virtual IRC user from a given IRC server.
+ - Turn of AS rate limiting when generating registration files.
+ - `!join` admin room command now creates rooms with the join rule set to `dynamicChannels.joinRule` instead of always being private.
+
+Bug fixes:
+ - !help command no longer requires server name
+ - The bridge now ignores NickServ and ChanServ PMs that previously it was trying to bridge erroneously.
+ - Fix plumbing channels with capital letters in them.
+ - Fix flaky tests(!) due to not killing bridged client instances between tests.
+ - Fix the bridge taking forever calling `/initialSync` on the HS when a user leaves a room bridged into >1 channel. It instead uses `/$room_id/state` for each bridged room.
+
 Changes in 0.5.0 (2016-10-06)
 =============================
 

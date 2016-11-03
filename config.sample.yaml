@@ -4,6 +4,13 @@ homeserver:
   # The URL to the home server for client-server API calls, also used to form the
   # media URLs as displayed in bridged IRC channels:
   url: "http://localhost:8008"
+  #
+  # The URL of the homeserver hosting media files. This is only used to transform
+  # mxc URIs to http URIs when bridging m.room.[file|image] events. Optional. By
+  # default, this is the homeserver URL, specified above.
+  #
+  # media_url: "http://media.repo:8008"
+
   # The 'domain' part for user IDs on this home server. Usually (but not always)
   # is the "domain name" part of the HS URL.
   domain: "localhost"
@@ -13,20 +20,49 @@ ircService:
   servers:
     # The address of the server to connect to.
     irc.example.com:
+      # A human-readable short name. This is used to label IRC status rooms
+      # where matrix users control their connections.
+      # E.g. 'ExampleNet IRC Bridge status'.
+      # It is also used in the Third Party Lookup API as the instance `desc`
+      # property, where each server is an instance.
+      name: "ExampleNet"
+      #
+      # [DEPRECATED] Use `name`, above, instead.
       # A human-readable description string
-      description: "The example.com IRC network"
+      # description: "Example.com IRC network"
+
       # The port to connect to. Optional.
       port: 6697
       # Whether to use SSL or not. Default: false.
       ssl: true
       # Whether or not IRC server is using a self-signed cert or not providing CA Chain
       sslselfsign: false
+      # A specific CA to trust instead of the default CAs. Optional.
+      #ca: |
+      #  -----BEGIN CERTIFICATE-----
+      #  ...
+      #  -----END CERTIFICATE-----
+
       #
       # The connection password to send for all clients as a PASS command. Optional.
       # password: 'pa$$w0rd'
       #
       # Whether or not to send connection/error notices to real Matrix users. Default: true.
       sendConnectionMessages: true
+
+      quitDebounce:
+        # Whether parts due to net-splits are debounced for delayMs, to allow
+        # time for the netsplit to resolve itself. A netsplit is detected as being
+        # a QUIT rate higher than quitsPerSecond. Default: false.
+        enabled: false
+        # The maximum number of quits per second acceptable above which a netsplit is
+        # considered ongoing. Default: 5.
+        quitsPerSecond: 5
+        # The time to wait before bridging a QUIT to Matrix that occured during a netsplit.
+        # If the user with the same IRC nick as the one who sent the quit rejoins a channel
+        # before delayMs, consider them back online and do not bridge the quit.
+        # Default: 3600000, = 1h
+        delayMs: 3600000 # 1h
 
       botConfig:
         # Enable the presence of the bot in IRC channels. The bot serves as the entity

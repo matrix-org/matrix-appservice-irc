@@ -25,8 +25,8 @@ describe("Provisioning API", function() {
         nick: "notoprah"
     };
 
-    let doSetup = function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    let doSetup = test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests from eeeeeeeeveryone!
         env.ircMock._autoConnectNetworks(
@@ -51,10 +51,12 @@ describe("Provisioning API", function() {
 
         // Bot now joins the provisioned channel to check for ops
         env.ircMock._autoJoinChannels(
-            config._server, config._botnick, '#provisionedchannel'
+            config._server, config._botnick, ['#provisionedchannel', '#somecaps']
         );
 
-        env.ircMock._autoJoinChannels(config._server, mxUser.nick, '#provisionedchannel');
+        env.ircMock._autoJoinChannels(
+            config._server, mxUser.nick, ['#provisionedchannel', '#somecaps']
+        );
 
         // Allow receiving of names by bot
         env.ircMock._whenClient(config._server, config._botnick, "names",
@@ -103,10 +105,8 @@ describe("Provisioning API", function() {
         });
 
         // do the init
-        test.initEnv(env).done(function() {
-            done();
-        });
-    }
+        yield test.initEnv(env);
+    });
 
     // Create a coroutine to test certain API parameters.
     //  parameters {object} - the API parameters
@@ -278,10 +278,17 @@ describe("Provisioning API", function() {
     describe("room setup", function() {
         beforeEach(doSetup);
 
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        }));
+
         describe("link endpoint", function() {
 
             it("should create a M<--->I link",
                 mockLink({}, true, true));
+
+            it("should create a M<--->I link for a channel that has capital letters in it",
+                mockLink({remote_room_channel: '#SomeCaps'}, true, true));
 
             it("should not create a M<--->I link with the same id as one existing",
                 mockLink({
@@ -324,6 +331,7 @@ describe("Provisioning API", function() {
 
             it("should not create a M<--->I link when user does not have enough power in room",
                 mockLink({user_id: 'powerless'}, false, true));
+
         });
 
         describe("unlink endpoint", function() {
@@ -363,7 +371,7 @@ describe("Provisioning API", function() {
     });
 
     describe("with config links existing", function() {
-        beforeEach(function(done) {
+        beforeEach(test.coroutine(function*() {
             config.ircService
                 .servers[config._server]
                 .mappings['#provisionedchannel'] = ['!foo:bar'];
@@ -372,7 +380,7 @@ describe("Provisioning API", function() {
             //  It is a copy because otherwise there is not other way
             //  to alter config before running.
 
-            test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
             // accept connection requests from eeeeeeeeveryone!
             env.ircMock._autoConnectNetworks(
@@ -447,10 +455,12 @@ describe("Provisioning API", function() {
             });
 
             // do the init
-            test.initEnv(env).done(function() {
-                done();
-            });
-        });
+            yield test.initEnv(env);
+        }));
+
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        }));
 
         it("should not create a M<--->I link of the same link id",
             mockLink({}, false, true)
@@ -458,9 +468,9 @@ describe("Provisioning API", function() {
     });
 
     describe("message sending and joining", function() {
-        beforeEach(function(done) {
+        beforeEach(test.coroutine(function*() {
             config.ircService.servers[config._server].mappings = {};
-            test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
             // Ignore bot connecting
             env.ircMock._autoConnectNetworks(
@@ -496,10 +506,12 @@ describe("Provisioning API", function() {
             );
 
             // do the init
-            test.initEnv(env).done(function() {
-                done();
-            });
-        });
+            yield test.initEnv(env);
+        }));
+
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        }));
 
         it("should allow IRC to send messages via the new link",
             test.coroutine(function*() {
@@ -732,8 +744,8 @@ describe("Provisioning API", function() {
     });
 
     describe("listings endpoint", function() {
-        beforeEach(function(done) {
-            test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        beforeEach(test.coroutine(function*() {
+            yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
             // accept connection requests from eeeeeeeeveryone!
             env.ircMock._autoConnectNetworks(
@@ -791,10 +803,12 @@ describe("Provisioning API", function() {
             );
 
             // do the init
-            test.initEnv(env).done(function() {
-                done();
-            });
-        });
+            yield test.initEnv(env);
+        }));
+
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        }));
 
         it("should return an empty list when no mappings have been provisioned",
             test.coroutine(function*() {
@@ -1015,6 +1029,10 @@ describe("Provisioning API", function() {
     describe("should set m.room.bridging=success", function() {
         beforeEach(doSetup);
 
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        }));
+
         it("when the link is successful",
             test.coroutine(function*() {
                 yield mockLinkCR({}, true, true, true, true);
@@ -1028,6 +1046,10 @@ describe("Provisioning API", function() {
 
     describe("should set m.room.bridging=failed", function() {
         beforeEach(doSetup);
+
+        afterEach(test.coroutine(function*() {
+            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        }));
 
         it("when the op did not authorise after a certain timeout",
             test.coroutine(function*() {

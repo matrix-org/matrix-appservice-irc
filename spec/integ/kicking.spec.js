@@ -16,8 +16,8 @@ describe("Kicking", function() {
         id: "@" + config._server + "_bob:" + config.homeserver.domain
     };
 
-    beforeEach(function(done) {
-        test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
         // accept connection requests from eeeeeeeeveryone!
         env.ircMock._autoConnectNetworks(
@@ -47,7 +47,7 @@ describe("Kicking", function() {
         });
 
         // do the init
-        test.initEnv(env).then(function() {
+        yield test.initEnv(env).then(function() {
             // make the matrix user be on IRC
             return env.mockAppService._trigger("type:m.room.message", {
                 content: {
@@ -63,9 +63,12 @@ describe("Kicking", function() {
         }).then(function(botIrcClient) {
             // make the IRC user be on Matrix
             botIrcClient.emit("message", ircUser.nick, config._chan, "let me in");
-            done();
         })
-    });
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
 
     describe("IRC users on IRC", function() {
         it("should make the kickee leave the Matrix room", test.coroutine(function*() {

@@ -9,6 +9,8 @@ properties:
                 properties:
                     url:
                         type: "string"
+                    media_url:
+                        type: "string"
                     domain:
                         type: "string"
                 required: ["url", "domain"]
@@ -101,10 +103,21 @@ properties:
                             type: "string"
                         sendConnectionMessages:
                             type: "boolean"
+                        name:
+                            type: "string"
                         description:
                             type: "string"
                         icon:
                             type: "string"
+                        quitDebounce:
+                            type: "object"
+                            properties:
+                                enabled:
+                                    type: "boolean"
+                                quitsPerSecond:
+                                    type: "number"
+                                delayMs:
+                                    type: "number"
                         botConfig:
                             type: "object"
                             properties:
