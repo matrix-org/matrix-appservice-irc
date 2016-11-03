@@ -25,7 +25,7 @@
     "no-alert": 2,
     "no-caller": 2,
     "no-cond-assign": 2,
-    "no-constant-condition": 2,
+    "no-constant-condition": [2, { "checkLoops": false }],
     "no-debugger": 2,
     "no-dupe-args": 2,
     "no-dupe-keys": 2,
