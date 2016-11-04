@@ -329,12 +329,12 @@ ircService:
     # Default: 300 seconds (5 mins)
     requestTimeoutSeconds: 300
 
-  # WARNING - STORED PASSWORDS ENCRYPTED ARE COMPLETELY RETRIEVABLE WITH THE KEY.
-  #           THE BRIDGE NEEDS TO SEND PASSWORDS TO THE IRC SERVERS AS PLAINTEXTS.
+  # WARNING: The bridge needs to send plaintext passwords to the IRC server, it cannot
+  # send a password hash. As a result, passwords (NOT hashes) are stored encrypted in
+  # the database.
   #
   # The path to the RSA PEM-formatted private key to use when encrypting IRC passwords
   # for storage in the database. Passwords are stored by using the admin room command
-  # `!storepass server.name passw0rd. When a connection is made for the corresponding
-  # virtual IRC user of the matrix user that has issued !storepass, they will connect
-  # with the (decrypted) password that has been persisted, if there is one.
+  # `!storepass server.name passw0rd. When a connection is made to IRC on behalf of
+  # the Matrix user, this password will be sent as the server password (PASS command).
   passwordEncryptionKeyPath: "passkey.pem"
