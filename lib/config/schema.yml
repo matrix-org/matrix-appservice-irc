@@ -116,11 +116,11 @@ properties:
                                     type: "boolean"
                                 quitsPerSecond:
                                     type: "number"
-                                startMs:
+                                delayMinMs:
                                     type: "integer"
                                     minimum: 0
                                     exclusiveMinimum: true
-                                endMs:
+                                delayMaxMs:
                                     type: "integer"
                                     minimum: 0
                                     exclusiveMinimum: true
