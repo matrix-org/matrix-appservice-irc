@@ -116,8 +116,14 @@ properties:
                                     type: "boolean"
                                 quitsPerSecond:
                                     type: "number"
-                                delayMs:
-                                    type: "number"
+                                delayMinMs:
+                                    type: "integer"
+                                    minimum: 0
+                                    exclusiveMinimum: true
+                                delayMaxMs:
+                                    type: "integer"
+                                    minimum: 0
+                                    exclusiveMinimum: true
                         botConfig:
                             type: "object"
                             properties:

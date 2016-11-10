@@ -58,11 +58,17 @@ ircService:
         # The maximum number of quits per second acceptable above which a netsplit is
         # considered ongoing. Default: 5.
         quitsPerSecond: 5
-        # The time to wait before bridging a QUIT to Matrix that occured during a netsplit.
+        # The time window in which to wait before bridging a QUIT to Matrix that occured during
+        # a netsplit. Debouncing is jittered randomly between delayMinMs and delayMaxMs so that the HS
+        # is not sent many requests to leave rooms all at once if a netsplit occurs and many
+        # people to not rejoin.
         # If the user with the same IRC nick as the one who sent the quit rejoins a channel
-        # before delayMs, consider them back online and do not bridge the quit.
+        # they are considered back online and the quit is not bridged, so long as the rejoin
+        # occurs before the randomly-jittered timeout is not reached.
         # Default: 3600000, = 1h
-        delayMs: 3600000 # 1h
+        delayMinMs: 3600000 # 1h
+        # Default: 7200000, = 2h
+        delayMaxMs: 7200000 # 2h
 
       botConfig:
         # Enable the presence of the bot in IRC channels. The bot serves as the entity
