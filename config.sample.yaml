@@ -58,7 +58,7 @@ ircService:
         # The maximum number of quits per second acceptable above which a netsplit is
         # considered ongoing. Default: 5.
         quitsPerSecond: 5
-        # The time window in which to wait before bridging a QUIT to Matrix that occured during
+        # The time window in which to wait before bridging a QUIT to Matrix that occurred during
         # a netsplit. Debouncing is jittered randomly between delayMinMs and delayMaxMs so that the HS
         # is not sent many requests to leave rooms all at once if a netsplit occurs and many
         # people to not rejoin.
