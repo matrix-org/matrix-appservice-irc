@@ -314,18 +314,16 @@ describe("IRC-to-Matrix PMing", function() {
                 });
             });
         });
+        let MESSAGE_COUNT = 10;
+        let receivedMessageCount = 0;
 
         // mock send message impl
         let sentMessagePromise = new Promise(function(resolve, reject) {
-            sdk.sendEvent.andCallFake(function(roomId, type, content) {
-                expect(roomId).toEqual(tCreatedRoomId);
-                expect(type).toEqual("m.room.message");
-                expect(content).toEqual({
-                    body: tText,
-                    msgtype: "m.text"
-                });
-                resolve();
-                return Promise.resolve({});
+            sdk.sendEvent.andCallFake(() => {
+                receivedMessageCount++;
+                if (receivedMessageCount === MESSAGE_COUNT) {
+                    resolve();
+                }
             });
         });
 
@@ -335,7 +333,7 @@ describe("IRC-to-Matrix PMing", function() {
         );
 
         // Send several messages, almost at once, to simulate a race
-        for (var i = 0; i < 10; i++) {
+        for (var i = 0; i < MESSAGE_COUNT; i++) {
             client.emit("message", tRealIrcUserNick, tRealMatrixUserNick, tText);
         }
 
