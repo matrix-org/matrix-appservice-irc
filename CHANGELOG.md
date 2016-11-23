@@ -9,7 +9,6 @@ New features:
    - Sending `!storepass [server.name]` to the admin room will encrypt and store a password for a Matrix user.
    - Sending `!removepass [server.name]` to the admin room will remove the encrypted password that the user has set from the database.
 
-
 Improvements:
  - `!quit [server.name]` now attempts to kick the matrix user that issues the command from the rooms in which they are being briged. This is done after the user's respective IRC client is disconnected.
  - The bridge now randomly jitters quit debounce delays between a minimum and maximum amount of time. This is in order to prevent the HS being sent many part requests all at once following a net-split that lasts a very long time. (See `quitDebounce` in config.sample.yaml)
