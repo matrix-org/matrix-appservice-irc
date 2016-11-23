@@ -13,7 +13,6 @@ Improvements:
  - `!quit [server.name]` now attempts to kick the matrix user that issues the command from the rooms in which they are being briged. This is done before the user's respective IRC client is disconnected.
  - The bridge now randomly jitters quit debounce delays between a minimum and maximum amount of time. This is in order to prevent the HS being sent many part requests all at once following a net-split that lasts a very long time. (See `quitDebounce` in config.sample.yaml)
  - Errors received by the bridge when _joining_ an IRC client to a channel can now be seen in the admin room at startup.
- - The bridge will now only claim for the namespaces pertaining to the HS connected, rather than any HS (which might also have an IRC bridge running).
  - Provisioning logs are now more detailed.
  - Allow an infinite number of memberlist syncing requests sent to matrix.
  - Bridge `m.video` uploads as files.
@@ -21,6 +20,7 @@ Improvements:
 Bug fixes:
  - Fix the bridge tightlooping when Matrix users leave a bridged channel.
  - Prevent multiple PM rooms being created when PMs are sent from IRC to Matrix.
+ - The namespace that the bridge uses to claim user names and aliases has been restricted to the HS to which it is connected, rather than any HS (which might also have an IRC bridge running).
 
 Changes in 0.6.0 (2016-10-26)
 =============================
