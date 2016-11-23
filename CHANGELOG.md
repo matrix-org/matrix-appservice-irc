@@ -10,6 +10,8 @@ Improvements:
  - Errors received by the bridge when _joining_ an IRC client to a channel can now be seen in the admin room at startup.
  - The bridge will now only claim for the namespaces pertaining to the HS connected, rather than any HS (which might also have an IRC bridge running).
  - Provisioning logs are now more detailed.
+ - Allow an infinite number of memberlist syncing requests sent to matrix.
+ - Bridge `m.video` uploads as files.
 
 Bug fixes:
  - Fix the bridge tightlooping when Matrix users leave a bridged channel.
