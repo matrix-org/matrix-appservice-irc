@@ -2,7 +2,13 @@ Changes in 0.6.1 (2016-11-23)
 =============================
 
 New features:
- - Storing IRC Passwords Encrypted at Rest: No longer will users need to `IDENTIFY` with NickServ! Simply send the admin room command `!storepass [server.name] password`, and your password that you would normally send to NickServ will be stored in the bridge database in an encrypted form (and not as a hash). WARNING: The bridge needs to send plaintext passwords to the IRC server when the bridge is connecting the user to IRC (typically on startup). This means that the key used to decrypt passwords must be loaded into memory on startup, and the key file will typically be stored on the same machine as the bridge itself. `!removepass [server.name]` will remove the password that the user has set from the database.
+ - Storing IRC Passwords Encrypted at Rest:
+   - Matrix users can now specify a server password to authenticate with the IRC server on startup. On most IRC servers, this is an alternative mechanism to authenticate with NickServ.
+   - To enable this functionality in the bridge, a private key needs to be generated.
+   - WARNING: the bridge is forced to send plaintext passwords to IRC, _not_ the hash of passwords. Matrix users are trusting the bridge with their actual, plaintext, non-hashed password.
+   - Sending `!storepass [server.name]` to the admin room will encrypt and store a password for a Matrix user.
+   - Sending `!removepass [server.name]` to the admin room will remove the encrypted password that the user has set from the database.
+
 
 Improvements:
  - `!quit [server.name]` now attempts to kick the matrix user that issues the command from the rooms in which they are being briged. This is done after the user's respective IRC client is disconnected.
