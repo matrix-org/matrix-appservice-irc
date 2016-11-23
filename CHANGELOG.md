@@ -1,3 +1,20 @@
+Changes in 0.6.1 (2016-11-23)
+=============================
+
+New features:
+ - Storing IRC Passwords Encrypted at Rest: No longer will users need to `IDENTIFY` with NickServ! Simply send the admin room command `!storepass [server.name] password`, and your password that you would normally send to NickServ will be stored in the bridge database in an encrypted form (and not as a hash). WARNING: The bridge needs to send plaintext passwords to the IRC server when the bridge is connecting the user to IRC (typically on startup). This means that the key used to decrypt passwords must be loaded into memory on startup, and the key file will typically be stored on the same machine as the bridge itself. `!removepass [server.name]` will remove the password that the user has set from the database.
+
+Improvements:
+ - `!quit [server.name]` now attempts to kick the matrix user that issues the command from the rooms in which they are being briged. This is done after the user's respective IRC client is disconnected.
+ - The bridge now randomly jitters quit debounce delays between a minimum and maximum amount of time. This is in order to prevent the HS being sent many part requests all at once following a net-split that lasts a very long time. (See `quitDebounce` in config.sample.yaml)
+ - Errors received by the bridge when _joining_ an IRC client to a channel can now be seen in the admin room at startup.
+ - The bridge will now only claim for the namespaces pertaining to the HS connected, rather than any HS (which might also have an IRC bridge running).
+ - Provisioning logs are now more detailed.
+
+Bug fixes:
+ - Fix the bridge tightlooping when Matrix users leave a bridged channel.
+ - Prevent multiple PM rooms being created when PMs are sent from IRC to Matrix.
+
 Changes in 0.6.0 (2016-10-26)
 =============================
 
