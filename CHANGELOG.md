@@ -10,7 +10,7 @@ New features:
    - Sending `!removepass [server.name]` to the admin room will remove the encrypted password that the user has set from the database.
 
 Improvements:
- - `!quit [server.name]` now attempts to kick the matrix user that issues the command from the rooms in which they are being briged. This is done after the user's respective IRC client is disconnected.
+ - `!quit [server.name]` now attempts to kick the matrix user that issues the command from the rooms in which they are being briged. This is done before the user's respective IRC client is disconnected.
  - The bridge now randomly jitters quit debounce delays between a minimum and maximum amount of time. This is in order to prevent the HS being sent many part requests all at once following a net-split that lasts a very long time. (See `quitDebounce` in config.sample.yaml)
  - Errors received by the bridge when _joining_ an IRC client to a channel can now be seen in the admin room at startup.
  - The bridge will now only claim for the namespaces pertaining to the HS connected, rather than any HS (which might also have an IRC bridge running).
