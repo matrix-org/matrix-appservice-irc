@@ -19,7 +19,7 @@ Improvements:
 
 Bug fixes:
  - Fix the bridge tightlooping when Matrix users leave a bridged channel.
- - Prevent multiple PM rooms being created when PMs are sent from IRC to Matrix.
+ - Prevent multiple PM rooms being created when PMs are sent from IRC to Matrix in rapid succession.
  - The namespace that the bridge uses to claim user names and aliases has been restricted to the HS to which it is connected, rather than any HS (which might also have an IRC bridge running).
 
 Changes in 0.6.0 (2016-10-26)
