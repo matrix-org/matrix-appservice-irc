@@ -3,7 +3,7 @@ Changes in 0.6.1 (2016-11-23)
 
 New features:
  - Storing IRC Passwords Encrypted at Rest:
-   - Matrix users can now specify a server password to authenticate with the IRC server on startup. On most IRC servers, this is an alternative mechanism to authenticate with NickServ.
+   - Matrix users can now specify a [server password](https://en.wikipedia.org/wiki/List_of_Internet_Relay_Chat_commands#PASS) to authenticate with the IRC server on startup. On most IRC servers, this is an alternative mechanism to authenticate with NickServ.
    - To enable this functionality in the bridge, a private key needs to be generated.
    - WARNING: the bridge is forced to send plaintext passwords to IRC, _not_ the hash of passwords. Matrix users are trusting the bridge with their actual, plaintext, non-hashed password.
    - Sending `!storepass [server.name]` to the admin room will encrypt and store a password for a Matrix user.
