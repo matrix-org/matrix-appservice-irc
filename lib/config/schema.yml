@@ -38,6 +38,11 @@ properties:
         properties:
             databaseUri:
                 type: "string"
+            metrics:
+                type: "object"
+                properties:
+                    enabled:
+                        type: "boolean"
             statsd:
                 type: "object"
                 properties:
