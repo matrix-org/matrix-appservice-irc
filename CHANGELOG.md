@@ -12,6 +12,7 @@ New features:
 Improvements:
  - `!quit [server.name]` now attempts to kick the matrix user that issues the command from the rooms in which they are being briged. This is done before the user's respective IRC client is disconnected.
  - The bridge now randomly jitters quit debounce delays between a minimum and maximum amount of time. This is in order to prevent the HS being sent many part requests all at once following a net-split that lasts a very long time. (See `quitDebounce` in config.sample.yaml)
+ - If an IRC user is no longer in a channel, and their ghost user is still in a bridged room, the ghost user will be made to leave the Matrix side.
  - Errors received by the bridge when _joining_ an IRC client to a channel can now be seen in the admin room at startup.
  - Provisioning logs are now more detailed.
  - Allow an infinite number of memberlist syncing requests sent to matrix.
