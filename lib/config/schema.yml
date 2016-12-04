@@ -264,11 +264,12 @@ properties:
                                     type: "boolean"
                                 ipv6:
                                     type: "object"
-                                    required: ["prefix"]
                                     properties:
                                         prefix:
                                             type: "string"
                                             pattern: "[ABCDEFabcdef0123456789:]+"
+                                        only:
+                                            type: "boolean"
                                 lineLimit:
                                     type: "integer"
                                 userModes:
