@@ -299,6 +299,47 @@ describe("IRC-to-Matrix PMing", function() {
         yield createRoomPromise;
         yield sentMessagePromise;
     }));
+
+    it("should not create multiple matrix rooms when several PMs are received in quick succession",
+    test.coroutine(function*() {
+        let count = 0;
+        // mock create room impl
+        let createRoomPromise = new Promise(function(resolve, reject) {
+            sdk.createRoom.andCallFake(function(opts) {
+                count++;
+                expect(count).toEqual(1);
+                resolve();
+                return Promise.resolve({
+                    room_id: tCreatedRoomId
+                });
+            });
+        });
+        let MESSAGE_COUNT = 10;
+        let receivedMessageCount = 0;
+
+        // mock send message impl
+        let sentMessagePromise = new Promise(function(resolve, reject) {
+            sdk.sendEvent.andCallFake(() => {
+                receivedMessageCount++;
+                if (receivedMessageCount === MESSAGE_COUNT) {
+                    resolve();
+                }
+            });
+        });
+
+        // find the *VIRTUAL CLIENT* (not the bot) and send the irc message
+        let client = yield env.ircMock._findClientAsync(
+            roomMapping.server, tRealMatrixUserNick
+        );
+
+        // Send several messages, almost at once, to simulate a race
+        for (var i = 0; i < MESSAGE_COUNT; i++) {
+            client.emit("message", tRealIrcUserNick, tRealMatrixUserNick, tText);
+        }
+
+        yield createRoomPromise;
+        yield sentMessagePromise;
+    }));
 });
 
 describe("IRC-to-Matrix Non-Federated PMing", function() {

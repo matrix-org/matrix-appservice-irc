@@ -51,7 +51,7 @@ describe("Username generation", function() {
         IdentGenerator.MAX_USER_NAME_LENGTH = 8;
     });
 
-    it("should attempt a truncated user ID on a long user ID", function(done) {
+    it("should attempt to truncate the user ID on a long user ID", function(done) {
         var userId = "@myreallylonguseridhere:localhost";
         var uname = "myreally";
         identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
@@ -110,4 +110,12 @@ describe("Username generation", function() {
         });
     });
 
+    it("should prefix 'M' onto usernames which don't begin with A-z", function(done) {
+        var userId = "@-myname:localhost";
+        var uname = "M-myname";
+        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
+            expect(info.username).toEqual(uname);
+            done();
+        });
+    });
 });
