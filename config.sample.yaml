@@ -353,6 +353,9 @@ ircService:
   # send a password hash. As a result, passwords (NOT hashes) are stored encrypted in
   # the database.
   #
+  # To generate a .pem file:
+  # $ openssl genpkey -out passkey.pem -outform PEM -algorithm RSA -pkeyopt rsa_keygen_bits:2048
+  #
   # The path to the RSA PEM-formatted private key to use when encrypting IRC passwords
   # for storage in the database. Passwords are stored by using the admin room command
   # `!storepass server.name passw0rd. When a connection is made to IRC on behalf of
