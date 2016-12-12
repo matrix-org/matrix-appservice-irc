@@ -1,6 +1,6 @@
 {
   "name": "matrix-appservice-irc",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "An IRC Bridge for Matrix",
   "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",
@@ -31,7 +31,7 @@
     "irc": "matrix-org/node-irc#9bb3c68938f0979ab5b9e1398edf76403ee28a88",
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
-    "matrix-appservice-bridge": "matrix-org/matrix-appservice-bridge#ca40ff5",
+    "matrix-appservice-bridge": "matrix-org/matrix-appservice-bridge#55cb0e04b7113ad16ee01ed8202c7eec3f43bb49",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
     "request": "^2.54.0",
