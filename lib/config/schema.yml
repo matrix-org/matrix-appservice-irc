@@ -112,6 +112,9 @@ properties:
                             type: "string"
                         description:
                             type: "string"
+                        networkId:
+                            type: "string"
+                            pattern: "^[a-zA-Z0-9]*$"
                         icon:
                             type: "string"
                         quitDebounce:
