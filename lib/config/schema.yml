@@ -114,7 +114,7 @@ properties:
                             type: "string"
                         networkId:
                             type: "string"
-                            pattern: "^[a-zA-Z0-9]*$"
+                            pattern: "^[a-zA-Z0-9]+$"
                         icon:
                             type: "string"
                         quitDebounce:
