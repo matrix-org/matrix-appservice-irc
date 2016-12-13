@@ -15,11 +15,11 @@ def get_appservice_token(reg):
 def get_rooms(hs_url, token, user_id):
     res = requests.get(hs_url + "/_matrix/client/r0/sync?access_token=" + token).json()
     room_ids = []
-    for r in res["rooms"]["join"]:
-        room = res["rooms"]["join"][r]
+    for room_id in res["rooms"]["join"]:
+        room = res["rooms"]["join"][room_id]
         for s in room["state"]["events"]:
             if s["type"] == "m.room.member" and s["state_key"] == user_id and s["content"]["membership"] == "join":
-                room_ids.append(r)
+                room_ids.append(room_id)
     return room_ids
 
 def kick(hs_url, token, room_id, user_id):
