@@ -271,6 +271,13 @@ ircService:
         # side instead of potentially spamming IRC and getting the IRC client kicked.
         # Default: 3.
         lineLimit: 3
+        # A list of user modes to set on every IRC client. For example, "RiG" would set
+        # +R, +i and +G on every IRC connection when they have successfully connected.
+        # User modes vary wildly depending on the IRC network you're connecting to,
+        # so check before setting this value. Some modes may not work as intended
+        # through the bridge e.g. caller ID as there is no way to /ACCEPT.
+        # Default: "" (no user modes)
+        # userModes: "R"
 
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users

@@ -279,4 +279,6 @@ properties:
                                             pattern: "[ABCDEFabcdef0123456789:]+"
                                 lineLimit:
                                     type: "integer"
+                                userModes:
+                                    type: "string"
         required: ["databaseUri", "servers"]
