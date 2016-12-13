@@ -32,7 +32,7 @@ ircService:
       # description: "Example.com IRC network"
 
       # An ID for uniquely identifying this server amongst other servers being bridged.
-      networkId: "example"
+      # networkId: "example"
 
       # The port to connect to. Optional.
       port: 6697
