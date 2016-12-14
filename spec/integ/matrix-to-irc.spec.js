@@ -524,9 +524,9 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
     }));
 
-    it("should NOT bridge old matrix messages older than the drop time", test.coroutine(function*() {
+    it("should NOT bridge old matrix messages older than the drop time",
+    test.coroutine(function*() {
         var tBody = "Hello world";
-        var sdk = env.clientMock._client(config._botUserId);
 
         var said = false;
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
@@ -550,7 +550,6 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
 
     it("should bridge old matrix messages younger than the drop time", test.coroutine(function*() {
         var tBody = "Hello world";
-        var sdk = env.clientMock._client(config._botUserId);
 
         var said = false;
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
