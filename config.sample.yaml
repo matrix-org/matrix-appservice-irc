@@ -32,6 +32,7 @@ ircService:
       # description: "Example.com IRC network"
 
       # An ID for uniquely identifying this server amongst other servers being bridged.
+      # It is restricted to the regex ^[a-zA-Z0-9]+$
       # networkId: "example"
 
       # The port to connect to. Optional.
