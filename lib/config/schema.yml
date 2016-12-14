@@ -1,38 +1,18 @@
 "$schema": "http://json-schema.org/draft-04/schema#"
 type: "object"
 properties:
-    appService:
+    homeserver:
         type: "object"
         properties:
-            homeserver:
-                type: "object"
-                properties:
-                    url:
-                        type: "string"
-                    media_url:
-                        type: "string"
-                    domain:
-                        type: "string"
-                required: ["url", "domain"]
-            appservice:
-                type: "object"
-                properties:
-                    url:
-                        type: "string"
-                    token:
-                        type: "string"
-                required: ["url", "token"]
-            http:
-                type: "object"
-                properties:
-                    port:
-                        type: "integer"
-                    maxSize:
-                        type: "integer"
-                required: ["port"]
-            localpart:
-                "type": "string"
-        required: ["homeserver", "appservice", "http"]
+            url:
+                type: "string"
+            media_url:
+                type: "string"
+            domain:
+                type: "string"
+            dropMatrixMessagesAfterSecs:
+                type: "integer"
+        required: ["url", "domain"]
     ircService:
         type: "object"
         properties:
@@ -92,6 +72,8 @@ properties:
                         type: "boolean"
                     requestTimeoutSeconds:
                         type: "number"
+            passwordEncryptionKeyPath:
+                type: "string"
             servers:
                 type: "object"
                 # all properties must follow the following

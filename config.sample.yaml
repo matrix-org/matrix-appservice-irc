@@ -11,6 +11,18 @@ homeserver:
   #
   # media_url: "http://media.repo:8008"
 
+  # Drop Matrix messages which are older than this number of seconds, according to
+  # the event's origin_server_ts.
+  # If the bridge is down for a while, the homeserver will attempt to send all missed
+  # events on reconnection. These events may be hours old, which can be confusing to
+  # IRC users if they are then bridged. This option allows these old messages to be
+  # dropped.
+  # CAUTION: This is a very coarse heuristic. Federated homeservers may have different
+  # clock times and hence produce different origin_server_ts values, which may be old
+  # enough to cause *all* events from the homeserver to be dropped.
+  # Default: 0 (don't ever drop)
+  # dropMatrixMessagesAfterSecs: 300 # 5 minutes
+
   # The 'domain' part for user IDs on this home server. Usually (but not always)
   # is the "domain name" part of the HS URL.
   domain: "localhost"
