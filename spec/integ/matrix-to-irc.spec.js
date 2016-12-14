@@ -489,7 +489,7 @@ describe("Matrix-to-Matrix message bridging", function() {
     }));
 });
 
-describe("Matrix-to-IRC message bridging with media URL set", function() {
+describe("Matrix-to-IRC message bridging with media URL and drop time", function() {
     var testUser = {
         id: "@flibble:wibble",
         nick: "M-flibble"
@@ -498,8 +498,7 @@ describe("Matrix-to-IRC message bridging with media URL set", function() {
     beforeEach(test.coroutine(function*() {
         // Set the media URL
         env.config.homeserver.media_url = mediaUrl;
-
-        console.log(env.config.homeserver);
+        env.config.homeserver.dropMatrixMessagesAfterSecs = 300; // 5 min
 
         yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
@@ -523,6 +522,57 @@ describe("Matrix-to-IRC message bridging with media URL set", function() {
 
     afterEach(test.coroutine(function*() {
         yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+    }));
+
+    it("should NOT bridge old matrix messages older than the drop time",
+    test.coroutine(function*() {
+        var tBody = "Hello world";
+
+        var said = false;
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        function(client, channel, text) {
+            said = true;
+        });
+
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tBody,
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message",
+            origin_server_ts: Date.now() - (1000 * 60 * 6), // 6 mins old
+        });
+
+        expect(said).toBe(false);
+    }));
+
+    it("should bridge old matrix messages younger than the drop time", test.coroutine(function*() {
+        var tBody = "Hello world";
+
+        var said = false;
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        function(client, channel, text) {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            expect(text).toEqual(tBody);
+            said = true;
+        });
+
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tBody,
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message",
+            origin_server_ts: Date.now() - (1000 * 60 * 4), // 4 mins old
+        });
+
+        expect(said).toBe(true);
     }));
 
     it("should bridge matrix files as IRC text with a configured media URL", function(done) {
