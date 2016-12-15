@@ -17,6 +17,14 @@ describe("QueuePool", function() {
     let procFn;
     let itemToDeferMap;
 
+    let resolveItem = function(id) {
+        if (!itemToDeferMap[id]) {
+            return;
+        }
+        itemToDeferMap[id].resolve();
+        delete itemToDeferMap[id];
+    }
+
     beforeEach(function() {
         procFn = jasmine.createSpy("procFn");
         pool = new QueuePool(size, procFn);
@@ -46,12 +54,75 @@ describe("QueuePool", function() {
         pool.enqueue("d", "d");
         yield nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
-        if (!itemToDeferMap["b"]) {
-            return; // already failed
-        }
-        itemToDeferMap["b"].resolve();
-        delete itemToDeferMap["b"];
+        resolveItem("b");
         yield nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "c", "d"]);
+    }));
+
+    it("should wait until a queue is free", test.coroutine(function*() {
+        pool.enqueue("a", "a");
+        pool.enqueue("b", "b");
+        pool.enqueue("c", "c");
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
+        yield nextTick();
+        yield nextTick();
+        pool.enqueue("d", "d");
+        // wait a while
+        yield nextTick();
+        yield nextTick();
+        yield nextTick();
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
+        resolveItem("c");
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "d"]);
+    }));
+
+    it("should process overflows FIFO", test.coroutine(function*() {
+        pool.enqueue("a", "a");
+        pool.enqueue("b", "b");
+        pool.enqueue("c", "c");
+        pool.enqueue("d", "d");
+        pool.enqueue("e", "e");
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
+        pool.enqueue("f", "f");
+        resolveItem("b");
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "c", "d"]);
+        resolveItem("a");
+        resolveItem("c");
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["d", "e", "f"]);
+    }));
+
+    it("should repopulate empty queues", test.coroutine(function*() {
+        pool.enqueue("a", "a");
+        pool.enqueue("b", "b");
+        pool.enqueue("c", "c");
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
+        resolveItem("a");
+        resolveItem("b");
+        resolveItem("c");
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual([]);
+        pool.enqueue("d", "d");
+        pool.enqueue("e", "e");
+        pool.enqueue("f", "f");
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["d", "e", "f"]);
+    }));
+
+    it("should allow index-based queue manipulation", test.coroutine(function*() {
+        pool.enqueue("a", "a", 0);
+        pool.enqueue("b", "b", 0);
+        pool.enqueue("c", "c", 0);
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["a"]);
+        resolveItem("a");
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["b"]);
     }));
 });
