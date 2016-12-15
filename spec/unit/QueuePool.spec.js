@@ -1,6 +1,15 @@
 "use strict";
 let QueuePool = require("../../lib/util/QueuePool");
 let promiseutil = require("../../lib/promiseutil");
+let test = require("../util/test");
+
+let nextTick = function() {
+    return new Promise((resolve, reject) => {
+        process.nextTick(() => {
+            resolve();
+        });
+    });
+}
 
 describe("QueuePool", function() {
     const size = 3;
@@ -20,33 +29,29 @@ describe("QueuePool", function() {
         })
     });
 
-    it("should let multiple items be processed at once", function(done) {
+    it("should let multiple items be processed at once",
+    test.coroutine(function*() {
         pool.enqueue("a", "a");
         pool.enqueue("b", "b");
         // procFn is called on the next tick so check they've been called after
-        process.nextTick(() => {
-            expect(Object.keys(itemToDeferMap).length).toBe(2);
-            done();
-        });
-    });
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).length).toBe(2);
+    }));
 
     it("should not let more items than the pool size be processed at once",
-    function(done) {
+    test.coroutine(function*() {
         pool.enqueue("a", "a");
         pool.enqueue("b", "b");
         pool.enqueue("c", "c");
         pool.enqueue("d", "d");
-        process.nextTick(() => {
-            // first 3 items
-            expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
-            if (!itemToDeferMap["b"]) { done(); }
-            itemToDeferMap["b"].resolve();
-            delete itemToDeferMap["b"];
-
-            setTimeout(() => {
-                expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "c", "d"]);
-                done();
-            }, 10);
-        });
-    });
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
+        if (!itemToDeferMap["b"]) {
+            return; // already failed
+        }
+        itemToDeferMap["b"].resolve();
+        delete itemToDeferMap["b"];
+        yield nextTick();
+        expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "c", "d"]);
+    }));
 });
