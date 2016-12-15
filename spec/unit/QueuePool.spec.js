@@ -17,11 +17,11 @@ describe("QueuePool", function() {
     let procFn;
     let itemToDeferMap;
 
-    let resolveItem = function(id) {
+    let resolveItem = function(id, resolveWith) {
         if (!itemToDeferMap[id]) {
             return;
         }
-        itemToDeferMap[id].resolve();
+        itemToDeferMap[id].resolve(resolveWith);
         delete itemToDeferMap[id];
     }
 
@@ -44,6 +44,16 @@ describe("QueuePool", function() {
         // procFn is called on the next tick so check they've been called after
         yield nextTick();
         expect(Object.keys(itemToDeferMap).length).toBe(2);
+    }));
+
+    it("should resolve enqueued items when they resolve",
+    test.coroutine(function*() {
+        pool.enqueue("a", "a");
+        let promise = pool.enqueue("b", "b");
+        yield nextTick();
+        resolveItem("b", "stuff");
+        let res = yield promise;
+        expect(res).toEqual("stuff");
     }));
 
     it("should not let more items than the pool size be processed at once",
