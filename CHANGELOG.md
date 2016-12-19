@@ -1,4 +1,4 @@
-Changes in 0.6.1 (2016-11-23)
+Changes in 0.7.0 (2016-12-19)
 =============================
 
 New features:
@@ -8,6 +8,11 @@ New features:
    - WARNING: the bridge is forced to send plaintext passwords to IRC, _not_ the hash of passwords. Matrix users are trusting the bridge with their actual, plaintext, non-hashed password.
    - Sending `!storepass [server.name]` to the admin room will encrypt and store a password for a Matrix user.
    - Sending `!removepass [server.name]` to the admin room will remove the encrypted password that the user has set from the database.
+ - Default User Modes:
+   - The default user modes for every Matrix user's IRC client can be set in the config `ircClients.userModes`.
+ - Drop Old Matrix Messages:
+   - Messages that the bridge receives will be dropped if they are more than _N_ seconds old.
+   - This can be configured using the `homeserver.dropMatrixMessagesAfterSecs`.
 
 Improvements:
  - `!quit [server.name]` now attempts to kick the matrix user that issues the command from the rooms in which they are being briged. This is done before the user's respective IRC client is disconnected.
@@ -17,6 +22,7 @@ Improvements:
  - Provisioning logs are now more detailed.
  - Allow an infinite number of memberlist syncing requests sent to matrix.
  - Bridge `m.video` uploads as files.
+ - The bridge now uses the AS-specific room publication API.
 
 Bug fixes:
  - Fix the bridge tightlooping when Matrix users leave a bridged channel.
