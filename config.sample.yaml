@@ -328,12 +328,11 @@ ircService:
     # to rotations.
     maxFiles: 5
 
-  # Optional. The endpoint for a statsd server. If not specified, stats will not
-  # be sent. Stats are sent as UDP.
-  # statsd:
-  #   hostname: "127.0.0.1"
-  #   port: 9878
-  #   jobName: "irc_bridge"
+  # Optional. Enable Prometheus metrics. If this is enabled, you MUST install `prom-client`:
+  #   $ npm install prom-client@6.3.0
+  # Metrics will then be available via GET /metrics on the bridge listening port (-p).
+  # metrics:
+  #   enabled: true
 
   # The nedb database URI to connect to. This is the name of the directory to
   # dump .db files to. This is relative to the project directory.
