@@ -1,33 +1,46 @@
 Changes in 0.7.0 (2016-12-19)
 =============================
 
+**BREAKING CHANGES:**
+ - The `appService` config value which was deprecated in 0.3.0 has now been removed.
+ - This version of the IRC bridge requires Synapse v0.18.5-rc3 or above.
+ - Statsd metrics are now deprecated and will be removed in a future release.
+
+Scripts:
+ - A script to grant increased power level to a Matrix user in a dynamically bridged IRC room has been added.
+ - A script to remove a user from all known bridged IRC rooms has been added.
+
 New features:
- - Storing IRC Passwords Encrypted at Rest:
+ - Storing IRC Passwords:
    - Matrix users can now specify a [server password](https://en.wikipedia.org/wiki/List_of_Internet_Relay_Chat_commands#PASS) to authenticate with the IRC server on startup. On most IRC servers, this is an alternative mechanism to authenticate with NickServ.
-   - To enable this functionality in the bridge, a private key needs to be generated.
+   - To enable this functionality in the bridge, a private key needs to be generated. Passwords are stored encrypted at rest.
    - WARNING: the bridge is forced to send plaintext passwords to IRC, _not_ the hash of passwords. Matrix users are trusting the bridge with their actual, plaintext, non-hashed password.
    - Sending `!storepass [server.name]` to the admin room will encrypt and store a password for a Matrix user.
    - Sending `!removepass [server.name]` to the admin room will remove the encrypted password that the user has set from the database.
- - Default User Modes:
-   - The default user modes for every Matrix user's IRC client can be set in the config `ircClients.userModes`.
- - Drop Old Matrix Messages:
+ - Default user modes:
+   - The default user modes for every Matrix user's IRC client can now be set in the config via `ircClients.userModes`.
+ - Dropping old Matrix messages:
    - Messages that the bridge receives will be dropped if they are more than _N_ seconds old.
    - This can be configured using the `homeserver.dropMatrixMessagesAfterSecs`.
+ - Prometheus metrics:
+   - The bridge can now run a `/metrics` listener for Prometheus-based metrics reporting.
+   - Metrics can be enabled by setting `metrics.enabled`.
+   - Statsd metrics are now **deprecated** and will be removed in a future release.
 
 Improvements:
- - `!quit [server.name]` now attempts to kick the matrix user that issues the command from the rooms in which they are being briged. This is done before the user's respective IRC client is disconnected.
- - The bridge now randomly jitters quit debounce delays between a minimum and maximum amount of time. This is in order to prevent the HS being sent many part requests all at once following a net-split that lasts a very long time. (See `quitDebounce` in config.sample.yaml)
- - If an IRC user is no longer in a channel, and their ghost user is still in a bridged room, the ghost user will be made to leave the Matrix side.
+ - `!quit [server.name]` now attempts to kick the Matrix user that issues the command from the rooms in which they are being briged. This is done before the user's respective IRC client is disconnected.
+ - The bridge now randomly jitters quit debounce delays between a minimum and maximum amount of time. This is in order to prevent the HS being sent many leave requests all at once following a net-split that lasts a very long time. (See `quitDebounce` in `config.sample.yaml`)
+ - Initial IRC -> Matrix leave syncing is now implemented.
  - Errors received by the bridge when _joining_ an IRC client to a channel can now be seen in the admin room at startup.
  - Provisioning logs are now more detailed.
- - Allow an infinite number of memberlist syncing requests sent to matrix.
  - Bridge `m.video` uploads as files.
- - The bridge now uses the AS-specific room publication API.
+ - The bridge now uses the AS-specific room publication API. This requires Synapse v0.18.5-rc3 or above.
+ - The bridge now uses new Homeserver membership list APIs: `/joined_rooms` and `/rooms/$room_id/joined_members`. This is required in order to sync membership lists. This requires Synapse v0.18.5-rc3 or above.
 
 Bug fixes:
- - Fix the bridge tightlooping when Matrix users leave a bridged channel.
+ - Fixed a rare bug which could cause the bridge to tightloop when Matrix users leave a bridged channel.
  - Prevent multiple PM rooms being created when PMs are sent from IRC to Matrix in rapid succession.
- - The namespace that the bridge uses to claim user names and aliases has been restricted to the HS to which it is connected, rather than any HS (which might also have an IRC bridge running).
+ - The namespace that the bridge uses to claim user names and aliases has been restricted to the HS to which it is connected, rather than any HS which might also have an IRC bridge running.
  - Bumped the minimum supported Node.js version from 4.0 to 4.5 to fix a bug which caused TLS and IPv6 to not work together: https://github.com/nodejs/node/pull/6654
  - Ident usernames will now always begin with A-z. Previously, the bridge abided by RFC 2812, but on some networks this was treated as an invalid username.
  - Fixed a regression which prevented banned connections from waiting BANNED_TIME_MS between connection attempts.
