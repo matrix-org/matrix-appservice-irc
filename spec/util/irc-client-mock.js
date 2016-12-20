@@ -70,7 +70,7 @@ function Client(addr, nick, opts) {
             for (var i = 0; i < arguments.length; i++) {
                 args.push(arguments[i]);
             }
-            console.log("IrcClient.emit => %s", JSON.stringify(args));
+            console.log("IrcClient.emit => %s", JSON.stringify(args).substring(0, 40));
             clientEmitter.emit.apply(clientEmitter, args);
         });
     });
@@ -82,7 +82,7 @@ function Client(addr, nick, opts) {
         for (var i = 0; i < arguments.length; i++) {
             args.push(arguments[i]);
         }
-        console.log("IrcClient.emit => %s", JSON.stringify(args));
+        console.log("IrcClient.emit => %s", JSON.stringify(args).substring(0, 40));
         clientEmitter.emit.apply(clientEmitter, args);
 
         // Auto callback for all disconnect calls

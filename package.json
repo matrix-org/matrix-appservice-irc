@@ -8,12 +8,11 @@
     "node": ">=4.5"
   },
   "scripts": {
-    "test": "BLUEBIRD_DEBUG=1 jasmine",
+    "test": "BLUEBIRD_DEBUG=1 jasmine --stop-on-failure=true",
     "lint": "eslint --max-warnings 0 lib spec",
     "check": "npm test && npm run lint",
-    "ci-lint": "eslint lib spec --format checkstyle > ci-lint.xml || true",
     "ci-test": "BLUEBIRD_DEBUG=1 istanbul cover -x \"**/spec/**\" --report text jasmine",
-    "ci": "npm run ci-lint && npm run ci-test"
+    "ci": "npm run lint && npm run ci-test"
   },
   "repository": {
     "type": "git",

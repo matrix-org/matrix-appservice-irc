@@ -67,11 +67,7 @@ module.exports.afterEach = Promise.coroutine(function*(testCase, env) {
     // This is prevent IRC clients spamming the logs
     if (env.main) {
         yield env.main.killBridge();
-        console.log(
-            '\nKilled bridge'
-        );
     }
-    console.log('afterEach done');
 });
 
 /**
