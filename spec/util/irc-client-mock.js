@@ -58,7 +58,7 @@ function Client(addr, nick, opts) {
     ];
     spies.forEach(function(fnName) {
         self[fnName] = jasmine.createSpy("Client." + fnName);
-        self[fnName].andCallFake(function() {
+        self[fnName].and.callFake(function() {
             if (self._dead) { return; }
             // emit that the action was performed along with the args. This can
             // be caught in the form:
@@ -77,7 +77,7 @@ function Client(addr, nick, opts) {
 
     this.disconnect = jasmine.createSpy("Client.disconnect");
 
-    this.disconnect.andCallFake(function (msg, cb) {
+    this.disconnect.and.callFake(function (msg, cb) {
         var args = [self.addr + "_" + self.nick, 'disconnect', self];
         for (var i = 0; i < arguments.length; i++) {
             args.push(arguments[i]);

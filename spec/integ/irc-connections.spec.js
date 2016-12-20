@@ -74,7 +74,7 @@ describe("IRC connections", function() {
         });
 
         // mock a response for the state event.
-        env.clientMock._client(config._botUserId).getStateEvent.andCallFake(function() {
+        env.clientMock._client(config._botUserId).getStateEvent.and.callFake(function() {
             return Promise.resolve({
                 displayname: displayName
             });
@@ -133,7 +133,7 @@ describe("IRC connections", function() {
         });
 
         // mock a response for the state event.
-        env.clientMock._client(config._botUserId).getStateEvent.andCallFake(function() {
+        env.clientMock._client(config._botUserId).getStateEvent.and.callFake(function() {
             return Promise.resolve({
                 displayname: displayName
             });
@@ -176,7 +176,7 @@ describe("IRC connections", function() {
             expectLocalpart: roomMapping.server + "_" + testUser.nick,
             returnUserId: testUser.id
         });
-        sdk.sendEvent.andCallFake(function(roomId, type, c) {
+        sdk.sendEvent.and.callFake(function(roomId, type, c) {
             expect(false).toBe(
                 true, "bridge tried to send a msg to matrix from a virtual " +
                 "irc user with a nick assigned from rpl_welcome."
@@ -316,7 +316,7 @@ describe("IRC connections", function() {
             expectLocalpart: roomMapping.server + "_" + users[0].assignedNick,
             returnUserId: users[0].id
         });
-        sdk.sendEvent.andCallFake(function(roomId, type, c) {
+        sdk.sendEvent.and.callFake(function(roomId, type, c) {
             expect(false).toBe(
                 true, "bridge tried to send a msg to matrix from a virtual " +
                 "irc user (clashing nicks)."
@@ -406,7 +406,7 @@ describe("IRC connections", function() {
         });
 
         // mock a response for the state event.
-        env.clientMock._client(config._botUserId).getStateEvent.andCallFake(function() {
+        env.clientMock._client(config._botUserId).getStateEvent.and.callFake(function() {
             return Promise.resolve({});
         });
 
@@ -470,7 +470,7 @@ describe("IRC connections", function() {
         });
 
         // mock a response for the state event.
-        env.clientMock._client(config._botUserId).getStateEvent.andCallFake(function() {
+        env.clientMock._client(config._botUserId).getStateEvent.and.callFake(function() {
             return Promise.resolve({});
         });
 
