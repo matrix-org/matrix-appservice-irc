@@ -16,6 +16,11 @@ function getClient(addr, nick) {
     return instances[addr + DELIM + nick];
 }
 function setClient(client, addr, nick) {
+    // if we're clobbering a client, mark the clobbered client
+    // as dead so emitted events don't fire.
+    if (instances[addr + DELIM + nick]) {
+        instances[addr + DELIM + nick]._dead = true;
+    }
     instances[addr + DELIM + nick] = client;
     instanceEmitter.emit("client_" + addr + "_" + nick, client);
 }
