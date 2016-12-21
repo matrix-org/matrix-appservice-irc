@@ -66,7 +66,7 @@ describe("MemberListSyncer", function() {
                     },
                 });
             }
-            return Promise.reject("unhandled path");
+            return Promise.reject(new Error("unhandled path"));
         });
 
         let alicePromise = new Promise((resolve, reject) => {
