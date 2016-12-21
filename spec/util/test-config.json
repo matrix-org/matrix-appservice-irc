@@ -4,7 +4,15 @@
         "hs_token": "foobar",
         "as_token": "it's a secret",
         "url": "https://mywuvelyappservicerunninganircbridgeyay.gome",
-        "sender_localpart": "monkeybot"
+        "sender_localpart": "monkeybot",
+        "namespaces": {
+            "users": [
+                {
+                    "exclusive": true,
+                    "regex": "@irc.example_.*:some.home.server"
+                }
+            ]
+        }
     },
     "_port": 2,
     "_server": "irc.example",

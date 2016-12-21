@@ -43,6 +43,60 @@ describe("MemberListSyncer", function() {
         yield test.afterEach(env);
     }));
 
+    it("should sync initial leaves from IRC to Matrix", test.coroutine(function*() {
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, "M-alice", roomMapping.server
+        );
+        env.ircMock._whenClient(roomMapping.server, "M-alice", "join", (client, chan, cb) => {
+            expect(chan).toEqual(roomMapping.channel);
+            client._invokeCallback(cb);
+            process.nextTick(() => {
+                // send the NAMES
+                client.emit("names", chan, {
+                    "not_alpha": "",
+                    "beta": "",
+                });
+            });
+        });
+
+        let ircUserId = function(nick) {
+            return `@${roomMapping.server}_${nick}:${config.homeserver.domain}`;
+        };
+
+        botClient._http.authedRequestWithPrefix.and.callFake(
+        (cb, method, path, qps, data) => {
+            if (method === "GET" && path === "/joined_rooms") {
+                return Promise.resolve({
+                    joined_rooms: [roomMapping.roomId]
+                });
+            }
+            else if (method === "GET" &&
+                    path === `/rooms/${encodeURIComponent(roomMapping.roomId)}/joined_members`) {
+                return Promise.resolve({
+                    joined: {
+                        "@alice:bar": {},
+                        [ircUserId("alpha")]: {},
+                        [ircUserId("beta")]: {},
+                    },
+                });
+            }
+            return Promise.reject(new Error("unhandled path"));
+        });
+
+        let promise = new Promise((resolve, reject) => {
+            // 'alpha' should leave
+            let alphaClient = env.clientMock._client(ircUserId("alpha"));
+            alphaClient.leave.and.callFake((roomId) => {
+                expect(roomId).toEqual(roomMapping.roomId);
+                resolve();
+                return Promise.resolve({});
+            });
+        });
+
+        yield test.initEnv(env);
+        yield promise;
+    }));
+
     it("should sync initial joins from Matrix to IRC", test.coroutine(function*() {
         botClient._http.authedRequestWithPrefix.and.callFake(
         (cb, method, path, qps, data) => {
