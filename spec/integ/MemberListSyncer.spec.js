@@ -26,7 +26,7 @@ describe("MemberListSyncer", function() {
         config.ircService.servers[
             roomMapping.server
         ].membershipLists.global.matrixToIrc.initial = true;
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // make the bot automatically connect and join the mapped channel
         env.ircMock._autoConnectNetworks(
@@ -40,7 +40,7 @@ describe("MemberListSyncer", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should sync initial joins from Matrix to IRC", test.coroutine(function*() {
@@ -69,34 +69,31 @@ describe("MemberListSyncer", function() {
             return Promise.reject("unhandled path");
         });
 
-        let aliceNick = "M-alice";
-        let bobNick = "M-Bob";
-        let aliceJoined = false;
-        let bobJoined = false;
+        let alicePromise = new Promise((resolve, reject) => {
+            let aliceNick = "M-alice";
+            env.ircMock._whenClient(roomMapping.server, aliceNick, "connect", function(client, cb) {
+                client._invokeCallback(cb);
+            });
+            env.ircMock._whenClient(roomMapping.server, aliceNick, "join", (client, chan, cb) => {
+                expect(chan).toEqual(roomMapping.channel);
+                resolve();
+                client._invokeCallback(cb);
+            });
+        });
 
-        // expect connects and joins for these 2 users
-        env.ircMock._whenClient(roomMapping.server, aliceNick, "connect", function(client, cb) {
-            client._invokeCallback(cb);
-        });
-        env.ircMock._whenClient(roomMapping.server, bobNick, "connect", function(client, cb) {
-            client._invokeCallback(cb);
-        });
-        env.ircMock._whenClient(roomMapping.server, aliceNick, "join", function(client, chan, cb) {
-            expect(chan).toEqual(roomMapping.channel);
-            aliceJoined = true;
-            client._invokeCallback(cb);
-        });
-        env.ircMock._whenClient(roomMapping.server, bobNick, "join", function(client, chan, cb) {
-            expect(chan).toEqual(roomMapping.channel);
-            bobJoined = true;
-            client._invokeCallback(cb);
+        let bobPromise = new Promise((resolve, reject) => {
+            let bobNick = "M-Bob";
+            env.ircMock._whenClient(roomMapping.server, bobNick, "connect", function(client, cb) {
+                client._invokeCallback(cb);
+            });
+            env.ircMock._whenClient(roomMapping.server, bobNick, "join", (client, chan, cb) => {
+                expect(chan).toEqual(roomMapping.channel);
+                resolve();
+                client._invokeCallback(cb);
+            });
         });
 
         yield test.initEnv(env);
-        yield Promise.delay(59);
-        console.log("FIN");
-
-        expect(aliceJoined).toBe(true, "Alice did not join the channel");
-        expect(bobJoined).toBe(true, "Bob did not join the channel");
+        yield Promise.all([alicePromise, bobPromise]);
     }));
 });
