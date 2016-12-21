@@ -25,7 +25,7 @@ describe("Matrix-to-IRC message bridging", function() {
     };
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -46,7 +46,7 @@ describe("Matrix-to-IRC message bridging", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should bridge matrix messages as IRC text", function(done) {
@@ -340,7 +340,7 @@ describe("Matrix-to-Matrix message bridging", function() {
     let mirroredUserId =`@${roomMapping.server}_${testUser.nick}:${config.homeserver.domain}`;
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -373,7 +373,7 @@ describe("Matrix-to-Matrix message bridging", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should bridge matrix messages to other mapped matrix rooms", function(done) {
@@ -500,7 +500,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         env.config.homeserver.media_url = mediaUrl;
         env.config.homeserver.dropMatrixMessagesAfterSecs = 300; // 5 min
 
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -521,7 +521,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should NOT bridge old matrix messages older than the drop time",
