@@ -182,7 +182,7 @@ describe("Mirroring", function() {
         });
 
         it("should join the matrix room when the IRC user joins", function(done) {
-            sdk.joinRoom.andCallFake(function(roomId) {
+            sdk.joinRoom.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 done();
                 return Promise.resolve();
@@ -195,7 +195,7 @@ describe("Mirroring", function() {
         });
 
         it("should leave the matrix room when the IRC user parts", function(done) {
-            sdk.leave.andCallFake(function(roomId) {
+            sdk.leave.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 done();
                 return Promise.resolve();

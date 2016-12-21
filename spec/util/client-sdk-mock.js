@@ -31,18 +31,18 @@ function MockClient(config) {
     this.getHomeserverUrl = jasmine.createSpy("sdk.getHomeserverUrl()");
 
     // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms
-    this.joinRoom.andCallFake(function() {
+    this.joinRoom.and.callFake(function() {
         return Promise.resolve({});
     });
 
     // mock up sendStateEvent
-    this.sendStateEvent.andCallFake(function() {
+    this.sendStateEvent.and.callFake(function() {
         return Promise.resolve({});
     });
 
     // mock up getStateEvent immediately since it is called for every new IRC
     // connection.
-    this.getStateEvent.andCallFake(function(roomId, type, skey, callback) {
+    this.getStateEvent.and.callFake(function(roomId, type, skey, callback) {
         let result = {};
 
         // Mocks a user having the ability to change power levels
@@ -62,24 +62,24 @@ function MockClient(config) {
 
     // mock up registration since we make them if they aren't in the DB (which they won't be
     // for testing).
-    this.register.andCallFake(function() {
+    this.register.and.callFake(function() {
         return Promise.resolve({});
     });
 
     // mock up roomState
-    this.roomState.andCallFake(function() {
+    this.roomState.and.callFake(function() {
         return Promise.resolve([{}]);
     });
 
     // Helper to succeed sdk registration calls.
     this._onHttpRegister = function(params) {
-        self.register.andCallFake(function(username, password) {
+        self.register.and.callFake(function(username, password) {
             expect(username).toEqual(params.expectLocalpart);
             return Promise.resolve({
                 user_id: params.returnUserId
             });
         });
-        self.setDisplayName.andCallFake(function(name) {
+        self.setDisplayName.and.callFake(function(name) {
             if (params.andResolve) {
                 params.andResolve.resolve();
             }
@@ -101,13 +101,13 @@ function MockClient(config) {
             }
         );
 
-        this.createRoom.andCallFake(function(opts) {
+        this.createRoom.and.callFake(function(opts) {
             return Promise.resolve({
                 room_id: tRoomId
             });
         });
 
-        this.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+        this.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
             return Promise.resolve({});
         });
 

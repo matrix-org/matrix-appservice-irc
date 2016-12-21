@@ -16,6 +16,11 @@ function getClient(addr, nick) {
     return instances[addr + DELIM + nick];
 }
 function setClient(client, addr, nick) {
+    // if we're clobbering a client, mark the clobbered client
+    // as dead so emitted events don't fire.
+    if (instances[addr + DELIM + nick]) {
+        instances[addr + DELIM + nick]._dead = true;
+    }
     instances[addr + DELIM + nick] = client;
     instanceEmitter.emit("client_" + addr + "_" + nick, client);
 }
@@ -58,7 +63,7 @@ function Client(addr, nick, opts) {
     ];
     spies.forEach(function(fnName) {
         self[fnName] = jasmine.createSpy("Client." + fnName);
-        self[fnName].andCallFake(function() {
+        self[fnName].and.callFake(function() {
             if (self._dead) { return; }
             // emit that the action was performed along with the args. This can
             // be caught in the form:
@@ -70,19 +75,25 @@ function Client(addr, nick, opts) {
             for (var i = 0; i < arguments.length; i++) {
                 args.push(arguments[i]);
             }
-            console.log("IrcClient.emit => %s", JSON.stringify(args));
+            console.log(
+                "TEST: Bridge called IRC client.%s(%s)",
+                fnName, JSON.stringify(args).substring(0, 40)
+            );
             clientEmitter.emit.apply(clientEmitter, args);
         });
     });
 
     this.disconnect = jasmine.createSpy("Client.disconnect");
 
-    this.disconnect.andCallFake(function (msg, cb) {
+    this.disconnect.and.callFake(function (msg, cb) {
         var args = [self.addr + "_" + self.nick, 'disconnect', self];
         for (var i = 0; i < arguments.length; i++) {
             args.push(arguments[i]);
         }
-        console.log("IrcClient.emit => %s", JSON.stringify(args));
+        console.log(
+            "TEST: Bridge called IRC client.disconnect(%s)",
+            JSON.stringify(args).substring(0, 40)
+        );
         clientEmitter.emit.apply(clientEmitter, args);
 
         // Auto callback for all disconnect calls
@@ -151,12 +162,11 @@ module.exports._findClientAsync = function(addr, nick) {
  * AS invoked the original function with.
  */
 module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
-    console.log("Add listener(%s) for fn=%s", (addr + "_" + nick), fnName);
+    console.log("TEST: Test listening for %s to call function '%s'", (addr + "_" + nick), fnName);
     clientEmitter.on((addr + "_" + nick), function(invokedFnName, client) {
         if (invokedFnName !== fnName) {
             return;
         }
-        console.log("Irc.Client.on(%s) fn=%s", (addr + "_" + nick), invokedFnName);
         // invoke function with the remaining args (incl. Client object)
         var args = [];
         for (var i = 1; i < arguments.length; i++) {
@@ -169,6 +179,11 @@ module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
         if (invokedFnName === "connect") {
             args.splice(1, 1);
         }
+
+        console.log(
+            "TEST: Invoking test callback for user %s : client.%s(%s)",
+            (addr + "_" + nick), invokedFnName, JSON.stringify(args).substring(0, 40)
+        );
 
         invokeFn.apply(client, args);
     });
