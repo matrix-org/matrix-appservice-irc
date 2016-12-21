@@ -23,7 +23,7 @@ describe("Matrix-to-IRC PMing", function() {
     var tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -33,7 +33,7 @@ describe("Matrix-to-IRC PMing", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should join 1:1 rooms invited from matrix",
@@ -217,7 +217,7 @@ describe("IRC-to-Matrix PMing", function() {
     var tText = "ello ello ello";
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
         sdk = env.clientMock._client(tVirtualUserId);
 
         // add registration mock impl:
@@ -255,7 +255,7 @@ describe("IRC-to-Matrix PMing", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should create a 1:1 matrix room and invite the real matrix user when " +
@@ -358,7 +358,7 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
 
     beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].privateMessages.federate = false;
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
         sdk = env.clientMock._client(tVirtualUserId);
 
         // add registration mock impl:
@@ -396,7 +396,7 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should create a non-federated 1:1 matrix room and invite the real matrix user when " +

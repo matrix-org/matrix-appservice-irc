@@ -21,7 +21,7 @@ describe("Dynamic channels", function() {
 
     beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].dynamicChannels.enabled = true;
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -38,7 +38,7 @@ describe("Dynamic channels", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should join IRC channels when it receives special alias queries",
@@ -186,7 +186,7 @@ describe("Dynamic channels (federation disabled)", function() {
     };
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         config.ircService.servers[
             roomMapping.server].dynamicChannels.enabled = true;
@@ -207,7 +207,7 @@ describe("Dynamic channels (federation disabled)", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should create non federated room when joining channel and federation is disabled",
@@ -260,7 +260,7 @@ describe("Dynamic channels (disabled)", function() {
 
     beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].dynamicChannels.enabled = false;
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -278,7 +278,7 @@ describe("Dynamic channels (disabled)", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should NOT join IRC channels when it receives special alias queries",

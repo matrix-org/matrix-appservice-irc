@@ -18,7 +18,7 @@ var botUserId = config._botUserId;
 describe("Creating admin rooms", function() {
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -31,7 +31,7 @@ describe("Creating admin rooms", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should be possible by sending an invite to the bot's user ID",
@@ -63,7 +63,7 @@ describe("Admin rooms", function() {
     var userIdNick = "M-someone";
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // enable nick changes
         config.ircService.servers[roomMapping.server].ircClients.allowNickChanges = true;
@@ -125,7 +125,7 @@ describe("Admin rooms", function() {
 
     afterEach(test.coroutine(function*() {
         jasmine.clock().uninstall();
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should respond to bad !nick commands with a help notice",

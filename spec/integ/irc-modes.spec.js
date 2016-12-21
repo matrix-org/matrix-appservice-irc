@@ -29,7 +29,7 @@ describe("IRC-to-Matrix mode bridging", function() {
         ].dynamicChannels.joinRule;
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         sdk = env.clientMock._client(config._botUserId);
         // add registration mock impl:
@@ -51,7 +51,7 @@ describe("IRC-to-Matrix mode bridging", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should set join_rules to 'invite' on +k.",

@@ -33,7 +33,7 @@ describe("IRC-to-Matrix message bridging", function() {
     };
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         sdk = env.clientMock._client(tUserId);
         // add registration mock impl:
@@ -55,7 +55,7 @@ describe("IRC-to-Matrix message bridging", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should bridge IRC text as Matrix message's m.text",
@@ -247,7 +247,7 @@ describe("IRC-to-Matrix name bridging", function() {
                   config.homeserver.domain;
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         config.ircService.servers[roomMapping.server].matrixClients.displayName = (
             "Test $NICK and $SERVER"
@@ -270,7 +270,7 @@ describe("IRC-to-Matrix name bridging", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should set the matrix display name from the config file template", function(done) {
