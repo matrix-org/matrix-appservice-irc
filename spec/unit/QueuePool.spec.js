@@ -97,8 +97,8 @@ describe("QueuePool", function() {
         pool.enqueue("e", "e");
         yield nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
-        pool.enqueue("f", "f");
         resolveItem("b");
+        pool.enqueue("f", "f");
         yield nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "c", "d"]);
         resolveItem("a");
