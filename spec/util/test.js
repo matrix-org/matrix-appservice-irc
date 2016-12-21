@@ -50,9 +50,10 @@ module.exports.initEnv = function(env, customConfig) {
  * @param {TestCase} testCase : The Jasmine test case to log.
  */
 module.exports.log = function(testCase) {
-    var desc = testCase.suite.description + " : " + testCase.description;
-    console.log(desc);
-    console.log(new Array(1 + desc.length).join("="));
+    console.log("~~~~~~~~~~~~");
+    //var desc = testCase.suite.description + " : " + testCase.description;
+    //console.log(desc);
+    //console.log(new Array(1 + desc.length).join("="));
 };
 
 /**
@@ -66,11 +67,7 @@ module.exports.afterEach = Promise.coroutine(function*(testCase, env) {
     // This is prevent IRC clients spamming the logs
     if (env.main) {
         yield env.main.killBridge();
-        console.log(
-            '\nKilled bridge'
-        );
     }
-    console.log('afterEach done');
 });
 
 /**

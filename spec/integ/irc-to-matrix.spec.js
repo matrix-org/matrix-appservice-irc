@@ -61,7 +61,7 @@ describe("IRC-to-Matrix message bridging", function() {
     it("should bridge IRC text as Matrix message's m.text",
     function(done) {
         var testText = "this is some test text.";
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
                 body: testText,
@@ -80,7 +80,7 @@ describe("IRC-to-Matrix message bridging", function() {
     it("should bridge IRC actions as Matrix message's m.emote",
     function(done) {
         var testEmoteText = "thinks for a bit";
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
                 body: testEmoteText,
@@ -101,7 +101,7 @@ describe("IRC-to-Matrix message bridging", function() {
     it("should bridge IRC notices as Matrix message's m.notice",
     function(done) {
         var testNoticeText = "Automated bot text: SUCCESS!";
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
                 body: testNoticeText,
@@ -136,7 +136,7 @@ describe("IRC-to-Matrix message bridging", function() {
         );
 
         let p = new Promise((resolve, reject) => {
-            cli.sendStateEvent.andCallFake(function(roomId, type, content, skey) {
+            cli.sendStateEvent.and.callFake(function(roomId, type, content, skey) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 expect(content).toEqual({ topic: testTopic });
                 expect(type).toEqual("m.room.topic");
@@ -155,7 +155,7 @@ describe("IRC-to-Matrix message bridging", function() {
     it("should be insensitive to the case of the channel",
     function(done) {
         var testText = "this is some test text.";
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
                 body: testText,
@@ -184,7 +184,7 @@ describe("IRC-to-Matrix message bridging", function() {
             'this is a <b><u><font color="green">mix of all three';
         var tFallback = "This text is bold and this is underlined and this is " +
             "green. Finally, this is a mix of all three";
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             // more readily expose non-printing character errors (looking at
             // you \u000f)
@@ -218,7 +218,7 @@ describe("IRC-to-Matrix message bridging", function() {
         var tHtmlMain = "This text is <b>bold</b> and has " +
             "&lt;div&gt; tags &amp; characters like &#39; and &quot;";
         var tFallback = "This text is bold and has <div> tags & characters like ' and \"";
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             // more readily expose non-printing character errors (looking at
             // you \u000f)
@@ -275,16 +275,16 @@ describe("IRC-to-Matrix name bridging", function() {
 
     it("should set the matrix display name from the config file template", function(done) {
         // don't care about registration / sending the event
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             return Promise.resolve();
         });
-        sdk.register.andCallFake(function(username, password) {
+        sdk.register.and.callFake(function(username, password) {
             return Promise.resolve({
                 user_id: tUserId
             });
         });
 
-        sdk.setDisplayName.andCallFake(function(name) {
+        sdk.setDisplayName.and.callFake(function(name) {
             expect(name).toEqual("Test mike and " + roomMapping.server);
             done();
         });
@@ -315,7 +315,7 @@ describe("IRC-to-Matrix name bridging", function() {
                 expectLocalpart: roomMapping.server + "_" + n,
                 returnUserId: nicks[n].uid
             });
-            cli.joinRoom.andCallFake(function(r, opts) {
+            cli.joinRoom.and.callFake(function(r, opts) {
                 expect(r).toEqual(roomMapping.roomId);
                 joined.add(n);
                 if (joined.size === 3) {
@@ -325,7 +325,7 @@ describe("IRC-to-Matrix name bridging", function() {
             });
 
             // don't care about display name
-            cli.setDisplayName.andCallFake(function(name) {
+            cli.setDisplayName.and.callFake(function(name) {
                 return Promise.resolve({});
             });
         });
