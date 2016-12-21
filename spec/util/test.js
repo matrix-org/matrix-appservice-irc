@@ -56,10 +56,9 @@ module.exports.initEnv = function(env, customConfig) {
 /**
  * Reset the test environment for a new test case that has just run.
  * This kills the bridge.
- * @param {TestCase} testCase : The finished test case.
  * @param {Object} env : The test environment.
  */
-module.exports.afterEach = Promise.coroutine(function*(testCase, env) {
+module.exports.afterEach = Promise.coroutine(function*(env) {
     // If there was a previous bridge running, kill it
     // This is prevent IRC clients spamming the logs
     if (env.main) {
@@ -69,10 +68,9 @@ module.exports.afterEach = Promise.coroutine(function*(testCase, env) {
 
 /**
  * Reset the test environment for a new test case. This resets all mocks.
- * @param {TestCase} testCase : The new test case.
  * @param {Object} env : The pre-initialised test environment.
  */
-module.exports.beforeEach = Promise.coroutine(function*(testCase, env) {
+module.exports.beforeEach = Promise.coroutine(function*(env) {
     MockAppService.resetInstance();
     if (env) {
         env.ircMock._reset();

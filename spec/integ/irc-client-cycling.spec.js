@@ -20,7 +20,7 @@ describe("IRC client cycling", function() {
     var testUsers = null;
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // set client cycling to 2 for these tests. This is slightly brittle since we
         // assume that this means when the limit is reached we disconnect a client
@@ -77,7 +77,7 @@ describe("IRC client cycling", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should disconnect the oldest (last message time) client",

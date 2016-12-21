@@ -20,7 +20,7 @@ describe("Homeserver user queries", function() {
     );
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -32,7 +32,7 @@ describe("Homeserver user queries", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should always create a new Matrix user for the specified ID",
@@ -70,7 +70,7 @@ describe("Homeserver alias queries", function() {
     );
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -88,7 +88,7 @@ describe("Homeserver alias queries", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should make the AS start tracking the channel specified in the alias.",
