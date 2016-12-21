@@ -31,7 +31,7 @@ describe("QueuePool", function() {
         itemToDeferMap = {
             // $item: Deferred
         };
-        procFn.andCallFake((item) => {
+        procFn.and.callFake((item) => {
             itemToDeferMap[item] = new promiseutil.defer();
             return itemToDeferMap[item].promise;
         })
