@@ -306,6 +306,7 @@ describe("IRC-to-Matrix operator modes bridging", function(){
                 expect(userId).toBe(tRealUserId);
                 expect(powerLevel).toBe(50);
                 resolve();
+                return Promise.resolve();
             });
 
             env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(

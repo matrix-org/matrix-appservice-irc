@@ -155,5 +155,3 @@ module.exports._client = function(userId) {
 module.exports._reset = function() {
     mockClients = {};
 };
-
-module.exports.clients = () => mockClients;
