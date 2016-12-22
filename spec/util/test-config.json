@@ -48,6 +48,10 @@
                     "enabled": true,
                     "exclude": []
                 },
+                "modePowerMap": {
+                    "o": 50,
+                    "v": 25
+                },
                 "dynamicChannels": {
                     "enabled": true,
                     "createAlias": true,

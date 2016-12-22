@@ -85,6 +85,12 @@ ircService:
         # Default: 7200000, = 2h
         delayMaxMs: 7200000 # 2h
 
+      # A map for conversion of IRC user modes to Matrix power levels. This enables bridging
+      # of IRC ops to Matrix power levels only, it does not enable the reverse. If a user has
+      # been given multiple modes, the one that maps to the highest power level will be used.
+      modePowerMap:
+        o: 50
+
       botConfig:
         # Enable the presence of the bot in IRC channels. The bot serves as the entity
         # which maps from IRC -> Matrix. You can disable the bot entirely which

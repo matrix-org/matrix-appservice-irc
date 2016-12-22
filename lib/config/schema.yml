@@ -114,6 +114,8 @@ properties:
                                     type: "integer"
                                     minimum: 0
                                     exclusiveMinimum: true
+                        modePowerMap:
+                            type: "object"
                         botConfig:
                             type: "object"
                             properties:

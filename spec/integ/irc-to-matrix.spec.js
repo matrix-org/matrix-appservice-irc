@@ -240,6 +240,87 @@ describe("IRC-to-Matrix message bridging", function() {
     });
 });
 
+describe("IRC-to-Matrix operator modes bridging", function(){
+    let sdk = null;
+
+    var tFromNick = "mike";
+    var tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
+                  config.homeserver.domain;
+
+    var tRealMatrixUserNick = "M-alice";
+    var tRealUserId = "@alice:anotherhomeserver";
+
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+
+        sdk = env.clientMock._client(tUserId);
+
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, tRealMatrixUserNick, roomMapping.server
+        );
+
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, tRealMatrixUserNick, roomMapping.channel
+        );
+
+        // do the init
+        yield test.initEnv(env).then(() => {
+            return env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: "get me in",
+                    msgtype: "m.text"
+                },
+                user_id: tRealUserId,
+                room_id: roomMapping.roomId,
+                type: "m.room.message"
+            });
+        });;
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(this, env) // eslint-disable-line no-invalid-this
+    }));
+
+    it("should bridge modes to power levels",
+    test.coroutine(function*() {
+        // Set IRC user prefix, which in reality is assumed to have happened
+        const client = yield env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
+
+        client.chans[roomMapping.channel] = {
+            users: {
+                [tRealMatrixUserNick]: "@"
+            }
+        };
+
+        const promise = new Promise((resolve, reject) => {
+            sdk.setPowerLevel.and.callFake(
+            function(roomId, userId, powerLevel, event, callback) {
+                expect(roomId).toBe(roomMapping.roomId);
+                expect(userId).toBe(tRealUserId);
+                expect(powerLevel).toBe(50);
+                resolve();
+            });
+
+            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+            function(client) {
+                client.emit(
+                    "+mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
+                );
+            });
+        });
+
+
+        yield promise;
+    }));
+});
+
 describe("IRC-to-Matrix name bridging", function() {
     var sdk;
     var tFromNick = "mike";
