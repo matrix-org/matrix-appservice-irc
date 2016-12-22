@@ -13,6 +13,7 @@ function MockClient(config) {
         userId: config.userId
     };
     this._http = { opts: {} };
+    this._http.authedRequestWithPrefix = jasmine.createSpy("sdk.authedRequestWithPrefix");
     this.register = jasmine.createSpy("sdk.register(username, password)");
     this.createRoom = jasmine.createSpy("sdk.createRoom(opts)");
     this.joinRoom = jasmine.createSpy("sdk.joinRoom(idOrAlias, opts)");
