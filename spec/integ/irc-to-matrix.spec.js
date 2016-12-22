@@ -247,7 +247,7 @@ describe("IRC-to-Matrix operator modes bridging", function() {
     var tRealUserId = "@alice:anotherhomeserver";
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         botMatrixClient = env.clientMock._client(config._botUserId);
 
