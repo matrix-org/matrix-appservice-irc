@@ -125,7 +125,8 @@ function Client(addr, nick, opts) {
     }
 
     this.modeForPrefix = {
-        "@" : "o"
+        "@" : "o",
+        "+" : "v",
     }
 
     this.chanData = function(channel) {
