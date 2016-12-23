@@ -281,7 +281,7 @@ describe("IRC-to-Matrix operator modes bridging", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should bridge modes to power levels",
