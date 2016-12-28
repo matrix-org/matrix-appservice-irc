@@ -114,6 +114,13 @@ properties:
                                     type: "integer"
                                     minimum: 0
                                     exclusiveMinimum: true
+                        modePowerMap:
+                            type: "object"
+                            patternProperties:
+                                # Single character modes mapped to positive power levels
+                                "^[a-zA-Z]$":
+                                    type: number
+                                    minimum: 0
                         botConfig:
                             type: "object"
                             properties:

@@ -30,6 +30,7 @@ function MockClient(config) {
     this.createAlias = jasmine.createSpy("sdk.createAlias(alias, roomId)");
     this.mxcUrlToHttp = jasmine.createSpy("sdk.mxcUrlToHttp(mxc, w, h, method)");
     this.getHomeserverUrl = jasmine.createSpy("sdk.getHomeserverUrl()");
+    this.setPowerLevel = jasmine.createSpy("sdk.setPowerLevel()");
 
     // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms
     this.joinRoom.and.callFake(function() {

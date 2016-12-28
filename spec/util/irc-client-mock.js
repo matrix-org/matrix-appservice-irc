@@ -124,6 +124,15 @@ function Client(addr, nick, opts) {
         return channel.toLowerCase();
     }
 
+    this.modeForPrefix = {
+        "@" : "o",
+        "+" : "v",
+    }
+
+    this.chanData = function(channel) {
+        return this.chans[channel];
+    }
+
     setClient(self, addr, nick);
 }
 util.inherits(Client, EventEmitter);
