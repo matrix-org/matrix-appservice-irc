@@ -1,6 +1,6 @@
 Matrix <--> IRC Bridge
 ----------------------
-[![Build Status](http://matrix.org/jenkins/buildStatus/icon?job=IRC-AS)](http://matrix.org/jenkins/job/IRC-AS/)
+[![Build Status](https://travis-ci.org/matrix-org/matrix-appservice-irc.svg?branch=master)](https://travis-ci.org/matrix-org/matrix-appservice-irc)
 
 This is an IRC bridge for Matrix using the Application Services (AS) API. If you're upgrading from an old release, be sure to read the [CHANGELOG](CHANGELOG.md) as there may be breaking changes between releases.
 
