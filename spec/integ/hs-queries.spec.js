@@ -94,7 +94,7 @@ describe("Homeserver alias queries", function() {
     it("should make the AS start tracking the channel specified in the alias.",
     function(done) {
         var sdk = env.clientMock._client(config._botUserId);
-        sdk.createRoom.andCallFake(function(opts) {
+        sdk.createRoom.and.callFake(function(opts) {
             expect(opts.room_alias_name).toEqual(testLocalpart);
             expect(opts.visibility).toEqual("public");
             return Promise.resolve({
@@ -102,7 +102,7 @@ describe("Homeserver alias queries", function() {
             });
         });
 
-        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
             return Promise.resolve({});

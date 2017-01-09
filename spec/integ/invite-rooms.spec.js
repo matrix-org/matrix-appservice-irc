@@ -46,7 +46,7 @@ describe("Invite-only rooms", function() {
         var adminRoomId = "!adminroom:id";
         var sdk = env.clientMock._client(botUserId);
         var joinRoomCount = 0;
-        sdk.joinRoom.andCallFake(function(roomId) {
+        sdk.joinRoom.and.callFake(function(roomId) {
             expect(roomId).toEqual(adminRoomId);
             joinRoomCount += 1;
             return Promise.resolve({});
@@ -103,21 +103,21 @@ describe("Invite-only rooms", function() {
         });
 
         var joinedRoom = false;
-        sdk.joinRoom.andCallFake(function(roomId) {
+        sdk.joinRoom.and.callFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             joinedRoom = true;
             return Promise.resolve({});
         });
 
         var leftRoom = false;
-        sdk.leave.andCallFake(function(roomId) {
+        sdk.leave.and.callFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             leftRoom = true;
             return Promise.resolve({});
         });
 
         var askedForRoomState = false;
-        sdk.roomState.andCallFake(function(roomId) {
+        sdk.roomState.and.callFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             askedForRoomState = true;
             return Promise.resolve([

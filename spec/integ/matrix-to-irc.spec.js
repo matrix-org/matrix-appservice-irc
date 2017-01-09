@@ -246,7 +246,7 @@ describe("Matrix-to-IRC message bridging", function() {
         var tHsUrl = "http://somedomain.com";
         var sdk = env.clientMock._client(config._botUserId);
 
-        sdk.getHomeserverUrl.andReturn(tHsUrl);
+        sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
@@ -279,7 +279,7 @@ describe("Matrix-to-IRC message bridging", function() {
         var tHsUrl = "http://somedomain.com";
         var sdk = env.clientMock._client(config._botUserId);
 
-        sdk.getHomeserverUrl.andReturn(tHsUrl);
+        sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
@@ -379,7 +379,7 @@ describe("Matrix-to-Matrix message bridging", function() {
     it("should bridge matrix messages to other mapped matrix rooms", function(done) {
         let testText = "Here is some test text.";
         let sdk = env.clientMock._client(mirroredUserId);
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(secondRoomId);
             expect(content).toEqual({
                 body: testText,
@@ -420,11 +420,11 @@ describe("Matrix-to-Matrix message bridging", function() {
 
         let joinedRooms = new Set();
         let nickservSdk = env.clientMock._client(nickServUserId);
-        nickservSdk.joinRoom.andCallFake(function(roomId) {
+        nickservSdk.joinRoom.and.callFake(function(roomId) {
             joinedRooms.add(roomId);
             return Promise.resolve({});
         });
-        nickservSdk.roomState.andCallFake(function(roomId) {
+        nickservSdk.roomState.and.callFake(function(roomId) {
             let uid = roomId === pmRoomIdA ? testUser.id : anotherUserId;
             return Promise.resolve([
                 {
@@ -469,7 +469,7 @@ describe("Matrix-to-Matrix message bridging", function() {
         // Send a message in one room. Make sure it does not go to the other room.
         let testText = "Here is some test text.";
         let sdk = env.clientMock._client(mirroredUserId);
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(true).toBe(
                 false, "Bridge incorrectly tried to send a matrix event into room " + roomId
             );
@@ -489,7 +489,7 @@ describe("Matrix-to-Matrix message bridging", function() {
     }));
 });
 
-describe("Matrix-to-IRC message bridging with media URL set", function() {
+describe("Matrix-to-IRC message bridging with media URL and drop time", function() {
     var testUser = {
         id: "@flibble:wibble",
         nick: "M-flibble"
@@ -498,8 +498,7 @@ describe("Matrix-to-IRC message bridging with media URL set", function() {
     beforeEach(test.coroutine(function*() {
         // Set the media URL
         env.config.homeserver.media_url = mediaUrl;
-
-        console.log(env.config.homeserver);
+        env.config.homeserver.dropMatrixMessagesAfterSecs = 300; // 5 min
 
         yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
 
@@ -525,6 +524,57 @@ describe("Matrix-to-IRC message bridging with media URL set", function() {
         yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
     }));
 
+    it("should NOT bridge old matrix messages older than the drop time",
+    test.coroutine(function*() {
+        var tBody = "Hello world";
+
+        var said = false;
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        function(client, channel, text) {
+            said = true;
+        });
+
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tBody,
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message",
+            origin_server_ts: Date.now() - (1000 * 60 * 6), // 6 mins old
+        });
+
+        expect(said).toBe(false);
+    }));
+
+    it("should bridge old matrix messages younger than the drop time", test.coroutine(function*() {
+        var tBody = "Hello world";
+
+        var said = false;
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        function(client, channel, text) {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            expect(text).toEqual(tBody);
+            said = true;
+        });
+
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tBody,
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message",
+            origin_server_ts: Date.now() - (1000 * 60 * 4), // 4 mins old
+        });
+
+        expect(said).toBe(true);
+    }));
+
     it("should bridge matrix files as IRC action with a configured media URL", function(done) {
         var tBody = "a_file.apk";
         var tMxcSegment = "/somecontentid";
@@ -534,7 +584,7 @@ describe("Matrix-to-IRC message bridging with media URL set", function() {
 
         // Not expected to be caleld, but hook to catch the error
         // see expectation not to see HS URL, below
-        sdk.getHomeserverUrl.andReturn(tHsUrl);
+        sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {

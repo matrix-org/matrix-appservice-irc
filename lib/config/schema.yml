@@ -1,43 +1,28 @@
 "$schema": "http://json-schema.org/draft-04/schema#"
 type: "object"
 properties:
-    appService:
+    homeserver:
         type: "object"
         properties:
-            homeserver:
-                type: "object"
-                properties:
-                    url:
-                        type: "string"
-                    media_url:
-                        type: "string"
-                    domain:
-                        type: "string"
-                required: ["url", "domain"]
-            appservice:
-                type: "object"
-                properties:
-                    url:
-                        type: "string"
-                    token:
-                        type: "string"
-                required: ["url", "token"]
-            http:
-                type: "object"
-                properties:
-                    port:
-                        type: "integer"
-                    maxSize:
-                        type: "integer"
-                required: ["port"]
-            localpart:
-                "type": "string"
-        required: ["homeserver", "appservice", "http"]
+            url:
+                type: "string"
+            media_url:
+                type: "string"
+            domain:
+                type: "string"
+            dropMatrixMessagesAfterSecs:
+                type: "integer"
+        required: ["url", "domain"]
     ircService:
         type: "object"
         properties:
             databaseUri:
                 type: "string"
+            metrics:
+                type: "object"
+                properties:
+                    enabled:
+                        type: "boolean"
             statsd:
                 type: "object"
                 properties:
@@ -87,6 +72,8 @@ properties:
                         type: "boolean"
                     requestTimeoutSeconds:
                         type: "number"
+            passwordEncryptionKeyPath:
+                type: "string"
             servers:
                 type: "object"
                 # all properties must follow the following
@@ -107,8 +94,26 @@ properties:
                             type: "string"
                         description:
                             type: "string"
+                        networkId:
+                            type: "string"
+                            pattern: "^[a-zA-Z0-9]+$"
                         icon:
                             type: "string"
+                        quitDebounce:
+                            type: "object"
+                            properties:
+                                enabled:
+                                    type: "boolean"
+                                quitsPerSecond:
+                                    type: "number"
+                                delayMinMs:
+                                    type: "integer"
+                                    minimum: 0
+                                    exclusiveMinimum: true
+                                delayMaxMs:
+                                    type: "integer"
+                                    minimum: 0
+                                    exclusiveMinimum: true
                         botConfig:
                             type: "object"
                             properties:
@@ -259,4 +264,6 @@ properties:
                                             pattern: "[ABCDEFabcdef0123456789:]+"
                                 lineLimit:
                                     type: "integer"
+                                userModes:
+                                    type: "string"
         required: ["databaseUri", "servers"]

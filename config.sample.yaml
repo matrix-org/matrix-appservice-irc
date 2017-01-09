@@ -11,6 +11,18 @@ homeserver:
   #
   # media_url: "http://media.repo:8008"
 
+  # Drop Matrix messages which are older than this number of seconds, according to
+  # the event's origin_server_ts.
+  # If the bridge is down for a while, the homeserver will attempt to send all missed
+  # events on reconnection. These events may be hours old, which can be confusing to
+  # IRC users if they are then bridged. This option allows these old messages to be
+  # dropped.
+  # CAUTION: This is a very coarse heuristic. Federated homeservers may have different
+  # clock times and hence produce different origin_server_ts values, which may be old
+  # enough to cause *all* events from the homeserver to be dropped.
+  # Default: 0 (don't ever drop)
+  # dropMatrixMessagesAfterSecs: 300 # 5 minutes
+
   # The 'domain' part for user IDs on this home server. Usually (but not always)
   # is the "domain name" part of the HS URL.
   domain: "localhost"
@@ -31,6 +43,9 @@ ircService:
       # A human-readable description string
       # description: "Example.com IRC network"
 
+      # An ID for uniquely identifying this server amongst other servers being bridged.
+      # networkId: "example"
+
       # The port to connect to. Optional.
       port: 6697
       # Whether to use SSL or not. Default: false.
@@ -49,6 +64,26 @@ ircService:
       #
       # Whether or not to send connection/error notices to real Matrix users. Default: true.
       sendConnectionMessages: true
+
+      quitDebounce:
+        # Whether parts due to net-splits are debounced for delayMs, to allow
+        # time for the netsplit to resolve itself. A netsplit is detected as being
+        # a QUIT rate higher than quitsPerSecond. Default: false.
+        enabled: false
+        # The maximum number of quits per second acceptable above which a netsplit is
+        # considered ongoing. Default: 5.
+        quitsPerSecond: 5
+        # The time window in which to wait before bridging a QUIT to Matrix that occurred during
+        # a netsplit. Debouncing is jittered randomly between delayMinMs and delayMaxMs so that the HS
+        # is not sent many requests to leave rooms all at once if a netsplit occurs and many
+        # people to not rejoin.
+        # If the user with the same IRC nick as the one who sent the quit rejoins a channel
+        # they are considered back online and the quit is not bridged, so long as the rejoin
+        # occurs before the randomly-jittered timeout is not reached.
+        # Default: 3600000, = 1h
+        delayMinMs: 3600000 # 1h
+        # Default: 7200000, = 2h
+        delayMaxMs: 7200000 # 2h
 
       botConfig:
         # Enable the presence of the bot in IRC channels. The bot serves as the entity
@@ -251,6 +286,13 @@ ircService:
         # side instead of potentially spamming IRC and getting the IRC client kicked.
         # Default: 3.
         lineLimit: 3
+        # A list of user modes to set on every IRC client. For example, "RiG" would set
+        # +R, +i and +G on every IRC connection when they have successfully connected.
+        # User modes vary wildly depending on the IRC network you're connecting to,
+        # so check before setting this value. Some modes may not work as intended
+        # through the bridge e.g. caller ID as there is no way to /ACCEPT.
+        # Default: "" (no user modes)
+        # userModes: "R"
 
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users
@@ -286,12 +328,11 @@ ircService:
     # to rotations.
     maxFiles: 5
 
-  # Optional. The endpoint for a statsd server. If not specified, stats will not
-  # be sent. Stats are sent as UDP.
-  # statsd:
-  #   hostname: "127.0.0.1"
-  #   port: 9878
-  #   jobName: "irc_bridge"
+  # Optional. Enable Prometheus metrics. If this is enabled, you MUST install `prom-client`:
+  #   $ npm install prom-client@6.3.0
+  # Metrics will then be available via GET /metrics on the bridge listening port (-p).
+  # metrics:
+  #   enabled: true
 
   # The nedb database URI to connect to. This is the name of the directory to
   # dump .db files to. This is relative to the project directory.
@@ -328,3 +369,16 @@ ircService:
     # allotted time period, the provisioning request will fail.
     # Default: 300 seconds (5 mins)
     requestTimeoutSeconds: 300
+
+  # WARNING: The bridge needs to send plaintext passwords to the IRC server, it cannot
+  # send a password hash. As a result, passwords (NOT hashes) are stored encrypted in
+  # the database.
+  #
+  # To generate a .pem file:
+  # $ openssl genpkey -out passkey.pem -outform PEM -algorithm RSA -pkeyopt rsa_keygen_bits:2048
+  #
+  # The path to the RSA PEM-formatted private key to use when encrypting IRC passwords
+  # for storage in the database. Passwords are stored by using the admin room command
+  # `!storepass server.name passw0rd. When a connection is made to IRC on behalf of
+  # the Matrix user, this password will be sent as the server password (PASS command).
+  passwordEncryptionKeyPath: "passkey.pem"

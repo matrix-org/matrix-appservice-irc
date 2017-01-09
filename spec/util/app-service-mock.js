@@ -40,7 +40,8 @@ MockAppService.prototype._linkAction = function(reqBody, statusCallback, jsonCal
     }
 
     let req = {
-        body : reqBody
+        body : reqBody,
+        getId : () => 'test@' + Date.now()
     };
 
     let res = {
@@ -68,7 +69,8 @@ MockAppService.prototype._unlink = function(reqBody, statusCallback, jsonCallbac
 //  jsonCallback {function} - Called when the server returns a JSON object.
 MockAppService.prototype._listLinks = function(reqParameters, statusCallback, jsonCallback) {
     let req = {
-        params : reqParameters
+        params : reqParameters,
+        getId : () => 'test@' + Date.now()
     };
 
     let res = {

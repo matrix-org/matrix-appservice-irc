@@ -1,3 +1,71 @@
+Changes in 0.7.0 (2016-12-19)
+=============================
+
+**BREAKING CHANGES:**
+ - The `appService` config value which was deprecated in 0.3.0 has now been removed.
+ - This version of the IRC bridge requires Synapse v0.18.5-rc3 or above.
+ - Statsd metrics are now deprecated and will be removed in a future release.
+
+Scripts:
+ - A script to grant increased power level to a Matrix user in a dynamically bridged IRC room has been added.
+ - A script to remove a user from all known bridged IRC rooms has been added.
+
+New features:
+ - Storing IRC Passwords:
+   - Matrix users can now specify a [server password](https://en.wikipedia.org/wiki/List_of_Internet_Relay_Chat_commands#PASS) to authenticate with the IRC server on startup. On most IRC servers, this is an alternative mechanism to authenticate with NickServ.
+   - To enable this functionality in the bridge, a private key needs to be generated. Passwords are stored encrypted at rest.
+   - WARNING: the bridge is forced to send plaintext passwords to IRC, _not_ the hash of passwords. Matrix users are trusting the bridge with their actual, plaintext, non-hashed password.
+   - Sending `!storepass [server.name]` to the admin room will encrypt and store a password for a Matrix user.
+   - Sending `!removepass [server.name]` to the admin room will remove the encrypted password that the user has set from the database.
+ - Default user modes:
+   - The default user modes for every Matrix user's IRC client can now be set in the config via `ircClients.userModes`.
+ - Dropping old Matrix messages:
+   - Messages that the bridge receives will be dropped if they are more than _N_ seconds old.
+   - This can be configured using the `homeserver.dropMatrixMessagesAfterSecs`.
+ - Prometheus metrics:
+   - The bridge can now run a `/metrics` listener for Prometheus-based metrics reporting.
+   - Metrics can be enabled by setting `metrics.enabled`.
+   - Statsd metrics are now **deprecated** and will be removed in a future release.
+
+Improvements:
+ - `!quit [server.name]` now attempts to kick the Matrix user that issues the command from the rooms in which they are being briged. This is done before the user's respective IRC client is disconnected.
+ - The bridge now randomly jitters quit debounce delays between a minimum and maximum amount of time. This is in order to prevent the HS being sent many leave requests all at once following a net-split that lasts a very long time. (See `quitDebounce` in `config.sample.yaml`)
+ - Initial IRC -> Matrix leave syncing is now implemented.
+ - Errors received by the bridge when _joining_ an IRC client to a channel can now be seen in the admin room at startup.
+ - Provisioning logs are now more detailed.
+ - Bridge `m.video` uploads as files.
+ - The bridge now uses the AS-specific room publication API. This requires Synapse v0.18.5-rc3 or above.
+ - The bridge now uses new Homeserver membership list APIs: `/joined_rooms` and `/rooms/$room_id/joined_members`. This is required in order to sync membership lists. This requires Synapse v0.18.5-rc3 or above.
+
+Bug fixes:
+ - Fixed a rare bug which could cause the bridge to tightloop when Matrix users leave a bridged channel.
+ - Prevent multiple PM rooms being created when PMs are sent from IRC to Matrix in rapid succession.
+ - The namespace that the bridge uses to claim user names and aliases has been restricted to the HS to which it is connected, rather than any HS which might also have an IRC bridge running.
+ - Bumped the minimum supported Node.js version from 4.0 to 4.5 to fix a bug which caused TLS and IPv6 to not work together: https://github.com/nodejs/node/pull/6654
+ - Ident usernames will now always begin with A-z. Previously, the bridge abided by RFC 2812, but on some networks this was treated as an invalid username.
+ - Fixed a regression which prevented banned connections from waiting BANNED_TIME_MS between connection attempts.
+
+Changes in 0.6.0 (2016-10-26)
+=============================
+
+New features:
+ - Presence Syncing / Quit Debouncing / Net Split Handling: When a net split occurs on IRC and incremental membership list syncing was set to true in previous versions, a lot of spam would be sent to the HS despite the possibility of the same clients reconnecting shortly afterwards. With this new update, QUITs received from IRC are debounced if a net split is considered ongoing. This uses the heuristic of QUITs per second being greater than a certain threshold. If the threshold is reached, debouncing kicks in, delaying the bridging QUITs to the HS for `delayMs`. If the clients reconnect during this grace period, the QUIT is not bridged. In the meantime, Matrix presence is used to indicate that the user is offline. The associated configuration for this can be found in `config.sample.yaml` as `quitDebounce`.
+ - Topic Bridging: Topics are now bridged from IRC to Matrix in aliased rooms or rooms created via `!join` in the admin room.
+ - Custom CA: A custom Certificate Authority certificate can now be given in the config file for using SSL to connect to IRC servers. (Thanks, @Waldteufel!)
+ - Custom Media Repo: `media_url` in the bridge config file can now be set for setups where media uploaded on the Matrix side is not stored at the connected HS.
+
+Improvements:
+ - Add `!quit server.name` admin room command to disconnect an associated virtual IRC user from a given IRC server.
+ - Turn of AS rate limiting when generating registration files.
+ - `!join` admin room command now creates rooms with the join rule set to `dynamicChannels.joinRule` instead of always being private.
+
+Bug fixes:
+ - !help command no longer requires server name
+ - The bridge now ignores NickServ and ChanServ PMs that previously it was trying to bridge erroneously.
+ - Fix plumbing channels with capital letters in them.
+ - Fix flaky tests(!) due to not killing bridged client instances between tests.
+ - Fix the bridge taking forever calling `/initialSync` on the HS when a user leaves a room bridged into >1 channel. It instead uses `/$room_id/state` for each bridged room.
+
 Changes in 0.5.0 (2016-10-06)
 =============================
 
