@@ -90,7 +90,6 @@ def escapeRegExp(s):
 
 def main(token, alias, homeserver, homeserver_domain, since, user_template):
     print("Removing idle users in %s" % alias)
-    token = token
     room_id = get_room_id(homeserver, alias, token)
     if not room_id:
         raise Exception("Cannot resolve room alias to room_id")
@@ -99,11 +98,11 @@ def main(token, alias, homeserver, homeserver_domain, since, user_template):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Remove idle users from a given Matrix room")
-    parser.add_argument("-t", "--token", help="The AS token", required=True)
+    parser.add_argument("-t", "--token", help="The access token", required=True)
     parser.add_argument("-a", "--alias", help="The alias of the room eg '#freenode_#matrix-dev:matrix.org'", required=True)
     parser.add_argument("-u", "--homeserver", help="Base homeserver URL eg 'https://matrix.org'", required=True)
-    parser.add_argument("-d", "--domain", help=" matrix.org'", required=True)
-    parser.add_argument("-s", "--since", type=int, help="Since idle users have been offline for", required=True)
+    parser.add_argument("-d", "--domain", help="Domain of the homserver eg 'matrix.org'", required=True)
+    parser.add_argument("-s", "--since", type=int, help="Days since idle users have been offline for eg '30'", required=True)
     parser.add_argument("-e", "--template", help="User template to determine whether a user should be kicked. E.g. @$SERVER_$NICK", required=True)
     args = parser.parse_args()
     if not args.token or not args.alias or not args.homeserver:
