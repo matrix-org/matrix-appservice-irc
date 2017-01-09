@@ -264,15 +264,17 @@ ircService:
         # disconnected and replaced.
         # Optional. Default: 30.
         maxClients: 30
-        #
-        # Optional. The IPv6 prefix to use for generating unique addresses for each
-        # connected user. If not specified, all users will connect from the same
-        # (default) address. This may require additional OS-specific work to allow
-        # for the node process to bind to multiple different source addresses
-        # e.g IP_FREEBIND on Linux, which requires an LD_PRELOAD with the library
-        # https://github.com/matrix-org/freebindfree as Node does not expose setsockopt.
-        # ipv6:
-        #   prefix: "2001:0db8:85a3::"  # modify appropriately
+        # IPv6 configuration.
+        ipv6:
+          # Optional. Set to true to force IPv6 for outgoing connections.
+          only: false
+          # Optional. The IPv6 prefix to use for generating unique addresses for each
+          # connected user. If not specified, all users will connect from the same
+          # (default) address. This may require additional OS-specific work to allow
+          # for the node process to bind to multiple different source addresses
+          # e.g IP_FREEBIND on Linux, which requires an LD_PRELOAD with the library
+          # https://github.com/matrix-org/freebindfree as Node does not expose setsockopt.
+          # prefix: "2001:0db8:85a3::"  # modify appropriately
         #
         # The maximum amount of time in seconds that the client can exist
         # without sending another message before being disconnected. Use 0 to
