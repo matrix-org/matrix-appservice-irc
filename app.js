@@ -13,7 +13,27 @@ new Cli({
     bridgeConfig: {
         affectsRegistration: true,
         schema: path.join(__dirname, "lib/config/schema.yml"),
-        defaults: main.defaultConfig()
+        defaults: {
+            homeserver: {
+                dropMatrixMessagesAfterSecs: 0,
+            },
+            ircService: {
+                ident: {
+                    enabled: false,
+                    port: 113
+                },
+                logging: {
+                    level: "debug",
+                    toConsole: true
+                },
+                statsd: {},
+                debugApi: {},
+                provisioning: {
+                    enabled: false,
+                    requestTimeoutSeconds: 60 * 5
+                }
+            }
+        }
     },
     generateRegistration: function(reg, callback) {
         main.generateRegistration(reg, this.getConfig()).done(function(completeRegistration) {
