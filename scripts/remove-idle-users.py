@@ -12,8 +12,9 @@ import httplib as http_client
 http_client.HTTPConnection.debuglevel = 1
 
 def get_room_id(homeserver, alias, token):
-    res = requests.get(homeserver + "/_matrix/client/r0/directory/room/" + urllib.quote(alias) + "?access_token=" + token).json()
-    return res.get("room_id", None)
+    res = requests.get(homeserver + "/_matrix/client/r0/directory/room/" + urllib.quote(alias) + "?access_token=" + token)
+    res.raise_for_status()
+    return res.json()["room_id"]
 
 def get_last_active_ago(homeserver, user_id, token):
     res = requests.get(homeserver + "/_matrix/client/r0/presence/" + urllib.quote(user_id) + "/status?access_token=" + token).json()
@@ -34,6 +35,7 @@ def kick_idlers(homeserver, homeserver_domain, room_id, token, since, user_templ
     reason = "Being idle for >%s days" % since
 
     user_ids = get_idle_users(homeserver, room_id, token, since)
+    failure_responses = []
     print("Kicking %s idle users from %s" % (len(user_ids), room_id))
     for user_id in user_ids:
         # Ignore unclaimed users, if user_template is specified
@@ -46,7 +48,13 @@ def kick_idlers(homeserver, homeserver_domain, room_id, token, since, user_templ
                 "user_id": user_id
             })
         )
-        res.raise_for_status()
+        if res.status_code >= 400:
+            failure_responses.append({ "user_id": user_id, "response_json": res.json()})
+
+    print("Could not kick the following users:")
+    for failure in failure_responses:
+        print("%s : %s - %s", failure.user_id, failure.response_json['error'], failure.response_json['errcode'])
+
 
 def claims_user_id(user_id, user_template, homeserver_domain):
     # the server claims the given user ID if the ID matches the user ID template.
