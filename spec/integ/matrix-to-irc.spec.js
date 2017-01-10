@@ -240,7 +240,7 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
-    it("should bridge matrix images as IRC text with a URL", function(done) {
+    it("should bridge matrix images as IRC action with a URL", function(done) {
         var tBody = "the_image.jpg";
         var tMxcSegment = "/somecontentid";
         var tHsUrl = "http://somedomain.com";
@@ -248,7 +248,7 @@ describe("Matrix-to-IRC message bridging", function() {
 
         sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -273,7 +273,7 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
-    it("should bridge matrix files as IRC text with a URL", function(done) {
+    it("should bridge matrix files as IRC action with a URL", function(done) {
         var tBody = "a_file.apk";
         var tMxcSegment = "/somecontentid";
         var tHsUrl = "http://somedomain.com";
@@ -281,7 +281,7 @@ describe("Matrix-to-IRC message bridging", function() {
 
         sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -575,7 +575,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         expect(said).toBe(true);
     }));
 
-    it("should bridge matrix files as IRC text with a configured media URL", function(done) {
+    it("should bridge matrix files as IRC action with a configured media URL", function(done) {
         var tBody = "a_file.apk";
         var tMxcSegment = "/somecontentid";
         var tMediaUrl = mediaUrl;
@@ -586,7 +586,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         // see expectation not to see HS URL, below
         sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
