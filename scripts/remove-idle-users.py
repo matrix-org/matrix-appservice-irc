@@ -47,15 +47,15 @@ def kick_idlers(homeserver, room_id, token, since, user_prefix):
             })
         )
         if res.status_code >= 400:
-            failure = { "user_id": user_id }
+            failure = { "user_id" : user_id }
             try:
                 failure["response_json"] = res.json()
             except Exception as e:
                 print("Could not get JSON body from failure response: %s" % e)
-            failure_responses.append()
+            failure_responses.append(failure)
         else:
             count += 1
-    print("Kicked %s/%s users in total (%s failed requests)" % (count, len(user_ids), len(failure_responses)))
+    print("Kicked %s/%s users in total (%s failed requests)" % (count, count + len(failure_responses), len(failure_responses)))
 
     if len(failure_responses) == 0:
         return
