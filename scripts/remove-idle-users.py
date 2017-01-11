@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import argparse
+from datetime import datetime
 import sys
 import json
 import urllib
@@ -27,12 +28,13 @@ def get_idle_users(homeserver, room_id, token, since):
     return [user_id for user_id in user_ids if is_idle(homeserver, user_id, token, activity_threshold_ms)]
 
 def kick_idlers(homeserver, room_id, token, since, user_prefix, bot_user_id):
+    print("%s : Working out idle users in %s" % (str(datetime.now()), room_id))
     reason = "Being idle for >%s days" % since
 
     user_ids = get_idle_users(homeserver, room_id, token, since)
     failure_responses = []
     count = 0
-    print("There are %s idle users in %s" % (len(user_ids), room_id))
+    print("%s : There are %s idle users in %s" % (str(datetime.now()), len(user_ids), room_id))
     for user_id in user_ids:
         # Do not kick users that start with the user_prefix or are the bot
         if user_id.startswith(user_prefix) or user_id == bot_user_id:
@@ -55,7 +57,7 @@ def kick_idlers(homeserver, room_id, token, since, user_prefix, bot_user_id):
             failure_responses.append(failure)
         else:
             count += 1
-    print("Kicked %s/%s users in total (%s failed requests)" % (count, count + len(failure_responses), len(failure_responses)))
+    print("%s : Kicked %s/%s users in total (%s failed requests)" % (str(datetime.now()), count, count + len(failure_responses), len(failure_responses)))
 
     if len(failure_responses) == 0:
         return
