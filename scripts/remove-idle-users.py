@@ -26,7 +26,7 @@ def get_idle_users(homeserver, room_id, token, since):
 
     return [user_id for user_id in user_ids if is_idle(homeserver, user_id, token, activity_threshold_ms)]
 
-def kick_idlers(homeserver, room_id, token, since, user_prefix):
+def kick_idlers(homeserver, room_id, token, since, user_prefix, bot_user_id):
     reason = "Being idle for >%s days" % since
 
     user_ids = get_idle_users(homeserver, room_id, token, since)
@@ -34,8 +34,8 @@ def kick_idlers(homeserver, room_id, token, since, user_prefix):
     count = 0
     print("There are %s idle users in %s" % (len(user_ids), room_id))
     for user_id in user_ids:
-        # Ignore users that do not start with the user_prefix
-        if not user_id.startswith(user_prefix):
+        # Do not kick users that start with the user_prefix or are the bot
+        if user_id.startswith(user_prefix) or user_id == bot_user_id:
             continue
         res = requests.put(
             homeserver + "/_matrix/client/r0/rooms/" +
@@ -63,7 +63,7 @@ def kick_idlers(homeserver, room_id, token, since, user_prefix):
     for failure in failure_responses:
         print("%s : %s - %s" % (failure["user_id"], failure["response_json"]))
 
-def main(token, alias, homeserver, since, user_prefix, room_id=None):
+def main(token, alias, homeserver, since, user_prefix, user_id, room_id=None):
     if room_id is None:
         print("Removing idle users in %s" % alias)
         room_id = get_room_id(homeserver, alias, token)
@@ -71,18 +71,23 @@ def main(token, alias, homeserver, since, user_prefix, room_id=None):
     if not room_id:
         raise Exception("Cannot resolve room alias to room_id")
 
-    kick_idlers(homeserver, room_id, token, since, user_prefix)
+    kick_idlers(homeserver, room_id, token, since, user_prefix, user_id)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Remove idle users from a given Matrix room")
     parser.add_argument("-t", "--token", help="The access token", required=True)
     parser.add_argument("-a", "--alias", help="The alias of the room eg '#freenode_#matrix-dev:matrix.org'", required=False)
     parser.add_argument("-r", "--room", help="Optional. The room ID instead of the alias eg '!curBafw45738:matrix.org'", required=False)
-    parser.add_argument("-u", "--homeserver", help="Base homeserver URL eg 'https://matrix.org'", required=True)
+    parser.add_argument("-H", "--homeserver", help="Base homeserver URL eg 'https://matrix.org'", required=True)
     parser.add_argument("-s", "--since", type=int, help="Days since idle users have been offline for eg '30'", required=True)
     parser.add_argument("-p", "--prefix", help="User prefix to determine whether a user should be kicked. E.g. @freenode_", required=True)
+    parser.add_argument("-u", "--user", help="The user ID of the AS bot. E.g '@appservice-irc:matrix.org'", required=True)
     args = parser.parse_args()
-    if not args.token or not args.homeserver or (not args.alias and not args.room):
+    if not args.token or not args.homeserver or not args.user or (not args.alias and not args.room):
         parser.print_help()
         sys.exit(1)
-    main(token=args.token, alias=args.alias, homeserver=args.homeserver, since=args.since, user_prefix=args.prefix, room_id=args.room)
+    if args.user[0] != "@":
+        parser.print_help()
+        print("--user must start with '@'")
+        sys.exit(1)
+    main(token=args.token, alias=args.alias, homeserver=args.homeserver, since=args.since, user_prefix=args.prefix, room_id=args.room, user_id=args.user)
