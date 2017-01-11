@@ -63,9 +63,11 @@ def kick_idlers(homeserver, room_id, token, since, user_prefix):
     for failure in failure_responses:
         print("%s : %s - %s" % (failure["user_id"], failure["response_json"]))
 
-def main(token, alias, homeserver, since, user_prefix):
-    print("Removing idle users in %s" % alias)
-    room_id = get_room_id(homeserver, alias, token)
+def main(token, alias, homeserver, since, user_prefix, room_id=None):
+    if room_id is None:
+        print("Removing idle users in %s" % alias)
+        room_id = get_room_id(homeserver, alias, token)
+
     if not room_id:
         raise Exception("Cannot resolve room alias to room_id")
 
@@ -74,12 +76,13 @@ def main(token, alias, homeserver, since, user_prefix):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Remove idle users from a given Matrix room")
     parser.add_argument("-t", "--token", help="The access token", required=True)
-    parser.add_argument("-a", "--alias", help="The alias of the room eg '#freenode_#matrix-dev:matrix.org'", required=True)
+    parser.add_argument("-a", "--alias", help="The alias of the room eg '#freenode_#matrix-dev:matrix.org'", required=False)
+    parser.add_argument("-r", "--room", help="Optional. The room ID instead of the alias eg '!curBafw45738:matrix.org'", required=False)
     parser.add_argument("-u", "--homeserver", help="Base homeserver URL eg 'https://matrix.org'", required=True)
     parser.add_argument("-s", "--since", type=int, help="Days since idle users have been offline for eg '30'", required=True)
     parser.add_argument("-p", "--prefix", help="User prefix to determine whether a user should be kicked. E.g. @freenode_", required=True)
     args = parser.parse_args()
-    if not args.token or not args.alias or not args.homeserver:
+    if not args.token or not args.homeserver or (not args.alias and not args.room):
         parser.print_help()
         sys.exit(1)
-    main(token=args.token, alias=args.alias, homeserver=args.homeserver, since=args.since, user_prefix=args.prefix)
+    main(token=args.token, alias=args.alias, homeserver=args.homeserver, since=args.since, user_prefix=args.prefix, room_id=args.room)
