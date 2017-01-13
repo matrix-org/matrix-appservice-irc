@@ -6,6 +6,7 @@ import sys
 import json
 import urllib
 import requests
+import time
 
 def get_room_id(homeserver, alias, token):
     res = requests.get(homeserver + "/_matrix/client/r0/directory/room/" + urllib.quote(alias) + "?access_token=" + token)
@@ -19,26 +20,32 @@ def get_last_active_ago(homeserver, user_id, token):
 def is_idle(homeserver, user_id, token, activity_threshold_ms):
     return get_last_active_ago(homeserver, user_id, token) > activity_threshold_ms
 
-def get_idle_users(homeserver, room_id, token, since):
+def should_ignore_user(test_user_id, user_prefix, bot_user_id):
+    return test_user_id.startswith(user_prefix) or test_user_id == bot_user_id
+
+def get_idle_users(homeserver, room_id, token, since, user_prefix, bot_user_id):
     res = requests.get(homeserver + "/_matrix/client/r0/rooms/" + urllib.quote(room_id) + "/joined_members?access_token=" + token)
     user_ids = [user_id for user_id in res.json().get("joined", None)]
 
     activity_threshold_ms = since * 24 * 60 * 60 * 1000
+    total_joined = len(user_ids)
+    
+    # Do not kick users that start with the user_prefix or are the bot. Do this check now before
+    # we try to GET /presence for all of them.
+    user_ids = [u for u in user_ids if not should_ignore_user(u, user_prefix, bot_user_id)]
+    print("%s :   %s/%s users may be kicked if they are idle" % (str(datetime.now()), len(user_ids), total_joined))
 
     return [user_id for user_id in user_ids if is_idle(homeserver, user_id, token, activity_threshold_ms)]
 
 def kick_idlers(homeserver, room_id, token, since, user_prefix, bot_user_id):
-    print("%s : Working out idle users in %s" % (str(datetime.now()), room_id))
+    print("%s : Processing %s" % (str(datetime.now()), room_id))
     reason = "Being idle for >%s days" % since
 
-    user_ids = get_idle_users(homeserver, room_id, token, since)
+    user_ids = get_idle_users(homeserver, room_id, token, since, user_prefix, bot_user_id)
     failure_responses = []
     count = 0
-    print("%s : There are %s idle users in %s" % (str(datetime.now()), len(user_ids), room_id))
+    print("%s :   %s idle users in %s" % (str(datetime.now()), len(user_ids), room_id))
     for user_id in user_ids:
-        # Do not kick users that start with the user_prefix or are the bot
-        if user_id.startswith(user_prefix) or user_id == bot_user_id:
-            continue
         res = requests.put(
             homeserver + "/_matrix/client/r0/rooms/" +
             urllib.quote(room_id) + "/state/m.room.member/" +
@@ -57,13 +64,14 @@ def kick_idlers(homeserver, room_id, token, since, user_prefix, bot_user_id):
             failure_responses.append(failure)
         else:
             count += 1
-    print("%s : Kicked %s/%s users in total (%s failed requests)" % (str(datetime.now()), count, count + len(failure_responses), len(failure_responses)))
+    if count > 0:
+        print("%s :   %s/%s kicked users in total (%s failed requests)" % (str(datetime.now()), count, count + len(failure_responses), len(failure_responses)))
 
     if len(failure_responses) == 0:
         return
     print("Could not kick the following users:")
     for failure in failure_responses:
-        print("%s : %s - %s" % (failure["user_id"], failure["response_json"]))
+        print("%s - %s" % (failure["user_id"], failure["response_json"]))
 
 def main(token, alias, homeserver, since, user_prefix, user_id, room_id=None):
     if room_id is None:
