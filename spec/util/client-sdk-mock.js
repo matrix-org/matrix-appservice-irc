@@ -42,6 +42,11 @@ function MockClient(config) {
         return Promise.resolve({});
     });
 
+    // mock up sendEvent
+    this.sendEvent.and.callFake(function() {
+        return Promise.resolve({});
+    });
+
     // mock up getStateEvent immediately since it is called for every new IRC
     // connection.
     this.getStateEvent.and.callFake(function(roomId, type, skey, callback) {
