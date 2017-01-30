@@ -18,6 +18,7 @@ Improvements:
 Bug fixes:
  - Fixed multiple bugs which could cause specific IRC users in specific rooms to not be bridged through to Matrix.
  - Fixed a bug when formatting IRC codes to HTML which would incorrectly treat bold/italics/underline as "enabled" flags rather than "toggle" flags. Previously, the text `hello 0x20x2 world` would incorrectly boldify "world" instead of toggling bold on and off again.
+ - Fixed a bug which caused TLS connections over IPv6 to not use DNS rotation.
 
 
 Changes in 0.7.0 (2016-12-19)
