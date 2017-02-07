@@ -85,6 +85,12 @@ ircService:
         # Default: 7200000, = 2h
         delayMaxMs: 7200000 # 2h
 
+      # A map for conversion of IRC user modes to Matrix power levels. This enables bridging
+      # of IRC ops to Matrix power levels only, it does not enable the reverse. If a user has
+      # been given multiple modes, the one that maps to the highest power level will be used.
+      modePowerMap:
+        o: 50
+
       botConfig:
         # Enable the presence of the bot in IRC channels. The bot serves as the entity
         # which maps from IRC -> Matrix. You can disable the bot entirely which
@@ -258,13 +264,17 @@ ircService:
         # disconnected and replaced.
         # Optional. Default: 30.
         maxClients: 30
-        #
-        # [!]EXPERIMENTAL. THIS MAY NOT WORK.
-        # Optional. The IPv6 prefix to use for generating unique addresses for each
-        # connected user. If not specified, all users will connect from the same
-        # (default) address.
-        # ipv6:
-        #   prefix: "2001:0db8:85a3::"  # modify appropriately
+        # IPv6 configuration.
+        ipv6:
+          # Optional. Set to true to force IPv6 for outgoing connections.
+          only: false
+          # Optional. The IPv6 prefix to use for generating unique addresses for each
+          # connected user. If not specified, all users will connect from the same
+          # (default) address. This may require additional OS-specific work to allow
+          # for the node process to bind to multiple different source addresses
+          # e.g IP_FREEBIND on Linux, which requires an LD_PRELOAD with the library
+          # https://github.com/matrix-org/freebindfree as Node does not expose setsockopt.
+          # prefix: "2001:0db8:85a3::"  # modify appropriately
         #
         # The maximum amount of time in seconds that the client can exist
         # without sending another message before being disconnected. Use 0 to

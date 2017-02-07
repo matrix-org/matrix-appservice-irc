@@ -17,7 +17,7 @@ describe("Kicking", function() {
     };
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests from eeeeeeeeveryone!
         env.ircMock._autoConnectNetworks(
@@ -67,14 +67,14 @@ describe("Kicking", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     describe("IRC users on IRC", function() {
         it("should make the kickee leave the Matrix room", test.coroutine(function*() {
             var kickPromise = new Promise(function(resolve, reject) {
                 var ircUserSdk = env.clientMock._client(ircUser.id);
-                ircUserSdk.leave.andCallFake(function(roomId) {
+                ircUserSdk.leave.and.callFake(function(roomId) {
                     expect(roomId).toEqual(config._roomid);
                     resolve();
                     return Promise.resolve();
@@ -123,7 +123,7 @@ describe("Kicking", function() {
             var userKickedPromise = new Promise(function(resolve, reject) {
                 // assert function call when the bot attempts to kick
                 var botSdk = env.clientMock._client(config._botUserId);
-                botSdk.kick.andCallFake(function(roomId, userId, reason) {
+                botSdk.kick.and.callFake(function(roomId, userId, reason) {
                     expect(roomId).toEqual(config._roomid);
                     expect(userId).toEqual(mxUser.id);
                     expect(reason.indexOf("KickerNick")).not.toEqual(-1,

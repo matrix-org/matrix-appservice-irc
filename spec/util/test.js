@@ -6,6 +6,14 @@ var AppServiceRegistration = require("matrix-appservice-bridge").AppServiceRegis
 var MockAppService = require("./app-service-mock");
 var Promise = require("bluebird");
 
+// Log the test case. Jasmine is a global var.
+jasmine.getEnv().addReporter({
+    specStarted: function(result) {
+        console.log(result.fullName);
+        console.log(new Array(2 + result.fullName.length).join("="));
+    }
+});
+
 /**
  * Construct a new test environment with mock modules.
  * @return {Object} containing a set of mock modules.
@@ -46,41 +54,23 @@ module.exports.initEnv = function(env, customConfig) {
 };
 
 /**
- * Log a description of the current test case to the console.
- * @param {TestCase} testCase : The Jasmine test case to log.
- */
-module.exports.log = function(testCase) {
-    var desc = testCase.suite.description + " : " + testCase.description;
-    console.log(desc);
-    console.log(new Array(1 + desc.length).join("="));
-};
-
-/**
  * Reset the test environment for a new test case that has just run.
  * This kills the bridge.
- * @param {TestCase} testCase : The finished test case.
  * @param {Object} env : The test environment.
  */
-module.exports.afterEach = Promise.coroutine(function*(testCase, env) {
+module.exports.afterEach = Promise.coroutine(function*(env) {
     // If there was a previous bridge running, kill it
     // This is prevent IRC clients spamming the logs
     if (env.main) {
         yield env.main.killBridge();
-        console.log(
-            '\nKilled bridge'
-        );
     }
-    console.log('afterEach done');
 });
 
 /**
  * Reset the test environment for a new test case. This resets all mocks.
- * @param {TestCase} testCase : The new test case.
  * @param {Object} env : The pre-initialised test environment.
  */
-module.exports.beforeEach = Promise.coroutine(function*(testCase, env) {
-    module.exports.log(testCase);
-
+module.exports.beforeEach = Promise.coroutine(function*(env) {
     MockAppService.resetInstance();
     if (env) {
         env.ircMock._reset();

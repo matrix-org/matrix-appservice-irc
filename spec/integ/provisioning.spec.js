@@ -26,7 +26,7 @@ describe("Provisioning API", function() {
     };
 
     let doSetup = test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests from eeeeeeeeveryone!
         env.ircMock._autoConnectNetworks(
@@ -86,7 +86,7 @@ describe("Provisioning API", function() {
 
         // Listen for m.room.bridging
         var sdk = env.clientMock._client(config._botUserId);
-        sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+        sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
             console.log(roomId, kind, content);
             if (kind === "m.room.bridging") {
                 if (content.status === "pending") {
@@ -130,11 +130,11 @@ describe("Provisioning API", function() {
             }
 
             let json = jasmine.createSpy("json(obj)")
-            .andCallFake(function(obj) {
+            .and.callFake(function(obj) {
                 console.log('JSON ' + JSON.stringify(obj))
             });
             let status = jasmine.createSpy("status(num)")
-            .andCallFake(function(number) {
+            .and.callFake(function(number) {
                 console.log(`HTTP STATUS ${number}`)
             });
 
@@ -200,7 +200,7 @@ describe("Provisioning API", function() {
                 expect(status).toHaveBeenCalledWith(500);
                 expect(json).toHaveBeenCalled();
                 // Make sure the first call to JSON has error defined
-                expect(json.calls[0].args[0].error).toBeDefined();
+                expect(json.calls.argsFor(0)[0].error).toBeDefined();
                 return Promise.resolve();
             };
 
@@ -233,7 +233,7 @@ describe("Provisioning API", function() {
                 }
 
                 let sdk = env.clientMock._client(config._botUserId);
-                sdk.roomState.andCallFake((roomId) => {
+                sdk.roomState.and.callFake((roomId) => {
                     return Promise.resolve([{
                         type: "m.room.member",
                         state_key: parameters.user_id,
@@ -279,7 +279,7 @@ describe("Provisioning API", function() {
         beforeEach(doSetup);
 
         afterEach(test.coroutine(function*() {
-            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.afterEach(env);
         }));
 
         describe("link endpoint", function() {
@@ -380,7 +380,7 @@ describe("Provisioning API", function() {
             //  It is a copy because otherwise there is not other way
             //  to alter config before running.
 
-            yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.beforeEach(env);
 
             // accept connection requests from eeeeeeeeveryone!
             env.ircMock._autoConnectNetworks(
@@ -434,7 +434,7 @@ describe("Provisioning API", function() {
 
             // Listen for m.room.bridging filure
             var sdk = env.clientMock._client(config._botUserId);
-            sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+            sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                 // Status of m.room.bridging is a success
                 // console.log(roomId, kind, content);
                 console.log(roomId, kind, content);
@@ -459,7 +459,7 @@ describe("Provisioning API", function() {
         }));
 
         afterEach(test.coroutine(function*() {
-            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.afterEach(env);
         }));
 
         it("should not create a M<--->I link of the same link id",
@@ -470,7 +470,7 @@ describe("Provisioning API", function() {
     describe("message sending and joining", function() {
         beforeEach(test.coroutine(function*() {
             config.ircService.servers[config._server].mappings = {};
-            yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.beforeEach(env);
 
             // Ignore bot connecting
             env.ircMock._autoConnectNetworks(
@@ -510,7 +510,7 @@ describe("Provisioning API", function() {
         }));
 
         afterEach(test.coroutine(function*() {
-            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.afterEach(env);
         }));
 
         it("should allow IRC to send messages via the new link",
@@ -569,7 +569,7 @@ describe("Provisioning API", function() {
                     replySent = true;
                     // Listen for m.room.bridging success
                     var sdk = env.clientMock._client(config._botUserId);
-                    sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                    sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
                             isLinked.resolve();
@@ -666,7 +666,7 @@ describe("Provisioning API", function() {
                     replySent = true;
                     // Listen for m.room.bridging success
                     var sdk = env.clientMock._client(config._botUserId);
-                    sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                    sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
                             isLinked.resolve();
@@ -696,7 +696,7 @@ describe("Provisioning API", function() {
                 });
 
                 var sdk = env.clientMock._client(config._botUserId);
-                sdk.roomState.andCallFake((roomId) => {
+                sdk.roomState.and.callFake((roomId) => {
                     return Promise.resolve([{
                         type: "m.room.member",
                         state_key: parameters.user_id,
@@ -745,7 +745,7 @@ describe("Provisioning API", function() {
 
     describe("listings endpoint", function() {
         beforeEach(test.coroutine(function*() {
-            yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.beforeEach(env);
 
             // accept connection requests from eeeeeeeeveryone!
             env.ircMock._autoConnectNetworks(
@@ -807,7 +807,7 @@ describe("Provisioning API", function() {
         }));
 
         afterEach(test.coroutine(function*() {
-            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.afterEach(env);
         }));
 
         it("should return an empty list when no mappings have been provisioned",
@@ -850,7 +850,7 @@ describe("Provisioning API", function() {
                     replySent = true;
                     // Listen for m.room.bridging success
                     var sdk = env.clientMock._client(config._botUserId);
-                    sdk.sendStateEvent.andCallFake((roomId, kind, content) => {
+                    sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
                             isLinked.resolve();
@@ -912,7 +912,7 @@ describe("Provisioning API", function() {
                     // Listen for m.room.bridging success
                     console.log('Waiting for m.room.bridging');
                     var sdk = env.clientMock._client(config._botUserId);
-                    sdk.sendStateEvent.andCallFake((stateRoomId, kind, content) => {
+                    sdk.sendStateEvent.and.callFake((stateRoomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
                             isLinked[i++].resolve();
@@ -979,7 +979,7 @@ describe("Provisioning API", function() {
                     }
                     // Listen for m.room.bridging success
                     var sdk = env.clientMock._client(config._botUserId);
-                    sdk.sendStateEvent.andCallFake((stateRoomId, kind, content) => {
+                    sdk.sendStateEvent.and.callFake((stateRoomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
                             isLinked[i++].resolve();
@@ -999,7 +999,7 @@ describe("Provisioning API", function() {
 
 
                 var sdk = env.clientMock._client(config._botUserId);
-                sdk.roomState.andCallFake((rid) => {
+                sdk.roomState.and.callFake((rid) => {
                     return Promise.resolve([{
                         type: "m.room.member",
                         state_key: mxUser.id,
@@ -1030,7 +1030,7 @@ describe("Provisioning API", function() {
         beforeEach(doSetup);
 
         afterEach(test.coroutine(function*() {
-            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.afterEach(env);
         }));
 
         it("when the link is successful",
@@ -1048,7 +1048,7 @@ describe("Provisioning API", function() {
         beforeEach(doSetup);
 
         afterEach(test.coroutine(function*() {
-            yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+            yield test.afterEach(env);
         }));
 
         it("when the op did not authorise after a certain timeout",

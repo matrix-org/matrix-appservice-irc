@@ -29,7 +29,7 @@ describe("IRC-to-Matrix mode bridging", function() {
         ].dynamicChannels.joinRule;
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         sdk = env.clientMock._client(config._botUserId);
         // add registration mock impl:
@@ -51,12 +51,12 @@ describe("IRC-to-Matrix mode bridging", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should set join_rules to 'invite' on +k.",
     function(done) {
-        sdk.sendStateEvent.andCallFake(function(roomId, type, content, key) {
+        sdk.sendStateEvent.and.callFake(function(roomId, type, content, key) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(type).toEqual("m.room.join_rules");
             expect(content).toEqual({
@@ -75,7 +75,7 @@ describe("IRC-to-Matrix mode bridging", function() {
 
     it("should set join_rules to 'invite' on +i.",
     function(done) {
-        sdk.sendStateEvent.andCallFake(function(roomId, type, content, key) {
+        sdk.sendStateEvent.and.callFake(function(roomId, type, content, key) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(type).toEqual("m.room.join_rules");
             expect(content).toEqual({
@@ -94,7 +94,7 @@ describe("IRC-to-Matrix mode bridging", function() {
 
     it("should revert join_rules to config value on -i.",
     function(done) {
-        sdk.sendStateEvent.andCallFake(function(roomId, type, content, key) {
+        sdk.sendStateEvent.and.callFake(function(roomId, type, content, key) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(type).toEqual("m.room.join_rules");
             expect(content).toEqual({
@@ -113,7 +113,7 @@ describe("IRC-to-Matrix mode bridging", function() {
 
     it("should revert join_rules to config value on -k.",
     function(done) {
-        sdk.sendStateEvent.andCallFake(function(roomId, type, content, key) {
+        sdk.sendStateEvent.and.callFake(function(roomId, type, content, key) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(type).toEqual("m.room.join_rules");
             expect(content).toEqual({

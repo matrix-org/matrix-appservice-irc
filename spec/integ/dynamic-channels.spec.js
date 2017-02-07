@@ -21,7 +21,7 @@ describe("Dynamic channels", function() {
 
     beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].dynamicChannels.enabled = true;
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -38,7 +38,7 @@ describe("Dynamic channels", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should join IRC channels when it receives special alias queries",
@@ -61,13 +61,13 @@ describe("Dynamic channels", function() {
 
         // when we get the create room request, process it.
         var sdk = env.clientMock._client(config._botUserId);
-        sdk.createRoom.andCallFake(function(opts) {
+        sdk.createRoom.and.callFake(function(opts) {
             expect(opts.room_alias_name).toEqual(tAliasLocalpart);
             return Promise.resolve({
                 room_id: tRoomId
             });
         });
-        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
@@ -107,14 +107,14 @@ describe("Dynamic channels", function() {
 
         // when we get the create room request, process it.
         var sdk = env.clientMock._client(config._botUserId);
-        sdk.createRoom.andCallFake(function(opts) {
+        sdk.createRoom.and.callFake(function(opts) {
             expect(opts.creation_content).toEqual({"m.federate": true});
             return Promise.resolve({
                 room_id: tRoomId
             });
         });
 
-        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
@@ -148,14 +148,14 @@ describe("Dynamic channels", function() {
 
         // when we get the create room request, process it.
         var sdk = env.clientMock._client(config._botUserId);
-        sdk.createRoom.andCallFake(function(opts) {
+        sdk.createRoom.and.callFake(function(opts) {
             expect(opts.room_alias_name).toEqual(tAliasLocalpart);
             return Promise.resolve({
                 room_id: tRoomId
             });
         });
 
-        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
@@ -163,7 +163,7 @@ describe("Dynamic channels", function() {
         });
 
         var madeAlias = false;
-        sdk.createAlias.andCallFake(function(alias, roomId) {
+        sdk.createAlias.and.callFake(function(alias, roomId) {
             madeAlias = true;
             expect(roomId).toEqual(tRoomId);
             expect(alias).toEqual(tCapsAlias);
@@ -186,7 +186,7 @@ describe("Dynamic channels (federation disabled)", function() {
     };
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         config.ircService.servers[
             roomMapping.server].dynamicChannels.enabled = true;
@@ -207,7 +207,7 @@ describe("Dynamic channels (federation disabled)", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should create non federated room when joining channel and federation is disabled",
@@ -229,14 +229,14 @@ describe("Dynamic channels (federation disabled)", function() {
 
         // when we get the create room request, process it.
         var sdk = env.clientMock._client(config._botUserId);
-        sdk.createRoom.andCallFake(function(opts) {
+        sdk.createRoom.and.callFake(function(opts) {
             expect(opts.creation_content).toEqual({"m.federate": false});
             return Promise.resolve({
                 room_id: tRoomId
             });
         });
 
-        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
@@ -260,7 +260,7 @@ describe("Dynamic channels (disabled)", function() {
 
     beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].dynamicChannels.enabled = false;
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -278,7 +278,7 @@ describe("Dynamic channels (disabled)", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should NOT join IRC channels when it receives special alias queries",
@@ -300,13 +300,13 @@ describe("Dynamic channels (disabled)", function() {
 
         // when we get the create room request, process it.
         var sdk = env.clientMock._client(config._botUserId);
-        sdk.createRoom.andCallFake(function(opts) {
+        sdk.createRoom.and.callFake(function(opts) {
             return Promise.resolve({
                 room_id: tRoomId
             });
         });
 
-        sdk.sendStateEvent.andCallFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});

@@ -1,3 +1,26 @@
+Changes in 0.7.1 (2017-01-18)
+=============================
+
+Scripts:
+ - Added a script which allows bridge operators to remove idle Matrix users from bridged rooms.
+
+New features:
+ - IRC operator levels (voice/op/etc) can now be automatically mapped to corresponding Matrix power levels. This mapping is imperfect, but can be used as a coarse guideline for users who want to set room names/topics/etc on Matrix without having to go via the Provisioning API or asking the IRC bridge administrator. See `config.sample.yaml`.
+ - `!whois` can now additionally be called with a Matrix user ID which will return the nick of that user ID on the IRC network.
+
+Improvements:
+ - Changed the text which is sent when a file/image/video/long text is sent from Matrix to IRC.
+ - Concurrently perform `/joined_members` HTTP calls on startup to speed up the process of gathering Matrix users to connect to IRC.
+ - Redo the `!help` message.
+ - Reduce the amount of debug logging. Redo some log messages to be more informative.
+ - IPv6 connections can now be force-enabled without the need for an IPv6 prefix by the `ipv6.only` flag in the config file. (Thanks Oleg Girko <ol@infoserver.lv>)
+
+Bug fixes:
+ - Fixed multiple bugs which could cause specific IRC users in specific rooms to not be bridged through to Matrix.
+ - Fixed a bug when formatting IRC codes to HTML which would incorrectly treat bold/italics/underline as "enabled" flags rather than "toggle" flags. Previously, the text `hello 0x20x2 world` would incorrectly boldify "world" instead of toggling bold on and off again.
+ - Fixed a bug which caused TLS connections over IPv6 to not use DNS rotation.
+
+
 Changes in 0.7.0 (2016-12-19)
 =============================
 

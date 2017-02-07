@@ -18,7 +18,7 @@ var botUserId = config._botUserId;
 describe("Creating admin rooms", function() {
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -31,14 +31,14 @@ describe("Creating admin rooms", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should be possible by sending an invite to the bot's user ID",
     test.coroutine(function*() {
         var botJoinedRoom = false;
         var sdk = env.clientMock._client(botUserId);
-        sdk.joinRoom.andCallFake(function(roomId) {
+        sdk.joinRoom.and.callFake(function(roomId) {
             expect(roomId).toEqual("!adminroomid:here");
             botJoinedRoom = true;
             return Promise.resolve({});
@@ -63,7 +63,7 @@ describe("Admin rooms", function() {
     var userIdNick = "M-someone";
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // enable nick changes
         config.ircService.servers[roomMapping.server].ircClients.allowNickChanges = true;
@@ -91,10 +91,12 @@ describe("Admin rooms", function() {
 
         // auto-join an admin room
         var sdk = env.clientMock._client(userId);
-        sdk.joinRoom.andCallFake(function(roomId) {
+        sdk.joinRoom.and.callFake(function(roomId) {
             expect([adminRoomId, roomMapping.roomId]).toContain(roomId);
             return Promise.resolve({});
         });
+
+        jasmine.clock().install();
 
         yield test.initEnv(env, config).then(function() {
             // auto-setup an admin room
@@ -122,14 +124,15 @@ describe("Admin rooms", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        jasmine.clock().uninstall();
+        yield test.afterEach(env);
     }));
 
     it("should respond to bad !nick commands with a help notice",
     test.coroutine(function*() {
         var sentNotice = false;
         var sdk = env.clientMock._client(botUserId);
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentNotice = true;
@@ -152,7 +155,7 @@ describe("Admin rooms", function() {
     test.coroutine(function*() {
         var sentNotice = false;
         var sdk = env.clientMock._client(botUserId);
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentNotice = true;
@@ -216,7 +219,7 @@ describe("Admin rooms", function() {
         // room
         var sentAckNotice = false;
         var sdk = env.clientMock._client(botUserId);
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             sentAckNotice = true;
@@ -252,7 +255,6 @@ describe("Admin rooms", function() {
 
     it("should be able to change their nick using !nick and have it persist across disconnects",
     test.coroutine(function*() {
-        jasmine.Clock.useMock();
         var newNick = "Blurple";
         var testText = "I don't know what colour I am.";
         // we will be disconnecting the user so we want to accept incoming connects/joins
@@ -291,7 +293,7 @@ describe("Admin rooms", function() {
         // make sure the AS sends an ACK of the request as a notice in the admin
         // room
         var sdk = env.clientMock._client(botUserId);
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             return Promise.resolve();
         });
 
@@ -312,7 +314,7 @@ describe("Admin rooms", function() {
 
         // wait a bit for reconnect timers
         setImmediate(function() {
-            jasmine.Clock.tick(1000 * 11);
+            jasmine.clock().tick(1000 * 11);
         });
 
 
@@ -368,7 +370,7 @@ describe("Admin rooms", function() {
         // room
         var sentAckNotice = false;
         var sdk = env.clientMock._client(botUserId);
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             expect(content.body.indexOf("err_nicktoofast")).not.toEqual(-1);
@@ -404,7 +406,6 @@ describe("Admin rooms", function() {
     }));
 
     it("should timeout !nick changes after 10 seconds", test.coroutine(function*() {
-        jasmine.Clock.useMock();
         var newNick = "Blurple";
 
         // make sure that the NICK command is sent
@@ -417,7 +418,7 @@ describe("Admin rooms", function() {
             expect(arg).toEqual(newNick);
             // don't emit anything.. and speed up time
             setImmediate(function() {
-                jasmine.Clock.tick(1000 * 11);
+                jasmine.clock().tick(1000 * 11);
             });
 
             sentNickCommand = true;
@@ -427,7 +428,7 @@ describe("Admin rooms", function() {
         // room
         var sentAckNotice = false;
         var sdk = env.clientMock._client(botUserId);
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             expect(content.body.indexOf("Timed out")).not.toEqual(-1);
@@ -472,7 +473,7 @@ describe("Admin rooms", function() {
         // make sure the AS creates a new PRIVATE matrix room.
         var createdMatrixRoom = false;
         var sdk = env.clientMock._client(botUserId);
-        sdk.createRoom.andCallFake(function(opts) {
+        sdk.createRoom.and.callFake(function(opts) {
             expect(opts.visibility).toEqual(serverShouldPublishRooms ? "public" : "private");
             expect(
                 opts.initial_state.find(
@@ -534,7 +535,7 @@ describe("Admin rooms", function() {
         // make sure the AS creates a new PRIVATE matrix room.
         var createdMatrixRoom = false;
         var sdk = env.clientMock._client(botUserId);
-        sdk.createRoom.andCallFake(function(opts) {
+        sdk.createRoom.and.callFake(function(opts) {
             expect(opts.visibility).toEqual(serverShouldPublishRooms ? "public" : "private");
             expect(
                 opts.initial_state.find(
@@ -697,7 +698,7 @@ describe("Admin rooms", function() {
     test.coroutine(function*() {
 
         var sdk = env.clientMock._client(botUserId);
-        sdk.roomState.andCallFake(
+        sdk.roomState.and.callFake(
             function (roomId) {
                 expect(roomId).toBe(adminRoomId, 'Room state returned should be for admin room');
                 return Promise.resolve([
@@ -721,7 +722,7 @@ describe("Admin rooms", function() {
         );
 
         var botLeft = false
-        sdk.leave.andCallFake(function(roomId) {
+        sdk.leave.and.callFake(function(roomId) {
             expect(roomId).toBe(adminRoomId, 'Bot did not leave admin room');
             botLeft = true;
             return Promise.resolve();
@@ -768,7 +769,7 @@ describe("Admin rooms", function() {
     test.coroutine(function*() {
 
         var sdk = env.clientMock._client(botUserId);
-        sdk.roomState.andCallFake(
+        sdk.roomState.and.callFake(
             function (roomId) {
                 expect(roomId).toBe(adminRoomId, 'Room state returned should be for admin room');
                 return Promise.resolve([
@@ -779,7 +780,7 @@ describe("Admin rooms", function() {
         );
 
         var botLeft = false
-        sdk.leave.andCallFake(function(roomId) {
+        sdk.leave.and.callFake(function(roomId) {
             expect(roomId).toBe(adminRoomId, 'Bot did not leave admin room');
             botLeft = true;
             return Promise.resolve();

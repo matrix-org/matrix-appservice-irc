@@ -25,7 +25,7 @@ describe("Matrix-to-IRC message bridging", function() {
     };
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -46,7 +46,7 @@ describe("Matrix-to-IRC message bridging", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should bridge matrix messages as IRC text", function(done) {
@@ -240,15 +240,15 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
-    it("should bridge matrix images as IRC text with a URL", function(done) {
+    it("should bridge matrix images as IRC action with a URL", function(done) {
         var tBody = "the_image.jpg";
         var tMxcSegment = "/somecontentid";
         var tHsUrl = "http://somedomain.com";
         var sdk = env.clientMock._client(config._botUserId);
 
-        sdk.getHomeserverUrl.andReturn(tHsUrl);
+        sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -273,15 +273,15 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
-    it("should bridge matrix files as IRC text with a URL", function(done) {
+    it("should bridge matrix files as IRC action with a URL", function(done) {
         var tBody = "a_file.apk";
         var tMxcSegment = "/somecontentid";
         var tHsUrl = "http://somedomain.com";
         var sdk = env.clientMock._client(config._botUserId);
 
-        sdk.getHomeserverUrl.andReturn(tHsUrl);
+        sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
@@ -340,7 +340,7 @@ describe("Matrix-to-Matrix message bridging", function() {
     let mirroredUserId =`@${roomMapping.server}_${testUser.nick}:${config.homeserver.domain}`;
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -373,13 +373,13 @@ describe("Matrix-to-Matrix message bridging", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should bridge matrix messages to other mapped matrix rooms", function(done) {
         let testText = "Here is some test text.";
         let sdk = env.clientMock._client(mirroredUserId);
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(secondRoomId);
             expect(content).toEqual({
                 body: testText,
@@ -420,11 +420,11 @@ describe("Matrix-to-Matrix message bridging", function() {
 
         let joinedRooms = new Set();
         let nickservSdk = env.clientMock._client(nickServUserId);
-        nickservSdk.joinRoom.andCallFake(function(roomId) {
+        nickservSdk.joinRoom.and.callFake(function(roomId) {
             joinedRooms.add(roomId);
             return Promise.resolve({});
         });
-        nickservSdk.roomState.andCallFake(function(roomId) {
+        nickservSdk.roomState.and.callFake(function(roomId) {
             let uid = roomId === pmRoomIdA ? testUser.id : anotherUserId;
             return Promise.resolve([
                 {
@@ -469,7 +469,7 @@ describe("Matrix-to-Matrix message bridging", function() {
         // Send a message in one room. Make sure it does not go to the other room.
         let testText = "Here is some test text.";
         let sdk = env.clientMock._client(mirroredUserId);
-        sdk.sendEvent.andCallFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(true).toBe(
                 false, "Bridge incorrectly tried to send a matrix event into room " + roomId
             );
@@ -500,7 +500,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         env.config.homeserver.media_url = mediaUrl;
         env.config.homeserver.dropMatrixMessagesAfterSecs = 300; // 5 min
 
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -521,7 +521,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should NOT bridge old matrix messages older than the drop time",
@@ -575,7 +575,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         expect(said).toBe(true);
     }));
 
-    it("should bridge matrix files as IRC text with a configured media URL", function(done) {
+    it("should bridge matrix files as IRC action with a configured media URL", function(done) {
         var tBody = "a_file.apk";
         var tMxcSegment = "/somecontentid";
         var tMediaUrl = mediaUrl;
@@ -584,9 +584,9 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
 
         // Not expected to be caleld, but hook to catch the error
         // see expectation not to see HS URL, below
-        sdk.getHomeserverUrl.andReturn(tHsUrl);
+        sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);

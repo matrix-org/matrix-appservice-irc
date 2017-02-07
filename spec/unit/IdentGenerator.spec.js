@@ -1,6 +1,5 @@
 "use strict";
 var Promise = require("bluebird");
-var test = require("../util/test");
 var IdentGenerator = require("../../lib/irc/IdentGenerator.js");
 
 describe("Username generation", function() {
@@ -17,7 +16,6 @@ describe("Username generation", function() {
     };
 
     beforeEach(function() {
-        test.log(this); // eslint-disable-line no-invalid-this
         existingUsernames = {};
         var _uname;
         ircClientConfig = {

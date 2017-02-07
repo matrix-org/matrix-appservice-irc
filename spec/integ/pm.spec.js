@@ -23,7 +23,7 @@ describe("Matrix-to-IRC PMing", function() {
     var tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -33,7 +33,7 @@ describe("Matrix-to-IRC PMing", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should join 1:1 rooms invited from matrix",
@@ -68,7 +68,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         let joinRoomPromise = new Promise((resolve, reject) => {
-            sdk.joinRoom.andCallFake(function(roomId) {
+            sdk.joinRoom.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
                 return Promise.resolve({});
@@ -76,7 +76,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         let roomStatePromise = new Promise((resolve, reject) => {
-            sdk.roomState.andCallFake(function(roomId) {
+            sdk.roomState.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
                 return Promise.resolve([
@@ -136,7 +136,7 @@ describe("Matrix-to-IRC PMing", function() {
 
         // when it tries to join, accept it
         let joinRoomPromise = new Promise((resolve, reject) => {
-            sdk.joinRoom.andCallFake(function(roomId) {
+            sdk.joinRoom.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
                 return Promise.resolve({});
@@ -145,7 +145,7 @@ describe("Matrix-to-IRC PMing", function() {
 
         // see if it sends a message (to say it doesn't do group chat)
         let sendMessagePromise = new Promise((resolve, reject) => {
-            sdk.sendEvent.andCallFake(function(roomId, type, content) {
+            sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 expect(type).toEqual("m.room.message");
                 resolve();
@@ -155,7 +155,7 @@ describe("Matrix-to-IRC PMing", function() {
 
         // when it tries to leave, accept it
         let leaveRoomPromise = new Promise((resolve, reject) => {
-            sdk.leave.andCallFake(function(roomId) {
+            sdk.leave.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
                 return Promise.resolve({});
@@ -163,7 +163,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         let roomStatePromise = new Promise((resolve, reject) => {
-            sdk.roomState.andCallFake(function(roomId) {
+            sdk.roomState.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
                 return Promise.resolve([
@@ -217,7 +217,7 @@ describe("IRC-to-Matrix PMing", function() {
     var tText = "ello ello ello";
 
     beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
         sdk = env.clientMock._client(tVirtualUserId);
 
         // add registration mock impl:
@@ -255,7 +255,7 @@ describe("IRC-to-Matrix PMing", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should create a 1:1 matrix room and invite the real matrix user when " +
@@ -263,7 +263,7 @@ describe("IRC-to-Matrix PMing", function() {
     test.coroutine(function*() {
         // mock create room impl
         let createRoomPromise = new Promise(function(resolve, reject) {
-            sdk.createRoom.andCallFake(function(opts) {
+            sdk.createRoom.and.callFake(function(opts) {
                 expect(opts.visibility).toEqual("private");
                 expect(opts.invite).toEqual([tRealUserId]);
                 expect(opts.creation_content["m.federate"]).toEqual(true);
@@ -276,7 +276,7 @@ describe("IRC-to-Matrix PMing", function() {
 
         // mock send message impl
         let sentMessagePromise = new Promise(function(resolve, reject) {
-            sdk.sendEvent.andCallFake(function(roomId, type, content) {
+            sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 expect(roomId).toEqual(tCreatedRoomId);
                 expect(type).toEqual("m.room.message");
                 expect(content).toEqual({
@@ -305,7 +305,7 @@ describe("IRC-to-Matrix PMing", function() {
         let count = 0;
         // mock create room impl
         let createRoomPromise = new Promise(function(resolve, reject) {
-            sdk.createRoom.andCallFake(function(opts) {
+            sdk.createRoom.and.callFake(function(opts) {
                 count++;
                 expect(count).toEqual(1);
                 resolve();
@@ -319,7 +319,7 @@ describe("IRC-to-Matrix PMing", function() {
 
         // mock send message impl
         let sentMessagePromise = new Promise(function(resolve, reject) {
-            sdk.sendEvent.andCallFake(() => {
+            sdk.sendEvent.and.callFake(() => {
                 receivedMessageCount++;
                 if (receivedMessageCount === MESSAGE_COUNT) {
                     resolve();
@@ -358,7 +358,7 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
 
     beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].privateMessages.federate = false;
-        yield test.beforeEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.beforeEach(env);
         sdk = env.clientMock._client(tVirtualUserId);
 
         // add registration mock impl:
@@ -396,7 +396,7 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
     }));
 
     afterEach(test.coroutine(function*() {
-        yield test.afterEach(this, env); // eslint-disable-line no-invalid-this
+        yield test.afterEach(env);
     }));
 
     it("should create a non-federated 1:1 matrix room and invite the real matrix user when " +
@@ -404,7 +404,7 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
     test.coroutine(function*() {
         // mock create room impl
         let createRoomPromise = new Promise(function(resolve, reject) {
-            sdk.createRoom.andCallFake(function(opts) {
+            sdk.createRoom.and.callFake(function(opts) {
                 expect(opts.visibility).toEqual("private");
                 expect(opts.invite).toEqual([tRealUserId]);
                 expect(opts.creation_content["m.federate"]).toEqual(false);
@@ -417,7 +417,7 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
 
         // mock send message impl
         let sentMessagePromise = new Promise(function(resolve, reject) {
-            sdk.sendEvent.andCallFake(function(roomId, type, content) {
+            sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 expect(roomId).toEqual(tCreatedRoomId);
                 expect(type).toEqual("m.room.message");
                 expect(content).toEqual({
