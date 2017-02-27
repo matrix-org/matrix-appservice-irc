@@ -4,18 +4,18 @@ var test = require("../util/test");
 var env = test.mkEnv();
 var config = env.config;
 
+var mxUser = {
+    id: "@flibble:wibble",
+    nick: "M-flibble"
+};
+
+var ircUser = {
+    nick: "bob",
+    localpart: config._server + "_bob",
+    id: "@" + config._server + "_bob:" + config.homeserver.domain
+};
+
 describe("Kicking", function() {
-    var mxUser = {
-        id: "@flibble:wibble",
-        nick: "M-flibble"
-    };
-
-    var ircUser = {
-        nick: "bob",
-        localpart: config._server + "_bob",
-        id: "@" + config._server + "_bob:" + config.homeserver.domain
-    };
-
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
 
@@ -174,4 +174,100 @@ describe("Kicking", function() {
             yield userKickedPromise;
         }));
     });
+});
+
+
+describe("Kicking on IRC join", function() {
+    beforeEach(test.coroutine(function*() {
+        yield test.beforeEach(env);
+        config.ircService.servers[config._server].membershipLists.enabled = true;
+        config.ircService.servers[
+            config._server
+        ].membershipLists.global.matrixToIrc.incremental = true;
+
+        // accept connection requests from eeeeeeeeveryone!
+        env.ircMock._autoConnectNetworks(
+            config._server, mxUser.nick, config._server
+        );
+        env.ircMock._autoConnectNetworks(
+            config._server, ircUser.nick, config._server
+        );
+        env.ircMock._autoConnectNetworks(
+            config._server, config._botnick, config._server
+        );
+        // accept join requests from eeeeeeeeveryone!
+        env.ircMock._autoJoinChannels(
+            config._server, mxUser.nick, config._chan
+        );
+        env.ircMock._autoJoinChannels(
+            config._server, ircUser.nick, config._chan
+        );
+        env.ircMock._autoJoinChannels(
+            config._server, config._botnick, config._chan
+        );
+
+        // we also don't care about registration requests for the irc user
+        env.clientMock._client(ircUser.id)._onHttpRegister({
+            expectLocalpart: ircUser.localpart,
+            returnUserId: ircUser.id
+        });
+
+        yield test.initEnv(env);
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(env);
+    }));
+
+    it("should be done for err_needreggednick",
+    test.coroutine(function*() {
+        var userKickedPromise = new Promise(function(resolve, reject) {
+            // assert function call when the bot attempts to kick
+            var botSdk = env.clientMock._client(config._botUserId);
+            botSdk.kick.and.callFake(function(roomId, userId, reason) {
+                expect(roomId).toEqual(config._roomid);
+                expect(userId).toEqual(mxUser.id);
+                resolve();
+                return Promise.resolve();
+            });
+        });
+
+        // when the matrix user tries to join the channel, error them.
+        var ircErrorPromise = new Promise(function(resolve, reject) {
+            env.ircMock._whenClient(config._server, mxUser.nick, "join",
+            function(client, channel, msg, cb) {
+                expect(client.nick).toEqual(mxUser.nick);
+                expect(client.addr).toEqual(config._server);
+                expect(channel).toEqual(config._chan);
+                client.emit("error", {
+                    command: "err_needreggednick",
+                    args: [config._chan]
+                });
+                resolve();
+            });
+        });
+
+
+        // make matrix user attempt to join the channel
+        try {
+            yield env.mockAppService._trigger("type:m.room.member", {
+                content: {
+                    membership: "join"
+                },
+                user_id: mxUser.id,
+                state_key: mxUser.id,
+                room_id: config._roomid,
+                type: "m.room.member"
+            });
+        }
+        catch (err) {
+            // ignore, other promises check what should happen
+        }
+
+        // wait for the error to be sent
+        yield ircErrorPromise;
+
+        // wait for the bridge to kick the matrix user
+        yield userKickedPromise;
+    }));
 });
