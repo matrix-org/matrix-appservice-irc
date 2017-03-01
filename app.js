@@ -3,7 +3,6 @@ var Cli = require("matrix-appservice-bridge").Cli;
 var log = require("./lib/logging").get("CLI");
 var main = require("./lib/main");
 var path = require("path");
-require("heapdump");
 
 const REG_PATH = "appservice-registration-irc.yaml";
 
