@@ -82,6 +82,10 @@ properties:
                     properties:
                         port:
                             type: "integer"
+                        additionalAddresses:
+                            type: "array"
+                            items:
+                                type: "string"
                         ssl:
                             type: "boolean"
                         sslselfsign:

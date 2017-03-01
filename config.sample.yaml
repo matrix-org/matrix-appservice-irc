@@ -38,6 +38,8 @@ ircService:
       # It is also used in the Third Party Lookup API as the instance `desc`
       # property, where each server is an instance.
       name: "ExampleNet"
+
+      additionalAddresses: [ "irc2.example.com" ]
       #
       # [DEPRECATED] Use `name`, above, instead.
       # A human-readable description string
