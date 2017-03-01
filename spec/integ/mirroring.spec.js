@@ -23,6 +23,11 @@ config.ircService.servers[
     roomMapping.server
 ].membershipLists.global.matrixToIrc.incremental = true;
 
+// add additional mappings
+config.ircService.servers[roomMapping.server].mappings["#a"] = ["!a:localhost"];
+config.ircService.servers[roomMapping.server].mappings["#b"] = ["!b:localhost"];
+config.ircService.servers[roomMapping.server].mappings["#c"] = ["!c:localhost"];
+
 describe("Mirroring", function() {
     var testUser = {
         id: "@flibble:wibble",
@@ -162,6 +167,59 @@ describe("Mirroring", function() {
                 done();
             });
         });
+
+        it("should join all IRC channels if there are many Matrix joins for the same user",
+        test.coroutine(function*() {
+            const newUser = {
+                id: "@newuser:localhost",
+                nick: "M-newuser"
+            };
+
+            const expectJoins = ["#a", "#b", "#c"];
+            const joined = [];
+            env.ircMock._whenClient(roomMapping.server, newUser.nick, "join",
+            function(client, channel, cb) {
+                joined.push(channel);
+                client._invokeCallback(cb);
+            });
+
+            const promises = [];
+            promises.push(env.mockAppService._trigger("type:m.room.member", {
+                content: {
+                    membership: "join"
+                },
+                user_id: newUser.id,
+                state_key: newUser.id,
+                room_id: "!a:localhost",
+                type: "m.room.member"
+            }));
+            promises.push(env.mockAppService._trigger("type:m.room.member", {
+                content: {
+                    membership: "join"
+                },
+                user_id: newUser.id,
+                state_key: newUser.id,
+                room_id: "!b:localhost",
+                type: "m.room.member"
+            }));
+            promises.push(env.mockAppService._trigger("type:m.room.member", {
+                content: {
+                    membership: "join"
+                },
+                user_id: newUser.id,
+                state_key: newUser.id,
+                room_id: "!c:localhost",
+                type: "m.room.member"
+            }));
+            try {
+                yield Promise.all(promises);
+            }
+            catch (err) {
+                expect(true).toBe(false, "onMessage threw " + err);
+            }
+            expect(joined.length).toEqual(3, "Unexpected number of joins");
+            expect(joined.sort()).toEqual(expectJoins);
+        }));
     });
 
     describe("IRC users on Matrix", function() {
