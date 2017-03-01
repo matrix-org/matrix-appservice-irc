@@ -47,6 +47,15 @@ describe("Mirroring", function() {
         env.ircMock._autoJoinChannels(
             roomMapping.server, roomMapping.botNick, roomMapping.channel
         );
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, roomMapping.botNick, "#a"
+        );
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, roomMapping.botNick, "#b"
+        );
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, roomMapping.botNick, "#c"
+        );
 
         // do the init
         yield test.initEnv(env);
@@ -174,6 +183,9 @@ describe("Mirroring", function() {
                 id: "@newuser:localhost",
                 nick: "M-newuser"
             };
+            env.ircMock._autoConnectNetworks(
+                roomMapping.server, newUser.nick, roomMapping.server
+            );
 
             const expectJoins = ["#a", "#b", "#c"];
             const joined = [];
