@@ -96,7 +96,7 @@ describe("Homeserver alias queries", function() {
         var sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.and.callFake(function(opts) {
             expect(opts.room_alias_name).toEqual(testLocalpart);
-            expect(opts.visibility).toEqual("public");
+            expect(opts.visibility).toEqual("private");
             return Promise.resolve({
                 room_id: "!something:somewhere"
             });
