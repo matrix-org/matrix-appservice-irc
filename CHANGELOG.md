@@ -1,3 +1,27 @@
+Changes in 0.7.2 (2017-04-05)
+=============================
+
+Features:
+ - Invites from IRC are now forwarded to Matrix. (Thanks @erdnaxeli!)
+
+Improvements:
+ - There have been substantial improvements to CPU usage at both startup and normal usage.
+ - There have been substantial improvements to RAM usage at both startup and normal usage.
+ - Initial Matrix-to-IRC membership list syncing times have been reduced.
+ - Trying to join a `+r` channel will now result in being kicked from the corresponding Matrix room.
+ - The config option `userModes` is no longer applied to the bridge bot. This allows provisioning requests to continue whilst still having PM guards enabled.
+ - Additional IRC domains can now be added. This allows more randomisation than DNS lookups alone. See `config,sample.yaml`.
+ - An HTTP(S) socket limit of 1000 has been added to prevent slow Synapse servers from causing the bridge to consume thousands of FDs.
+ - Logging has become less verbose and more informative.
+ - Metrics will now monitor the number of dropped requests due to `dropMatrixMessagesAfterSecs`.
+
+Bug fixes:
+ - Fixed a bug which caused IPv6 DNS rotations to not be honoured when using TLS.
+ - Fixed a bug in node-irc which caused `modePowerMap` to not work correctly.
+ - Fixed a race condition when creating a dynamic channel which is `+i`, which could cause the resulting Matrix room to not be invite-only.
+ - Fixed a race condition which could cause M->I join events to fail if the connection was not yet established.
+ - Fixed a bug which caused new public channels which were `+s` to be published to the global directory listing.
+
 Changes in 0.7.1 (2017-01-18)
 =============================
 
