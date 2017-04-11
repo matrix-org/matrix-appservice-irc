@@ -568,7 +568,8 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         let connected = false;
         env.ircMock._whenClient(roomMapping.server, testUser2.nick, "connect",
         function(client, cb) {
-            jasmine.clock().tick(20 * 1000); // advance 20s to take it over the drop time
+            // advance 20s to take it over dropMatrixMessagesAfterSecs time
+            jasmine.clock().tick(20 * 1000);
             client._invokeCallback(cb);
             connected = true;
         });
