@@ -11,7 +11,7 @@ If you haven't already, check out the [README](README.md) for instructions on ho
 to install the AS. This project requires ``nodejs`` in order to run, and has been
 tested on ``v4.4.0``.
 ```
-$ git clone git@github.com:matrix-org/matrix-appservice-irc.git
+$ git clone https://github.com/matrix-org/matrix-appservice-irc.git
 $ cd matrix-appservice-irc
 $ npm install
 $ npm test  # make sure these pass!
