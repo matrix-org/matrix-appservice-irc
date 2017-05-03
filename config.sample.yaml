@@ -334,8 +334,6 @@ ircService:
     errfile: "errors.log"
     # Whether to log to the console or not.
     toConsole: true
-    # The max size each file can get to in bytes before a new file is created.
-    maxFileSizeBytes: 134217728 # 128 MB
     # The max number of files to keep. Files will be overwritten eventually due
     # to rotations.
     maxFiles: 5

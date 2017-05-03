@@ -126,11 +126,12 @@ function setInviteJoinRules(url, roomId, token) {
 }
 
 function sendMessage(url, roomId, token, msg) {
+    var d = promiseutil.defer();
     if (!msg) {
         console.log("No message provided. Skipping.");
-        return q();
+        d.resolve();
+        return d.promise
     }
-    var d = promiseutil.defer();
     var encRoomId = encodeURIComponent(roomId);
     request({
         url: joinUrl(

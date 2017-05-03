@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "eslint": "^1.10.3",
-    "istanbul": "^0.3.17",
+    "istanbul": "^0.4.5",
     "jasmine": "^2.5.2",
     "proxyquire": "^1.4.0"
   }

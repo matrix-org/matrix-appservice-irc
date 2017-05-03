@@ -499,6 +499,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         // Set the media URL
         env.config.homeserver.media_url = mediaUrl;
         env.config.homeserver.dropMatrixMessagesAfterSecs = 300; // 5 min
+        jasmine.clock().install();
 
         yield test.beforeEach(env);
 
@@ -521,6 +522,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
     }));
 
     afterEach(test.coroutine(function*() {
+        jasmine.clock().uninstall();
         yield test.afterEach(env);
     }));
 
@@ -545,6 +547,48 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
             origin_server_ts: Date.now() - (1000 * 60 * 6), // 6 mins old
         });
 
+        expect(said).toBe(false);
+    }));
+
+    it("should NOT bridge old matrix messages younger than the drop time on receive, which " +
+    "then go over the drop time whilst processing", test.coroutine(function*() {
+        const tBody = "Hello world";
+        const testUser2 = {
+            id: "@tester:wibble",
+            nick: "M-tester"
+        };
+        jasmine.clock().mockDate();
+
+        let said = false;
+        env.ircMock._whenClient(roomMapping.server, testUser2.nick, "say",
+        function(client, channel, text) {
+            said = true;
+        });
+
+        let connected = false;
+        env.ircMock._whenClient(roomMapping.server, testUser2.nick, "connect",
+        function(client, cb) {
+            // advance 20s to take it over dropMatrixMessagesAfterSecs time
+            jasmine.clock().tick(20 * 1000);
+            client._invokeCallback(cb);
+            connected = true;
+        });
+
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, testUser2.nick, roomMapping.channel
+        );
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tBody,
+                msgtype: "m.text"
+            },
+            user_id: testUser2.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message",
+            origin_server_ts: Date.now() - (1000 * 60 * 4) - (1000 * 50), // 4m50s old
+        });
+
+        expect(connected).toBe(true);
         expect(said).toBe(false);
     }));
 
