@@ -33,7 +33,8 @@
         },
         "ident": {
             "enabled": false,
-            "port": 113
+            "port": 113,
+            "address": "::1"
         },
         "logging": {
             "level": "debug",
