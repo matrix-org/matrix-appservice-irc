@@ -40,6 +40,8 @@ properties:
                         type: "boolean"
                     port:
                         type: "integer"
+                    address:
+                        type: "string"
                 required: ["enabled"]
             debugApi:
                 type: "object"
