@@ -115,6 +115,7 @@ module.exports.coroutine = function(generatorFn) {
         fn.apply(this).then(function() {  // eslint-disable-line no-invalid-this
             done();
         }, function(err) {
+            console.log(err.stack);
             expect(true).toBe(false, "Coroutine threw: " + err + "\n" + err.stack);
             done();
         })

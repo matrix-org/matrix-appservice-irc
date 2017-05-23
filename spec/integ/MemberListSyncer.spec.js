@@ -150,4 +150,75 @@ describe("MemberListSyncer", function() {
         yield test.initEnv(env);
         yield Promise.all([alicePromise, bobPromise]);
     }));
+
+    it("should not send /join requests for users in /joined_members", test.coroutine(function*() {
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, "M-alice", roomMapping.server
+        );
+        env.ircMock._whenClient(roomMapping.server, "M-alice", "join", (client, chan, cb) => {
+            expect(chan).toEqual(roomMapping.channel);
+            client._invokeCallback(cb);
+            process.nextTick(() => {
+                // send the NAMES
+                client.emit("names", chan, {
+                    "alpha": "",
+                    "beta": "",
+                });
+            });
+        });
+
+        let ircUserId = function(nick) {
+            return `@${roomMapping.server}_${nick}:${config.homeserver.domain}`;
+        };
+
+        botClient._http.authedRequestWithPrefix.and.callFake(
+        (cb, method, path, qps, data) => {
+            if (method === "GET" && path === "/joined_rooms") {
+                return Promise.resolve({
+                    joined_rooms: [roomMapping.roomId]
+                });
+            }
+            else if (method === "GET" &&
+                    path === `/rooms/${encodeURIComponent(roomMapping.roomId)}/joined_members`) {
+                return Promise.resolve({
+                    joined: {
+                        "@alice:bar": {},
+                        [ircUserId("alpha")]: {},
+                        [ircUserId("beta")]: {},
+                    },
+                });
+            }
+            return Promise.reject(new Error("unhandled path"));
+        });
+
+        // @alice:bar should not send /join since they were in /joined_members
+        let aliceClient = env.clientMock._client("@alice:bar");
+        aliceClient.joinRoom.and.callFake((roomId) => {
+            expect(true).toBe(false, "alice tried to /join " + roomId);
+            return Promise.resolve({});
+        });
+        aliceClient.sendMessage.and.callFake((roomId) => {
+            return Promise.resolve({});
+        });
+
+        // IRC user alpha should not send /join since they were in /joined_members
+        let alphaClient = env.clientMock._client(ircUserId("alpha"));
+        alphaClient.joinRoom.and.callFake((roomId) => {
+            expect(true).toBe(false, "alpha (IRC) tried to /join " + roomId);
+            return Promise.resolve({});
+        });
+
+        yield test.initEnv(env);
+
+        // Send a message to make sure we don't try to join
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "hello",
+                msgtype: "m.text"
+            },
+            user_id: "@alice:bar",
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+    }));
 });
