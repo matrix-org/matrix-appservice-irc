@@ -238,6 +238,34 @@ describe("IRC-to-Matrix message bridging", function() {
         });
     });
 
+    it("should bridge special regex character formatted IRC colours as Matrix's" +
+    "org.matrix.custom.html", function(done) {
+        // $& = Inserts the matched substring.
+        var tIrcFormattedText = "\u000303$& \u000304 world\u000303 ! \u000304";
+        var tHtmlMain = '<font color="green">$&amp; </font><font color="red"> world'+
+            '</font><font color="green"> ! </font>';
+        var tFallback = "$&  world ! ";
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+            expect(roomId).toEqual(roomMapping.roomId);
+            // more readily expose non-printing character errors (looking at
+            // you \u000f)
+            expect(content.body.length).toEqual(tFallback.length);
+            expect(content.body).toEqual(tFallback);
+            expect(content.format).toEqual("org.matrix.custom.html");
+            expect(content.msgtype).toEqual("m.text");
+            expect(content.formatted_body.indexOf(tHtmlMain)).toEqual(0);
+            done();
+            return Promise.resolve();
+        });
+
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        function(client) {
+            client.emit(
+                "message", tFromNick, roomMapping.channel, tIrcFormattedText
+            );
+        });
+    });
+
     it("should html escape IRC text", function(done) {
         var tIrcFormattedText = "This text is \u0002bold\u000f and has " +
             "<div> tags & characters like ' and \"";
