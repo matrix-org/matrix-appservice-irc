@@ -212,6 +212,32 @@ describe("IRC-to-Matrix message bridging", function() {
         });
     });
 
+    it("should bridge badly formatted IRC text as Matrix's org.matrix.custom.html",
+    function(done) {
+        var tIrcFormattedText = "\u0002hello \u001d world\u0002 ! \u001d";
+        var tHtmlMain = "<b>hello <i> world</b> ! </i>";
+        var tFallback = "hello  world ! ";
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+            expect(roomId).toEqual(roomMapping.roomId);
+            // more readily expose non-printing character errors (looking at
+            // you \u000f)
+            expect(content.body.length).toEqual(tFallback.length);
+            expect(content.body).toEqual(tFallback);
+            expect(content.format).toEqual("org.matrix.custom.html");
+            expect(content.msgtype).toEqual("m.text");
+            expect(content.formatted_body.indexOf(tHtmlMain)).toEqual(0);
+            done();
+            return Promise.resolve();
+        });
+
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        function(client) {
+            client.emit(
+                "message", tFromNick, roomMapping.channel, tIrcFormattedText
+            );
+        });
+    });
+
     it("should html escape IRC text", function(done) {
         var tIrcFormattedText = "This text is \u0002bold\u000f and has " +
             "<div> tags & characters like ' and \"";
