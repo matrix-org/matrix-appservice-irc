@@ -48,6 +48,10 @@ ircService:
       # An ID for uniquely identifying this server amongst other servers being bridged.
       # networkId: "example"
 
+      # URL to an icon used as the network icon whenever this network appear in
+      # a network list. (Like in the riot room directory, for instance.)
+      # icon: https://example.com/images/hash.png
+
       # The port to connect to. Optional.
       port: 6697
       # Whether to use SSL or not. Default: false.
