@@ -215,7 +215,7 @@ describe("IRC-to-Matrix message bridging", function() {
     it("should bridge badly formatted IRC text as Matrix's org.matrix.custom.html",
     function(done) {
         var tIrcFormattedText = "\u0002hello \u001d world\u0002 ! \u001d";
-        var tHtmlMain = "<b>hello <i> world</b> ! </i>";
+        var tHtmlMain = "<b>hello <i> world</i></b><i> ! </i>";
         var tFallback = "hello  world ! ";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
