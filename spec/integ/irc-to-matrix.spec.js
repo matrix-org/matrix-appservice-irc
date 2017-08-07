@@ -180,8 +180,8 @@ describe("IRC-to-Matrix message bridging", function() {
             "this is a \u0002\u001f\u000303mix of all three";
         var tHtmlCloseTags = "</b></u></font>"; // any order allowed
         var tHtmlMain = "This text is <b>bold</b> and this is <u>underlined</u> " +
-            'and this is <font color="green">green</font>. Finally, ' +
-            'this is a <b><u><font color="green">mix of all three';
+            'and this is <font color="#009300">green</font>. Finally, ' +
+            'this is a <b><u><font color="#009300">mix of all three';
         var tFallback = "This text is bold and this is underlined and this is " +
             "green. Finally, this is a mix of all three";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
@@ -242,8 +242,8 @@ describe("IRC-to-Matrix message bridging", function() {
     "org.matrix.custom.html", function(done) {
         // $& = Inserts the matched substring.
         var tIrcFormattedText = "\u000303$& \u000304 world\u000303 ! \u000304";
-        var tHtmlMain = '<font color="green">$&amp; </font><font color="red"> world'+
-            '</font><font color="green"> ! </font>';
+        var tHtmlMain = '<font color="#009300">$&amp; </font><font color="#FF0000"> world' +
+            '</font><font color="#009300"> ! </font>';
         var tFallback = "$&  world ! ";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
