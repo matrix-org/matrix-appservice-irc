@@ -50,7 +50,6 @@ def migrate_displayname(uid, oldname, suffix, homeserver, token):
         print(res.json())
         if 'M_NOT_JSON' in str(res.json()):
             print("python-requests strips the body of the request on 301 redirects (https://github.com/requests/requests/issues/2590). Make sure you're using the direct url of your homeserver.")
-    time.sleep(0.1)
 
 def main(registration, homeserver, prefix, suffix):
     token = get_appservice_token(registration)
@@ -62,6 +61,7 @@ def main(registration, homeserver, prefix, suffix):
     merged_users = { k: v for d in per_room_users for k,v in d.items() }
     for uid, display in merged_users.iteritems():
         migrate_displayname(uid, display, suffix, homeserver, token)
+        time.sleep(0.1)
 
 
 if __name__ == "__main__":
