@@ -57,8 +57,9 @@ def main(registration, homeserver, prefix, suffix):
         raise Exception("Cannot read as_token from registration file")
 
     rooms = get_rooms(homeserver, token)
-    users = { k: v for d in [get_users(homeserver, room, token, prefix, suffix) for room in rooms] for k,v in d.items() }
-    for uid, display in users.iteritems():
+    per_room_users = [get_users(homeserver, room, token, prefix, suffix) for room in rooms]
+    merged_users = { k: v for d in per_room_users for k,v in d.items() }
+    for uid, display in merged_users.iteritems():
         migrate_displayname(uid, display, suffix, homeserver, token)
 
 
