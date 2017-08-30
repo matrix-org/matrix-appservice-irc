@@ -33,10 +33,9 @@ def get_users(homeserver, room_id, token, user_prefix, name_suffix):
     return { uid: joined.get(uid).get("display_name") for uid in user_ids }
 
 def get_rooms(homeserver, token):
-    res = requests.get(homeserver + "/_matrix/client/r0/sync?access_token=" + token).json()
+    res = requests.get(homeserver + "/_matrix/client/r0/joined_rooms?access_token=" + token).json()
     room_ids = []
-    for room_id in res["rooms"]["join"]:
-        room = res["rooms"]["join"][room_id]
+    for room_id in res["joined_rooms"]:
         room_ids.append(room_id)
     return room_ids
 
