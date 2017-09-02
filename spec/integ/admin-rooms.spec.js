@@ -562,6 +562,12 @@ describe("Admin rooms", function() {
             }
         });
 
+        // let the user join the IRC channel because of membership syncing
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "join",
+        function(client, chan, cb) {
+            if (chan === newChannel && cb) { cb(); }
+        });
+
         // make sure the AS creates a new PRIVATE matrix room.
         var createdMatrixRoom = false;
         var sdk = env.clientMock._client(botUserId);
@@ -588,7 +594,7 @@ describe("Admin rooms", function() {
             user_id: userId,
             room_id: adminRoomId,
             type: "m.room.message"
-        })
+        });
 
         // make sure everything was called
         expect(createdMatrixRoom).toBe(true, "Did not create matrix room");
