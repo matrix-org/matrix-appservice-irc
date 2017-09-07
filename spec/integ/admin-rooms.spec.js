@@ -65,6 +65,12 @@ describe("Admin rooms", function() {
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
 
+        // enable syncing
+        config.ircService.servers[config._server].membershipLists.enabled = true;
+        config.ircService.servers[
+            config._server
+        ].membershipLists.global.matrixToIrc.incremental = true;
+
         // enable nick changes
         config.ircService.servers[roomMapping.server].ircClients.allowNickChanges = true;
         // enable private dynamic channels with the user ID in a whitelist
@@ -334,6 +340,92 @@ describe("Admin rooms", function() {
         expect(sentSay).toBe(true, "Client did not send message as new nick");
     }));
 
+    it("should be able to change their nick using !nick and have it persist " +
+        "when changing the display name",
+        test.coroutine(function*() {
+            var newNick = "Blurple";
+            var displayName = "Durple";
+
+            // make sure that the nick command is sent
+            var sentNickCommand = false;
+            env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+                function(client, command, arg) {
+                    expect(client.nick).toEqual(userIdNick, "use the old nick on /nick");
+                    expect(client.addr).toEqual(roomMapping.server);
+                    expect(command).toEqual("NICK");
+                    expect(arg).toEqual(newNick);
+                    client._changeNick(userIdNick, newNick);
+                    sentNickCommand = true;
+                });
+
+            // make sure that a display name change is not propagated
+            var sentNick = false;
+            env.ircMock._whenClient(roomMapping.server, newNick, "send",
+                function(client, channel, text) {
+                    sentNick = true;
+                });
+
+            // trigger the request to change the nick
+            yield env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: "!nick " + roomMapping.server + " " + newNick,
+                    msgtype: "m.text"
+                },
+                user_id: userId,
+                room_id: adminRoomId,
+                type: "m.room.message"
+            });
+
+            // trigger a display name change
+            yield env.mockAppService._trigger("type:m.room.member", {
+                content: {
+                    membership: "join",
+                    avatar_url: null,
+                    displayname: displayName
+                },
+                state_key: userId,
+                user_id: userId,
+                room_id: roomMapping.roomId,
+                type: "m.room.member",
+            });
+
+            // make sure everything was called
+            expect(sentNickCommand).toBe(true, "sent nick IRC command");
+            expect(sentNick).toBe(false, "sent nick IRC command on displayname change");
+        }));
+
+    it("should propagate a display name change as a nick change when no custom nick is set",
+    test.coroutine(function*() {
+        var newNick = "Blurple";
+
+        // make sure that the nick command is sent
+        var sentNickCommand = false;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+            function(client, command, arg) {
+                expect(client.nick).toEqual(userIdNick, "use the old nick on /nick");
+                expect(client.addr).toEqual(roomMapping.server);
+                expect(command).toEqual("NICK");
+                expect(arg).toEqual('M-' + newNick);
+                sentNickCommand = true;
+            });
+
+        // trigger a display name change
+        yield env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "join",
+                avatar_url: null,
+                displayname: newNick
+            },
+            state_key: userId,
+            user_id: userId,
+            room_id: roomMapping.roomId,
+            type: "m.room.member",
+        });
+
+        // make sure everything was called
+        expect(sentNickCommand).toBe(true, "sent nick IRC command");
+    }));
+
     it("should reject !nick changes for IRC errors",
     test.coroutine(function*() {
         var newNick = "Blurple";
@@ -470,6 +562,12 @@ describe("Admin rooms", function() {
             }
         });
 
+        // let the user join the IRC channel because of membership syncing
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "join",
+        function(client, chan, cb) {
+            if (chan === newChannel && cb) { cb(); }
+        });
+
         // make sure the AS creates a new PRIVATE matrix room.
         var createdMatrixRoom = false;
         var sdk = env.clientMock._client(botUserId);
@@ -496,7 +594,7 @@ describe("Admin rooms", function() {
             user_id: userId,
             room_id: adminRoomId,
             type: "m.room.message"
-        })
+        });
 
         // make sure everything was called
         expect(createdMatrixRoom).toBe(true, "Did not create matrix room");
