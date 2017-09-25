@@ -127,6 +127,19 @@ properties:
                                 "^[a-zA-Z]$":
                                     type: number
                                     minimum: 0
+                        powerLevels:
+                            type: "object"
+                            properties:
+                                avatar:
+                                    type: "number"
+                                name:
+                                    type: "number"
+                                canonical_alias:
+                                    type: "number"
+                                history_visibility:
+                                    type: "number"
+                                redact:
+                                    type: "number"
                         botConfig:
                             type: "object"
                             properties:

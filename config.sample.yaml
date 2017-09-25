@@ -97,6 +97,16 @@ ircService:
       modePowerMap:
         o: 50
 
+      # A map of levels needed to do some action on the Matrix room. Those levels will be set
+      # on the room on creation. With corresponding modePowerMap, this allows Matrix users who
+      # are ops on the IRC side to edit the room settings.
+      powerLevels:
+        avatar: 50
+        name: 50
+        canonicalAlias: 50
+        historyVisibility: 50
+        redact: 50
+
       botConfig:
         # Enable the presence of the bot in IRC channels. The bot serves as the entity
         # which maps from IRC -> Matrix. You can disable the bot entirely which
