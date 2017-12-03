@@ -1,0 +1,13 @@
+[Unit]
+Require=network.target
+After=network.target
+
+[Service]
+Type=simple
+User=bridge
+Goup=bridge
+ExecStart=/home/bridge/node/bin/node /home/bridge/matrix-appservice-irc/app.js -c /home/bridge/matrix-appservice-irc/config.yaml -f /home/bridge/matrix-appservice-irc/registration.yaml -p 9999
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
