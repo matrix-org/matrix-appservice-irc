@@ -38,7 +38,7 @@
     "winston": "^2.4.0"
   },
   "devDependencies": {
-    "eslint": "^1.10.3",
+    "eslint": "^4.15.0",
     "istanbul": "^0.4.5",
     "jasmine": "^2.5.2",
     "proxyquire": "^1.4.0"

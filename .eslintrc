@@ -1,15 +1,9 @@
 {
-  "ecmaFeatures": {
-    "arrowFunctions": true,
-    "blockBindings": true,
-    "jsx": true,
-    "templateStrings": true,
-    "classes": true,
-    "defaultParams": true,
-    "generators": true,
-    "modules": true,
-    "restParams": true,
-    "objectLiteralComputedProperties": true
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "ecmaFeatures": {
+      "jsx": true
+    }
   },
   "env": {
     "node": true,
@@ -78,7 +72,7 @@
     "no-nested-ternary": 1,
     "no-spaced-func": 1,
     "no-trailing-spaces": 1,
-    "space-after-keywords": [1, "always"],
+    "keyword-spacing": [1, {"before": true, "after": true}],
     "space-before-blocks": [1, "always"]
   }
 }
