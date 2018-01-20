@@ -26,16 +26,16 @@
   "dependencies": {
     "bluebird": "^3.1.1",
     "crc": "^3.2.1",
-    "extend": "^2.0.0",
+    "extend": "^3.0.1",
     "irc": "matrix-org/node-irc#b1614bc784200c65247784d7b9e9ab867140412d",
     "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
     "matrix-appservice-bridge": "1.4.0a",
     "nedb": "^1.1.2",
-    "nopt": "^3.0.1",
+    "nopt": "^4.0.1",
     "request": "^2.54.0",
     "sanitize-html": "^1.6.1",
-    "winston": "^0.9.0"
+    "winston": "^2.4.0"
   },
   "devDependencies": {
     "eslint": "^1.10.3",
