@@ -28,7 +28,6 @@
     "crc": "^3.2.1",
     "extend": "^3.0.1",
     "irc": "matrix-org/node-irc#e80eb07dfe2d1da55f3e0c4ac04dca4fbd2757fd",
-    "jayschema": "^0.3.1",
     "js-yaml": "^3.2.7",
     "matrix-appservice-bridge": "1.4.0a",
     "nedb": "^1.1.2",
