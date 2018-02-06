@@ -112,7 +112,7 @@ module.exports.beforeEach = Promise.coroutine(function*(env) {
 module.exports.coroutine = function(generatorFn) {
     return function(done) {
         var fn = Promise.coroutine(generatorFn);
-        fn.apply(this).then(function() {  // eslint-disable-line no-invalid-this
+        fn.apply(this).then(function() { // eslint-disable-line no-invalid-this
             done();
         }, function(err) {
             expect(true).toBe(false, "Coroutine threw: " + err + "\n" + err.stack);
