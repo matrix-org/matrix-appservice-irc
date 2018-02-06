@@ -1,7 +1,49 @@
+Changes in 0.8.0 (2017-07-26)
+=============================
+
+**BREAKING CHANGES:**
+ - Logs are now rotated based on time rather than size. `maxFileSizeBytes` has been removed from the configuration file.
+
+New features:
+ - The bridge will now mirror IRC chanops to Matrix, so Matrix users can see who is a chanop.
+ - The bridge will now handle `+m` (moderated) channels by setting the `events_default` value to `1` when `+m` is set.
+   Only Matrix users with a power level >0 can send events in this room whilst this is set.
+ - The debug API has been expanded to include `/killUser` which accepts a JSON object like:
+   ```json
+   {
+     "user_id": "@usertoremove:localhost",
+     "reason": "reason in quit message and kick message"
+   }
+   ```
+
+Improvements:
+ - Reduced CPU and memory usage during normal operation. The bridge will now share internal data structures for representing Matrix rooms. Previously, each user in a room would have its own copy of the Matrix room which would need to be updated for power levels / membership changes N times (where N is the number of bridged users in the room). This now only needs to be updated once.
+ - The format for uploaded content has changed to: (thanks @t3chguy!)
+   ```
+   Person has uploaded an image: filename.gif (55KB) <https://homeserver/_matrix/media/v1/download/foo/bar>
+   ```
+
+ - The bridge will now respond to CTCP VERSION with: (thanks @t3chguy!)
+   ```
+   matrix-appservice-irc, part of the Matrix.org Network
+   ```
+
+ - The ident server can now bind to any address via the config option `ident.address`. Thanks @silkeh!
+ - The ident server will now respond with the formal syntax in RFC1413. Thanks @silkeh!
+ - The bridge will now set `protocols: ["irc"]` in the generated registration file. Thanks @ansiwen!
+
+Bug fixes:
+ - `dropMatrixMessagesAfterSecs` now re-checks the time just prior to sending to IRC. Previously, it was possible for events to arrive a few seconds before the cut-off period and then take minutes to be processed in the bridge, resulting in the message being sent *after* the cut-off period.
+ - The `unbridge.js` script has been fixed when not sending a message. Thanks @aperezdc!
+ - Pastebinned long messages are now uploaded with UTF8 encoding.
+ - The bridge will now wait between reconnection attempts for a given client. Previously, a bug would cause it to tight-loop trying to reconnect.
+ - Fixed an issue which could cause an IRC message to make the bridge tight-loop.
+ - Capped the `depth` value when introspecting clients in the debug API. Long-running bridges could cause this to error out as idle timers exceeded the stack depth.
+
 Changes in 0.7.2 (2017-04-05)
 =============================
 
-Features:
+New features:
  - Invites from IRC are now forwarded to Matrix. (Thanks @erdnaxeli!)
 
 Improvements:
