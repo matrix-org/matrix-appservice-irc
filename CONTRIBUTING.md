@@ -40,15 +40,7 @@ This project follows "git flow" semantics. In practice, this means:
  - Create a pull request. If this PR fixes an issue, link to it by referring to its number.
 
 ## Coding notes
-The IRC bridge is compatible on Node.js v4+. It does not use a transpiler like Babel. As such,
-only a subset of ES6 features are natively supported. Some of the common ones which are supported
-are listed below (see http://node.green/ for the full list):
- - Generators
- - \`template ${strings}\`
- - ES6 `class`es
- - `let`, `const`
- - `Map`, `Set`
- - `(arrow) => { } // functions`
+The IRC bridge is compatible on Node.js v8+.
  
 Tests are written in Jasmine. Depending on the pull request, you may be asked to write tests for
 new code.
