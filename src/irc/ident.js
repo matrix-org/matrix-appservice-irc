@@ -15,6 +15,7 @@
  */
 "use strict";
 
+const EventEmitter = require('events');
 const net = require('net');
 
 const log = require("../logging").get("irc-ident");
@@ -26,6 +27,10 @@ var config = {
 var portMappings = {
     // port: username
 };
+
+var nextToken = 1;
+const openTokens = [];
+const emitter = new EventEmitter();
 
 var respond = function(sock, localPort, remotePort, username) {
     var response;
@@ -39,6 +44,21 @@ var respond = function(sock, localPort, remotePort, username) {
 
     log.debug(response);
     sock.end(response);
+};
+
+const tryRespond = (currentToken, sock, localPort, remotePort) => {
+    let username = portMappings[localPort];
+    if (username) {
+        log.debug("Port %s is %s", localPort, username);
+        respond(sock, localPort, remotePort, username);
+    }
+    else if (openTokens.length > 0 && openTokens[0] < currentToken) {
+        emitter.once("token", () => tryRespond(currentToken, sock, localPort, remotePort));
+    }
+    else {
+        log.debug("No user on port %s", localPort);
+        respond(sock, localPort, remotePort, null);
+    }
 };
 
 module.exports = {
@@ -58,14 +78,9 @@ module.exports = {
                     log.debug("BAD DATA");
                     return;
                 }
-                var username = portMappings[String(localOutgoingPort)];
-                if (!username) {
-                    log.debug("No user on port %s", localOutgoingPort);
-                    respond(sock, localOutgoingPort, remoteConnectPort, null);
-                    return;
-                }
-                log.debug("Port %s is %s", localOutgoingPort, username);
-                respond(sock, localOutgoingPort, remoteConnectPort, username);
+                tryRespond(nextToken, sock,
+                    String(localOutgoingPort),
+                    String(remoteConnectPort));
             });
             sock.on("close", function() {
                 log.debug("CLOSE");
@@ -90,6 +105,20 @@ module.exports = {
                     log.debug("Remove user %s from port %s", username, portNum);
                 }
             });
+        }
+    },
+    takeToken: function() {
+        let token = nextToken++;
+        openTokens.push(token);
+        log.debug("Took token %d", token);
+        return token;
+    },
+    returnToken: function(token) {
+        let index = openTokens.indexOf(token);
+        if (index > -1) {
+            openTokens.splice(index, 1);
+            log.debug("Returned token %d", token);
+            emitter.emit('token');
         }
     }
 };

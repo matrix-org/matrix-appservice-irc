@@ -127,6 +127,8 @@ BridgedClient.prototype.connect = Promise.coroutine(function*() {
             `Connecting to the IRC network '${this.server.domain}' as ${this.nick}...`
         );
 
+        let identToken = ident.takeToken();
+
         let connInst = yield ConnectionInstance.create(server, {
             nick: this.nick,
             username: nameInfo.username,
@@ -138,7 +140,7 @@ BridgedClient.prototype.connect = Promise.coroutine(function*() {
                 this.server.getIpv6Prefix() ? this._clientConfig.getIpv6Address() : undefined
             )
         }, (inst) => {
-            this._onConnectionCreated(inst, nameInfo);
+            this._onConnectionCreated(inst, nameInfo, identToken);
         });
 
         this.inst = connInst;
@@ -190,6 +192,7 @@ BridgedClient.prototype.connect = Promise.coroutine(function*() {
     catch (err) {
         this.log.debug("Failed to connect.");
         this.instCreationFailed = true;
+        ident.returnToken(identToken);
         throw err;
     }
 });
@@ -582,7 +585,7 @@ BridgedClient.prototype._addChannel = function(channel) {
 BridgedClient.prototype.getLastActionTs = function() {
     return this.lastActionTs;
 };
-BridgedClient.prototype._onConnectionCreated = function(connInst, nameInfo) {
+BridgedClient.prototype._onConnectionCreated = function(connInst, nameInfo, identToken) {
     // listen for a connect event which is done when the TCP connection is
     // established and set ident info (this is different to the connect() callback
     // in node-irc which actually fires on a registered event..)
@@ -594,6 +597,7 @@ BridgedClient.prototype._onConnectionCreated = function(connInst, nameInfo) {
         if (localPort > 0) {
             ident.setMapping(nameInfo.username, localPort);
         }
+        ident.returnToken(identToken);
     });
 
     connInst.onDisconnect = (reason) => {
@@ -608,6 +612,7 @@ BridgedClient.prototype._onConnectionCreated = function(connInst, nameInfo) {
             "' has been lost. "
         );
         clearTimeout(this._idleTimeout);
+        ident.returnToken(identToken);
     };
 
     this._eventBroker.addHooks(this, connInst);
