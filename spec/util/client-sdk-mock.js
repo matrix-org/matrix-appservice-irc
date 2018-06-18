@@ -43,7 +43,6 @@ function MockClient(config) {
         if (endpoint === "/joined_rooms") {
             return Promise.resolve([]);
         }
-        console.log("BAAAAAAAAAAAAAAAAAAAAAAAA:",method);
         return Promise.resolve();
     });
 
