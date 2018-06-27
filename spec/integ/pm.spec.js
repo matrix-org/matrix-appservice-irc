@@ -202,6 +202,90 @@ describe("Matrix-to-IRC PMing", function() {
     }));
 });
 
+describe("Matrix-to-IRC PMing disabled", function() {
+    var tUserId = "@flibble:wibble";
+    var tIrcNick = "someone";
+    var tUserLocalpart = roomMapping.server + "_" + tIrcNick;
+    var tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
+
+    beforeEach(test.coroutine(function*() {
+        config.ircService.servers[roomMapping.server].privateMessages.enabled = false;
+        yield test.beforeEach(env);
+
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+
+        yield test.initEnv(env);
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(env);
+        config.ircService.servers[roomMapping.server].privateMessages.enabled = true;
+    }));
+
+    it("should join 1:1 rooms invited from matrix, announce and then leave them",
+    test.coroutine(function*() {
+        // get the ball rolling
+        let requestPromise = env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "invite"
+            },
+            state_key: tIrcUserId,
+            user_id: tUserId,
+            room_id: roomMapping.roomId,
+            type: "m.room.member"
+        });
+
+        // when it queries whois, say they exist
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
+        function(client, nick, cb) {
+            expect(nick).toEqual(tIrcNick);
+            // say they exist (presence of user key)
+            cb({
+                user: tIrcNick,
+                nick: tIrcNick
+            });
+        });
+
+        let sdk = env.clientMock._client(tIrcUserId);
+        sdk._onHttpRegister({
+            expectLocalpart: tUserLocalpart,
+            returnUserId: tIrcUserId
+        });
+
+        let joinRoomPromise = new Promise((resolve, reject) => {
+            sdk.joinRoom.and.callFake(function(roomId) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                resolve();
+                return Promise.resolve({});
+            });
+        });
+        
+        let sentMessagePromise = new Promise(function(resolve, reject) {
+            sdk.sendEvent.and.callFake(function(roomId, type, content) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                expect(type).toEqual("m.room.message");
+                resolve();
+                return Promise.resolve({});
+            });
+        });
+
+        let leaveRoomPromise = new Promise((resolve, reject) => {
+            sdk.leave.and.callFake(function(roomId) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                resolve();
+                return Promise.resolve({});
+            });
+        });
+
+        yield joinRoomPromise;
+        yield sentMessagePromise;
+        yield leaveRoomPromise;
+        yield requestPromise;
+    }));
+});
+
 describe("IRC-to-Matrix PMing", function() {
     var sdk = null;
 
@@ -439,5 +523,89 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
 
         yield createRoomPromise;
         yield sentMessagePromise;
+    }));
+});
+
+describe("Matrix-to-IRC PMing over federation disabled", function() {
+    var tUserId = "@flibble:wobble";
+    var tIrcNick = "someone";
+    var tUserLocalpart = roomMapping.server + "_" + tIrcNick;
+    var tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
+
+    beforeEach(test.coroutine(function*() {
+        config.ircService.servers[roomMapping.server].privateMessages.federate = false;
+        yield test.beforeEach(env);
+
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, roomMapping.botNick, roomMapping.server
+        );
+
+        yield test.initEnv(env);
+    }));
+
+    afterEach(test.coroutine(function*() {
+        yield test.afterEach(env);
+        config.ircService.servers[roomMapping.server].privateMessages.federate = true;
+    }));
+
+    it("should join 1:1 rooms invited from matrix, announce and then leave them",
+    test.coroutine(function*() {
+        // get the ball rolling
+        let requestPromise = env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "invite"
+            },
+            state_key: tIrcUserId,
+            user_id: tUserId,
+            room_id: roomMapping.roomId,
+            type: "m.room.member"
+        });
+
+        // when it queries whois, say they exist
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
+        function(client, nick, cb) {
+            expect(nick).toEqual(tIrcNick);
+            // say they exist (presence of user key)
+            cb({
+                user: tIrcNick,
+                nick: tIrcNick
+            });
+        });
+
+        let sdk = env.clientMock._client(tIrcUserId);
+        sdk._onHttpRegister({
+            expectLocalpart: tUserLocalpart,
+            returnUserId: tIrcUserId
+        });
+
+        let joinRoomPromise = new Promise((resolve, reject) => {
+            sdk.joinRoom.and.callFake(function(roomId) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                resolve();
+                return Promise.resolve({});
+            });
+        });
+        
+        let sentMessagePromise = new Promise(function(resolve, reject) {
+            sdk.sendEvent.and.callFake(function(roomId, type, content) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                expect(type).toEqual("m.room.message");
+                resolve();
+                return Promise.resolve({});
+            });
+        });
+
+        let leaveRoomPromise = new Promise((resolve, reject) => {
+            sdk.leave.and.callFake(function(roomId) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                resolve();
+                return Promise.resolve({});
+            });
+        });
+
+        yield joinRoomPromise;
+        yield sentMessagePromise;
+        yield leaveRoomPromise;
+        yield requestPromise;
     }));
 });
