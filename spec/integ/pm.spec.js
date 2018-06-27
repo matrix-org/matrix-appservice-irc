@@ -261,7 +261,7 @@ describe("Matrix-to-IRC PMing disabled", function() {
                 return Promise.resolve({});
             });
         });
-        
+
         let sentMessagePromise = new Promise(function(resolve, reject) {
             sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 expect(roomId).toEqual(roomMapping.roomId);
@@ -585,7 +585,7 @@ describe("Matrix-to-IRC PMing over federation disabled", function() {
                 return Promise.resolve({});
             });
         });
-        
+
         let sentMessagePromise = new Promise(function(resolve, reject) {
             sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 expect(roomId).toEqual(roomMapping.roomId);
