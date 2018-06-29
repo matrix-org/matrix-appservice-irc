@@ -1,3 +1,21 @@
+Changes in 0.9.0 (2018-06-29)
+=============================
+**BREAKING CHANGES:**
+ - The bridge now requires a minimum of Node 6.
+
+New features & improvements:
+
+* **Breaking Change** - Minimum supported version is now Node 6.X #589 
+* Updated winston logger dependency to 2.4.2 #587
+* Refined colours to match mIRC colours - #483 Thanks @silkeh 
+* Displayname changes now appear as nick changes - #486 Thanks @silkeh 
+* New ``migrate-users`` script to remove suffixes from displaynames - #495 Thanks @SohumB
+* Rewritten IRC to HTML parsing - #485 Thanks @silkeh 
+* Add m.audio as a valid file type - #504 Thanks @t3chguy 
+* Don't rejoin mapped rooms #594 
+* Announce and leave DM rooms if we don't support it #600 
+
+
 Changes in 0.8.0 (2017-07-26)
 =============================
 
