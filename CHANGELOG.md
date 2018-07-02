@@ -1,4 +1,9 @@
-Changes in 0.9.0 (2018-06-29)
+Changes in 0.9.0 (2018-07-02)
+=============================
+
+No changes since 0.9.0-rc1
+
+Changes in 0.9.0-rc1 (2018-06-29)
 =============================
 **BREAKING CHANGES:**
  - The bridge now requires a minimum of Node 6.
