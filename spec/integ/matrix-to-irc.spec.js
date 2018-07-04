@@ -380,7 +380,7 @@ describe("Matrix-to-IRC message bridging", function() {
                 expect(client.addr).toEqual(roomMapping.server);
                 expect(channel).toEqual(roomMapping.channel);
                 // don't be too brittle when checking this, but I expect to see the
-                // code type (body) and the http url.
+                // code type and the http url.
                 expect(text.indexOf("javascript")).not.toEqual(-1);
                 expect(text.indexOf(tHsUrl)).not.toEqual(-1);
                 done();
