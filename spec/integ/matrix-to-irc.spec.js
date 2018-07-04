@@ -329,6 +329,73 @@ describe("Matrix-to-IRC message bridging", function() {
             type: "m.room.topic"
         });
     });
+
+    it("should truncate multiline messages and include a full message URL", function(done) {
+        let tBody = "This\nis\na\nmessage\nwith\nmultiple\nline\nbreaks";
+        let tFirstLine = tBody.split('\n')[0];
+        let tHsUrl = "http://somedomain.com";
+        let sdk = env.clientMock._client(config._botUserId);
+
+        sdk.getHomeserverUrl.and.returnValue(tHsUrl);
+
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+            function(client, channel, text) {
+                expect(client.nick).toEqual(testUser.nick);
+                expect(client.addr).toEqual(roomMapping.server);
+                expect(channel).toEqual(roomMapping.channel);
+                // don't be too brittle when checking this, but I expect to see the
+                // start of the first line and the http url.
+                expect(text.indexOf(tFirstLine)).not.toEqual(-1);
+                expect(text.indexOf(tHsUrl)).not.toEqual(-1);
+                done();
+            });
+
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tBody,
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+    });
+
+    it("should bridge mutliline code blocks as IRC action with URL", function(done) {
+        let tBody =
+            "```javascript\n" +
+            "    expect(text.indexOf(\"javascript\")).not.toEqual(-1);\n" +
+            "    expect(text.indexOf(tHsUrl)).not.toEqual(-1);\n" +
+            "    expect(text.indexOf(tMxcSegment)).not.toEqual(-1);\n" +
+            "    done();\n" +
+            "```";
+        let tHsUrl = "http://somedomain.com";
+        let sdk = env.clientMock._client(config._botUserId);
+
+        sdk.getHomeserverUrl.and.returnValue(tHsUrl);
+
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
+            function(client, channel, text) {
+                expect(client.nick).toEqual(testUser.nick);
+                expect(client.addr).toEqual(roomMapping.server);
+                expect(channel).toEqual(roomMapping.channel);
+                // don't be too brittle when checking this, but I expect to see the
+                // code type (body) and the http url.
+                expect(text.indexOf("javascript")).not.toEqual(-1);
+                expect(text.indexOf(tHsUrl)).not.toEqual(-1);
+                done();
+            });
+
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tBody,
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+    });
 });
 
 describe("Matrix-to-Matrix message bridging", function() {

@@ -133,6 +133,56 @@ function Client(addr, nick, opts) {
         return this.chans[channel];
     }
 
+    // Copied over from irc.js and modified slightly
+    this.getSplitMessages = function(target, text) {
+        // hostmask length is probably about 3 * nick length
+        var maxLength = 497 - 4 * this.nick.length - target.length;
+        if (text) {
+            return text.toString().split(/\r?\n/).filter(function(line) {
+                return line.length > 0;
+            }).map(function(line) {
+                return self._splitLongLines(line, maxLength, []);
+            }).reduce(function(a, b) {
+                return a.concat(b);
+            }, []);
+        }
+        return [];
+    };
+
+    // Copied over from irc.js
+    this._splitLongLines = function(words, maxLength, destination) {
+        if (words.length == 0) {
+            return destination;
+        }
+        if (words.length <= maxLength) {
+            destination.push(words);
+            return destination;
+        }
+        var c = words[maxLength];
+        var cutPos;
+        var wsLength = 1;
+        if (c.match(/\s/)) {
+            cutPos = maxLength;
+        } else {
+            var offset = 1;
+            while ((maxLength - offset) > 0) {
+                var c = words[maxLength - offset];
+                if (c.match(/\s/)) {
+                    cutPos = maxLength - offset;
+                    break;
+                }
+                offset++;
+            }
+            if (maxLength - offset <= 0) {
+                cutPos = maxLength;
+                wsLength = 0;
+            }
+        }
+        var part = words.substring(0, cutPos);
+        destination.push(part);
+        return this._splitLongLines(words.substring(cutPos + wsLength, words.length), maxLength, destination);
+    };
+
     setClient(self, addr, nick);
 }
 util.inherits(Client, EventEmitter);
