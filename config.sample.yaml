@@ -295,6 +295,14 @@ ircService:
         # a FIFO queue.
         # Default: 5000 (5 seconds)
         reconnectIntervalMs: 5000
+        # The number of concurrent reconnects if a user has been disconnected unexpectedly
+        # (e.g. a netsplit). You should set this to a reasonably high number so that
+        # bridges are not waiting an eternity to reconnect all its clients if 
+        # we see a massive number of disconnect. This is unrelated to the reconnectIntervalMs
+        # setting above which is for connecting on restart of the bridge. Set to 0 to 
+        # immediately try to reconnect all users.
+        # Default: 50
+        concurrentReconnectLimit: 50
         # The number of lines to allow being sent by the IRC client that has received
         # a large block of text to send from matrix. If the number of lines that would
         # be sent is > lineLimit, the text will instead be uploaded to matrix and the
