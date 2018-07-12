@@ -180,6 +180,29 @@ describe("Admin rooms", function() {
         expect(sentNotice).toBe(true);
     }));
 
+    it("should respond to unknown commands with a notice",
+    test.coroutine(function*() {
+        var sentNotice = false;
+        var sdk = env.clientMock._client(botUserId);
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            sentNotice = true;
+            return Promise.resolve();
+        });
+
+        yield env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "notacommand",
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        })
+        expect(sentNotice).toBe(true);
+    }));
+
     it("should ignore messages sent by the bot", test.coroutine(function*() {
         yield env.mockAppService._trigger("type:m.room.message", {
             content: {
