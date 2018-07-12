@@ -1,3 +1,11 @@
+Changes in 0.9.1 (2018-07-12)
+=============================
+
+Some changes were not included in 0.9.0 and have now been included in this release:
+* Don't rejoin mapped rooms #594 
+* Announce and leave DM rooms if we don't support it #600 
+
+
 Changes in 0.9.0 (2018-07-02)
 =============================
 
