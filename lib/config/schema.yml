@@ -217,6 +217,8 @@ properties:
                                     type: "boolean"
                                 createAlias:
                                     type: "boolean"
+                                groupId:
+                                    type: "string"
                                 joinRule:
                                     type: "string"
                                     enum: ["invite", "public"]
