@@ -92,6 +92,8 @@ properties:
                             type: "boolean"
                         sslselfsign:
                             type: "boolean"
+                        allowExpiredCerts:
+                            type: "boolean"
                         password:
                             type: "string"
                         sendConnectionMessages:
