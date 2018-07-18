@@ -59,7 +59,6 @@ ircService:
       # Whether or not IRC server is using a self-signed cert or not providing CA Chain
       sslselfsign: false
       # Whether to allow expired certs when connecting to the IRC server.
-      # This protects explitially against expired certs, not invalid ones.
       # Usually this should be off. Default: false.
       allowExpiredCerts: false
       # A specific CA to trust instead of the default CAs. Optional.
