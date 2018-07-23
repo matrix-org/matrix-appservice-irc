@@ -258,6 +258,10 @@ ircService:
         # insert the IRC domain.
         # Optional. Default: "$NICK (IRC)". Example: "Alice (IRC)"
         displayName: "$NICK (IRC)"
+        # Number of tries a client can attempt to join a room before the request
+        # is discarded. Set to 0 to never retry.
+        # Optional. Default: 0
+        joinAttempts: 5
 
       # Configuration for virtual IRC users. The following variables are exposed:
       # $LOCALPART => The user ID localpart ("alice" in @alice:localhost)
