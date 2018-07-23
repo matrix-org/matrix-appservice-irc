@@ -616,7 +616,7 @@ describe("IRC-to-Matrix name bridging", function() {
         cli.joinRoom.and.callFake(function(r, opts) {
             if (count > 0) {
                 count--;
-                return Promise.reject({httpStatus: 504});
+                return Promise.reject({});
             }
             expect(r).toEqual(roomMapping.roomId);
             done();
