@@ -513,6 +513,7 @@ describe("IRC-to-Matrix name bridging", function() {
         config.ircService.servers[roomMapping.server].matrixClients.displayName = (
             "Test $NICK and $SERVER"
         );
+        config.ircService.servers[roomMapping.server].matrixClients.joinAttempts = 3;
         config.ircService.servers[roomMapping.server].membershipLists.enabled = true;
         config.ircService.servers[
             roomMapping.server
@@ -616,7 +617,7 @@ describe("IRC-to-Matrix name bridging", function() {
         cli.joinRoom.and.callFake(function(r, opts) {
             if (count > 0) {
                 count--;
-                return Promise.reject({httpStatus: 504});
+                return Promise.reject({});
             }
             expect(r).toEqual(roomMapping.roomId);
             done();

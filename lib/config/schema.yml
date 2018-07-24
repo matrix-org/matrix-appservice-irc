@@ -256,6 +256,9 @@ properties:
                                 displayName:
                                     type: "string"
                                     pattern: "\\$NICK"
+                                joinAttempts:
+                                    type: "integer"
+                                    minimum: -1
                         ircClients:
                             type: "object"
                             properties:
