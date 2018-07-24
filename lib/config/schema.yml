@@ -258,7 +258,7 @@ properties:
                                     pattern: "\\$NICK"
                                 joinAttempts:
                                     type: "integer"
-                                    minimum: 0
+                                    minimum: -1
                         ircClients:
                             type: "object"
                             properties:
