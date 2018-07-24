@@ -513,6 +513,7 @@ describe("IRC-to-Matrix name bridging", function() {
         config.ircService.servers[roomMapping.server].matrixClients.displayName = (
             "Test $NICK and $SERVER"
         );
+        config.ircService.servers[roomMapping.server].matrixClients.joinAttempts = 3;
         config.ircService.servers[roomMapping.server].membershipLists.enabled = true;
         config.ircService.servers[
             roomMapping.server
