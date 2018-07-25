@@ -16,6 +16,7 @@ new Cli({
         defaults: {
             homeserver: {
                 dropMatrixMessagesAfterSecs: 0,
+                enablePresence: true
             },
             ircService: {
                 ident: {
