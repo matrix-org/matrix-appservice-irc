@@ -27,6 +27,11 @@ homeserver:
   # is the "domain name" part of the HS URL.
   domain: "localhost"
 
+  # Should presence be enabledfor matrix clients on this bridge. If disabled on the 
+  # homeserver then it should also be disabled here to avoid excess traffic.
+  # Default: true
+  presenceEnabled: true
+
 # Configuration specific to the IRC service
 ircService:
   servers:
