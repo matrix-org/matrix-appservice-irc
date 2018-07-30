@@ -1,3 +1,8 @@
+Changes in 0.10.0 (2018-07-30)
+==============================
+
+No changes since rc1
+
 Changes in 0.10.0-rc1 (2018-07-25)
 ==============================
 - The bridge now depends on matrix-appservice-bridge 1.5.0a
