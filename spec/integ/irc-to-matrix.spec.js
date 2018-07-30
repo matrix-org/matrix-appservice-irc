@@ -513,6 +513,7 @@ describe("IRC-to-Matrix name bridging", function() {
         config.ircService.servers[roomMapping.server].matrixClients.displayName = (
             "Test $NICK and $SERVER"
         );
+        config.ircService.servers[roomMapping.server].matrixClients.joinAttempts = 3;
         config.ircService.servers[roomMapping.server].membershipLists.enabled = true;
         config.ircService.servers[
             roomMapping.server
@@ -597,6 +598,41 @@ describe("IRC-to-Matrix name bridging", function() {
                 Alicia: {},
                 Bertha: {},
                 Clarissa: {}
+            };
+            client.emit("names", roomMapping.channel, names);
+        });
+    });
+    it("should retry a join", function(done) {
+        const nick = "Alicia";
+        const uid = `@${roomMapping.server}_${nick}:${config.homeserver.domain}`;
+        const cli = env.clientMock._client(uid);
+
+        cli._onHttpRegister({
+            expectLocalpart: roomMapping.server + "_" + nick,
+            returnUserId: uid
+        });
+
+        let count = 3;
+
+        cli.joinRoom.and.callFake(function(r, opts) {
+            if (count > 0) {
+                count--;
+                return Promise.reject({});
+            }
+            expect(r).toEqual(roomMapping.roomId);
+            done();
+            return Promise.resolve({room_id: r});
+        });
+
+        // don't care about display name
+        cli.setDisplayName.and.callFake(function(name) {
+            return Promise.resolve({});
+        });
+
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        function(client) {
+            var names = {
+                Alicia: {}
             };
             client.emit("names", roomMapping.channel, names);
         });

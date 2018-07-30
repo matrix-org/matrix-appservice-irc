@@ -1,6 +1,6 @@
 {
   "name": "matrix-appservice-irc",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "An IRC Bridge for Matrix",
   "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",
@@ -29,7 +29,7 @@
     "extend": "^2.0.0",
     "irc": "matrix-org/node-irc#b1614bc784200c65247784d7b9e9ab867140412d",
     "js-yaml": "^3.2.7",
-    "matrix-appservice-bridge": "1.4.0a",
+    "matrix-appservice-bridge": "1.5.0a",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
     "prom-client": "^6.3.0",
@@ -39,7 +39,7 @@
     "winston-daily-rotate-file": "^3.2.1"
   },
   "devDependencies": {
-    "eslint": "^1.10.3",
+    "eslint": "^4.15.0",
     "istanbul": "^0.4.5",
     "jasmine": "^2.5.2",
     "proxyquire": "^1.4.0"

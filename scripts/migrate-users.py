@@ -41,7 +41,7 @@ def get_rooms(homeserver, token):
     return room_ids
 
 def migrate_displayname(uid, oldname, suffix, homeserver, token):
-    newname = re.sub(re.escape(suffix)+'$', "", oldname)
+    newname = re.sub(re.escape(suffix)+'$', "", oldname).rstrip()
     print("Migrating %s from %s to %s" % (uid, oldname, newname))
     headers = { 'Content-Type': 'application/json' }
     res = requests.put(homeserver + "/_matrix/client/r0/profile/" + urllib.quote(uid) + "/displayname?access_token=" + token + "&user_id=" + urllib.quote(uid),

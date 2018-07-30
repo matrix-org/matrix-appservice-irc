@@ -12,6 +12,8 @@ properties:
                 type: "string"
             dropMatrixMessagesAfterSecs:
                 type: "integer"
+            enablePresence:
+                type: "boolean"
         required: ["url", "domain"]
     ircService:
         type: "object"
@@ -91,6 +93,8 @@ properties:
                         ssl:
                             type: "boolean"
                         sslselfsign:
+                            type: "boolean"
+                        allowExpiredCerts:
                             type: "boolean"
                         password:
                             type: "string"
@@ -215,6 +219,8 @@ properties:
                                     type: "boolean"
                                 createAlias:
                                     type: "boolean"
+                                groupId:
+                                    type: "string"
                                 joinRule:
                                     type: "string"
                                     enum: ["invite", "public"]
@@ -252,6 +258,9 @@ properties:
                                 displayName:
                                     type: "string"
                                     pattern: "\\$NICK"
+                                joinAttempts:
+                                    type: "integer"
+                                    minimum: -1
                         ircClients:
                             type: "object"
                             properties:
