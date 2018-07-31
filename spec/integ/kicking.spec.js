@@ -88,6 +88,34 @@ describe("Kicking", function() {
             ircUserCli.emit("kick", config._chan, ircUser.nick, "KickerNick", "Reasons");
             yield kickPromise;
         }));
+        it("should not leave until all messages are sent", test.coroutine(function*() {
+            let SENT_MESSAGES = -1; // We send a message to in the beforeEach
+            const kickPromise = new Promise(function(resolve, reject) {
+                const ircUserSdk = env.clientMock._client(ircUser.id);
+                ircUserSdk.leave.and.callFake(function(roomId) {
+                    expect(roomId).toEqual(config._roomid);
+                    expect(SENT_MESSAGES).toEqual(3);
+                    resolve();
+                    return Promise.resolve();
+                });
+                ircUserSdk.sendEvent.and.callFake(() => {
+                    return Promise.delay(250).then(() => {
+                        SENT_MESSAGES += 1;
+                        return {};
+                    });
+                });
+            });
+
+            // send the KICK command
+            const ircUserCli = yield env.ircMock._findClientAsync(
+                config._server, config._botnick
+            );
+            ircUserCli.emit("message", ircUser.nick, config._chan, "1");
+            ircUserCli.emit("message", ircUser.nick, config._chan, "2");
+            ircUserCli.emit("message", ircUser.nick, config._chan, "3");
+            ircUserCli.emit("kick", config._chan, ircUser.nick, "KickerNick", "Reasons");
+            yield kickPromise;
+        }));
     });
 
     describe("Matrix users on Matrix", function() {
