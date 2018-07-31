@@ -276,5 +276,28 @@ describe("Mirroring", function() {
                 client.emit("part", roomMapping.channel, ircUser.nick);
             });
         });
+        it("should only leave after all messages have been sent", function(done) {
+            let MESSAGES_SENT = 0;
+            sdk.leave.and.callFake((roomId) => {
+                expect(roomId).toEqual(roomMapping.roomId);
+                expect(MESSAGES_SENT).toEqual(3);
+                done();
+                return Promise.resolve();
+            });
+            sdk.sendEvent.and.callFake(() => {
+                return Promise.delay(250).then(() => {
+                    MESSAGES_SENT += 1;
+                    return {};
+                });
+            });
+
+            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+            function(client) {
+                client.emit("message", ircUser.nick, roomMapping.channel, "1");
+                client.emit("message", ircUser.nick, roomMapping.channel, "2");
+                client.emit("message", ircUser.nick, roomMapping.channel, "3");
+                client.emit("part", roomMapping.channel, ircUser.nick);
+            });
+        });
     });
 });
