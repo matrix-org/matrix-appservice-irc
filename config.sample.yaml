@@ -76,7 +76,7 @@ ircService:
       #  -----END CERTIFICATE-----
 
       #
-      # The connection password to send for all clients as a PASS command. Optional.
+      # The connection password to send for all clients as a PASS (or SASL, if enabled above) command. Optional.
       # password: 'pa$$w0rd'
       #
       # Whether or not to send connection/error notices to real Matrix users. Default: true.
