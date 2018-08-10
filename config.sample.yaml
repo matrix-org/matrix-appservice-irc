@@ -63,7 +63,7 @@ ircService:
       ssl: true
       # Whether or not IRC server is using a self-signed cert or not providing CA Chain
       sslselfsign: false
-      # Should the connection attempt to identify via SASL (if a server or user password is given?)
+      # Should the connection attempt to identify via SASL (if a server or user password is given)
       # If false, this will use PASS instead. If SASL fails, we do not fallback to PASS.
       sasl: false
       # Whether to allow expired certs when connecting to the IRC server.
