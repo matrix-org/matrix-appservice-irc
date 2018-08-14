@@ -30,6 +30,13 @@ describe("MatrixAction", function() {
         });
         expect(action.htmlText).toEqual("<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a>, it's a bomb!");
     });
+    it("should highlight a user, with weird characters", () => {
+        let action = new MatrixAction("message", "JCDenton[m], it's a bomb!");
+        action.formatMentions({
+            "JCDenton[m]": "@jc.denton:unatco.gov"
+        });
+        expect(action.htmlText).toEqual("<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton[m]</a>, it's a bomb!");
+    });
     it("should highlight multiple users", () => {
         let action = new MatrixAction("message", "JCDenton is sent to assassinate PaulDenton", "JCDenton is sent to assassinate PaulDenton", null);
         action.formatMentions({
