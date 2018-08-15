@@ -78,6 +78,11 @@ properties:
                         type: "number"
             passwordEncryptionKeyPath:
                 type: "string"
+            matrixHandler:
+                type: "object"
+                properties:
+                    eventCacheSize:
+                        type: "integer"
             servers:
                 type: "object"
                 # all properties must follow the following
