@@ -3,12 +3,12 @@ const MatrixAction = require("../../lib/models/MatrixAction");
 
 describe("MatrixAction", function() {
     it("should not highlight mentions to text without mentions", () => {
-        let action = new MatrixAction("message", "Some text", "Some text", null);
+        let action = new MatrixAction("message", "Some text");
         action.formatMentions({
             "Some Person": "@foobar:localhost"
         });
         expect(action.text).toEqual("Some text");
-        expect(action.text).toEqual("Some text");
+        expect(action.htmlText).toBeUndefined();
     });
     it("should highlight a user", () => {
         let action = new MatrixAction("message", "JCDenton, it's a bomb!", "JCDenton, it's a bomb!", null);
