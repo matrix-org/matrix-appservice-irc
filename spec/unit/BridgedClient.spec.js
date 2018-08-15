@@ -86,12 +86,12 @@ describe("BridgedClient._getValidNick", () => {
 
   it("fails if the nick starts with a dash", () => {
     expect(() => {client._getValidNick("-Bob", true)}).
-      toThrowError("Nick '-Bob' contains illegal characters.")
+      toThrowError("Nick '-Bob' must start with a letter or special character (but not dash).")
   })
 
   it("fails if the nick starts with a number", () => {
     expect(() => {client._getValidNick("2Bob", true)}).
-      toThrowError("Nick '2Bob' must start with a letter.")
+      toThrowError("Nick '2Bob' must start with a letter or special character (but not dash).")
   })
 
   it("fails if the nick is longer than nine characters", () => {
