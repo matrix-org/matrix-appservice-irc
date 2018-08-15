@@ -19,7 +19,10 @@ describe("BridgedClient._getValidNick", () => {
       }
     }
 
+    let unsafeClientMock = {}
+
     client = new BridgedClient(serverMock, ircClientConfigMock)
+    client.unsafeClient = unsafeClientMock
   })
 
   it("fails if the nick contains illegal characters", () => {
