@@ -5,6 +5,9 @@ var promiseutil = require("../../lib/promiseutil.js");
 var env = test.mkEnv();
 var config = env.config;
 
+const ORIGINAL_JASMINE_TIMEOUT = jasmine.DEFAULT_TIMEOUT_INTERVAL;
+const PROVISIONING_GENEROUS_TIMEOUT = 15000;
+
 describe("Provisioning API", function() {
     var mxUser = {
         id: "@flibble:wibble",
@@ -26,6 +29,8 @@ describe("Provisioning API", function() {
     };
 
     let doSetup = test.coroutine(function*() {
+        jasmine.DEFAULT_TIMEOUT_INTERVAL = PROVISIONING_GENEROUS_TIMEOUT;
+
         yield test.beforeEach(env);
 
         // accept connection requests from eeeeeeeeveryone!
@@ -279,6 +284,7 @@ describe("Provisioning API", function() {
         beforeEach(doSetup);
 
         afterEach(test.coroutine(function*() {
+            jasmine.DEFAULT_TIMEOUT_INTERVAL = ORIGINAL_JASMINE_TIMEOUT;
             yield test.afterEach(env);
         }));
 
@@ -459,6 +465,7 @@ describe("Provisioning API", function() {
         }));
 
         afterEach(test.coroutine(function*() {
+            jasmine.DEFAULT_TIMEOUT_INTERVAL = ORIGINAL_JASMINE_TIMEOUT;
             yield test.afterEach(env);
         }));
 
@@ -510,6 +517,7 @@ describe("Provisioning API", function() {
         }));
 
         afterEach(test.coroutine(function*() {
+            jasmine.DEFAULT_TIMEOUT_INTERVAL = ORIGINAL_JASMINE_TIMEOUT;
             yield test.afterEach(env);
         }));
 
@@ -807,6 +815,7 @@ describe("Provisioning API", function() {
         }));
 
         afterEach(test.coroutine(function*() {
+            jasmine.DEFAULT_TIMEOUT_INTERVAL = ORIGINAL_JASMINE_TIMEOUT;
             yield test.afterEach(env);
         }));
 
@@ -1030,6 +1039,7 @@ describe("Provisioning API", function() {
         beforeEach(doSetup);
 
         afterEach(test.coroutine(function*() {
+            jasmine.DEFAULT_TIMEOUT_INTERVAL = ORIGINAL_JASMINE_TIMEOUT;
             yield test.afterEach(env);
         }));
 
@@ -1048,6 +1058,7 @@ describe("Provisioning API", function() {
         beforeEach(doSetup);
 
         afterEach(test.coroutine(function*() {
+            jasmine.DEFAULT_TIMEOUT_INTERVAL = ORIGINAL_JASMINE_TIMEOUT;
             yield test.afterEach(env);
         }));
 
