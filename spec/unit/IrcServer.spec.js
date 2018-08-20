@@ -40,11 +40,17 @@ describe("IrcServer", function() {
             );
             expect(server.getNick("@💩ケ:foobar", "wiggle")).toBe("M-wiggle");
         });
-        it("should throw if no characters could be used", function() {
+        it("should throw if no characters could be used, with displayname", function() {
             const server = new IrcServer("irc.foobar",
                 extend(true, IrcServer.DEFAULT_CONFIG, {})
             );
             expect(() => {server.getNick("@💩ケ:foobar", "💩ケ")}).toThrow();
+        });
+        it("should throw if no characters could be used, with displayname", function() {
+            const server = new IrcServer("irc.foobar",
+                extend(true, IrcServer.DEFAULT_CONFIG, {})
+            );
+            expect(() => {server.getNick("@💩ケ:foobar")}).toThrow();
         });
     });
 });
