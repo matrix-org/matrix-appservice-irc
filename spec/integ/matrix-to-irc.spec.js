@@ -307,7 +307,7 @@ describe("Matrix-to-IRC message bridging", function() {
                     msgtype: "m.text",
                     "m.relates_to": {
                         "m.in_reply_to": {
-                        "event_id": "$original:bar.com"
+                            "event_id": "$original:bar.com"
                         }
                     },
                 },
@@ -334,7 +334,7 @@ describe("Matrix-to-IRC message bridging", function() {
                 msgtype: "m.text",
                 "m.relates_to": {
                     "m.in_reply_to": {
-                    "event_id": "$original:bar.com"
+                        "event_id": "$original:bar.com"
                     }
                 },
             },
@@ -362,7 +362,7 @@ describe("Matrix-to-IRC message bridging", function() {
                     msgtype: "m.text",
                     "m.relates_to": {
                         "m.in_reply_to": {
-                          "event_id": "$first:bar.com"
+                            "event_id": "$first:bar.com"
                         }
                     },
                 },
@@ -388,7 +388,7 @@ describe("Matrix-to-IRC message bridging", function() {
                     msgtype: "m.text",
                     "m.relates_to": {
                         "m.in_reply_to": {
-                          "event_id": "$second:bar.com"
+                            "event_id": "$second:bar.com"
                         }
                     },
                 },
