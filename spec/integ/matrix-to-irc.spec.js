@@ -344,6 +344,61 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
+    it("should bridge matrix replies to replies without the original source", function(done) {
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "Message #1",
+                msgtype: "m.text"
+            },
+            user_id: testUser.id,
+            room_id: roomMapping.roomId,
+            sender: "@friend:bar.com",
+            event_id: "$first:bar.com",
+            type: "m.room.message"
+        }).then(() => {
+            return env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: "> <@friend:bar.com> Message#1\n\nMessage #2",
+                    msgtype: "m.text",
+                    "m.relates_to": {
+                        "m.in_reply_to": {
+                          "event_id": "$first:bar.com"
+                        }
+                    },
+                },
+                user_id: testUser.id,
+                room_id: roomMapping.roomId,
+                sender: "@friend:bar.com",
+                event_id: "$second:bar.com",
+                type: "m.room.message"
+            });
+        }).then(() => {
+            env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+            function(client, channel, text) {
+                expect(client.nick).toEqual(testUser.nick);
+                expect(client.addr).toEqual(roomMapping.server);
+                expect(channel).toEqual(roomMapping.channel);
+                expect(text).toEqual('<friend "Message #2"> Message #3');
+                done();
+            });
+    
+            env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: "> <@friend:bar.com> Message#2\n\nMessage #3",
+                    msgtype: "m.text",
+                    "m.relates_to": {
+                        "m.in_reply_to": {
+                          "event_id": "$second:bar.com"
+                        }
+                    },
+                },
+                user_id: testUser.id,
+                room_id: roomMapping.roomId,
+                type: "m.room.message"
+            });
+        });
+    });
+
     it("should bridge matrix images as IRC action with a URL", function(done) {
         var tBody = "the_image.jpg";
         var tMxcSegment = "/somecontentid";
