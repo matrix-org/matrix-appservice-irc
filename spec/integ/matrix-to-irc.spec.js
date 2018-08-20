@@ -318,13 +318,13 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
-    it("should bridge matrix replies as roughly formatted text, no event edition", function(done) {
+    it("should bridge matrix replies as reply only, if the original event cannot be found", function(done) {
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
             expect(channel).toEqual(roomMapping.channel);
-            expect(text).toEqual('<somedude "This message is possibly fake"> Reply Text');
+            expect(text).toEqual('Reply Text');
             done();
         });
 
