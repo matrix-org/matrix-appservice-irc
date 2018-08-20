@@ -26,6 +26,7 @@
   "dependencies": {
     "bluebird": "^3.1.1",
     "crc": "^3.2.1",
+    "escape-string-regexp": "^1.0.5",
     "extend": "^2.0.0",
     "irc": "matrix-org/node-irc#c9abb427bec5016d94a2abf3e058cc62de09ea5a",
     "js-yaml": "^3.2.7",
