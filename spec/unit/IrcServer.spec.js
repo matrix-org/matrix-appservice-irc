@@ -21,11 +21,30 @@ describe("IrcServer", function() {
             );
             expect(server.getNick("@foobar:foobar", "💩wiggleケ")).toBe("M-wiggle");
         });
-        it("should use userid if the displayname is all invalid chars", function() {
+        it("should use localpart if the displayname is all invalid chars", function() {
             const server = new IrcServer("irc.foobar",
                 extend(true, IrcServer.DEFAULT_CONFIG, {})
             );
             expect(server.getNick("@foobar:foobar", "💩ケ")).toBe("M-foobar");
+        });
+        // These situations shouldn't happen, but we want to avoid rogue homeservers blowing us up.
+        it("should get a reduced nick if the localpart contains some invalid chars", function() {
+            const server = new IrcServer("irc.foobar",
+                extend(true, IrcServer.DEFAULT_CONFIG, {})
+            );
+            expect(server.getNick("@💩foobarケ:foobar")).toBe("M-foobar");
+        });
+        it("should use displayname if the localpart is all invalid chars", function() {
+            const server = new IrcServer("irc.foobar",
+                extend(true, IrcServer.DEFAULT_CONFIG, {})
+            );
+            expect(server.getNick("@💩ケ:foobar", "wiggle")).toBe("M-wiggle");
+        });
+        it("should throw if no characters could be used", function() {
+            const server = new IrcServer("irc.foobar",
+                extend(true, IrcServer.DEFAULT_CONFIG, {})
+            );
+            expect(() => {server.getNick("@💩ケ:foobar", "💩ケ")}).toThrow();
         });
     });
 });
