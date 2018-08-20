@@ -261,7 +261,7 @@ describe("Matrix-to-IRC message bridging", function() {
                 expect(text).toEqual('<friend "This is the real message"> Reply Text');
                 done();
             });
-    
+
             env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "> <@somedude:bar.com> This is the fake message\n\nReply Text",
@@ -318,7 +318,7 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
-    it("should bridge matrix replies as reply only, if the original event cannot be found", function(done) {
+    it("should bridge matrix replies as reply only, if source not found", function(done) {
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
@@ -381,7 +381,7 @@ describe("Matrix-to-IRC message bridging", function() {
                 expect(text).toEqual('<friend "Message #2"> Message #3');
                 done();
             });
-    
+
             env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "> <@friend:bar.com> Message#2\n\nMessage #3",
