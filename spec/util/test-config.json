@@ -105,6 +105,9 @@
         "provisioning": {
             "enabled": true,
             "requestTimeoutSeconds": 1
+        },
+        "ircHandler": {
+            "activeDuration": 100
         }
     }
 }
