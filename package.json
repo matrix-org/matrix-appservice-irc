@@ -29,7 +29,7 @@
     "extend": "^2.0.0",
     "irc": "matrix-org/node-irc#c9abb427bec5016d94a2abf3e058cc62de09ea5a",
     "js-yaml": "^3.2.7",
-    "matrix-appservice-bridge": "matrix-org/matrix-appservice-bridge#b72744cf014fafae4a72dfffe4d290b3f1d44cdf",
+    "matrix-appservice-bridge": "matrix-org/matrix-appservice-bridge#4cba3711ef0fad357a547e0eaca982d652c46f24",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
     "prom-client": "^6.3.0",
