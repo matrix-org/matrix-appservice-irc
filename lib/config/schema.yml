@@ -94,6 +94,8 @@ properties:
                             type: "boolean"
                         sslselfsign:
                             type: "boolean"
+                        sasl:
+                            type: "boolean"
                         allowExpiredCerts:
                             type: "boolean"
                         password:
