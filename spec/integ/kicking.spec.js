@@ -89,14 +89,14 @@ describe("Kicking", function() {
             yield kickPromise;
         }));
         it("should not leave until all messages are sent", test.coroutine(function*() {
-            let SENT_MESSAGES = -1; // We send a message to in the beforeEach
+            // This is offset by 1 because all clients send a message in beforeEach.
+            let SENT_MESSAGES = -1;
             const kickPromise = new Promise(function(resolve, reject) {
                 const ircUserSdk = env.clientMock._client(ircUser.id);
                 ircUserSdk.leave.and.callFake(function(roomId) {
                     expect(roomId).toEqual(config._roomid);
                     expect(SENT_MESSAGES).toEqual(3);
                     resolve();
-                    return Promise.resolve();
                 });
                 ircUserSdk.sendEvent.and.callFake(() => {
                     return Promise.delay(250).then(() => {
