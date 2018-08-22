@@ -4,7 +4,17 @@ node_js:
   - "8"
   - "10"
 install: npm install
-script: ./travis-ci.sh
+
+jobs:
+    include:
+    - stage: linting
+      node_js: "10"
+      script: npm run lint
+    - stage: tests
+      script: npm run test
+    - stage: coverage
+      script: npm run ci-test
+      node_js: "10"
 
 notifications:
     webhooks:
