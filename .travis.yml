@@ -4,12 +4,12 @@ node_js:
   - "8"
   - "10"
 install: npm install
-script:  let "n = 0";npm run lint; let "n = n + $?";npm run ci-test; let "n = n + $?";(exit $n)
+script: ./travis-ci.sh
 
 notifications:
     webhooks:
         urls:
             - "https://scalar.vector.im/api/neb/services/hooks/dHJhdmlzLWNpLyU0MGtlZ2FuJTNBbWF0cml4Lm9yZy8lMjFTdWR2aU9KbGltRHZyR2RGQ1klM0FtYXRyaXgub3Jn"
         on_success: change  # always|never|change
-        on_failure: always
+        on_failure: change
         on_start: never
