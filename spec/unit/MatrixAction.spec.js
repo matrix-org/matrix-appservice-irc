@@ -20,7 +20,7 @@ describe("MatrixAction", function() {
         action.formatMentions({
             "JCDenton": "@jc.denton:unatco.gov"
         });
-        expect(action.text).toEqual("JCDenton, it's a bomb!");
+        expect(action.text).toEqual("jc.denton, it's a bomb!");
         expect(action.htmlText).toEqual(
             "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a>, it's a bomb!"
         );
@@ -35,7 +35,7 @@ describe("MatrixAction", function() {
         action.formatMentions({
             "jcdenton": "@jc.denton:unatco.gov"
         });
-        expect(action.text).toEqual("JCDenton, it's a bomb!");
+        expect(action.text).toEqual("jc.denton, it's a bomb!");
         expect(action.htmlText).toEqual(
             "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">jcdenton</a>, it's a bomb!"
         );
@@ -45,7 +45,7 @@ describe("MatrixAction", function() {
         action.formatMentions({
             "JCDenton": "@jc.denton:unatco.gov"
         });
-        expect(action.text).toEqual("JCDenton, it's a bomb!");
+        expect(action.text).toEqual("jc.denton, it's a bomb!");
         expect(action.htmlText).toEqual(
             "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a>, it's a bomb!"
         );
@@ -55,7 +55,7 @@ describe("MatrixAction", function() {
         action.formatMentions({
             "`||JCDenton[m]": "@jc.denton:unatco.gov"
         });
-        expect(action.text).toEqual("`||JCDenton[m], it's a bomb!");
+        expect(action.text).toEqual("jc.denton, it's a bomb!");
         expect(action.htmlText).toEqual(
             "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">`||JCDenton[m]</a>, it's a bomb!"
         );
@@ -71,7 +71,7 @@ describe("MatrixAction", function() {
             "JCDenton": "@jc.denton:unatco.gov",
             "PaulDenton": "@paul.denton:unatco.gov"
         });
-        expect(action.text).toEqual("JCDenton is sent to assassinate PaulDenton");
+        expect(action.text).toEqual("jc.denton is sent to assassinate paul.denton");
         expect(action.htmlText).toEqual(
             "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a> is sent" +
             " to assassinate <a href=\"https://matrix.to/#/@paul.denton:unatco.gov\">PaulDenton</a>"
@@ -87,7 +87,7 @@ describe("MatrixAction", function() {
         action.formatMentions({
             "JCDenton": "@jc.denton:unatco.gov"
         });
-        expect(action.text).toEqual("JCDenton, meet JCDenton");
+        expect(action.text).toEqual("jc.denton, meet jc.denton");
         expect(action.htmlText).toEqual(
             "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a>," +
             " meet <a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a>"
