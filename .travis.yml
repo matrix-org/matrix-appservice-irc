@@ -1,7 +1,8 @@
 language: node_js
-cache:
-    directories:
-    - "node_modules"
+node_js:
+  - "6"
+  - "8"
+  - "10"
 install: npm install
 
 jobs:
@@ -9,12 +10,12 @@ jobs:
     - stage: linting
       node_js: "10"
       script: npm run lint
+
     - stage: tests
       script: npm run test
-      node_js:
-      - "6"
-      - "8"
-      - "10"
+      node_js: "6"
+    - node_js: "8"
+
     - stage: coverage
       script: npm run ci-test
       node_js: "10"
