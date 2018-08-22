@@ -435,3 +435,8 @@ ircService:
   # `!storepass server.name passw0rd. When a connection is made to IRC on behalf of
   # the Matrix user, this password will be sent as the server password (PASS command).
   passwordEncryptionKeyPath: "passkey.pem"
+
+  # Config for Matrix -> IRC bridging
+  matrixHandler:
+    # Cache this many matrix events in memory to be used for m.relates_to messages (usually replies).
+    eventCacheSize: 4096
