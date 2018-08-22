@@ -4,15 +4,21 @@ node_js:
   - "8"
   - "10"
 install: npm install
-script: npm run test
 
 jobs:
     include:
-    - stage: linting
+    - stage: tests
+      name: "Unit + Integration"
+      script: npm run test
+      node_js: "6"
+    - node_js: "8"
+    - node_js: "10"
+
+    - script: npm run lint
+      name: "Linting"
       node_js: "10"
-      script: npm run lint
-    - stage: coverage
-      script: npm run ci-test
+    - script: npm run ci-test
+      name: "Coverage"
       node_js: "10"
 
 notifications:
