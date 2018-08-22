@@ -1,18 +1,18 @@
 language: node_js
-node_js:
-  - "6"
-  - "8"
-  - "10"
 install: npm install
 
 jobs:
     include:
     - stage: tests
-      name: "Unit + Integration"
+      name: "Unit + Integration Node 6"
       script: npm run test
       node_js: "6"
-    - node_js: "8"
-    - node_js: "10"
+    - script: npm run test
+      name: "Unit + Integration Node 8"
+      node_js: "8"
+    - script: npm run test
+      name: "Unit + Integration Node 10"
+      node_js: "10"
 
     - script: npm run lint
       name: "Linting"
