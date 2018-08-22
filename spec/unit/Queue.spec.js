@@ -115,4 +115,25 @@ describe("Queue", function() {
             done();
         });
     });
+
+    it("should have the correct size", (done) => {
+        const thing1 = { foo: "bar"};
+        const thing2 = { bar: "baz"};
+        const things = [thing1, thing2];
+        let expectedSize = things.length;
+        procFn.and.callFake((thing) => {
+            things.shift();
+            expect(queue.size()).toEqual(expectedSize);
+            if (things.length === 0) {
+                done();
+            }
+            expectedSize--;
+            return Promise.resolve();
+        });
+        expect(queue.size()).toEqual(0);
+        queue.enqueue("id1", thing1);
+        expect(queue.size()).toEqual(1);
+        queue.enqueue("id2", thing2);
+        expect(queue.size()).toEqual(2);
+    });
 });
