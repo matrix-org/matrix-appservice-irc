@@ -25,6 +25,11 @@ properties:
                 properties:
                     enabled:
                         type: "boolean"
+                    remoteUserAgeBuckets:
+                        type: "array"
+                        items:
+                            type: "string"
+                            pattern: "^[0-9]+(h|d|w)$"
             statsd:
                 type: "object"
                 properties:

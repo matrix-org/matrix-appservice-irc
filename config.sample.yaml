@@ -377,8 +377,15 @@ ircService:
   # Optional. Enable Prometheus metrics. If this is enabled, you MUST install `prom-client`:
   #   $ npm install prom-client@6.3.0
   # Metrics will then be available via GET /metrics on the bridge listening port (-p).
-  # metrics:
-  #   enabled: true
+  metrics:
+    # Whether to actually enable the metric endpoint. Default: false
+    enabled: true
+    # When collecting remote user active times, which "buckets" should be used. Defaults are given below.
+    # The bucket name is formed of a duration and a period. (h=hours,d=days,w=weeks).
+    remoteUserAgeBuckets:
+      - "1h"
+      - "1d"
+      - "1w"
 
   # The nedb database URI to connect to. This is the name of the directory to
   # dump .db files to. This is relative to the project directory.
