@@ -137,7 +137,7 @@ describe("QueuePool", function() {
     }));
 
     it("should accurately track waiting items", test.coroutine(function*() {
-        for (let i = 0;i<10;i++) {
+        for (let i = 0; i < 10; i++) {
             pool.enqueue(i, i);
         }
         expect(pool.waitingItems).toEqual(7);

@@ -116,10 +116,10 @@ describe("Queue", function() {
         });
     });
 
-    it("should have the correct size.", (done) => {
-        var thing1 = { foo: "bar"};
-        var thing2 = { bar: "baz"};
-        var things = [thing1, thing2];
+    it("should have the correct size", (done) => {
+        const thing1 = { foo: "bar"};
+        const thing2 = { bar: "baz"};
+        const things = [thing1, thing2];
         let expectedSize = things.length;
         procFn.and.callFake((thing) => {
             things.shift();
