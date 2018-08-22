@@ -34,7 +34,7 @@ describe("QueuePool", function() {
         procFn.and.callFake((item) => {
             itemToDeferMap[item] = new promiseutil.defer();
             return itemToDeferMap[item].promise;
-        })
+        });
     });
 
     it("should let multiple items be processed at once",
