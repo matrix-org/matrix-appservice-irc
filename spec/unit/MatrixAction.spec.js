@@ -93,4 +93,34 @@ describe("MatrixAction", function() {
             " meet <a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a>"
         );
     });
+    it("should not highlight mentions in a URL with www.", () => {
+        let action = new MatrixAction(
+            "message",
+            "Go to http://www.JCDenton.com",
+            "Go to <a href='http://www.JCDenton.com'>my website</a>",
+            null
+        );
+        action.formatMentions({
+            "JCDenton": "@jc.denton:unatco.gov"
+        });
+        expect(action.text).toEqual("Go to http://www.JCDenton.com");
+        expect(action.htmlText).toEqual(
+            "Go to <a href='http://www.JCDenton.com'>my website</a>"
+        );
+    });
+    it("should not highlight mentions in a URL with http://", () => {
+        let action = new MatrixAction(
+            "message",
+            "Go to http://JCDenton.com",
+            "Go to <a href='http://JCDenton.com'>my website</a>",
+            null
+        );
+        action.formatMentions({
+            "JCDenton": "@jc.denton:unatco.gov"
+        });
+        expect(action.text).toEqual("Go to http://JCDenton.com");
+        expect(action.htmlText).toEqual(
+            "Go to <a href='http://JCDenton.com'>my website</a>"
+        );
+    });
 });
