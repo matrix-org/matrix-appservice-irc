@@ -11,7 +11,7 @@
     "test": "BLUEBIRD_DEBUG=1 jasmine --stop-on-failure=true",
     "lint": "eslint --max-warnings 0 lib spec",
     "check": "npm test && npm run lint",
-    "ci-test": "BLUEBIRD_DEBUG=1 istanbul cover -x \"**/spec/**\" --report text jasmine",
+    "ci-test": "BLUEBIRD_DEBUG=1 nyc --report text jasmine",
     "ci": "npm run lint && npm run ci-test"
   },
   "repository": {
@@ -40,9 +40,9 @@
     "winston-daily-rotate-file": "^3.2.1"
   },
   "devDependencies": {
+    "jasmine": "^3.1.0",
+    "nyc": "^12.0.2",
     "eslint": "^4.15.0",
-    "istanbul": "^0.4.5",
-    "jasmine": "^2.5.2",
     "proxyquire": "^1.4.0"
   }
 }
