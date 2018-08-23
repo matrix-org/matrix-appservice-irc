@@ -41,7 +41,8 @@ describe("MatrixAction", function() {
         }, FakeIntent).then(() => {
             expect(action.text).toEqual("TheJCDenton, it's a bomb!");
             expect(action.htmlText).toEqual(
-                "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">TheJCDenton</a>, it's a bomb!"
+                "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
+                "TheJCDenton</a>, it's a bomb!"
             );
         });
     });
@@ -57,7 +58,8 @@ describe("MatrixAction", function() {
         }, FakeIntent).then(() => {
             expect(action.text).toEqual("TheJCDenton, it's a bomb!");
             expect(action.htmlText).toEqual(
-                "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">TheJCDenton</a>, it's a bomb!"
+                "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
+                "TheJCDenton</a>, it's a bomb!"
             );
         });
 
@@ -69,7 +71,8 @@ describe("MatrixAction", function() {
         }, FakeIntent).then(() => {
             expect(action.text).toEqual("TheJCDenton, it's a bomb!");
             expect(action.htmlText).toEqual(
-                "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">TheJCDenton</a>, it's a bomb!"
+                "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
+                "TheJCDenton</a>, it's a bomb!"
             );
         });
     });
@@ -80,7 +83,8 @@ describe("MatrixAction", function() {
         }, FakeIntent).then(() => {
             expect(action.text).toEqual("TheJCDenton, it's a bomb!");
             expect(action.htmlText).toEqual(
-                "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">TheJCDenton</a>, it's a bomb!"
+                "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
+                "TheJCDenton</a>, it's a bomb!"
             );
         });
     });
