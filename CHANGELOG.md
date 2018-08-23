@@ -1,3 +1,35 @@
+Changes in 0.10.1 (2018-07-30)
+==============================
+
+ - Missed a few changes from master
+
+Changes in 0.10.0 (2018-07-30)
+==============================
+
+No changes since rc1
+
+Changes in 0.10.0-rc1 (2018-07-25)
+==============================
+- The bridge now depends on matrix-appservice-bridge 1.5.0a
+
+New features & improvements:
+* Migrate to ESLint 4. Thanks Aidan Gauland
+* Don't rejoin virtual users we know are in the room.
+* Added unbridging API for bridge operators to unbridge portal rooms.
+* Add option to allow expired certificates.
+* Add option to show group flare in new portal rooms.
+* Joins are now (optionally) retried when they fail on I->M.
+* No more warnings about rawResponse when uploading media.
+* Add option to disable presence.
+
+Changes in 0.9.1 (2018-07-12)
+=============================
+
+Some changes were not included in 0.9.0 and have now been included in this release:
+* Don't rejoin mapped rooms #594 
+* Announce and leave DM rooms if we don't support it #600 
+
+
 Changes in 0.9.0 (2018-07-02)
 =============================
 
