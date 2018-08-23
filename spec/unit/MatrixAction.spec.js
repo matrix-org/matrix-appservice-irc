@@ -74,7 +74,8 @@ describe("MatrixAction", function() {
         expect(action.text).toEqual("jc.denton is sent to assassinate paul.denton");
         expect(action.htmlText).toEqual(
             "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">jc.denton</a> is sent" +
-            " to assassinate <a href=\"https://matrix.to/#/@paul.denton:unatco.gov\">paul.denton</a>"
+            " to assassinate <a href=\"https://matrix.to/#/@paul.denton:unatco.gov\">" +
+            "paul.denton</a>"
         );
     });
     it("should highlight multiple mentions of the same user", () => {
