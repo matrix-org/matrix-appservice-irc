@@ -22,7 +22,7 @@ describe("MatrixAction", function() {
         });
         expect(action.text).toEqual("jc.denton, it's a bomb!");
         expect(action.htmlText).toEqual(
-            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a>, it's a bomb!"
+            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">jc.denton</a>, it's a bomb!"
         );
     });
     it("should highlight a user, regardless of case", () => {
@@ -37,7 +37,7 @@ describe("MatrixAction", function() {
         });
         expect(action.text).toEqual("jc.denton, it's a bomb!");
         expect(action.htmlText).toEqual(
-            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">jcdenton</a>, it's a bomb!"
+            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">jc.denton</a>, it's a bomb!"
         );
     });
     it("should highlight a user, with plain text", () => {
@@ -47,7 +47,7 @@ describe("MatrixAction", function() {
         });
         expect(action.text).toEqual("jc.denton, it's a bomb!");
         expect(action.htmlText).toEqual(
-            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a>, it's a bomb!"
+            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">jc.denton</a>, it's a bomb!"
         );
     });
     it("should highlight a user, with weird characters", () => {
@@ -57,7 +57,7 @@ describe("MatrixAction", function() {
         });
         expect(action.text).toEqual("jc.denton, it's a bomb!");
         expect(action.htmlText).toEqual(
-            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">`||JCDenton[m]</a>, it's a bomb!"
+            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">jc.denton</a>, it's a bomb!"
         );
     });
     it("should highlight multiple users", () => {
@@ -73,8 +73,8 @@ describe("MatrixAction", function() {
         });
         expect(action.text).toEqual("jc.denton is sent to assassinate paul.denton");
         expect(action.htmlText).toEqual(
-            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a> is sent" +
-            " to assassinate <a href=\"https://matrix.to/#/@paul.denton:unatco.gov\">PaulDenton</a>"
+            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">jc.denton</a> is sent" +
+            " to assassinate <a href=\"https://matrix.to/#/@paul.denton:unatco.gov\">paul.denton</a>"
         );
     });
     it("should highlight multiple mentions of the same user", () => {
@@ -89,8 +89,8 @@ describe("MatrixAction", function() {
         });
         expect(action.text).toEqual("jc.denton, meet jc.denton");
         expect(action.htmlText).toEqual(
-            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a>," +
-            " meet <a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">JCDenton</a>"
+            "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">jc.denton</a>," +
+            " meet <a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">jc.denton</a>"
         );
     });
     it("should not highlight mentions in a URL with www.", () => {
