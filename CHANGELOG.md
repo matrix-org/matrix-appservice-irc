@@ -1,6 +1,32 @@
-Changes in 0.10.1 (2018-07-30)
+Changes in 0.11.0-rc1 (2018-08-23)
 ==============================
 
+- The bridge now depends on matrix-appservice-bridge 1.6.0a
+
+New features & improvements:
+* Cache modes internally #630
+* Replace nicks with user pill mentions #650 #658
+* Kick users if we fail to create an IRC client for them on join (aka ILINE kicks) #639
+* SASL support #643
+* Add err_nononreg so we can announce PMs that failed #645
+* Formatting of replies #647
+
+Bug Fixes:
+* Fix invalidchar nick #655
+* Don't answer any msgtypes other than text in an admin room. #642
+* Fix provisoner leaving users on unlink #649
+
+Metrics:
+* Metrics for MatrixHandler - Iline Kicks #644
+* Idle connection metrics #651
+* QueuePool.waitingItems should use it's internal queue size #656
+
+Misc:
+* Section out tests, linting and coverage into seperate stages for Travis #657
+
+Changes in 0.10.1 (2018-07-30)
+==============================
+	
  - Missed a few changes from master
 
 Changes in 0.10.0 (2018-07-30)
