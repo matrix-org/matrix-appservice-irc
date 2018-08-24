@@ -1,3 +1,11 @@
+Changes in 0.11.0-rc4 (2018-08-24)
+==============================
+
+Bug Fixes:
+
+* Fixed a bug where content of events the bridge hadn't cached
+  were not being used in replies.
+
 Changes in 0.11.0-rc3 (2018-08-24)
 ==============================
 
