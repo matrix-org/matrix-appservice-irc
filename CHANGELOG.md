@@ -1,3 +1,12 @@
+Changes in 0.11.0-rc2 (2018-08-23)
+==============================
+
+- The bridge now depends on matrix-appservice-bridge 1.6.0b
+
+Bug Fixes:
+
+* There was a bug involving intents in m-a-b so it was bumped
+
 Changes in 0.11.0-rc1 (2018-08-23)
 ==============================
 
