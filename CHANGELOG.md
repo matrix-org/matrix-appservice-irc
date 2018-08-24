@@ -1,4 +1,13 @@
-Changes in 0.11.0-rc2 (2018-08-23)
+Changes in 0.11.0-rc3 (2018-08-24)
+==============================
+
+- The bridge now depends on matrix-appservice-bridge 1.6.0c
+
+Bug Fixes:
+
+* We were calling authedRequest but the request was not mocked out.
+
+Changes in 0.11.0-rc2 (2018-08-24)
 ==============================
 
 - The bridge now depends on matrix-appservice-bridge 1.6.0b
