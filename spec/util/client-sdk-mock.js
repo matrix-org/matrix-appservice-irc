@@ -13,6 +13,7 @@ function MockClient(config) {
         userId: config.userId
     };
     this._http = { opts: {} };
+    this._http.authedRequest = jasmine.createSpy("sdk.authedRequestWithPrefix()");
     this._http.authedRequestWithPrefix = jasmine.createSpy("sdk.authedRequestWithPrefix()");
     this.register = jasmine.createSpy("sdk.register(username, password)");
     this.createRoom = jasmine.createSpy("sdk.createRoom(opts)");
@@ -36,6 +37,10 @@ function MockClient(config) {
     this.setPresence.and.returnValue(Promise.resolve({}));
     // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms
     this.joinRoom.and.callFake(function() {
+        return Promise.resolve({});
+    });
+
+    this._http.authedRequest.and.callFake(function() {
         return Promise.resolve({});
     });
 
