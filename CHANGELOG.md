@@ -1,3 +1,8 @@
+Changes in 0.11.0 (2018-08-28)
+==============================
+
+No changes since previous RC, see below for full list of changes
+
 Changes in 0.11.0-rc4 (2018-08-24)
 ==============================
 
