@@ -121,21 +121,64 @@ describe("IRC-to-Matrix message bridging", function() {
 
     it("should bridge IRC topics as Matrix m.room.topic in aliased rooms",
     test.coroutine(function*() {
-        var testTopic = "Topics are liek the best thing evarz!";
+        const testTopic = "Topics are liek the best thing evarz!";
 
-        var tChannel = "#someotherchannel";
-        var tRoomId = roomMapping.roomId;
-        var tServer = roomMapping.server;
-        var tBotNick = roomMapping.botNick;
+        const tChannel = "#someotherchannel";
+        const tRoomId = roomMapping.roomId;
+        const tServer = roomMapping.server;
+        const tBotNick = roomMapping.botNick;
 
         // Use bot client for mocking responses
-        var cli = env.clientMock._client(config._botUserId);
+        const cli = env.clientMock._client(config._botUserId);
 
         yield cli._setupRoomByAlias(
             env, tBotNick, tChannel, tRoomId, tServer, config.homeserver.domain
         );
 
-        let p = new Promise((resolve, reject) => {
+        // Use bot client for mocking responses
+        const cliUser = env.clientMock._client(tUserId);
+
+        const p = new Promise((resolve, reject) => {
+            cliUser.sendStateEvent.and.callFake(function(roomId, type, content, skey) {
+                expect(roomId).toEqual(roomMapping.roomId);
+                expect(content).toEqual({ topic: testTopic });
+                expect(type).toEqual("m.room.topic");
+                expect(skey).toEqual("");
+                resolve();
+                return Promise.resolve();
+            });
+        });
+
+        let client = yield env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
+        client.emit("topic", tChannel, testTopic, tFromNick);
+
+        yield p;
+    }));
+
+    it("should bridge IRC topics as Matrix m.room.topic in aliased rooms, using the bot",
+    test.coroutine(function*() {
+        const testTopic = "Topics are liek the best thing evarz!";
+
+        const tChannel = "#someotherchannel";
+        const tRoomId = roomMapping.roomId;
+        const tServer = roomMapping.server;
+        const tBotNick = roomMapping.botNick;
+
+        // Use bot client for mocking responses
+        const cli = env.clientMock._client(config._botUserId);
+
+        yield cli._setupRoomByAlias(
+            env, tBotNick, tChannel, tRoomId, tServer, config.homeserver.domain
+        );
+
+        // Use bot client for mocking responses
+        const cliUser = env.clientMock._client(tUserId);
+
+        cliUser.sendStateEvent.and.callFake(function() {
+            return Promise.reject("Not feeling like it.");
+        });
+
+        const p = new Promise((resolve, reject) => {
             cli.sendStateEvent.and.callFake(function(roomId, type, content, skey) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 expect(content).toEqual({ topic: testTopic });
