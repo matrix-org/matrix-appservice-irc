@@ -440,3 +440,9 @@ ircService:
   matrixHandler:
     # Cache this many matrix events in memory to be used for m.relates_to messages (usually replies).
     eventCacheSize: 4096
+
+  ircHandler:
+    # How many /leave requests can be ongoing at a time.
+    # This is used to stem the flow of requests in case of a mass quit/leave, which might
+    # slow down the homeserver.
+    leaveConcurrency: 10
