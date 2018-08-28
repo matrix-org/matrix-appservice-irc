@@ -25,6 +25,11 @@ properties:
                 properties:
                     enabled:
                         type: "boolean"
+                    remoteUserAgeBuckets:
+                        type: "array"
+                        items:
+                            type: "string"
+                            pattern: "^[0-9]+(h|d|w)$"
             statsd:
                 type: "object"
                 properties:
@@ -78,6 +83,11 @@ properties:
                         type: "number"
             passwordEncryptionKeyPath:
                 type: "string"
+            matrixHandler:
+                type: "object"
+                properties:
+                    eventCacheSize:
+                        type: "integer"
             servers:
                 type: "object"
                 # all properties must follow the following
@@ -93,6 +103,8 @@ properties:
                         ssl:
                             type: "boolean"
                         sslselfsign:
+                            type: "boolean"
+                        sasl:
                             type: "boolean"
                         allowExpiredCerts:
                             type: "boolean"
