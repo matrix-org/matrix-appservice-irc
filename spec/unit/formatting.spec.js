@@ -34,7 +34,8 @@ describe("Formatting", function() {
         });
         it("should be null for unsupported tags", function() {
             expect(
-                formatting.htmlToIrc("The quick brown <iframe>fox</iframe> jumps over the lazy <b>dog</b>.")
+                formatting.htmlToIrc("The quick brown <iframe>fox</iframe>"+
+                                     "jumps over the lazy <b>dog</b>.")
             ).toBe(null);
         });
     });
