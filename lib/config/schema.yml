@@ -88,6 +88,11 @@ properties:
                 properties:
                     eventCacheSize:
                         type: "integer"
+            ircHandler:
+                type: "object"
+                properties:
+                    leaveConcurrency:
+                        type: "integer"
             servers:
                 type: "object"
                 # all properties must follow the following
