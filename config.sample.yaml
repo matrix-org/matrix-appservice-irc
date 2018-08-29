@@ -422,6 +422,11 @@ ircService:
     # allotted time period, the provisioning request will fail.
     # Default: 300 seconds (5 mins)
     requestTimeoutSeconds: 300
+    # A file defining the provisioning rules for rooms. Format is documented
+    # in rules.sample.yaml. Leave undefined to not specify any rules.
+    ruleFile: "./provisioning.rules.yaml"
+    # Watch the file for changes, and apply the rules. Default: false
+    watch: true
 
   # WARNING: The bridge needs to send plaintext passwords to the IRC server, it cannot
   # send a password hash. As a result, passwords (NOT hashes) are stored encrypted in

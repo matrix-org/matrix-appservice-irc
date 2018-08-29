@@ -1,0 +1,10 @@
+# A set of regexes to match against joined members in rooms.
+# If one of the regexes matches a userId, then do not allow provisioning
+# to the room UNLESS it also matches a exempt regex.
+# This doesn't affect existing bridge entrys, only new provisioned rooms.
+userIds:
+    exempt: 
+      - "@appservice-irc:localhost"
+      - "@irc_:localhost"
+    conflict: 
+      - "@irc_:.+"

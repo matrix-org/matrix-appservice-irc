@@ -81,6 +81,10 @@ properties:
                         type: "boolean"
                     requestTimeoutSeconds:
                         type: "number"
+                    ruleFile:
+                        type: "string"
+                    watch:
+                        type: "boolean"
             passwordEncryptionKeyPath:
                 type: "string"
             matrixHandler:
