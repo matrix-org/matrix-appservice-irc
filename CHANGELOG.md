@@ -1,3 +1,10 @@
+Changes in 0.11.1 (2018-08-30)
+==============================
+
+* Bumped matrix-appservice-bridge to 1.6.1
+* Fixed a bug where metrics would crash after the first scrape
+  with remote user reporting option set
+
 Changes in 0.11.0 (2018-08-28)
 ==============================
 
