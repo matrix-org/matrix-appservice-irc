@@ -27,7 +27,7 @@ homeserver:
   # is the "domain name" part of the HS URL.
   domain: "localhost"
 
-  # Should presence be enabledfor matrix clients on this bridge. If disabled on the
+  # Should presence be enabled for matrix clients on this bridge. If disabled on the
   # homeserver then it should also be disabled here to avoid excess traffic.
   # Default: true
   enablePresence: true
