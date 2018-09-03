@@ -27,7 +27,7 @@ homeserver:
   # is the "domain name" part of the HS URL.
   domain: "localhost"
 
-  # Should presence be enabledfor matrix clients on this bridge. If disabled on the 
+  # Should presence be enabledfor matrix clients on this bridge. If disabled on the
   # homeserver then it should also be disabled here to avoid excess traffic.
   # Default: true
   enablePresence: true
@@ -318,9 +318,9 @@ ircService:
         reconnectIntervalMs: 5000
         # The number of concurrent reconnects if a user has been disconnected unexpectedly
         # (e.g. a netsplit). You should set this to a reasonably high number so that
-        # bridges are not waiting an eternity to reconnect all its clients if 
+        # bridges are not waiting an eternity to reconnect all its clients if
         # we see a massive number of disconnect. This is unrelated to the reconnectIntervalMs
-        # setting above which is for connecting on restart of the bridge. Set to 0 to 
+        # setting above which is for connecting on restart of the bridge. Set to 0 to
         # immediately try to reconnect all users.
         # Default: 50
         concurrentReconnectLimit: 50
@@ -446,3 +446,12 @@ ircService:
     # This is used to stem the flow of requests in case of a mass quit/leave, which might
     # slow down the homeserver.
     leaveConcurrency: 10
+
+# Options here are generally only applicable to large-scale bridges and may have
+# consequences greater than other options in this configuration file.
+advanced:
+  # The maximum number of HTTP(S) sockets to maintain. Usually this is unlimited
+  # however for large bridges it is important to rate limit the bridge to avoid
+  # accidentally overloading the homeserver. Defaults to 1000, which should be
+  # enough for the vast majority of use cases.
+  maxHttpSockets: 1000
