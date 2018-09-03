@@ -1,6 +1,8 @@
 Matrix <--> IRC Bridge
 ----------------------
 [![Build Status](https://travis-ci.org/matrix-org/matrix-appservice-irc.svg?branch=master)](https://travis-ci.org/matrix-org/matrix-appservice-irc)
+[![Code Quality: Javascript](https://img.shields.io/lgtm/grade/javascript/g/matrix-org/matrix-appservice-irc.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/matrix-org/matrix-appservice-irc/context:javascript)
+[![Total Alerts](https://img.shields.io/lgtm/alerts/g/matrix-org/matrix-appservice-irc.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/matrix-org/matrix-appservice-irc/alerts)
 
 This is an IRC bridge for Matrix using the Application Services (AS) API. If you're upgrading from an old release, be sure to read the [CHANGELOG](CHANGELOG.md) as there may be breaking changes between releases.
 
