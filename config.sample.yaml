@@ -446,6 +446,9 @@ ircService:
     # This is used to stem the flow of requests in case of a mass quit/leave, which might
     # slow down the homeserver.
     leaveConcurrency: 10
+    # Should we attempt to match an IRC side mention (nickaname match)
+    # with the nickname's owner's matrixId, if we are bridging them?
+    mapIrcMentionsToMatrix: "on" # This can be "on", "off" "force-off".
 
 # Options here are generally only applicable to large-scale bridges and may have
 # consequences greater than other options in this configuration file.
