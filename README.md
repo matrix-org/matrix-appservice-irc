@@ -69,9 +69,9 @@ $ node app.js -c config.yaml -f my_registration_file.yaml -p 9999
 On startup, the bridge will join Matrix clients to the IRC channels specified in the configuration file. It
 will then listen for incoming IRC messages and forward them through to Matrix rooms. Each real Matrix
 user is represented by an IRC client, and each real IRC client is represented by a Matrix user. Full
-two-way communication in channels and PMs are supported, along with a huge array of customisation options.
+two-way communication in channels and PMs are supported, along with a huge array of customization options.
 
-For more information on how you can customise the bridge, check out the [how-to guide](HOWTO.md).
+For more information on how you can customize the bridge, check out the [how-to guide](HOWTO.md).
 
 # Usage
 To join a channel on an IRC network configured for public use:
