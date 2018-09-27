@@ -972,7 +972,8 @@ describe("Admin rooms", function() {
                     room_id: adminRoomId,
                     type: "m.room.message"
                 });
-            } else {
+            }
+            else {
                 expect(roomId).toEqual(adminRoomId);
                 expect(content.msgtype).toEqual("m.notice");
                 expect(content.body).toEqual("'mentions' is enabled.");
@@ -1006,10 +1007,10 @@ describe("Admin rooms", function() {
                 done();
             }
         });
-        for (let msg of ["!feature", "!feature doggo", "!feature enabled"]) {
+        for (let body of ["!feature", "!feature doggo", "!feature enabled"]) {
             env.mockAppService._trigger("type:m.room.message", {
                 content: {
-                    body: "!feature",
+                    body,
                     msgtype: "m.text"
                 },
                 user_id: userId,
@@ -1037,7 +1038,8 @@ describe("Admin rooms", function() {
                     room_id: adminRoomId,
                     type: "m.room.message"
                 });
-            } else {
+            }
+            else {
                 expect(roomId).toEqual(adminRoomId);
                 expect(content.msgtype).toEqual("m.notice");
                 expect(content.body).toEqual("'mentions' is set to the default value.");
