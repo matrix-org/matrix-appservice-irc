@@ -933,4 +933,129 @@ describe("Admin rooms", function() {
             (err) => {console.log(err)}
         );
     }));
+
+    it("should respond with a feature status for !feature", function(done) {
+        const sdk = env.clientMock._client(botUserId);
+        sdk.sendEvent.and.callFake((roomId, type, content) => {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).toEqual("'mentions' is set to the default value.");
+            done();
+        });
+
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!feature mentions",
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+    });
+
+    it("should set feature status with !feature", function(done) {
+        const sdk = env.clientMock._client(botUserId);
+        let msgN = 0;
+        sdk.sendEvent.and.callFake((roomId, type, content) => {
+            if (msgN === 0) {
+                expect(roomId).toEqual(adminRoomId);
+                expect(content.msgtype).toEqual("m.notice");
+                expect(content.body).toEqual("Set mentions to true.");
+                msgN++;
+                env.mockAppService._trigger("type:m.room.message", {
+                    content: {
+                        body: "!feature mentions",
+                        msgtype: "m.text"
+                    },
+                    user_id: userId,
+                    room_id: adminRoomId,
+                    type: "m.room.message"
+                });
+            } else {
+                expect(roomId).toEqual(adminRoomId);
+                expect(content.msgtype).toEqual("m.notice");
+                expect(content.body).toEqual("'mentions' is enabled.");
+                done();
+            }
+
+        });
+
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!feature mentions true",
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+    });
+
+    it("!feature should fail with a missing or invalidate feature-name", function(done) {
+        const sdk = env.clientMock._client(botUserId);
+        let msgN = 0;
+        sdk.sendEvent.and.callFake((roomId, type, content) => {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body.startsWith(
+                "Missing or unknown feature flag. Must be one of:"
+            )).toBe(true);
+            msgN++
+            if (msgN === 3) {
+                done();
+            }
+        });
+        for (let msg of ["!feature", "!feature doggo", "!feature enabled"]) {
+            env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: "!feature",
+                    msgtype: "m.text"
+                },
+                user_id: userId,
+                room_id: adminRoomId,
+                type: "m.room.message"
+            });
+        }
+    });
+
+    it("should set feature status with !feature", function(done) {
+        const sdk = env.clientMock._client(botUserId);
+        let msgN = 0;
+        sdk.sendEvent.and.callFake((roomId, type, content) => {
+            if (msgN === 0) {
+                expect(roomId).toEqual(adminRoomId);
+                expect(content.msgtype).toEqual("m.notice");
+                expect(content.body).toEqual("Parameter must be either true, false or default.");
+                msgN++;
+                env.mockAppService._trigger("type:m.room.message", {
+                    content: {
+                        body: "!feature mentions",
+                        msgtype: "m.text"
+                    },
+                    user_id: userId,
+                    room_id: adminRoomId,
+                    type: "m.room.message"
+                });
+            } else {
+                expect(roomId).toEqual(adminRoomId);
+                expect(content.msgtype).toEqual("m.notice");
+                expect(content.body).toEqual("'mentions' is set to the default value.");
+                done();
+            }
+
+        });
+
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!feature mentions bacon",
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+    });
+
+    // Bad format unknown set value
 });
