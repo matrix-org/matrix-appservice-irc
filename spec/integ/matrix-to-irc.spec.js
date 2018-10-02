@@ -452,12 +452,6 @@ describe("Matrix-to-IRC message bridging", function() {
                 expect(client.nick).toEqual(testUser.nick);
                 expect(client.addr).toEqual(roomMapping.server);
                 expect(channel).toEqual(roomMapping.channel);
-                console.log(testUser.nick);
-                console.log(testUser.nick);
-                console.log(testUser.nick);
-                console.log(testUser.nick);
-                console.log(testUser.nick);
-                console.log(testUser.nick);
                 expect(text).toEqual('<WibbleWob "This is the real message"> Reply Text');
                 done();
             });
