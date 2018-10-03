@@ -98,6 +98,9 @@ properties:
                 properties:
                     leaveConcurrency:
                         type: "integer"
+                    mapIrcMentionsToMatrix:
+                        type: "string"
+                        enum: ["on", "off", "force-off"]
             servers:
                 type: "object"
                 # all properties must follow the following
