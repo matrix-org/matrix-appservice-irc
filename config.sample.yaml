@@ -455,4 +455,3 @@ advanced:
   # accidentally overloading the homeserver. Defaults to 1000, which should be
   # enough for the vast majority of use cases.
   maxHttpSockets: 1000
->>>>>>> b8d32a0... Add configuration option for maxHttpSockets
