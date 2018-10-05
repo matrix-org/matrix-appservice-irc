@@ -1,6 +1,11 @@
 "$schema": "http://json-schema.org/draft-04/schema#"
 type: "object"
 properties:
+    advanced:
+        type: "object"
+        properties:
+            maxHttpSockets:
+                type: "integer"
     homeserver:
         type: "object"
         properties:
@@ -92,6 +97,14 @@ properties:
                 properties:
                     eventCacheSize:
                         type: "integer"
+            ircHandler:
+                type: "object"
+                properties:
+                    leaveConcurrency:
+                        type: "integer"
+                    mapIrcMentionsToMatrix:
+                        type: "string"
+                        enum: ["on", "off", "force-off"]
             servers:
                 type: "object"
                 # all properties must follow the following
