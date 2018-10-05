@@ -1,4 +1,4 @@
-Changes in 0.11.1 (2018-08-30)
+Changes in 0.11.2 (2018-10-05)
 ==============================
 
 * Fixed bugs where a user may issue a !quit and break metrics reporting for a bridge.
