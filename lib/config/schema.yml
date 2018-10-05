@@ -83,7 +83,7 @@ properties:
                         type: "number"
                     ruleFile:
                         type: "string"
-                    watch:
+                    enableReload:
                         type: "boolean"
             passwordEncryptionKeyPath:
                 type: "string"
