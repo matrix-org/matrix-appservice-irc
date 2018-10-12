@@ -23,6 +23,7 @@ function MockClient(config) {
     this.setRoomTopic = jasmine.createSpy("sdk.setRoomTopic(roomId, topic)");
     this.setDisplayName = jasmine.createSpy("sdk.setDisplayName(name)");
     this.getStateEvent = jasmine.createSpy("sdk.getStateEvent(room,type,key)");
+    this.fetchRoomEvent = jasmine.createSpy("sdk.fetchRoomEvent(room,event_id)");
     this.sendStateEvent = jasmine.createSpy("sdk.sendStateEvent(room,type,content,key)");
     this.sendEvent = jasmine.createSpy("sdk.sendEvent(roomId,type,content)");
     this.invite = jasmine.createSpy("sdk.invite(roomId, userId)");

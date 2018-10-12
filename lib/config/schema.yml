@@ -86,6 +86,10 @@ properties:
                         type: "boolean"
                     requestTimeoutSeconds:
                         type: "number"
+                    ruleFile:
+                        type: "string"
+                    enableReload:
+                        type: "boolean"
             passwordEncryptionKeyPath:
                 type: "string"
             matrixHandler:
