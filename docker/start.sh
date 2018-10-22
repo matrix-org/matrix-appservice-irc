@@ -5,5 +5,5 @@ then
   ip route add local $PREFIX dev lo
 fi
 
-exec matrix-appservice-irc $@
+exec node app.js $@
 
