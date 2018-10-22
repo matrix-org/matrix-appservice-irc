@@ -1,6 +1,6 @@
 FROM node:6-slim
 
-RUN apt-get update && apt-get install -y git sipcalc make gcc libc6-dev \
+RUN apt-get update && apt-get install -y git sipcalc python build-essential libicu-dev \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
