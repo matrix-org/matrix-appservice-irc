@@ -1,6 +1,6 @@
 {
   "name": "matrix-appservice-irc",
-  "version": "0.10.1",
+  "version": "0.11.2",
   "description": "An IRC Bridge for Matrix",
   "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",
@@ -11,7 +11,7 @@
     "test": "BLUEBIRD_DEBUG=1 jasmine --stop-on-failure=true",
     "lint": "eslint --max-warnings 0 lib spec",
     "check": "npm test && npm run lint",
-    "ci-test": "BLUEBIRD_DEBUG=1 istanbul cover -x \"**/spec/**\" --report text jasmine",
+    "ci-test": "BLUEBIRD_DEBUG=1 nyc --report text jasmine",
     "ci": "npm run lint && npm run ci-test"
   },
   "repository": {
@@ -26,10 +26,11 @@
   "dependencies": {
     "bluebird": "^3.1.1",
     "crc": "^3.2.1",
+    "escape-string-regexp": "^1.0.5",
     "extend": "^2.0.0",
-    "irc": "matrix-org/node-irc#b1614bc784200c65247784d7b9e9ab867140412d",
+    "irc": "matrix-org/node-irc#c9abb427bec5016d94a2abf3e058cc62de09ea5a",
     "js-yaml": "^3.2.7",
-    "matrix-appservice-bridge": "1.5.0a",
+    "matrix-appservice-bridge": "1.6.1",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
     "prom-client": "^6.3.0",
@@ -39,9 +40,9 @@
     "winston-daily-rotate-file": "^3.2.1"
   },
   "devDependencies": {
+    "jasmine": "^3.1.0",
+    "nyc": "^12.0.2",
     "eslint": "^4.15.0",
-    "istanbul": "^0.4.5",
-    "jasmine": "^2.5.2",
     "proxyquire": "^1.4.0"
   }
 }

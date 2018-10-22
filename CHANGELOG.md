@@ -1,6 +1,77 @@
-Changes in 0.10.1 (2018-07-30)
+Changes in 0.11.2 (2018-10-05)
 ==============================
 
+* Fixed bugs where a user may issue a !quit and break metrics reporting for a bridge.
+* Added a config option 'advanced.maxHttpSockets' to allow you to increase the limit
+  for high traffic bridges.
+
+Changes in 0.11.1 (2018-08-30)
+==============================
+
+* Bumped matrix-appservice-bridge to 1.6.1
+* Fixed a bug where metrics would crash after the first scrape
+  with remote user reporting option set
+
+Changes in 0.11.0 (2018-08-28)
+==============================
+
+No changes since previous RC, see below for full list of changes
+
+Changes in 0.11.0-rc4 (2018-08-24)
+==============================
+
+Bug Fixes:
+
+* Fixed a bug where content of events the bridge hadn't cached
+  were not being used in replies.
+
+Changes in 0.11.0-rc3 (2018-08-24)
+==============================
+
+- The bridge now depends on matrix-appservice-bridge 1.6.0c
+
+Bug Fixes:
+
+* We were calling authedRequest but the request was not mocked out.
+
+Changes in 0.11.0-rc2 (2018-08-24)
+==============================
+
+- The bridge now depends on matrix-appservice-bridge 1.6.0b
+
+Bug Fixes:
+
+* There was a bug involving intents in m-a-b so it was bumped
+
+Changes in 0.11.0-rc1 (2018-08-23)
+==============================
+
+- The bridge now depends on matrix-appservice-bridge 1.6.0a
+
+New features & improvements:
+* Cache modes internally #630
+* Replace nicks with user pill mentions #650 #658
+* Kick users if we fail to create an IRC client for them on join (aka ILINE kicks) #639
+* SASL support #643
+* Add err_nononreg so we can announce PMs that failed #645
+* Formatting of replies #647
+
+Bug Fixes:
+* Fix invalidchar nick #655
+* Don't answer any msgtypes other than text in an admin room. #642
+* Fix provisoner leaving users on unlink #649
+
+Metrics:
+* Metrics for MatrixHandler - Iline Kicks #644
+* Idle connection metrics #651
+* QueuePool.waitingItems should use it's internal queue size #656
+
+Misc:
+* Section out tests, linting and coverage into seperate stages for Travis #657
+
+Changes in 0.10.1 (2018-07-30)
+==============================
+	
  - Missed a few changes from master
 
 Changes in 0.10.0 (2018-07-30)

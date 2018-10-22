@@ -34,7 +34,7 @@ describe("QueuePool", function() {
         procFn.and.callFake((item) => {
             itemToDeferMap[item] = new promiseutil.defer();
             return itemToDeferMap[item].promise;
-        })
+        });
     });
 
     it("should let multiple items be processed at once",
@@ -134,5 +134,17 @@ describe("QueuePool", function() {
         resolveItem("a");
         yield nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["b"]);
+    }));
+
+    it("should accurately track waiting items", test.coroutine(function*() {
+        for (let i = 0; i < 10; i++) {
+            pool.enqueue(i, i);
+        }
+        expect(pool.waitingItems).toEqual(7);
+        for (let j = 0; j < 10; j++) {
+            yield nextTick();
+            resolveItem(j);
+        }
+        expect(pool.waitingItems).toEqual(0);
     }));
 });

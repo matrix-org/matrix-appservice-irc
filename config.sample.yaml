@@ -27,7 +27,7 @@ homeserver:
   # is the "domain name" part of the HS URL.
   domain: "localhost"
 
-  # Should presence be enabledfor matrix clients on this bridge. If disabled on the 
+  # Should presence be enabled for matrix clients on this bridge. If disabled on the
   # homeserver then it should also be disabled here to avoid excess traffic.
   # Default: true
   enablePresence: true
@@ -63,6 +63,9 @@ ircService:
       ssl: true
       # Whether or not IRC server is using a self-signed cert or not providing CA Chain
       sslselfsign: false
+      # Should the connection attempt to identify via SASL (if a server or user password is given)
+      # If false, this will use PASS instead. If SASL fails, we do not fallback to PASS.
+      sasl: false
       # Whether to allow expired certs when connecting to the IRC server.
       # Usually this should be off. Default: false.
       allowExpiredCerts: false
@@ -73,7 +76,7 @@ ircService:
       #  -----END CERTIFICATE-----
 
       #
-      # The connection password to send for all clients as a PASS command. Optional.
+      # The connection password to send for all clients as a PASS (or SASL, if enabled above) command. Optional.
       # password: 'pa$$w0rd'
       #
       # Whether or not to send connection/error notices to real Matrix users. Default: true.
@@ -315,9 +318,9 @@ ircService:
         reconnectIntervalMs: 5000
         # The number of concurrent reconnects if a user has been disconnected unexpectedly
         # (e.g. a netsplit). You should set this to a reasonably high number so that
-        # bridges are not waiting an eternity to reconnect all its clients if 
+        # bridges are not waiting an eternity to reconnect all its clients if
         # we see a massive number of disconnect. This is unrelated to the reconnectIntervalMs
-        # setting above which is for connecting on restart of the bridge. Set to 0 to 
+        # setting above which is for connecting on restart of the bridge. Set to 0 to
         # immediately try to reconnect all users.
         # Default: 50
         concurrentReconnectLimit: 50
@@ -374,8 +377,15 @@ ircService:
   # Optional. Enable Prometheus metrics. If this is enabled, you MUST install `prom-client`:
   #   $ npm install prom-client@6.3.0
   # Metrics will then be available via GET /metrics on the bridge listening port (-p).
-  # metrics:
-  #   enabled: true
+  metrics:
+    # Whether to actually enable the metric endpoint. Default: false
+    enabled: true
+    # When collecting remote user active times, which "buckets" should be used. Defaults are given below.
+    # The bucket name is formed of a duration and a period. (h=hours,d=days,w=weeks).
+    remoteUserAgeBuckets:
+      - "1h"
+      - "1d"
+      - "1w"
 
   # The nedb database URI to connect to. This is the name of the directory to
   # dump .db files to. This is relative to the project directory.
@@ -425,3 +435,17 @@ ircService:
   # `!storepass server.name passw0rd. When a connection is made to IRC on behalf of
   # the Matrix user, this password will be sent as the server password (PASS command).
   passwordEncryptionKeyPath: "passkey.pem"
+
+  # Config for Matrix -> IRC bridging
+  matrixHandler:
+    # Cache this many matrix events in memory to be used for m.relates_to messages (usually replies).
+    eventCacheSize: 4096
+
+# Options here are generally only applicable to large-scale bridges and may have
+# consequences greater than other options in this configuration file.
+advanced:
+  # The maximum number of HTTP(S) sockets to maintain. Usually this is unlimited
+  # however for large bridges it is important to rate limit the bridge to avoid
+  # accidentally overloading the homeserver. Defaults to 1000, which should be
+  # enough for the vast majority of use cases.
+  maxHttpSockets: 1000
