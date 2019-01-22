@@ -1,5 +1,5 @@
 # Builder
-FROM node:6-slim as builder
+FROM node:10-slim as builder
 
 RUN apt-get update \
  && apt-get install -y git python build-essential libicu-dev
