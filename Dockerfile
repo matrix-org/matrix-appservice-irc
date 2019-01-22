@@ -12,7 +12,7 @@ COPY ./package.json ./package.json
 RUN npm install
 
 # App
-FROM node:6-slim
+FROM node:10-slim
 
 RUN apt-get update \
  && apt-get install -y sipcalc iproute2 --no-install-recommends \
