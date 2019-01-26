@@ -1,4 +1,15 @@
 #!/usr/bin/env python
+#
+# kick idle Matrix users from a Matrix room that has an IRC bridge. 
+# 
+# This script will only kick Matrix-only users, without a given `prefix` and
+# will never kick the appservice bot itself. This is useful, because on the IRC
+# side, bridged matrix users, that are offline for a certain period are not
+# shown as joined on the  IRC-side user list any more. Kicking them on the
+# matrix side is clearing up these cases quite well. You have to determin the
+# timeframe, after which a user is not visible any more on the irc side and
+# set that timeframe in this script as `--since` option.
+
 from __future__ import print_function
 import argparse
 from datetime import datetime
@@ -89,8 +100,8 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--alias", help="The alias of the room eg '#freenode_#matrix-dev:matrix.org'", required=False)
     parser.add_argument("-r", "--room", help="Optional. The room ID instead of the alias eg '!curBafw45738:matrix.org'", required=False)
     parser.add_argument("-H", "--homeserver", help="Base homeserver URL eg 'https://matrix.org'", required=True)
-    parser.add_argument("-s", "--since", type=int, help="Days since idle users have been offline for eg '30'", required=True)
-    parser.add_argument("-p", "--prefix", help="User prefix to determine whether a user should be kicked. E.g. @freenode_", required=True)
+    parser.add_argument("-s", "--since", type=int, help="Days since idle Matrix users have been offline for eg '30'", required=True)
+    parser.add_argument("-p", "--prefix", help="User prefix of bridged IRC users, that should not be kicked. E.g. @freenode_", required=True)
     parser.add_argument("-u", "--user", help="The user ID of the AS bot. E.g '@appservice-irc:matrix.org'", required=True)
     args = parser.parse_args()
     if not args.token or not args.homeserver or not args.user or (not args.alias and not args.room):
