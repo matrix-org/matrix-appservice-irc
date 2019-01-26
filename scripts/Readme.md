@@ -1,5 +1,12 @@
 # remove-idle-users.py
-A script to kick idle bridged users from a given Matrix room.
+A script to kick idle Matrix users from a Matrix room that has an IRC bridge. 
+It will only kick Matrix-only users, without a given `prefix` and will never kick
+the appservice bot itself. This is useful, because on the IRC side, bridged matrix
+users, that are offline for a certain period are not shown as joined on the 
+IRC-side user list any more. Kicking them on the matrix side is clearing up these
+cases quite well. You have to determin the timeframe, after which a user is not
+visible any more on the irc side and set that timeframe in this script as `--since`
+option.
 
 ## usage
 
@@ -15,7 +22,7 @@ where you have to set the right options:
     -t or --token:      The access token
     -H or --homeserver: Base homeserver URL eg 'https://matrix.org'
     -s or --since:      Days since idle users have been offline for eg '30'
-    -p or --prefix:     User prefix to determine whether a user should be kicked. E.g. @freenode_
+    -p or --prefix:     User prefix to select which users should not be kicked. E.g. @freenode_
     -u or --user:       The user ID of the AS bot. E.g '@appservice-irc:matrix.org'
 
 ## example:
