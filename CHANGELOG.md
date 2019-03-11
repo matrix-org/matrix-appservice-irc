@@ -1,3 +1,17 @@
+Changes in 0.11.2 (2018-10-05)
+==============================
+
+* Fixed bugs where a user may issue a !quit and break metrics reporting for a bridge.
+* Added a config option 'advanced.maxHttpSockets' to allow you to increase the limit
+  for high traffic bridges.
+
+Changes in 0.11.1 (2018-08-30)
+==============================
+
+* Bumped matrix-appservice-bridge to 1.6.1
+* Fixed a bug where metrics would crash after the first scrape
+  with remote user reporting option set
+
 Changes in 0.11.0 (2018-08-28)
 ==============================
 
