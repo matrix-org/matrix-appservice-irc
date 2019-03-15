@@ -11,7 +11,7 @@
     "test": "BLUEBIRD_DEBUG=1 node --max_old_space_size=3072 node_modules/jasmine/bin/jasmine.js --stop-on-failure=true",
     "lint": "eslint --max-warnings 0 lib spec",
     "check": "npm test && npm run lint",
-    "ci-test": "BLUEBIRD_DEBUG=1 nyc --report text jasmine",
+    "ci-test": "node --max_old_space_size=3072 node_modules/nyc/bin/nyc.js --report text jasmine",
     "ci": "npm run lint && npm run ci-test"
   },
   "repository": {
