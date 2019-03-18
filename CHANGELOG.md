@@ -1,3 +1,8 @@
+Changes in 0.12.0-rc2 (2019-03-18)
+==============================
+
+* Fix issue where the bridge would conflict with other bridges when transforming a nick into a user id
+
 Changes in 0.12.0-rc1 (2019-03-15)
 ==============================
 
