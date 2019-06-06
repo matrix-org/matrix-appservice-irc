@@ -255,6 +255,8 @@ properties:
                                     enum: ["invite", "public"]
                                 federate:
                                     type: "boolean"
+                                roomVersion:
+                                    type: "string"
                                 aliasTemplate:
                                     type: "string"
                                     pattern: "^#.*\\$CHANNEL"
