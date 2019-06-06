@@ -3,23 +3,18 @@ install: npm install
 
 jobs:
     include:
-    - stage: tests
-      name: "Unit + Integration Node 6"
-      script: npm run test
-      node_js: "6"
-    - script: npm run test
-      name: "Unit + Integration Node 8"
-      node_js: "8"
     - script: npm run test
       name: "Unit + Integration Node 10"
       node_js: "10"
-
+    - script: npm run test
+      name: "Unit + Integration Node 12"
+      node_js: "12"
     - script: npm run lint
       name: "Linting"
-      node_js: "10"
+      node_js: "12"
     - script: npm run ci-test
       name: "Coverage"
-      node_js: "10"
+      node_js: "12"
 
 notifications:
     webhooks:
