@@ -7,7 +7,8 @@ spec-db
 
 # Logs
 logs
-*.log
+*.log*
+*audit.json
 
 # Runtime data
 pids
