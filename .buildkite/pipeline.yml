@@ -8,6 +8,9 @@ steps:
           image: "node:12"
 
   - label: ":jasmine: Tests Node 10"
+    agents:
+      # Use a larger instance as our tests are very hungry
+      queue: "medium"
     command:
       - "npm install"
       - "npm run test"
@@ -16,6 +19,9 @@ steps:
           image: "node:10"
 
   - label: ":jasmine: Tests Node 12"
+    agents:
+      # Use a larger instance as our tests are very hungry
+      queue: "medium"
     command:
       - "npm install"
       - "npm run test"
@@ -24,6 +30,9 @@ steps:
           image: "node:12"
 
   - label: ":nyc: Coverage"
+    agents:
+      # Use a larger instance as our tests are very hungry
+      queue: "medium"
     command:
       - "npm install"
       - "npm run ci-test"
