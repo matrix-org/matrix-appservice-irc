@@ -1,3 +1,8 @@
+Changes in 0.12.0 (2019-06-06)
+==============================
+
+No changes since previous RC, see below for full list of changes
+
 Changes in 0.12.0-rc2 (2019-03-18)
 ==============================
 
