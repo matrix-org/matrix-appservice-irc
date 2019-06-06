@@ -7,7 +7,7 @@ steps:
       - docker#v3.0.1:
           image: "node:12"
 
-  - label: ":karma: Tests Node 10"
+  - label: ":jasmine: Tests Node 10"
     command:
       - "npm install"
       - "npm run test"
@@ -15,7 +15,7 @@ steps:
       - docker#v3.0.1:
           image: "node:10"
 
-  - label: ":karma: Tests Node 12"
+  - label: ":jasmine: Tests Node 12"
     command:
       - "npm install"
       - "npm run test"
