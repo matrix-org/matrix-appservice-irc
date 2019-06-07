@@ -1,25 +1,14 @@
 /*
  * Contains integration tests for all Startup-initiated events.
  */
-"use strict";
-var test = require("../util/test");
 
-// set up integration testing mocks
-var env = test.mkEnv();
-
-// set up test config
-var config = env.config;
-var roomMapping = {
-    server: config._server,
-    botNick: config._botnick,
-    channel: config._chan,
-    roomId: config._roomid
-};
+const envBundle = require("../util/env-bundle");
 
 describe("Initialisation", function() {
-    var ircAddr = roomMapping.server;
-    var ircNick = roomMapping.botNick;
-    var ircChannel = roomMapping.channel;
+    const {env, roomMapping, test} = envBundle();
+    let ircAddr = roomMapping.server;
+    let ircNick = roomMapping.botNick;
+    let ircChannel = roomMapping.channel;
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
@@ -31,8 +20,8 @@ describe("Initialisation", function() {
 
     it("should connect to the IRC network and channel in the config",
     function(done) {
-        var clientConnected = false;
-        var clientJoined = false;
+        let clientConnected = false;
+        let clientJoined = false;
 
         env.ircMock._whenClient(ircAddr, ircNick, "connect",
         function(client, fn) {
@@ -56,7 +45,7 @@ describe("Initialisation", function() {
 
     it("[BOTS-70] should attempt to set the bot nick if ircd assigned random string",
     function(done) {
-        var assignedNick = "5EXABJ6GG";
+        let assignedNick = "5EXABJ6GG";
 
         // let the bot connect
         env.ircMock._whenClient(roomMapping.server, ircNick, "connect",

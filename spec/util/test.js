@@ -1,10 +1,21 @@
 // common tasks performed in tests
-"use strict";
-var extend = require("extend");
-var proxyquire = require('proxyquire');
-var AppServiceRegistration = require("matrix-appservice-bridge").AppServiceRegistration;
-var MockAppService = require("./app-service-mock");
-var Promise = require("bluebird");
+const extend = require("extend");
+const proxyquire = require('proxyquire');
+const AppServiceRegistration = require("matrix-appservice-bridge").AppServiceRegistration;
+const MockAppService = require("./app-service-mock");
+const Promise = require("bluebird");
+const clientMock = require("./client-sdk-mock");
+const ircMock = require("./irc-client-mock");
+clientMock["@global"] = true;
+ircMock["@global"] = true;
+const main = proxyquire("../../lib/main.js", {
+    "matrix-appservice": {
+        AppService: MockAppService,
+        "@global": true
+    },
+    "matrix-js-sdk": clientMock,
+    "irc": ircMock,
+});
 
 // Log the test case. Jasmine is a global var.
 jasmine.getEnv().addReporter({
@@ -14,57 +25,83 @@ jasmine.getEnv().addReporter({
     }
 });
 
+class TestEnv {
+    constructor(config, mockAppService) {
+        this.config = config;
+        this.mockAppService = mockAppService;
+        this.main = main;
+        this.ircBridge = null;
+        this.ircMock = ircMock;
+        this.clientMock = clientMock;
+    }
+
+    /**
+     * Initialise a new test environment. This will clear the test database and
+     * register the IRC service (as if it were called by app.js).
+     * @return {Promise} which is resolved when the app has finished initiliasing.
+     */
+    init(customConfig) {
+        this.customConfig = customConfig;
+    }
+
+    /**
+     * Reset the test environment for a new test case that has just run.
+     * This kills the bridge.
+     **/
+    afterEach() {
+        if (!this.main) {
+            return Promise.resolve();
+        }
+        // If there was a previous bridge running, kill it
+        // This is prevent IRC clients spamming the logs
+        return this.main.killBridge(this.ircBridge).then(() => {
+            if (global.gc) {global.gc();}
+        })
+    }
+
+    /**
+     * Reset the test environment for a new test case. This resets all mocks.
+     */
+    beforeEach() {
+        ircMock._reset();
+        clientMock._reset();
+        this.mockAppService = MockAppService.instance();
+        return this.main.runBridge(
+            this.config._port, this.customConfig || this.config,
+            AppServiceRegistration.fromObject(this.config._registration), true
+        ).then((ircBridge) => {
+            console.log("Bridge created");
+            this.ircBridge = ircBridge;
+        }).catch((e) => {
+            var msg = JSON.stringify(e);
+            if (e.stack) {
+                msg = e.stack;
+            }
+            console.error("FATAL");
+            console.error(msg);
+        });
+    }
+}
+
 /**
  * Construct a new test environment with mock modules.
  * @return {Object} containing a set of mock modules.
  */
 module.exports.mkEnv = function() {
-    var clientMock = require("./client-sdk-mock");
-    clientMock["@global"] = true;
-    var ircMock = require("./irc-client-mock");
-    ircMock["@global"] = true;
-    var config = extend(true, {}, require("../util/test-config.json"));
-    return {
-        config: config,
-        ircMock: ircMock,
-        clientMock: clientMock,
-        mockAppService: null // reset each test
-    };
+    const config = extend(true, {}, require("../util/test-config.json"));
+    return new TestEnv(
+        config,
+        null // reset each test
+    );
 };
 
-/**
- * Initialise a new test environment. This will clear the test database and
- * register the IRC service (as if it were called by app.js).
- * @param {Object} env : The test environment to initialise with
- * (from {@link mkEnv}).
- * @return {Promise} which is resolved when the app has finished initiliasing.
- */
-module.exports.initEnv = function(env, customConfig) {
-    return env.main.runBridge(
-        env.config._port, customConfig || env.config,
-        AppServiceRegistration.fromObject(env.config._registration), true
-    ).catch(function(e) {
-        var msg = JSON.stringify(e);
-        if (e.stack) {
-            msg = e.stack;
-        }
-        console.error("FATAL");
-        console.error(msg);
-    });
-};
-
-/**
- * Reset the test environment for a new test case that has just run.
- * This kills the bridge.
- * @param {Object} env : The test environment.
- */
-module.exports.afterEach = Promise.coroutine(function*(env) {
-    // If there was a previous bridge running, kill it
-    // This is prevent IRC clients spamming the logs
-    if (env.main) {
-        yield env.main.killBridge();
-    }
+module.exports.initEnv = Promise.coroutine(function*(env, customConfig) {
+    return yield env.init(customConfig);
 });
+
+module.exports.afterEach = function(env) {
+    return env.afterEach();
+};
 
 /**
  * Reset the test environment for a new test case. This resets all mocks.
@@ -73,26 +110,15 @@ module.exports.afterEach = Promise.coroutine(function*(env) {
 module.exports.beforeEach = Promise.coroutine(function*(env) {
     MockAppService.resetInstance();
     if (env) {
-        env.ircMock._reset();
-        env.clientMock._reset();
-
-        env.main = proxyquire("../../lib/main.js", {
-            "matrix-appservice": {
-                AppService: MockAppService,
-                "@global": true
-            },
-            "matrix-js-sdk": env.clientMock,
-            "irc": env.ircMock
-        });
-        env.mockAppService = MockAppService.instance();
+        return yield env.beforeEach();
     }
-
-    process.on("unhandledRejection", function(reason, promise) {
+    process.on("unhandledRejection", function(reason) {
         if (reason.stack) {
             throw reason;
         }
         throw new Error("Unhandled rejection: " + reason);
     });
+    return Promise.resolve();
 });
 
 /**

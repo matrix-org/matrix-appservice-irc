@@ -1,6 +1,6 @@
 "use strict";
-var EventEmitter = require("events");
-var util = require("util");
+const EventEmitter = require("events");
+const util = require("util");
 var instance = null;
 
 function MockAppService() {

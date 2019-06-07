@@ -1,30 +1,22 @@
 /*
  * Contains integration tests for IRC mode events.
  */
-"use strict";
-var Promise = require("bluebird");
-var test = require("../util/test");
+const Promise = require("bluebird");
 
-// set up integration testing mocks
-var env = test.mkEnv();
+const envBundle = require("../util/env-bundle");
 
-// set up test config
-var config = env.config;
-var roomMapping = {
-    server: config._server,
-    botNick: config._botnick,
-    channel: config._chan,
-    roomId: config._roomid
-};
 
 describe("IRC-to-Matrix mode bridging", function() {
-    var sdk = null;
 
-    var tFromNick = "mike";
-    var tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
+    const {env, config, roomMapping, test} = envBundle();
+
+    let sdk = null;
+
+    let tFromNick = "mike";
+    let tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
                   config.homeserver.domain;
 
-    var configJoinRule = config.ircService.servers[
+    let configJoinRule = config.ircService.servers[
             roomMapping.server
         ].dynamicChannels.joinRule;
 

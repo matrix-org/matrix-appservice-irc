@@ -1,6 +1,6 @@
 "use strict";
-var Promise = require("bluebird");
-var IdentGenerator = require("../../lib/irc/IdentGenerator.js");
+const Promise = require("bluebird");
+const IdentGenerator = require("../../lib/irc/IdentGenerator.js");
 
 describe("Username generation", function() {
     var identGenerator;
