@@ -41,7 +41,21 @@ class TestEnv {
      * @return {Promise} which is resolved when the app has finished initiliasing.
      */
     init(customConfig) {
-        this.customConfig = customConfig;
+        return this.main.runBridge(
+            this.config._port, customConfig || this.config,
+            AppServiceRegistration.fromObject(this.config._registration), true
+        ).then((ircBridge) => {
+            console.log("Bridge created");
+            this.ircBridge = ircBridge;
+        }).catch((e) => {
+            var msg = JSON.stringify(e);
+            if (e.stack) {
+                msg = e.stack;
+            }
+            console.error("FATAL");
+            console.error(msg);
+        });
+
     }
 
     /**
@@ -62,24 +76,11 @@ class TestEnv {
     /**
      * Reset the test environment for a new test case. This resets all mocks.
      */
-    beforeEach() {
+    async beforeEach() {
         ircMock._reset();
         clientMock._reset();
         this.mockAppService = MockAppService.instance();
-        return this.main.runBridge(
-            this.config._port, this.customConfig || this.config,
-            AppServiceRegistration.fromObject(this.config._registration), true
-        ).then((ircBridge) => {
-            console.log("Bridge created");
-            this.ircBridge = ircBridge;
-        }).catch((e) => {
-            var msg = JSON.stringify(e);
-            if (e.stack) {
-                msg = e.stack;
-            }
-            console.error("FATAL");
-            console.error(msg);
-        });
+        return true;
     }
 }
 
