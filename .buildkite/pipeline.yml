@@ -1,0 +1,32 @@
+steps:
+  - label: ":eslint: Lint"
+    command:
+      - "npm install"
+      - "npm run lint"
+    plugins:
+      - docker#v3.0.1:
+          image: "node:12"
+
+  - label: ":jasmine: Tests Node 10"
+    command:
+      - "npm install"
+      - "npm run test"
+    plugins:
+      - docker#v3.0.1:
+          image: "node:10"
+
+  - label: ":jasmine: Tests Node 12"
+    command:
+      - "npm install"
+      - "npm run test"
+    plugins:
+      - docker#v3.0.1:
+          image: "node:12"
+
+  - label: ":nyc: Coverage"
+    command:
+      - "npm install"
+      - "npm run ci-test"
+    plugins:
+      - docker#v3.0.1:
+          image: "node:12"
