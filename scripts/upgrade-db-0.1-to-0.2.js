@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 "use strict";
 
-var Promise = require("bluebird");
-var Datastore = require("nedb");
+const Promise = require("bluebird");
+const Datastore = require("nedb");
 Promise.promisifyAll(Datastore.prototype);
-var nopt = require("nopt");
-var path = require("path");
-var fs = require("fs");
+const nopt = require("nopt");
+const path = require("path");
+const fs = require("fs");
 
 const ROOM_DB = "0.2-db/rooms.db";
 const USER_DB = "0.2-db/users.db"

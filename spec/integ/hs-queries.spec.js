@@ -1,23 +1,16 @@
-"use strict";
-var test = require("../util/test");
-var Promise = require("bluebird");
 
-// set up integration testing mocks
-var env = test.mkEnv();
-
-// set up test config
-var config = env.config;
-var roomMapping = {
-    server: config._server,
-    botNick: config._botnick
-};
+const Promise = require("bluebird");
+const envBundle = require("../util/env-bundle");
 
 describe("Homeserver user queries", function() {
-    var testNick = "Alisha";
-    var testLocalpart = roomMapping.server + "_" + testNick;
-    var testUserId = (
+    const {env, config, roomMapping, test} = envBundle();
+
+    let testNick = "Alisha";
+    let testLocalpart = roomMapping.server + "_" + testNick;
+    let testUserId = (
         "@" + testLocalpart + ":" + config.homeserver.domain
     );
+
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
@@ -37,14 +30,12 @@ describe("Homeserver user queries", function() {
 
     it("should always create a new Matrix user for the specified ID",
     function(done) {
-        var sdk = env.clientMock._client(config._botUserId);
+        let sdk = env.clientMock._client(config._botUserId);
 
-        var askedWhois = false; // eslint-disable-line no-unused-vars
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
         function(client, nick, cb) {
             expect(nick).toEqual(testNick);
             // say they exist (presence of user key)
-            askedWhois = true;
             cb({
                 user: testNick,
                 nick: testNick
@@ -63,9 +54,10 @@ describe("Homeserver user queries", function() {
 });
 
 describe("Homeserver alias queries", function() {
-    var testChannel = "#tower";
-    var testLocalpart = "irc_" + roomMapping.server + "_" + testChannel;
-    var testAlias = (
+    const {env, config, roomMapping, test} = envBundle();
+    let testChannel = "#tower";
+    let testLocalpart = "irc_" + roomMapping.server + "_" + testChannel;
+    let testAlias = (
         "#" + testLocalpart + ":" + config.homeserver.domain
     );
 
@@ -93,7 +85,7 @@ describe("Homeserver alias queries", function() {
 
     it("should make the AS start tracking the channel specified in the alias.",
     function(done) {
-        var sdk = env.clientMock._client(config._botUserId);
+        let sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.and.callFake(function(opts) {
             expect(opts.room_alias_name).toEqual(testLocalpart);
             expect(opts.visibility).toEqual("private");
@@ -108,7 +100,7 @@ describe("Homeserver alias queries", function() {
             return Promise.resolve({});
         });
 
-        var botJoined = false;
+        let botJoined = false;
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
         function(client, channel, cb) {
             if (channel === testChannel) {

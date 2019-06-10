@@ -1,20 +1,9 @@
-"use strict";
-let test = require("../util/test");
-let Promise = require("bluebird");
-
-// set up integration testing mocks
-let env = test.mkEnv();
-
-// set up test config
-let config = env.config;
-let roomMapping = {
-    server: config._server,
-    botNick: config._botnick,
-    channel: config._chan,
-    roomId: config._roomid
-};
+const Promise = require("bluebird");
+const envBundle = require("../util/env-bundle");
 
 describe("MemberListSyncer", function() {
+
+    const {env, config, roomMapping, test} = envBundle();
     let botClient = null;
 
     beforeEach(test.coroutine(function*() {

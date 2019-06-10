@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 "use strict";
-var promiseutil = require("../lib/promiseutil");
-var nopt = require("nopt");
-var request = require("request");
-var joinUrl = require("url").resolve;
+const promiseutil = require("../lib/promiseutil");
+const nopt = require("nopt");
+const request = require("request");
+const joinUrl = require("url").resolve;
 
 var opts = nopt({
     "room-alias": String,

@@ -2,13 +2,13 @@
  * Mock replacement for 'irc'.
  */
 "use strict";
-var Promise = require("bluebird");
-var util = require("util");
-var EventEmitter = require('events').EventEmitter;
+const Promise = require("bluebird");
+const util = require("util");
+const EventEmitter = require('events').EventEmitter;
 
-var instanceEmitter, clientEmitter;
-var DELIM = "_DELIM_";
-var instances = {
+let instanceEmitter, clientEmitter;
+const DELIM = "_DELIM_";
+const instances = {
     // addr +"_DELIM_" + nick : Client
 };
 
@@ -41,8 +41,8 @@ module.exports._reset = function() {
         if (cli) {
             cli._dead = true;
         }
+        delete instances[k];
     });
-    instances = {};
     // emitter when clients are added
     instanceEmitter = new EventEmitter();
     // emitter when functions are called on a client.
