@@ -2,22 +2,12 @@
  * Tests client-cycling options work correctly.
  */
 "use strict";
-var test = require("../util/test");
+const envBundle = require("../util/env-bundle");
 
-// set up integration testing mocks
-var env = test.mkEnv();
-
-// set up test config
-var config = env.config;
-var roomMapping = {
-    server: config._server,
-    botNick: config._botnick,
-    channel: config._chan,
-    roomId: config._roomid
-};
 
 describe("IRC client cycling", function() {
-    var testUsers = null;
+    let testUsers = null;
+    const {env, config, roomMapping, test} = envBundle();
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
@@ -112,7 +102,8 @@ describe("IRC client cycling", function() {
             });
         }).done(function() {
             // everyone should have connected/said something
-            for (var i = 0; i < testUsers.length; i++) {
+            let i;
+            for (i = 0; i < testUsers.length; i++) {
                 expect(testUsers[i].says).toEqual(
                     1, testUsers[i].id + " said something"
                 );
@@ -178,7 +169,7 @@ describe("IRC client cycling", function() {
             // the first guy should have 2 says, 2 connects and 1 disconnect.
             // We're mainly interested in that there were 2 connect calls. If
             // there is just 1, it indicates it used a cached copy.
-            var first = testUsers[0];
+            let first = testUsers[0];
             expect(first.says).toEqual(2);
             expect(first.connects).toEqual(
                 2, "client should 2 connects but doesn't"
