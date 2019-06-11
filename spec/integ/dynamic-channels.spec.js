@@ -1,4 +1,3 @@
-"use strict";
 const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
@@ -99,6 +98,7 @@ describe("Dynamic channels", function() {
         // when we get the create room request, process it.
         let sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.and.callFake(function(opts) {
+            expect(opts.roomVersion).toBeUndefined();
             expect(opts.creation_content).toEqual({"m.federate": true});
             return Promise.resolve({
                 room_id: tRoomId
@@ -167,6 +167,51 @@ describe("Dynamic channels", function() {
             expect(madeAlias).toBe(true, "Failed to create alias");
             done();
         });
+    });
+
+    it("should create a channel with the specified room version", (done) => {
+        env.ircBridge.getServer(roomMapping.server)
+            .config.dynamicChannels.roomVersion = "the-best-version";
+
+        const tChannel = "#foobar";
+        const tRoomId = "!newroom:id";
+        const tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
+        const tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
+
+        // when we get the connect/join requests, accept them.
+        let joinedIrcChannel = false;
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
+        function(client, chan, cb) {
+            if (chan === tChannel) {
+                joinedIrcChannel = true;
+                if (cb) { cb(); }
+            }
+        });
+
+        // when we get the create room request, process it.
+        let sdk = env.clientMock._client(config._botUserId);
+        sdk.createRoom.and.callFake(function(opts) {
+            console.log(opts);
+            expect(opts.room_version).toEqual("the-best-version");
+            return Promise.resolve({
+                room_id: tRoomId
+            });
+        });
+
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+            expect(roomId).toEqual(tRoomId);
+            expect(eventType).toEqual("m.room.history_visibility");
+            expect(obj).toEqual({history_visibility: "joined"});
+            return Promise.resolve({});
+        });
+
+        env.mockAppService._queryAlias(tAlias).done(function() {
+            expect(joinedIrcChannel).toBe(true, "Failed to join irc channel");
+            done();
+        }, function(e) {
+            console.error("Failed to join IRC channel: %s", JSON.stringify(e));
+        });
+
     });
 });
 
