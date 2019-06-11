@@ -2,8 +2,8 @@
  * Mock replacement for 'matrix-js-sdk'.
  */
 "use strict";
-var Promise = require("bluebird");
-var mockClients = {
+const Promise = require("bluebird");
+const mockClients = {
     //user_id: Client
 };
 
@@ -174,5 +174,7 @@ module.exports._client = function(userId) {
  * Reset the Matrix Client SDK global instance.
  */
 module.exports._reset = function() {
-    mockClients = {};
+    Object.keys(mockClients).forEach((k) => {
+        delete mockClients[k];
+    });
 };

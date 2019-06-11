@@ -1,25 +1,15 @@
 /*
  * Contains integration tests for all Matrix-initiated events.
  */
-"use strict";
-var test = require("../util/test");
 
-// set up integration testing mocks
-var env = test.mkEnv();
-
-// set up test config
-var config = env.config;
-var roomMapping = {
-    server: config._server,
-    botNick: config._botnick,
-    channel: config._chan,
-    roomId: config._roomid
-};
-
-var mediaUrl = "http://some-media-repo.com";
+const envBundle = require("../util/env-bundle");
+const mediaUrl = "http://some-media-repo.com";
 
 describe("Matrix-to-IRC message bridging", function() {
-    var testUser = {
+
+    const {env, config, roomMapping, test} = envBundle();
+
+    let testUser = {
         id: "@flibble:wibble",
         nick: "M-flibble"
     };
@@ -50,7 +40,7 @@ describe("Matrix-to-IRC message bridging", function() {
     }));
 
     it("should bridge matrix messages as IRC text", function(done) {
-        var testText = "Here is some test text.";
+        let testText = "Here is some test text.";
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
@@ -75,12 +65,12 @@ describe("Matrix-to-IRC message bridging", function() {
 
     it("should bridge formatted matrix messages as formatted IRC text",
     function(done) {
-        var tFormattedBody = "I support <em>em</em>, <strong>strong bold</strong> and <b>" +
+        let tFormattedBody = "I support <em>em</em>, <strong>strong bold</strong> and <b>" +
         'normal bold</b> and <b>bold <u>and underline</u><font color="green"> ' +
         "including green</font></b>";
-        var tFallback = "I support em, strong bold and normal bold and " +
+        let tFallback = "I support em, strong bold and normal bold and " +
         "bold and underline including green";
-        var tIrcBody = "I support \u001dem\u000f, \u0002strong bold\u000f and \u0002normal bold" +
+        let tIrcBody = "I support \u001dem\u000f, \u0002strong bold\u000f and \u0002normal bold" +
         "\u000f and \u0002bold \u001fand underline\u000f\u0002\u000303 including" +
         " green\u000f\u0002\u000f"; // last 2 codes not necessary!
 
@@ -109,11 +99,11 @@ describe("Matrix-to-IRC message bridging", function() {
 
     it("should bridge escaped HTML matrix messages as unescaped HTML",
     function(done) {
-        var tFormattedBody = "<p>this is a &quot;test&quot; &amp; some _ mo!re" +
+        let tFormattedBody = "<p>this is a &quot;test&quot; &amp; some _ mo!re" +
         " fun ch@racters... are &lt; included &gt; here.</p>";
-        var tFallback = "this is a \"test\" & some _ mo!re fun ch@racters... " +
+        let tFallback = "this is a \"test\" & some _ mo!re fun ch@racters... " +
         "are < included > here.";
-        var tIrcBody = "this is a \"test\" & some _ mo!re fun ch@racters... " +
+        let tIrcBody = "this is a \"test\" & some _ mo!re fun ch@racters... " +
         "are < included > here.";
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
@@ -140,8 +130,8 @@ describe("Matrix-to-IRC message bridging", function() {
     });
 
     it("should strip out unknown html tags from formatted_body", function(done) {
-        var tFormattedBody = "Here is <foo bar=\"tar\">baz text</foo>";
-        var tFallback = "Here is baz text";
+        let tFormattedBody = "Here is <foo bar=\"tar\">baz text</foo>";
+        let tFallback = "Here is baz text";
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
@@ -168,8 +158,8 @@ describe("Matrix-to-IRC message bridging", function() {
 
     // to prevent formatting text like * from being dropped on the floor IRC side
     it("should use the fallback text if there are unrecognised tags", function(done) {
-        var tFormattedBody = "Here is <foo>baz</foo> text";
-        var tFallback = "Here is *baz* text";
+        let tFormattedBody = "Here is <foo>baz</foo> text";
+        let tFallback = "Here is *baz* text";
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
@@ -195,7 +185,7 @@ describe("Matrix-to-IRC message bridging", function() {
     });
 
     it("should bridge matrix emotes as IRC actions", function(done) {
-        var testEmote = "thinks";
+        let testEmote = "thinks";
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
@@ -218,7 +208,7 @@ describe("Matrix-to-IRC message bridging", function() {
     });
 
     it("should bridge matrix notices as IRC notices", function(done) {
-        var testNotice = "Some automated message";
+        let testNotice = "Some automated message";
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "notice",
         function(client, channel, text) {
@@ -480,10 +470,10 @@ describe("Matrix-to-IRC message bridging", function() {
     });
 
     it("should bridge matrix images as IRC action with a URL", function(done) {
-        var tBody = "the_image.jpg";
-        var tMxcSegment = "/somecontentid";
-        var tHsUrl = "http://somedomain.com";
-        var sdk = env.clientMock._client(config._botUserId);
+        let tBody = "the_image.jpg";
+        let tMxcSegment = "/somecontentid";
+        let tHsUrl = "http://somedomain.com";
+        let sdk = env.clientMock._client(config._botUserId);
 
         sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
@@ -513,10 +503,10 @@ describe("Matrix-to-IRC message bridging", function() {
     });
 
     it("should bridge matrix files as IRC action with a URL", function(done) {
-        var tBody = "a_file.apk";
-        var tMxcSegment = "/somecontentid";
-        var tHsUrl = "http://somedomain.com";
-        var sdk = env.clientMock._client(config._botUserId);
+        let tBody = "a_file.apk";
+        let tMxcSegment = "/somecontentid";
+        let tHsUrl = "http://somedomain.com";
+        let sdk = env.clientMock._client(config._botUserId);
 
         sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
@@ -546,7 +536,7 @@ describe("Matrix-to-IRC message bridging", function() {
     });
 
     it("should bridge matrix topics as IRC topics", function(done) {
-        var testTopic = "Topics are amazingz";
+        let testTopic = "Topics are amazingz";
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "send",
         function(client, command, channel, data) {
@@ -571,6 +561,9 @@ describe("Matrix-to-IRC message bridging", function() {
 });
 
 describe("Matrix-to-Matrix message bridging", function() {
+
+    const {env, config, roomMapping, test} = envBundle();
+
     let testUser = {
         id: "@flibble:" + config.homeserver.domain,
         nick: "M-flibble"
@@ -729,7 +722,10 @@ describe("Matrix-to-Matrix message bridging", function() {
 });
 
 describe("Matrix-to-IRC message bridging with media URL and drop time", function() {
-    var testUser = {
+
+    const {env, config, roomMapping, test} = envBundle();
+
+    let testUser = {
         id: "@flibble:wibble",
         nick: "M-flibble"
     };
@@ -767,9 +763,9 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
 
     it("should NOT bridge old matrix messages older than the drop time",
     test.coroutine(function*() {
-        var tBody = "Hello world";
+        let tBody = "Hello world";
 
-        var said = false;
+        let said = false;
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
             said = true;
@@ -832,9 +828,9 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
     }));
 
     it("should bridge old matrix messages younger than the drop time", test.coroutine(function*() {
-        var tBody = "Hello world";
+        let tBody = "Hello world";
 
-        var said = false;
+        let said = false;
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
@@ -859,11 +855,11 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
     }));
 
     it("should bridge matrix files as IRC action with a configured media URL", function(done) {
-        var tBody = "a_file.apk";
-        var tMxcSegment = "/somecontentid";
-        var tMediaUrl = mediaUrl;
-        var tHsUrl = "http://somedomain.com";
-        var sdk = env.clientMock._client(config._botUserId);
+        let tBody = "a_file.apk";
+        let tMxcSegment = "/somecontentid";
+        let tMediaUrl = mediaUrl;
+        let tHsUrl = "http://somedomain.com";
+        let sdk = env.clientMock._client(config._botUserId);
 
         // Not expected to be caleld, but hook to catch the error
         // see expectation not to see HS URL, below

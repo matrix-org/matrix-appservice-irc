@@ -1,35 +1,26 @@
-"use strict";
-var Promise = require("bluebird");
-var test = require("../util/test");
-
-// set up integration testing mocks
-var env = test.mkEnv();
-
-// set up test config
-var config = env.config;
-var roomMapping = {
-    server: config._server,
-    botNick: config._botnick,
-    channel: config._chan,
-    roomId: config._roomid
-};
-
-// set up config.yaml flags
-config.ircService.servers[roomMapping.server].membershipLists.enabled = true;
-config.ircService.servers[
-    roomMapping.server
-].membershipLists.global.ircToMatrix.incremental = true;
-config.ircService.servers[
-    roomMapping.server
-].membershipLists.global.matrixToIrc.incremental = true;
-
-// add additional mappings
-config.ircService.servers[roomMapping.server].mappings["#a"] = ["!a:localhost"];
-config.ircService.servers[roomMapping.server].mappings["#b"] = ["!b:localhost"];
-config.ircService.servers[roomMapping.server].mappings["#c"] = ["!c:localhost"];
+const Promise = require("bluebird");
+const envBundle = require("../util/env-bundle");
 
 describe("Mirroring", function() {
-    var testUser = {
+
+    const {env, config, roomMapping, test} = envBundle();
+
+
+    // set up config.yaml flags
+    config.ircService.servers[roomMapping.server].membershipLists.enabled = true;
+    config.ircService.servers[
+        roomMapping.server
+    ].membershipLists.global.ircToMatrix.incremental = true;
+    config.ircService.servers[
+        roomMapping.server
+    ].membershipLists.global.matrixToIrc.incremental = true;
+
+    // add additional mappings
+    config.ircService.servers[roomMapping.server].mappings["#a"] = ["!a:localhost"];
+    config.ircService.servers[roomMapping.server].mappings["#b"] = ["!b:localhost"];
+    config.ircService.servers[roomMapping.server].mappings["#c"] = ["!c:localhost"];
+
+    let testUser = {
         id: "@flibble:wibble",
         nick: "M-flibble"
     };
@@ -67,7 +58,7 @@ describe("Mirroring", function() {
 
     describe("Matrix users on IRC", function() {
         it("should join the IRC channel when the Matrix user joins", function(done) {
-            var joined = false;
+            let joined = false;
             env.ircMock._whenClient(roomMapping.server, testUser.nick, "join",
             function(client, channel, cb) {
                 expect(client.nick).toEqual(testUser.nick);
@@ -92,7 +83,7 @@ describe("Mirroring", function() {
         });
 
         it("should part the IRC channel when the Matrix user leaves", function(done) {
-            var parted = false;
+            let parted = false;
             env.ircMock._autoJoinChannels(
                 roomMapping.server, testUser.nick, roomMapping.channel
             );
@@ -235,8 +226,8 @@ describe("Mirroring", function() {
     });
 
     describe("IRC users on Matrix", function() {
-        var sdk;
-        var ircUser = {
+        let sdk;
+        let ircUser = {
             nick: "bob",
             localpart: roomMapping.server + "_bob",
             id: "@" + roomMapping.server + "_bob:" + config.homeserver.domain
