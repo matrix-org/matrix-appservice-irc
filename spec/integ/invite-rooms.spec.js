@@ -1,30 +1,18 @@
-"use strict";
-var Promise = require("bluebird");
-var test = require("../util/test");
-
-// set up integration testing mocks
-var env = test.mkEnv();
-
-// set up test config
-var config = env.config;
-var roomMapping = {
-    server: config._server,
-    botNick: config._botnick,
-    channel: config._chan,
-    roomId: config._roomid
-};
+const Promise = require("bluebird");
+const envBundle = require("../util/env-bundle");
 
 describe("Invite-only rooms", function() {
-    var botUserId = config._botUserId;
-    var testUser = {
+    const {env, config, roomMapping, botUserId, test} = envBundle();
+    let testUser = {
         id: "@flibble:wibble",
         nick: "flibble"
     };
-    var testIrcUser = {
+    let testIrcUser = {
         localpart: roomMapping.server + "_foobar",
         id: "@" + roomMapping.server + "_foobar:" + config.homeserver.domain,
         nick: "foobar"
     };
+
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
@@ -43,9 +31,9 @@ describe("Invite-only rooms", function() {
 
     it("should be joined by the bot if the AS does know the room ID",
     function(done) {
-        var adminRoomId = "!adminroom:id";
-        var sdk = env.clientMock._client(botUserId);
-        var joinRoomCount = 0;
+        let adminRoomId = "!adminroom:id";
+        let sdk = env.clientMock._client(botUserId);
+        let joinRoomCount = 0;
         sdk.joinRoom.and.callFake(function(roomId) {
             expect(roomId).toEqual(adminRoomId);
             joinRoomCount += 1;
@@ -95,28 +83,28 @@ describe("Invite-only rooms", function() {
             });
         });
 
-        var sdk = env.clientMock._client(testIrcUser.id);
+        let sdk = env.clientMock._client(testIrcUser.id);
         // if it tries to register, accept.
         sdk._onHttpRegister({
             expectLocalpart: testIrcUser.localpart,
             returnUserId: testIrcUser.id
         });
 
-        var joinedRoom = false;
+        let joinedRoom = false;
         sdk.joinRoom.and.callFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             joinedRoom = true;
             return Promise.resolve({});
         });
 
-        var leftRoom = false;
+        let leftRoom = false;
         sdk.leave.and.callFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             leftRoom = true;
             return Promise.resolve({});
         });
 
-        var askedForRoomState = false;
+        let askedForRoomState = false;
         sdk.roomState.and.callFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             askedForRoomState = true;

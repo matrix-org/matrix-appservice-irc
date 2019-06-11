@@ -1,32 +1,23 @@
 /*
  * Contains integration tests for all IRC-initiated events.
  */
-"use strict";
-var Promise = require("bluebird");
-var test = require("../util/test");
+const Promise = require("bluebird");
 
-// set up integration testing mocks
-var env = test.mkEnv();
-
-// set up test config
-var config = env.config;
-var roomMapping = {
-    server: config._server,
-    botNick: config._botnick,
-    channel: config._chan,
-    roomId: config._roomid
-};
+const envBundle = require("../util/env-bundle");
 
 describe("IRC-to-Matrix message bridging", function() {
-    var sdk = null;
 
-    var tFromNick = "mike";
-    var tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
+    const {env, config, roomMapping, test} = envBundle();
+
+    let sdk = null;
+
+    let tFromNick = "mike";
+    let tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
                   config.homeserver.domain;
 
-    var checksum = function(str) {
-        var total = 0;
-        for (var i = 0; i < str.length; i++) {
+    let checksum = function(str) {
+        let total = 0;
+        for (let i = 0; i < str.length; i++) {
             total += str.charCodeAt(i);
         }
         return total;
@@ -60,7 +51,7 @@ describe("IRC-to-Matrix message bridging", function() {
 
     it("should bridge IRC text as Matrix message's m.text",
     function(done) {
-        var testText = "this is some test text.";
+        let testText = "this is some test text.";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
@@ -79,7 +70,7 @@ describe("IRC-to-Matrix message bridging", function() {
 
     it("should bridge IRC actions as Matrix message's m.emote",
     function(done) {
-        var testEmoteText = "thinks for a bit";
+        let testEmoteText = "thinks for a bit";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
@@ -100,7 +91,7 @@ describe("IRC-to-Matrix message bridging", function() {
 
     it("should bridge IRC notices as Matrix message's m.notice",
     function(done) {
-        var testNoticeText = "Automated bot text: SUCCESS!";
+        let testNoticeText = "Automated bot text: SUCCESS!";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
@@ -121,7 +112,7 @@ describe("IRC-to-Matrix message bridging", function() {
 
     it("should bridge IRC topics as Matrix m.room.topic in aliased rooms",
     test.coroutine(function*() {
-        const testTopic = "Topics are liek the best thing evarz!";
+        const testTopic = "Topics are liek the best thing eletz!";
 
         const tChannel = "#someotherchannel";
         const tRoomId = roomMapping.roomId;
@@ -157,7 +148,7 @@ describe("IRC-to-Matrix message bridging", function() {
 
     it("should bridge IRC topics as Matrix m.room.topic in aliased rooms, using the bot",
     test.coroutine(function*() {
-        const testTopic = "Topics are liek the best thing evarz!";
+        const testTopic = "Topics are liek the best thing eletz!";
 
         const tChannel = "#someotherchannel";
         const tRoomId = roomMapping.roomId;
@@ -197,7 +188,7 @@ describe("IRC-to-Matrix message bridging", function() {
 
     it("should be insensitive to the case of the channel",
     function(done) {
-        var testText = "this is some test text.";
+        let testText = "this is some test text.";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
@@ -218,14 +209,14 @@ describe("IRC-to-Matrix message bridging", function() {
 
     it("should bridge IRC formatted text as Matrix's org.matrix.custom.html",
     function(done) {
-        var tIrcFormattedText = "This text is \u0002bold\u000f and this is " +
+        let tIrcFormattedText = "This text is \u0002bold\u000f and this is " +
             "\u001funderlined\u000f and this is \u000303green\u000f. Finally, " +
             "this is a \u0002\u001f\u000303mix of all three";
-        var tHtmlCloseTags = "</b></u></font>"; // any order allowed
-        var tHtmlMain = "This text is <b>bold</b> and this is <u>underlined</u> " +
+        let tHtmlCloseTags = "</b></u></font>"; // any order allowed
+        let tHtmlMain = "This text is <b>bold</b> and this is <u>underlined</u> " +
             'and this is <font color="#009300">green</font>. Finally, ' +
             'this is a <b><u><font color="#009300">mix of all three';
-        var tFallback = "This text is bold and this is underlined and this is " +
+        let tFallback = "This text is bold and this is underlined and this is " +
             "green. Finally, this is a mix of all three";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
@@ -257,9 +248,9 @@ describe("IRC-to-Matrix message bridging", function() {
 
     it("should bridge badly formatted IRC text as Matrix's org.matrix.custom.html",
     function(done) {
-        var tIrcFormattedText = "\u0002hello \u001d world\u0002 ! \u001d";
-        var tHtmlMain = "<b>hello <i> world</i></b><i> ! </i>";
-        var tFallback = "hello  world ! ";
+        let tIrcFormattedText = "\u0002hello \u001d world\u0002 ! \u001d";
+        let tHtmlMain = "<b>hello <i> world</i></b><i> ! </i>";
+        let tFallback = "hello  world ! ";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             // more readily expose non-printing character errors (looking at
@@ -284,10 +275,10 @@ describe("IRC-to-Matrix message bridging", function() {
     it("should bridge special regex character formatted IRC colours as Matrix's" +
     "org.matrix.custom.html", function(done) {
         // $& = Inserts the matched substring.
-        var tIrcFormattedText = "\u000303$& \u000304 world\u000303 ! \u000304";
-        var tHtmlMain = '<font color="#009300">$&amp; </font><font color="#FF0000"> world' +
+        let tIrcFormattedText = "\u000303$& \u000304 world\u000303 ! \u000304";
+        let tHtmlMain = '<font color="#009300">$&amp; </font><font color="#FF0000"> world' +
             '</font><font color="#009300"> ! </font>';
-        var tFallback = "$&  world ! ";
+        let tFallback = "$&  world ! ";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             // more readily expose non-printing character errors (looking at
@@ -310,11 +301,11 @@ describe("IRC-to-Matrix message bridging", function() {
     });
 
     it("should html escape IRC text", function(done) {
-        var tIrcFormattedText = "This text is \u0002bold\u000f and has " +
+        let tIrcFormattedText = "This text is \u0002bold\u000f and has " +
             "<div> tags & characters like ' and \"";
-        var tHtmlMain = "This text is <b>bold</b> and has " +
+        let tHtmlMain = "This text is <b>bold</b> and has " +
             "&lt;div&gt; tags &amp; characters like &#39; and &quot;";
-        var tFallback = "This text is bold and has <div> tags & characters like ' and \"";
+        let tFallback = "This text is bold and has <div> tags & characters like ' and \"";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             // more readily expose non-printing character errors (looking at
@@ -337,9 +328,9 @@ describe("IRC-to-Matrix message bridging", function() {
     });
 
     it("should toggle on IRC formatting flags", function(done) {
-        var tIrcFormattedText = "This text is \u0002bold\u0002 and \u0002\u0002thats it.";
-        var tHtmlMain = "This text is <b>bold</b> and <b></b>thats it.";
-        var tFallback = "This text is bold and thats it.";
+        let tIrcFormattedText = "This text is \u0002bold\u0002 and \u0002\u0002thats it.";
+        let tHtmlMain = "This text is <b>bold</b> and <b></b>thats it.";
+        let tFallback = "This text is bold and thats it.";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
             // more readily expose non-printing character errors (looking at
@@ -363,10 +354,13 @@ describe("IRC-to-Matrix message bridging", function() {
 });
 
 describe("IRC-to-Matrix operator modes bridging", function() {
+
+    const {env, config, roomMapping, test} = envBundle();
+
     let botMatrixClient = null;
 
-    var tRealMatrixUserNick = "M-alice";
-    var tRealUserId = "@alice:anotherhomeserver";
+    let tRealMatrixUserNick = "M-alice";
+    let tRealUserId = "@alice:anotherhomeserver";
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
@@ -545,9 +539,12 @@ describe("IRC-to-Matrix operator modes bridging", function() {
 });
 
 describe("IRC-to-Matrix name bridging", function() {
-    var sdk;
-    var tFromNick = "mike";
-    var tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
+
+    const {env, config, roomMapping, test} = envBundle();
+
+    let sdk;
+    let tFromNick = "mike";
+    let tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
                   config.homeserver.domain;
 
     beforeEach(test.coroutine(function*() {
@@ -601,7 +598,7 @@ describe("IRC-to-Matrix name bridging", function() {
     });
 
     it("should process all NAMEs entries", function(done) {
-        var nicks = {
+        let nicks = {
             Alicia: {
                 uid: "@" + roomMapping.server + "_Alicia:" + config.homeserver.domain,
             },
@@ -613,9 +610,9 @@ describe("IRC-to-Matrix name bridging", function() {
             }
         };
 
-        var joined = new Set();
+        let joined = new Set();
         Object.keys(nicks).forEach(function(n) {
-            var cli = env.clientMock._client(nicks[n].uid);
+            let cli = env.clientMock._client(nicks[n].uid);
             cli._onHttpRegister({
                 expectLocalpart: roomMapping.server + "_" + n,
                 returnUserId: nicks[n].uid
@@ -637,7 +634,7 @@ describe("IRC-to-Matrix name bridging", function() {
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
         function(client) {
-            var names = {
+            let names = {
                 Alicia: {},
                 Bertha: {},
                 Clarissa: {}
@@ -674,7 +671,7 @@ describe("IRC-to-Matrix name bridging", function() {
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
         function(client) {
-            var names = {
+            let names = {
                 Alicia: {}
             };
             client.emit("names", roomMapping.channel, names);

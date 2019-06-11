@@ -2,25 +2,17 @@
  * Contains integration tests for private messages.
  */
 "use strict";
-var Promise = require("bluebird");
-var test = require("../util/test");
-
-// set up integration testing mocks
-var env = test.mkEnv();
-
-var config = env.config;
-var roomMapping = {
-    server: config._server,
-    botNick: config._botnick,
-    channel: config._chan,
-    roomId: config._roomid
-};
+const Promise = require("bluebird");
+const envBundle = require("../util/env-bundle");
 
 describe("Matrix-to-IRC PMing", function() {
-    var tUserId = "@flibble:wibble";
-    var tIrcNick = "someone";
-    var tUserLocalpart = roomMapping.server + "_" + tIrcNick;
-    var tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
+
+    const {env, config, roomMapping, test} = envBundle();
+
+    let tUserId = "@flibble:wibble";
+    let tIrcNick = "someone";
+    let tUserLocalpart = roomMapping.server + "_" + tIrcNick;
+    let tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
@@ -128,7 +120,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it tries to register, join the room and get state, accept them
-        var sdk = env.clientMock._client(tIrcUserId);
+        let sdk = env.clientMock._client(tIrcUserId);
         sdk._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId
@@ -203,10 +195,12 @@ describe("Matrix-to-IRC PMing", function() {
 });
 
 describe("Matrix-to-IRC PMing disabled", function() {
-    var tUserId = "@flibble:wibble";
-    var tIrcNick = "someone";
-    var tUserLocalpart = roomMapping.server + "_" + tIrcNick;
-    var tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
+    const {env, config, roomMapping, test} = envBundle();
+
+    let tUserId = "@flibble:wibble";
+    let tIrcNick = "someone";
+    let tUserLocalpart = roomMapping.server + "_" + tIrcNick;
+    let tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
     beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].privateMessages.enabled = false;
@@ -287,18 +281,19 @@ describe("Matrix-to-IRC PMing disabled", function() {
 });
 
 describe("IRC-to-Matrix PMing", function() {
-    var sdk = null;
+    const {env, config, roomMapping, test} = envBundle();
+    let sdk = null;
 
-    var tRealIrcUserNick = "bob";
-    var tVirtualUserId = "@" + roomMapping.server + "_" + tRealIrcUserNick + ":" +
+    let tRealIrcUserNick = "bob";
+    let tVirtualUserId = "@" + roomMapping.server + "_" + tRealIrcUserNick + ":" +
                           config.homeserver.domain;
 
-    var tRealMatrixUserNick = "M-alice";
-    var tRealUserId = "@alice:anotherhomeserver";
+    let tRealMatrixUserNick = "M-alice";
+    let tRealUserId = "@alice:anotherhomeserver";
 
-    var tCreatedRoomId = "!fehwfweF:fuiowehfwe";
+    let tCreatedRoomId = "!fehwfweF:fuiowehfwe";
 
-    var tText = "ello ello ello";
+    let tText = "ello ello ello";
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
@@ -417,7 +412,7 @@ describe("IRC-to-Matrix PMing", function() {
         );
 
         // Send several messages, almost at once, to simulate a race
-        for (var i = 0; i < MESSAGE_COUNT; i++) {
+        for (let i = 0; i < MESSAGE_COUNT; i++) {
             client.emit("message", tRealIrcUserNick, tRealMatrixUserNick, tText);
         }
 
@@ -427,18 +422,20 @@ describe("IRC-to-Matrix PMing", function() {
 });
 
 describe("IRC-to-Matrix Non-Federated PMing", function() {
-    var sdk = null;
+    const {env, config, roomMapping, test} = envBundle();
 
-    var tRealIrcUserNick = "bob";
-    var tVirtualUserId = "@" + roomMapping.server + "_" + tRealIrcUserNick + ":" +
+    let sdk = null;
+
+    let tRealIrcUserNick = "bob";
+    let tVirtualUserId = "@" + roomMapping.server + "_" + tRealIrcUserNick + ":" +
                           config.homeserver.domain;
 
-    var tRealMatrixUserNick = "M-alice";
-    var tRealUserId = "@alice:anotherhomeserver";
+    let tRealMatrixUserNick = "M-alice";
+    let tRealUserId = "@alice:anotherhomeserver";
 
-    var tCreatedRoomId = "!fehwfweF:fuiowehfwe";
+    let tCreatedRoomId = "!fehwfweF:fuiowehfwe";
 
-    var tText = "ello ello ello";
+    let tText = "ello ello ello";
 
     beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].privateMessages.federate = false;
@@ -527,10 +524,12 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
 });
 
 describe("Matrix-to-IRC PMing over federation disabled", function() {
-    var tUserId = "@flibble:wobble";
-    var tIrcNick = "someone";
-    var tUserLocalpart = roomMapping.server + "_" + tIrcNick;
-    var tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
+    const {env, config, roomMapping, test} = envBundle();
+
+    let tUserId = "@flibble:wobble";
+    let tIrcNick = "someone";
+    let tUserLocalpart = roomMapping.server + "_" + tIrcNick;
+    let tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
     beforeEach(test.coroutine(function*() {
         config.ircService.servers[roomMapping.server].privateMessages.federate = false;

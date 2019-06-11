@@ -1,6 +1,6 @@
 Matrix <--> IRC Bridge
 ----------------------
-[![Build Status](https://travis-ci.org/matrix-org/matrix-appservice-irc.svg?branch=master)](https://travis-ci.org/matrix-org/matrix-appservice-irc)
+[![Build Status](https://badge.buildkite.com/f33ff3f5e59aed3057cec0215a84e26747581e0fcb09b4b699.svg)](https://buildkite.com/matrix-dot-org/matrix-appservice-irc)
 
 This is an IRC bridge for Matrix using the Application Services (AS) API. If you're upgrading from an old release, be sure to read the [CHANGELOG](CHANGELOG.md) as there may be breaking changes between releases.
 
@@ -24,8 +24,9 @@ you use this method, the bridge can be run via `node app.js`.
 
 
 ### Requirements
- - Node.js **v6.9** or above.
- - A Matrix homeserver you control running Synapse v0.18.5-rc3 or above.
+ - Node.js **v10.16.0** or above.
+ - A Matrix homeserver you control. Synapse v0.99.5.2 or above is recommended, but other homeserver implementations may also work.  
+
 
 ## 2. Configuration
 The bridge must be configured before it can be run. This tells the bridge where to find the homeserver

@@ -1,27 +1,28 @@
 "use strict";
-var Promise = require("bluebird");
-var test = require("../util/test");
-var promiseutil = require("../../lib/promiseutil.js");
-var env = test.mkEnv();
-var config = env.config;
+const Promise = require("bluebird");
+const promiseutil = require("../../lib/promiseutil.js");
+const envBundle = require("../util/env-bundle");
 
 describe("Provisioning API", function() {
-    var mxUser = {
+
+    const {env, config, test} = envBundle();
+
+    let mxUser = {
         id: "@flibble:wibble",
         nick: "M-flibble"
     };
 
-    var ircUser = {
+    let ircUser = {
         nick: "bob",
         localpart: config._server + "_bob",
         id: "@" + config._server + "_bob:" + config.homeserver.domain
     };
 
-    var receivingOp = {
+    let receivingOp = {
         nick: "oprah"
     };
 
-    var notOp = {
+    let notOp = {
         nick: "notoprah"
     };
 
@@ -85,7 +86,7 @@ describe("Provisioning API", function() {
         env.isSuccess = promiseutil.defer();
 
         // Listen for m.room.bridging
-        var sdk = env.clientMock._client(config._botUserId);
+        let sdk = env.clientMock._client(config._botUserId);
         sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
             console.log(roomId, kind, content);
             if (kind === "m.room.bridging") {
@@ -155,7 +156,7 @@ describe("Provisioning API", function() {
                 parameters.user_id = mxUser.id;
             }
 
-            for (var p in parameters) {
+            for (let p in parameters) {
                 if (parameters[p] === null) {
                     parameters[p] = undefined;
                 }
@@ -433,7 +434,7 @@ describe("Provisioning API", function() {
             env.isSuccess = promiseutil.defer();
 
             // Listen for m.room.bridging filure
-            var sdk = env.clientMock._client(config._botUserId);
+            let sdk = env.clientMock._client(config._botUserId);
             sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                 // Status of m.room.bridging is a success
                 // console.log(roomId, kind, content);
@@ -535,21 +536,21 @@ describe("Provisioning API", function() {
 
                 let nickForDisplayName = mxUser.nick;
 
-                var gotConnectCall = false;
+                let gotConnectCall = false;
                 env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "connect",
                 function(client, cb) {
                     gotConnectCall = true;
                     client._invokeCallback(cb);
                 });
 
-                var gotJoinCall = false;
+                let gotJoinCall = false;
                 env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "join",
                 function(client, channel, cb) {
                     gotJoinCall = true;
                     client._invokeCallback(cb);
                 });
 
-                var gotSayCall = false;
+                let gotSayCall = false;
                 env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "say",
                 function(client, channel, text) {
                     expect(client.nick).toEqual(nickForDisplayName);
@@ -568,7 +569,7 @@ describe("Provisioning API", function() {
                     }
                     replySent = true;
                     // Listen for m.room.bridging success
-                    var sdk = env.clientMock._client(config._botUserId);
+                    let sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
@@ -632,21 +633,21 @@ describe("Provisioning API", function() {
 
                 let nickForDisplayName = mxUser.nick;
 
-                var gotConnectCall = false;
+                let gotConnectCall = false;
                 env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "connect",
                 function(client, cb) {
                     gotConnectCall = true;
                     client._invokeCallback(cb);
                 });
 
-                var gotJoinCall = false;
+                let gotJoinCall = false;
                 env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "join",
                 function(client, channel, cb) {
                     gotJoinCall = true;
                     client._invokeCallback(cb);
                 });
 
-                var countSays = 0;
+                let countSays = 0;
                 env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "say",
                 function(client, channel, text) {
                     expect(client.nick).toEqual(nickForDisplayName);
@@ -665,7 +666,7 @@ describe("Provisioning API", function() {
                     }
                     replySent = true;
                     // Listen for m.room.bridging success
-                    var sdk = env.clientMock._client(config._botUserId);
+                    let sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
@@ -695,7 +696,7 @@ describe("Provisioning API", function() {
                     type: "m.room.message"
                 });
 
-                var sdk = env.clientMock._client(config._botUserId);
+                let sdk = env.clientMock._client(config._botUserId);
                 sdk.roomState.and.callFake((roomId) => {
                     return Promise.resolve([{
                         type: "m.room.member",
@@ -849,7 +850,7 @@ describe("Provisioning API", function() {
                     }
                     replySent = true;
                     // Listen for m.room.bridging success
-                    var sdk = env.clientMock._client(config._botUserId);
+                    let sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
@@ -911,7 +912,7 @@ describe("Provisioning API", function() {
                     }
                     // Listen for m.room.bridging success
                     console.log('Waiting for m.room.bridging');
-                    var sdk = env.clientMock._client(config._botUserId);
+                    let sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.and.callFake((stateRoomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
@@ -978,7 +979,7 @@ describe("Provisioning API", function() {
                         return;
                     }
                     // Listen for m.room.bridging success
-                    var sdk = env.clientMock._client(config._botUserId);
+                    let sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.and.callFake((stateRoomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
@@ -998,7 +999,7 @@ describe("Provisioning API", function() {
                 yield Promise.all(isLinked.map((d)=>{return d.promise;}));
 
 
-                var sdk = env.clientMock._client(config._botUserId);
+                let sdk = env.clientMock._client(config._botUserId);
                 sdk.roomState.and.callFake((rid) => {
                     return Promise.resolve([{
                         type: "m.room.member",
