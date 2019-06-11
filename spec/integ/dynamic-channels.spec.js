@@ -79,7 +79,6 @@ describe("Dynamic channels", function() {
     it("should create federated room when joining channel and federation is enabled",
     function(done) {
         config.ircService.servers[roomMapping.server].dynamicChannels.federate = true;
-        
 
         let tChannel = "#foobar";
         let tRoomId = "!newroom:id";
