@@ -1,3 +1,23 @@
+Changes in 0.12.0 (2019-06-06)
+==============================
+
+No changes since previous RC, see below for full list of changes
+
+Changes in 0.12.0-rc2 (2019-03-18)
+==============================
+
+* Fix issue where the bridge would conflict with other bridges when transforming a nick into a user id
+
+Changes in 0.12.0-rc1 (2019-03-15)
+==============================
+
+* The bridge now supports upgrading rooms, and will follow room upgrades to the new room.
+* Added support for the RoomLinkValidator, which allows admins to manually configure rules about plumbing rooms.
+* A dockerfile is now included.
+* Add support for "feature flags", allowing users to dynamically enable/disable bridge features for their account.
+* Add command "!bridgeversion"
+
+
 Changes in 0.11.2 (2018-10-05)
 ==============================
 

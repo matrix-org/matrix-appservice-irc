@@ -1,8 +1,8 @@
 "use strict";
-var Cli = require("matrix-appservice-bridge").Cli;
-var log = require("./lib/logging").get("CLI");
-var main = require("./lib/main");
-var path = require("path");
+const Cli = require("matrix-appservice-bridge").Cli;
+const log = require("./lib/logging").get("CLI");
+const main = require("./lib/main");
+const path = require("path");
 
 const REG_PATH = "appservice-registration-irc.yaml";
 

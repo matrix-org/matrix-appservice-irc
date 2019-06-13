@@ -1,5 +1,5 @@
 "use strict";
-var logging = require("../logging");
+const logging = require("../logging");
 var log = logging.get("req");
 
 class BridgeRequest {

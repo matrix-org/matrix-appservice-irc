@@ -182,6 +182,9 @@ ircService:
         # HS attached to this AS will be able to interact with this room.
         # Default: true.
         federate: true
+        # Force this room version when creating IRC channels. Beware if the homeserver doesn't
+        # support the room version then the request will fail. By default, no version is requested.
+        # roomVersion: "1"
         # The room alias template to apply when creating new aliases. This only
         # applies if createAlias is 'true'. The following variables are exposed:
         # $SERVER => The IRC server address (e.g. "irc.example.com")

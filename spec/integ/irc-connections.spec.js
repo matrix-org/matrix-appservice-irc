@@ -1,27 +1,17 @@
 /*
  * Tests IRC connections are managed correctly.
  */
-"use strict";
-var test = require("../util/test");
-var Promise = require("bluebird");
+const Promise = require("bluebird");
 
-// set up integration testing mocks
-var env = test.mkEnv();
-
-// set up test config
-var config = env.config;
-var roomMapping = {
-    server: config._server,
-    botNick: config._botnick,
-    channel: config._chan,
-    roomId: config._roomid
-};
+const envBundle = require("../util/env-bundle");
 
 describe("IRC connections", function() {
-    var testUser = {
+    let testUser = {
         id: "@alice:hs",
         nick: "M-alice"
     };
+
+    const {env, config, roomMapping, test} = envBundle();
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
@@ -49,8 +39,8 @@ describe("IRC connections", function() {
 
     it("should use the matrix user's display name if they have one",
     function(done) {
-        var displayName = "Some_Name";
-        var nickForDisplayName = "M-Some_Name";
+        let displayName = "Some_Name";
+        let nickForDisplayName = "M-Some_Name";
 
         // not interested in join calls
         env.ircMock._autoJoinChannels(
@@ -58,7 +48,7 @@ describe("IRC connections", function() {
         );
 
         // listen for the display name nick and let it connect
-        var gotConnectCall = false;
+        let gotConnectCall = false;
         env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "connect",
         function(client, cb) {
             gotConnectCall = true;
@@ -80,7 +70,7 @@ describe("IRC connections", function() {
             });
         });
 
-        var gotSayCall = false;
+        let gotSayCall = false;
         env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(nickForDisplayName);
@@ -108,8 +98,8 @@ describe("IRC connections", function() {
     });
 
     it("should coerce invalid nicks into a valid form", function(done) {
-        var displayName = "123Num£Ber";
-        var nickForDisplayName = "M-123NumBer";
+        let displayName = "123Num£Ber";
+        let nickForDisplayName = "M-123NumBer";
 
         // not interested in join calls
         env.ircMock._autoJoinChannels(
@@ -117,7 +107,7 @@ describe("IRC connections", function() {
         );
 
         // listen for the display name nick and let it connect
-        var gotConnectCall = false;
+        let gotConnectCall = false;
         env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "connect",
         function(client, cb) {
             gotConnectCall = true;
@@ -139,7 +129,7 @@ describe("IRC connections", function() {
             });
         });
 
-        var gotSayCall = false;
+        let gotSayCall = false;
         env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(nickForDisplayName);
@@ -168,10 +158,10 @@ describe("IRC connections", function() {
 
     it("should use the nick assigned in the rpl_welcome (registered) event",
     function(done) {
-        var assignedNick = "monkeys";
+        let assignedNick = "monkeys";
 
         // catch attempts to send messages and fail coherently
-        var sdk = env.clientMock._client(config._botUserId);
+        let sdk = env.clientMock._client(config._botUserId);
         sdk._onHttpRegister({
             expectLocalpart: roomMapping.server + "_" + testUser.nick,
             returnUserId: testUser.id
@@ -234,7 +224,7 @@ describe("IRC connections", function() {
 
     it("should be made once per client, regardless of how many messages are " +
     "to be sent to IRC", function(done) {
-        var connectCount = 0;
+        let connectCount = 0;
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect",
         function(client, cb) {
@@ -246,7 +236,7 @@ describe("IRC connections", function() {
             }, 500);
         });
 
-        var promises = [];
+        let promises = [];
 
         promises.push(env.mockAppService._trigger("type:m.room.message", {
             content: {
@@ -277,8 +267,8 @@ describe("IRC connections", function() {
     // BOTS-41
     it("[BOTS-41] should be able to handle clashing nicks without causing echos",
     function(done) {
-        var nickToClash = "M-kermit";
-        var users = [
+        let nickToClash = "M-kermit";
+        let users = [
             {
                 id: "@kermit:bar",
                 assignedNick: "M-kermit"
@@ -289,7 +279,7 @@ describe("IRC connections", function() {
             }
         ];
 
-        var connectCount = 0;
+        let connectCount = 0;
         env.ircMock._whenClient(roomMapping.server, nickToClash, "connect",
         function(client, cb) {
             if (connectCount === 0) {
@@ -311,7 +301,7 @@ describe("IRC connections", function() {
         });
 
         // catch attempts to send messages and fail coherently
-        var sdk = env.clientMock._client(config._botUserId);
+        let sdk = env.clientMock._client(config._botUserId);
         sdk._onHttpRegister({
             expectLocalpart: roomMapping.server + "_" + users[0].assignedNick,
             returnUserId: users[0].id
@@ -377,11 +367,11 @@ describe("IRC connections", function() {
 
     it("should assign different ident usernames for long user IDs",
     function(done) {
-        var usr1 = {
+        let usr1 = {
             nick: "M-averyverylongname",
             id: "@averyverylongname:localhost"
         };
-        var usr2 = {
+        let usr2 = {
             nick: "M-averyverylongnameagain",
             id: "@averyverylongnameagain:localhost"
         };
@@ -441,11 +431,11 @@ describe("IRC connections", function() {
 
     it("should queue ident generation requests to avoid racing when querying for " +
             "cached ident usernames", function(done) {
-        var usr1 = {
+        let usr1 = {
             nick: "M-averyverylongname",
             id: "@averyverylongname:localhost"
         };
-        var usr2 = {
+        let usr2 = {
             nick: "M-averyverylongnameagain",
             id: "@averyverylongnameagain:localhost"
         };
@@ -475,7 +465,7 @@ describe("IRC connections", function() {
         });
 
         // send a message to kick start the AS
-        var p1 = env.mockAppService._trigger("type:m.room.message", {
+        let p1 = env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -484,7 +474,7 @@ describe("IRC connections", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
-        var p2 = env.mockAppService._trigger("type:m.room.message", {
+        let p2 = env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message2",
                 msgtype: "m.text"
@@ -507,7 +497,7 @@ describe("IRC connections", function() {
             roomMapping.server, testUser.nick, roomMapping.server
         );
 
-        var errorEmitted = false;
+        let errorEmitted = false;
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "join",
         function(client, cb) {
             errorEmitted = true;
