@@ -40,3 +40,6 @@ node_modules
 
 #passwords
 passkey.pem
+
+# Files built by ts
+lib/
