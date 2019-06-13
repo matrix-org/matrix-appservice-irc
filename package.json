@@ -25,8 +25,9 @@
     "url": "https://github.com/matrix-org/matrix-appservice-irc/issues"
   },
   "dependencies": {
+    "@types/bluebird": "^3.5.27",
     "@types/node": "^10.14.9",
-    "bluebird": "^3.1.1",
+    "bluebird": "^3.5.5",
     "crc": "^3.2.1",
     "escape-string-regexp": "^1.0.5",
     "extend": "^2.0.0",
