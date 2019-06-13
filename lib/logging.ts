@@ -4,6 +4,15 @@
 "use strict";
 var winston = require("winston");
 require('winston-daily-rotate-file');
+
+export interface IRequestLogger {
+    debug: (...params: any[]) => void,
+    info: (...params: any[]) => void,
+    warn: (...params: any[]) => void,
+    error: (...params: any[]) => void,
+    log: (...params: any[]) => void,
+}
+
 var loggerConfig = {
     level: "debug",
     logfile: undefined,
@@ -142,7 +151,7 @@ module.exports = {
     isVerbose: function () {
         return loggerConfig.verbose;
     },
-    newRequestLogger: function (baseLogger, requestId, isFromIrc) {
+    newRequestLogger: function (baseLogger, requestId, isFromIrc): IRequestLogger {
         var decorate = function (fn, args) {
             var newArgs = [];
             // don't slice this; screws v8 optimisations apparently
