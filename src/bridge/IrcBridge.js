@@ -8,7 +8,7 @@ var MatrixHandler = require("./MatrixHandler.js");
 var MemberListSyncer = require("./MemberListSyncer.js");
 var IdentGenerator = require("../irc/IdentGenerator.js");
 var Ipv6Generator = require("../irc/Ipv6Generator.js");
-var IrcServer = require("../irc/IrcServer.js");
+const { IrcServer, DEFAULT_CONFIG } = require("../irc/IrcServer.js");
 var ClientPool = require("../irc/ClientPool");
 var IrcEventBroker = require("../irc/IrcEventBroker");
 var BridgedClient = require("../irc/BridgedClient");
@@ -239,7 +239,7 @@ IrcBridge.prototype.run = Promise.coroutine(function* (port) {
     let serverDomains = Object.keys(this.config.ircService.servers);
     for (var i = 0; i < serverDomains.length; i++) {
         let domain = serverDomains[i];
-        let completeConfig = extend(true, {}, IrcServer.DEFAULT_CONFIG, this.config.ircService.servers[domain]);
+        let completeConfig = extend(true, {}, DEFAULT_CONFIG, this.config.ircService.servers[domain]);
         let server = new IrcServer(domain, completeConfig, this.config.homeserver.domain, this.config.homeserver.dropMatrixMessagesAfterSecs);
         // store the config mappings in the DB to keep everything in one place.
         yield this._dataStore.setServerFromConfig(server, completeConfig);
