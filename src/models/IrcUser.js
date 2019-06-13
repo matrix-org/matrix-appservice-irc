@@ -1,8 +1,7 @@
 "use strict";
-var RemoteUser = require("matrix-appservice-bridge").RemoteUser;
+const RemoteUser = require("matrix-appservice-bridge").RemoteUser;
 
 class IrcUser extends RemoteUser {
-
     /**
      * Construct a new IRC user.
      * @constructor
@@ -25,23 +24,16 @@ class IrcUser extends RemoteUser {
         this.nick = nick;
         this.password = password || null;
     }
-
     getUsername() {
         return this.get("username");
     }
-
     toString() {
         return this.nick + " (" + this.getUsername() + "@" +
             (this.server ? this.server.domain : "-") + ")";
     }
 }
-
-IrcUser.fromRemoteUser = function(server, remoteUser) {
-    var ircUser = new IrcUser(
-        server, remoteUser.get("nick"), remoteUser.get("isVirtual"),
-        remoteUser.get("password"), remoteUser.get("username")
-    );
+IrcUser.fromRemoteUser = function (server, remoteUser) {
+    var ircUser = new IrcUser(server, remoteUser.get("nick"), remoteUser.get("isVirtual"), remoteUser.get("password"), remoteUser.get("username"));
     return ircUser;
 };
-
 module.exports = IrcUser;

@@ -1,8 +1,8 @@
 /*eslint no-invalid-this: 0 */
 "use strict";
-var Promise = require("bluebird");
-var Queue = require("../util/Queue");
-var log = require("../logging").get("Ipv6Generator");
+const Promise = require("bluebird");
+const Queue = require("../util/Queue");
+const log = require("../logging").get("Ipv6Generator");
 
 function Ipv6Generator(store) {
     // Queue of ipv6 generation requests.
@@ -12,14 +12,12 @@ function Ipv6Generator(store) {
     this._dataStore = store;
     this._counter = -1;
 }
-
 // debugging: util.inspect()
-Ipv6Generator.prototype.inspect = function(depth) {
+Ipv6Generator.prototype.inspect = function (depth) {
     return "IPv6Counter=" + this._counter +
         ",Queue.length=" + (this._queue._queue ?
-                    this._queue._queue.length : -1);
-}
-
+        this._queue._queue.length : -1);
+};
 /**
  * Generate a new IPv6 address for the given IRC client config.
  * @param {string} prefix The IPv6 prefix to use.
@@ -27,20 +25,15 @@ Ipv6Generator.prototype.inspect = function(depth) {
  * @return {Promise} Resolves to the IPv6 address generated; the IPv6 address will
  * already be set on the given config.
  */
-Ipv6Generator.prototype.generate = Promise.coroutine(function*(prefix, ircClientConfig) {
+Ipv6Generator.prototype.generate = Promise.coroutine(function* (prefix, ircClientConfig) {
     if (ircClientConfig.getIpv6Address()) {
-        log.info(
-            "Using existing IPv6 address %s for %s",
-            ircClientConfig.getIpv6Address(),
-            ircClientConfig.getUserId()
-        );
+        log.info("Using existing IPv6 address %s for %s", ircClientConfig.getIpv6Address(), ircClientConfig.getUserId());
         return ircClientConfig.getIpv6Address();
     }
     if (this._counter === -1) {
         log.info("Retrieving counter...");
         this._counter = yield this._dataStore.getIpv6Counter();
     }
-
     // the bot user will not have a user ID
     let id = ircClientConfig.getUserId() || ircClientConfig.getUsername();
     log.info("Enqueueing IPv6 generation request for %s", id);
@@ -50,24 +43,18 @@ Ipv6Generator.prototype.generate = Promise.coroutine(function*(prefix, ircClient
     });
     return undefined;
 });
-
-Ipv6Generator.prototype._process = Promise.coroutine(function*(item) {
+Ipv6Generator.prototype._process = Promise.coroutine(function* (item) {
     this._counter += 1;
-
     // insert : every 4 characters from the end of the string going to the start
     // e.g. 1a2b3c4d5e6 => 1a2:b3c4:d5e6
     let suffix = this._counter.toString(16);
     suffix = suffix.replace(/\B(?=(.{4})+(?!.))/g, ':');
     let address = item.prefix + suffix;
-
     let config = item.ircClientConfig;
     config.setIpv6Address(address);
-
     // we only want to persist the IPv6 address for real matrix users
     if (item.ircClientConfig.getUserId()) {
-        let existingConfig = yield this._dataStore.getIrcClientConfig(
-            item.ircClientConfig.getUserId(), item.ircClientConfig.getDomain()
-        );
+        let existingConfig = yield this._dataStore.getIrcClientConfig(item.ircClientConfig.getUserId(), item.ircClientConfig.getDomain());
         if (existingConfig) {
             config = existingConfig;
             config.setIpv6Address(address);
@@ -76,10 +63,7 @@ Ipv6Generator.prototype._process = Promise.coroutine(function*(item) {
         // persist to db here before releasing the lock on this request.
         yield this._dataStore.storeIrcClientConfig(config);
     }
-
     yield this._dataStore.setIpv6Counter(this._counter);
-
     return config.getIpv6Address();
 });
-
 module.exports = Ipv6Generator;

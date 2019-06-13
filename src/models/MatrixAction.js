@@ -5,7 +5,6 @@ const log = require("../logging").get("MatrixAction");
 const ContentRepo = require("matrix-appservice-bridge").ContentRepo;
 const escapeStringRegexp = require('escape-string-regexp');
 const Promise = require("bluebird");
-
 const ACTION_TYPES = ["message", "emote", "topic", "notice", "file", "image", "video", "audio"];
 const EVENT_TO_TYPE = {
     "m.room.message": "message",
@@ -19,10 +18,8 @@ const MSGTYPE_TO_TYPE = {
     "m.audio": "audio",
     "m.file": "file"
 };
-
 const PILL_MIN_LENGTH_TO_MATCH = 4;
 const MAX_MATCHES = 5;
-
 function MatrixAction(type, text, htmlText, timestamp) {
     if (ACTION_TYPES.indexOf(type) === -1) {
         throw new Error("Unknown MatrixAction type: " + type);
@@ -32,8 +29,7 @@ function MatrixAction(type, text, htmlText, timestamp) {
     this.htmlText = htmlText;
     this.ts = timestamp || 0;
 }
-
-MatrixAction.prototype.formatMentions = Promise.coroutine(function*(nickUserIdMap, intent) {
+MatrixAction.prototype.formatMentions = Promise.coroutine(function* (nickUserIdMap, intent) {
     const regexString = "(" +
         Object.keys(nickUserIdMap).map((value) => escapeStringRegexp(value)).join("|")
         + ")";
@@ -50,9 +46,7 @@ MatrixAction.prototype.formatMentions = Promise.coroutine(function*(nickUserIdMa
         let userId = nickUserIdMap[matchName];
         if (userId === undefined) {
             // We might need to search case-insensitive.
-            const nick = Object.keys(nickUserIdMap).find((n) =>
-                n.toLowerCase() === matchName.toLowerCase()
-            );
+            const nick = Object.keys(nickUserIdMap).find((n) => n.toLowerCase() === matchName.toLowerCase());
             if (nick === undefined) {
                 continue;
             }
@@ -66,7 +60,6 @@ MatrixAction.prototype.formatMentions = Promise.coroutine(function*(nickUserIdMa
             this.htmlText = this.text;
         }
         userId = ircFormatting.escapeHtmlChars(userId);
-
         /* Due to how Riot and friends do push notifications,
            we need the plain text to match something.*/
         let identifier;
@@ -76,29 +69,23 @@ MatrixAction.prototype.formatMentions = Promise.coroutine(function*(nickUserIdMa
         catch (e) {
             // This shouldn't happen, but let's not fail to match if so.
         }
-
         if (identifier === undefined) {
             // Fallback to userid.
-            identifier = userId.substr(1, userId.indexOf(":")-1)
+            identifier = userId.substr(1, userId.indexOf(":") - 1);
         }
-
         const regex = MentionRegex(escapeStringRegexp(matchName));
-        this.htmlText = this.htmlText.replace(regex,
-            `$1<a href="https://matrix.to/#/${userId}">`+
-            `${ircFormatting.escapeHtmlChars(identifier)}</a>`
-        );
+        this.htmlText = this.htmlText.replace(regex, `$1<a href="https://matrix.to/#/${userId}">` +
+            `${ircFormatting.escapeHtmlChars(identifier)}</a>`);
         this.text = this.text.replace(regex, `$1${identifier}`);
         // Don't match this name twice, we've already replaced all entries.
         matched.add(matchName.toLowerCase());
     }
 });
-
-MatrixAction.fromEvent = function(client, event, mediaUrl) {
+MatrixAction.fromEvent = function (client, event, mediaUrl) {
     event.content = event.content || {};
     let type = EVENT_TO_TYPE[event.type] || "message"; // mx event type to action type
     let text = event.content.body;
     let htmlText = null;
-
     if (event.type === "m.room.topic") {
         text = event.content.topic;
     }
@@ -112,34 +99,29 @@ MatrixAction.fromEvent = function(client, event, mediaUrl) {
         if (["m.image", "m.file", "m.video", "m.audio"].indexOf(event.content.msgtype) !== -1) {
             var fileSize = "";
             if (event.content.info && event.content.info.size &&
-                    typeof event.content.info.size === "number") {
+                typeof event.content.info.size === "number") {
                 fileSize = " (" + Math.round(event.content.info.size / 1024) + "KB)";
             }
-
             // By default assume that the media server = client homeserver
             if (!mediaUrl) {
                 mediaUrl = client.getHomeserverUrl();
             }
-
             const url = ContentRepo.getHttpUriForMxc(mediaUrl, event.content.url);
             text = `${event.content.body}${fileSize} < ${url} >`;
         }
     }
     return new MatrixAction(type, text, htmlText, event.origin_server_ts);
 };
-MatrixAction.fromIrcAction = function(ircAction) {
+MatrixAction.fromIrcAction = function (ircAction) {
     switch (ircAction.type) {
         case "message":
         case "emote":
         case "notice":
             let htmlText = ircFormatting.ircToHtml(ircAction.text);
-            return new MatrixAction(
-                ircAction.type,
-                ircFormatting.stripIrcFormatting(ircAction.text),
-                // only set HTML text if we think there is HTML, else the bridge
-                // will send everything as HTML and never text only.
-                ircAction.text !== htmlText ? htmlText : undefined
-            );
+            return new MatrixAction(ircAction.type, ircFormatting.stripIrcFormatting(ircAction.text), 
+            // only set HTML text if we think there is HTML, else the bridge
+            // will send everything as HTML and never text only.
+            ircAction.text !== htmlText ? htmlText : undefined);
         case "topic":
             return new MatrixAction("topic", ircAction.text);
         default:
@@ -147,13 +129,8 @@ MatrixAction.fromIrcAction = function(ircAction) {
             return null;
     }
 };
-
 function MentionRegex(matcher) {
     const WORD_BOUNDARY = "^|\:|\#|```|\\s|$|,";
-    return new RegExp(
-        `(${WORD_BOUNDARY})(@?(${matcher}))(?=${WORD_BOUNDARY})`,
-        "igmu"
-    );
+    return new RegExp(`(${WORD_BOUNDARY})(@?(${matcher}))(?=${WORD_BOUNDARY})`, "igmu");
 }
-
 module.exports = MatrixAction;

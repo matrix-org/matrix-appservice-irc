@@ -1,7 +1,7 @@
 "use strict";
-var logging = require("../logging");
+const logging = require("../logging");
 var log = logging.get("ProvisionRequest");
-var crypto = require('crypto');
+const crypto = require('crypto');
 
 class ProvisionRequest {
     constructor(req, fnName) {
@@ -11,18 +11,14 @@ class ProvisionRequest {
         this._id = crypto.randomBytes(4).toString('hex');
         this.log = logging.newRequestLogger(log, this._id + ' ' + fnName, false);
     }
-
     getPromise() {
         return this.req.getPromise();
     }
-
     resolve(thing) {
         this.req.resolve(thing);
     }
-
     reject(err) {
         this.req.reject(err);
     }
 }
-
 module.exports = ProvisionRequest;
