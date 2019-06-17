@@ -1,7 +1,7 @@
 /*eslint no-invalid-this: 0 */
 "use strict";
 const Promise = require("bluebird");
-const promiseutil = require("../promiseutil");
+const promiseutil = require("../promiseutil").PromiseUtil;
 
 /**
  * Construct a new Queue which will process items FIFO.

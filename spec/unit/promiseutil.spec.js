@@ -1,6 +1,6 @@
 "use strict";
 const Promise = require("bluebird");
-const promiseutil = require("../../lib/promiseutil");
+const promiseutil = require("../../lib/promiseutil").PromiseUtil;
 
 describe("promiseutil.allSettled", function() {
     it("waits for all", function(done) {

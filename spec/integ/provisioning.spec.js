@@ -1,6 +1,6 @@
 "use strict";
 const Promise = require("bluebird");
-const promiseutil = require("../../lib/promiseutil.js");
+const promiseutil = require("../../lib/promiseutil.js").PromiseUtil;
 const envBundle = require("../util/env-bundle");
 
 describe("Provisioning API", function() {

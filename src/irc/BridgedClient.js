@@ -2,7 +2,7 @@
 "use strict";
 
 const Promise = require("bluebird");
-const promiseutil = require("../promiseutil");
+const promiseutil = require("../promiseutil").PromiseUtil;
 const util = require("util");
 const EventEmitter = require("events").EventEmitter;
 const ident = require("./ident");

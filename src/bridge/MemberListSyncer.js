@@ -4,7 +4,7 @@
 "use strict";
 
 const Promise = require("bluebird");
-const promiseutil = require("../promiseutil");
+const promiseutil = require("../promiseutil").PromiseUtil;
 const log = require("../logging").get("MemberListSyncer");
 const stats = require("../config/stats");
 const QueuePool = require("../util/QueuePool");

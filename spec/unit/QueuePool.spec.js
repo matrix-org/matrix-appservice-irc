@@ -1,7 +1,7 @@
 "use strict";
 let QueuePool = require("../../lib/util/QueuePool");
-let promiseutil = require("../../lib/promiseutil");
-let test = require("../util/test");
+let promiseutil = require("../../lib/promiseutil").PromiseUtil;
+let test = require("../util/test");-0
 
 let nextTick = function() {
     return new Promise((resolve, reject) => {

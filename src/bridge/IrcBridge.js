@@ -2,7 +2,7 @@
 "use strict";
 var Promise = require("bluebird");
 var extend = require("extend");
-var promiseutil = require("../promiseutil");
+var promiseutil = require("../promiseutil").PromiseUtil;
 var IrcHandler = require("./IrcHandler.js");
 var MatrixHandler = require("./MatrixHandler.js");
 var MemberListSyncer = require("./MemberListSyncer.js");

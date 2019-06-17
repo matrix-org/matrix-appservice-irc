@@ -10,7 +10,7 @@ const BridgeRequest = require("../models/BridgeRequest");
 const ProvisionRequest = require("./ProvisionRequest");
 
 const log = require("../logging").get("Provisioner");
-const promiseutil = require("../promiseutil.js");
+const promiseutil = require("../promiseutil.js").PromiseUtil;
 
 var matrixRoomIdValidation = {
     "type": "string",
