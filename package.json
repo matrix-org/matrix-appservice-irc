@@ -32,7 +32,7 @@
     "irc": "matrix-org/node-irc#c9abb427bec5016d94a2abf3e058cc62de09ea5a",
     "js-yaml": "^3.2.7",
     "matrix-appservice-bridge": "matrix-org/matrix-appservice-bridge#cab087b26447dc66ad7b93bbfc348470d41e5e86",
-    "matrix-lastactive": "^0.0.5",
+    "matrix-lastactive": "^0.0.6",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
     "prom-client": "^6.3.0",
