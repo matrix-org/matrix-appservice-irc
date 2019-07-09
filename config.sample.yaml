@@ -460,6 +460,7 @@ ircService:
     # "off" - Defaults to disabled, users can choose to enable.
     # "force-off" - Disabled, cannot be enabled.
     mapIrcMentionsToMatrix: "on" # This can be "on", "off", "force-off".
+
 # Options here are generally only applicable to large-scale bridges and may have
 # consequences greater than other options in this configuration file.
 advanced:
