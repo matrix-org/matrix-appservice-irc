@@ -1,5 +1,4 @@
 /*eslint no-invalid-this: 0 no-constant-condition: 0 */
-"use strict";
 const Promise = require("bluebird");
 const Queue = require("../util/Queue");
 const log = require("../logging").get("IdentGenerator");
@@ -11,12 +10,15 @@ function IdentGenerator(store) {
     this.queue = new Queue(this._process.bind(this));
     this.dataStore = store;
 }
+
 // debugging: util.inspect()
-IdentGenerator.prototype.inspect = function (depth) {
+IdentGenerator.prototype.inspect = function(depth) {
     return "IdentGenerator queue length=" +
         (this.queue._queue ?
             this.queue._queue.length : -1);
-};
+}
+
+
 /**
  * Get the IRC name info for this user.
  * @param {IrcClientConfig} clientConfig IRC client configuration info.
@@ -26,22 +28,33 @@ IdentGenerator.prototype.inspect = function (depth) {
  *   realname: 'realname_to_use'
  * }
  */
-IdentGenerator.prototype.getIrcNames = Promise.coroutine(function* (ircClientConfig, matrixUser) {
+IdentGenerator.prototype.getIrcNames = Promise.coroutine(function*(ircClientConfig, matrixUser) {
     var info = {
         username: null,
         realname: (matrixUser ?
-            sanitiseRealname(matrixUser.getId()) :
-            sanitiseRealname(ircClientConfig.getUsername())).substring(0, IdentGenerator.MAX_REAL_NAME_LENGTH)
+                    sanitiseRealname(matrixUser.getId()) :
+                    sanitiseRealname(ircClientConfig.getUsername())
+                  ).substring(
+                        0, IdentGenerator.MAX_REAL_NAME_LENGTH
+                  )
     };
     if (matrixUser) {
         if (ircClientConfig.getUsername()) {
-            log.debug("Using cached ident username %s for %s on %s", ircClientConfig.getUsername(), matrixUser.getId(), ircClientConfig.getDomain());
+            log.debug(
+                "Using cached ident username %s for %s on %s",
+                ircClientConfig.getUsername(), matrixUser.getId(), ircClientConfig.getDomain()
+            );
             info.username = sanitiseUsername(ircClientConfig.getUsername());
-            info.username = info.username.substring(0, IdentGenerator.MAX_USER_NAME_LENGTH);
+            info.username = info.username.substring(
+                0, IdentGenerator.MAX_USER_NAME_LENGTH
+            );
         }
         else {
             try {
-                log.debug("Pushing username generation request for %s on %s to the queue...", matrixUser.getId(), ircClientConfig.getDomain());
+                log.debug(
+                    "Pushing username generation request for %s on %s to the queue...",
+                    matrixUser.getId(), ircClientConfig.getDomain()
+                );
                 let uname = yield this.queue.enqueue(matrixUser.getId(), {
                     matrixUser: matrixUser,
                     ircClientConfig: ircClientConfig
@@ -49,38 +62,52 @@ IdentGenerator.prototype.getIrcNames = Promise.coroutine(function* (ircClientCon
                 info.username = uname;
             }
             catch (err) {
-                log.error("Failed to generate ident username for %s on %s", matrixUser.getId(), ircClientConfig.getDomain());
+                log.error(
+                    "Failed to generate ident username for %s on %s",
+                    matrixUser.getId(), ircClientConfig.getDomain()
+                );
                 log.error(err.stack);
                 throw err;
             }
         }
     }
     else {
-        info.username = sanitiseUsername(ircClientConfig.getUsername() // the bridge won't have a matrix user
+        info.username = sanitiseUsername(
+            ircClientConfig.getUsername() // the bridge won't have a matrix user
         );
     }
     return info;
 });
-IdentGenerator.prototype._process = Promise.coroutine(function* (item) {
+
+IdentGenerator.prototype._process = Promise.coroutine(function*(item) {
     var matrixUser = item.matrixUser;
     var ircClientConfig = item.ircClientConfig;
     var configDomain = ircClientConfig.getDomain();
-    log.debug("Generating username for %s on %s", matrixUser.getId(), configDomain);
-    let uname = yield this._generateIdentUsername(configDomain, matrixUser.getId());
-    let existingConfig = yield this.dataStore.getIrcClientConfig(matrixUser.getId(), configDomain);
+
+    log.debug(
+        "Generating username for %s on %s", matrixUser.getId(), configDomain
+    );
+    let uname = yield this._generateIdentUsername(
+        configDomain, matrixUser.getId()
+    );
+    let existingConfig = yield this.dataStore.getIrcClientConfig(
+        matrixUser.getId(), configDomain
+    );
     let config = existingConfig ? existingConfig : ircClientConfig;
     config.setUsername(uname);
+
     // persist to db here before releasing the lock on this request.
     yield this.dataStore.storeIrcClientConfig(config);
     return config.getUsername();
 });
+
 /**
  * Generate a new IRC username for the given Matrix user on the given server.
  * @param {string} domain The IRC server domain
  * @param {string} userId The matrix user being bridged
  * @return {Promise} resolves to the username {string}.
  */
-IdentGenerator.prototype._generateIdentUsername = Promise.coroutine(function* (domain, userId) {
+IdentGenerator.prototype._generateIdentUsername = Promise.coroutine(function*(domain, userId) {
     // @foobar££stuff:domain.com  =>  foobar__stuff_domain_com
     var uname = sanitiseUsername(userId.substring(1));
     if (uname < IdentGenerator.MAX_USER_NAME_LENGTH) { // bwahaha not likely.
@@ -132,6 +159,7 @@ IdentGenerator.prototype._generateIdentUsername = Promise.coroutine(function* (d
         }
         return uname.indexOf(delim) !== 0; // break out if '~10000'
     }
+
     // TODO: This isn't efficient currently; since this will be called worst
     // case 10^[num chars in string] => 10^10
     // We should instead be querying to extract the max occupied number for
@@ -146,16 +174,23 @@ IdentGenerator.prototype._generateIdentUsername = Promise.coroutine(function* (d
         }
         else {
             if (!usr) {
-                log.info("Generated ident username %s for %s on %s", uname, userId, domain);
+                log.info(
+                    "Generated ident username %s for %s on %s",
+                    uname, userId, domain
+                );
             }
             else {
-                log.info("Returning cached ident username %s for %s on %s", uname, userId, domain);
+                log.info(
+                    "Returning cached ident username %s for %s on %s",
+                    uname, userId, domain
+                );
             }
             break;
         }
     }
     return uname;
 });
+
 function sanitiseUsername(username, replacementChar) {
     replacementChar = replacementChar || ""; // default remove chars
     username = username.toLowerCase();
@@ -172,12 +207,17 @@ function sanitiseUsername(username, replacementChar) {
     }
     return username;
 }
+
 function sanitiseRealname(realname) {
     // real name can be any old ASCII
     return realname.replace(/[^\x00-\x7F]/g, "");
 }
+
 // The max length of <realname> in USER commands
 IdentGenerator.MAX_REAL_NAME_LENGTH = 48;
+
 // The max length of <username> in USER commands
 IdentGenerator.MAX_USER_NAME_LENGTH = 10;
+
+
 module.exports = IdentGenerator;

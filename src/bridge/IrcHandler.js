@@ -1,66 +1,87 @@
 /*eslint no-invalid-this: 0 consistent-return: 0*/
-"use strict";
 const Promise = require("bluebird");
+
 const stats = require("../config/stats");
-const BridgeRequest = require("../models/BridgeRequest").BridgeRequest;
+const BridgeRequest = require("../models/BridgeRequest");
 const IrcRoom = require("../models/IrcRoom");
 const MatrixRoom = require("matrix-appservice-bridge").MatrixRoom;
 const MatrixUser = require("matrix-appservice-bridge").MatrixUser;
 const MatrixAction = require("../models/MatrixAction");
+
 const Queue = require("../util/Queue.js");
 const QueuePool = require("../util/QueuePool.js");
-const QuitDebouncer = require("./QuitDebouncer.js").QuitDebouncer;
+
+const QuitDebouncer = require("./QuitDebouncer.js");
+
 const JOIN_DELAY_MS = 250;
 const JOIN_DELAY_CAP_MS = 30 * 60 * 1000; // 30 mins
 const MODES_TO_WATCH = [
-    "m",
+    "m", // We want to ensure we do not miss rooms that get unmoderated.
     "k",
     "i",
     "s"
 ];
+
 const NICK_USERID_CACHE_MAX = 512;
 const LEAVE_CONCURRENCY = 10;
+
 function IrcHandler(ircBridge, config) {
-    config = config || {};
+    config = config || {}
     this.ircBridge = ircBridge;
     // maintain a map of which user ID is in which PM room, so we know if we
     // need to re-invite them if they bail.
     this._roomIdToPrivateMember = {
-    // room_id: { user_id: $USER_ID, membership: "join|invite|leave|etc" }
+        // room_id: { user_id: $USER_ID, membership: "join|invite|leave|etc" }
     };
+
     // Used when a server is configured to debounce quits that could potentially
     // be part of a net-split.
     this.quitDebouncer = new QuitDebouncer(ircBridge);
+
     // Use per-channel queues to keep the setting of topics in rooms atomic in
     // order to prevent races involving several topics being received from IRC
     // in quick succession. If `(server, channel, topic)` are the same, an
     // existing promise will be used, otherwise a new item is added to the queue.
     this.topicQueues = {
-    //$channel : Queue
-    };
+        //$channel : Queue
+    }
+
     // A map of promises that resolve to the PM room that has been created for the
     // two users in the key. The $fromUserId is the user ID of the virtual IRC user
     // and the $toUserId, the user ID of the recipient of the message. This is used
     // to prevent races when many messages are sent as PMs at once and therefore
     // prevent many pm rooms from being created.
     this.pmRoomPromises = {
-    //'$fromUserId $toUserId' : Promise
+        //'$fromUserId $toUserId' : Promise
     };
+
     this.nickUserIdMapCache = new Map(); // server:channel => mapping
+
     // Map<string,bool> which contains nicks we know have been registered/has display name
     this._registeredNicks = Object.create(null);
+
     // QueuePool for leaving "concurrently" without slowing leaves to a crawl.
     // Takes {
     //    rooms: MatrixRoom[],
     //    matrixUser: MatrixUser[],
     //    req: Request
     //}
-    this._leaveQueue = new QueuePool(config.leaveConcurrency || LEAVE_CONCURRENCY, (item) => {
-        return Promise.all(item.rooms.map((room) => {
-            item.req.log.info("Leaving room %s (%s)", room.getId(), item.matrixUser.getId());
-            return this.ircBridge.getAppServiceBridge().getIntent(item.matrixUser.getId()).leave(room.getId());
-        }));
-    });
+    this._leaveQueue = new QueuePool(
+        config.leaveConcurrency || LEAVE_CONCURRENCY,
+        (item) => {
+            return Promise.all(item.rooms.map((room) => {
+                item.req.log.info(
+                    "Leaving room %s (%s)",
+                    room.getId(),
+                    item.matrixUser.getId()
+                );
+                return this.ircBridge.getAppServiceBridge().getIntent(
+                    item.matrixUser.getId()
+                ).leave(room.getId());
+            }));
+        }
+    );
+
     /*
     One of:
     "on" - Defaults to enabled, users can choose to disable.
@@ -68,9 +89,11 @@ function IrcHandler(ircBridge, config) {
     "force-off" - Disabled, cannot be enabled.
     */
     this._mentionMode = config.mapIrcMentionsToMatrix || "on";
+
     this.getMetrics();
 }
-IrcHandler.prototype.onMatrixMemberEvent = function (event) {
+
+IrcHandler.prototype.onMatrixMemberEvent = function(event) {
     let priv = this._roomIdToPrivateMember[event.room_id];
     if (!priv) {
         // _roomIdToPrivateMember only starts tracking AFTER one private message
@@ -82,9 +105,12 @@ IrcHandler.prototype.onMatrixMemberEvent = function (event) {
     if (priv.user_id !== event.state_key) {
         return; // don't care about member changes for other users
     }
+
     priv.membership = event.content.membership;
 };
-IrcHandler.prototype._ensureMatrixUserJoined = Promise.coroutine(function* (roomId, userId, virtUserId, log) {
+
+IrcHandler.prototype._ensureMatrixUserJoined = Promise.coroutine(function*(roomId,
+                                                                userId, virtUserId, log) {
     let priv = this._roomIdToPrivateMember[roomId];
     if (!priv) {
         // create a brand new entry for this user. Set them to not joined initially
@@ -94,29 +120,39 @@ IrcHandler.prototype._ensureMatrixUserJoined = Promise.coroutine(function* (room
             membership: "leave"
         };
         this._roomIdToPrivateMember[roomId] = priv;
+
         // query room state to see if the user is actually joined.
-        log.info("Querying PM room state (%s) between %s and %s", roomId, userId, virtUserId);
-        let cli = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs(virtUserId);
+        log.info("Querying PM room state (%s) between %s and %s",
+            roomId, userId, virtUserId);
+        let cli = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs(
+            virtUserId
+        );
         let stateEvents = yield cli.roomState(roomId);
         for (let i = 0; i < stateEvents.length; i++) {
             if (stateEvents[i].type === "m.room.member" &&
-                stateEvents[i].state_key === userId) {
+                    stateEvents[i].state_key === userId) {
                 priv.membership = stateEvents[i].content.membership;
                 break;
             }
         }
     }
+
     // we should have the latest membership state now for this user (either we just
     // fetched it or it has been kept in sync via onMatrixMemberEvent calls)
+
     if (priv.membership !== "join" && priv.membership !== "invite") { // fix it!
-        log.info("Inviting %s to the existing PM room with %s (current membership=%s)", userId, virtUserId, priv.membership);
-        let cli = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs(virtUserId);
+        log.info("Inviting %s to the existing PM room with %s (current membership=%s)",
+            userId, virtUserId, priv.membership);
+        let cli = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs(
+            virtUserId
+        );
         yield cli.invite(roomId, userId);
         // this should also be echoed back to us via onMatrixMemberEvent but hey,
         // let's do this now as well.
         priv.membership = "invite";
     }
 });
+
 /**
  * Create a new matrix PM room for an IRC user  with nick `fromUserNick` and another
  * matrix user with user ID `toUserId`.
@@ -126,25 +162,34 @@ IrcHandler.prototype._ensureMatrixUserJoined = Promise.coroutine(function* (room
  * @param {IrcServer} server : The sending IRC server.
  * @return {Promise} which is resolved when the PM room has been created.
  */
-IrcHandler.prototype._createPmRoom = Promise.coroutine(function* (toUserId, fromUserId, fromUserNick, server) {
-    let response = yield this.ircBridge.getAppServiceBridge().getIntent(fromUserId).createRoom({
-        createAsClient: true,
-        options: {
-            name: (fromUserNick + " (PM on " + server.domain + ")"),
-            visibility: "private",
-            preset: "trusted_private_chat",
-            invite: [toUserId],
-            creation_content: {
-                "m.federate": server.shouldFederatePMs()
-            },
-            is_direct: true,
-        }
-    });
-    let pmRoom = new MatrixRoom(response.room_id);
-    let ircRoom = new IrcRoom(server, fromUserNick);
-    yield this.ircBridge.getStore().setPmRoom(ircRoom, pmRoom, toUserId, fromUserId);
-    return pmRoom;
-});
+IrcHandler.prototype._createPmRoom = Promise.coroutine(
+    function*(toUserId, fromUserId, fromUserNick, server) {
+        let response = yield this.ircBridge.getAppServiceBridge().getIntent(
+            fromUserId
+        ).createRoom({
+            createAsClient: true,
+            options: {
+                name: (fromUserNick + " (PM on " + server.domain + ")"),
+                visibility: "private",
+                preset: "trusted_private_chat",
+                invite: [toUserId],
+                creation_content: {
+                    "m.federate": server.shouldFederatePMs()
+                },
+                is_direct: true,
+            }
+        });
+        let pmRoom = new MatrixRoom(response.room_id);
+        let ircRoom = new IrcRoom(server, fromUserNick);
+
+        yield this.ircBridge.getStore().setPmRoom(
+            ircRoom, pmRoom, toUserId, fromUserId
+        );
+
+        return pmRoom;
+    }
+);
+
 /**
  * Called when the AS receives an IRC message event.
  * @param {IrcServer} server : The sending IRC server.
@@ -154,21 +199,29 @@ IrcHandler.prototype._createPmRoom = Promise.coroutine(function* (toUserId, from
  * @return {Promise} which is resolved/rejected when the request
  * finishes.
  */
-IrcHandler.prototype.onPrivateMessage = Promise.coroutine(function* (req, server, fromUser, toUser, action) {
+IrcHandler.prototype.onPrivateMessage = Promise.coroutine(function*(req, server, fromUser,
+                                                              toUser, action) {
     this.incrementMetric("pm");
     if (fromUser.isVirtual) {
         return BridgeRequest.ERR_VIRTUAL_USER;
     }
+
     if (!toUser.isVirtual) {
         req.log.error("Cannot route PM to %s", toUser);
         return;
     }
-    let bridgedIrcClient = this.ircBridge.getClientPool().getBridgedClientByNick(toUser.server, toUser.nick);
+    let bridgedIrcClient = this.ircBridge.getClientPool().getBridgedClientByNick(
+        toUser.server, toUser.nick
+    );
     if (!bridgedIrcClient) {
         req.log.error("Cannot route PM to %s - no client", toUser);
         return;
     }
-    req.log.info("onPrivateMessage: %s from=%s to=%s action=%s", server.domain, fromUser, toUser, JSON.stringify(action).substring(0, 80));
+    req.log.info("onPrivateMessage: %s from=%s to=%s action=%s",
+        server.domain, fromUser, toUser,
+        JSON.stringify(action).substring(0, 80)
+    );
+
     if (bridgedIrcClient.isBot) {
         if (action.type !== "message") {
             req.log.info("Ignoring non-message PM");
@@ -178,44 +231,63 @@ IrcHandler.prototype.onPrivateMessage = Promise.coroutine(function* (req, server
         this.ircBridge.getProvisioner().handlePm(server, fromUser, action.text);
         return;
     }
+
+
     if (!server.allowsPms()) {
         req.log.error("Server %s disallows PMs.", server.domain);
         return;
     }
+
     let mxAction = MatrixAction.fromIrcAction(action);
+
     if (!mxAction) {
         req.log.error("Couldn't map IRC action to matrix action");
         return;
     }
+
     let virtualMatrixUser = yield this.ircBridge.getMatrixUser(fromUser);
     req.log.info("Mapped to %s", JSON.stringify(virtualMatrixUser));
-    let pmRoom = yield this.ircBridge.getStore().getMatrixPmRoom(bridgedIrcClient.userId, virtualMatrixUser.getId());
+    let pmRoom = yield this.ircBridge.getStore().getMatrixPmRoom(
+        bridgedIrcClient.userId, virtualMatrixUser.getId()
+    );
+
     if (!pmRoom) {
         let pmRoomPromiseId = bridgedIrcClient.userId + ' ' + virtualMatrixUser.getId();
         let p = this.pmRoomPromises[pmRoomPromiseId];
+
         // If a promise to create this PM room does not already exist, create one
         if (!p || p.isRejected()) {
             req.log.info("Creating a PM room with %s", bridgedIrcClient.userId);
-            this.pmRoomPromises[pmRoomPromiseId] = this._createPmRoom(bridgedIrcClient.userId, virtualMatrixUser.getId(), fromUser.nick, server);
+            this.pmRoomPromises[pmRoomPromiseId] = this._createPmRoom(
+                bridgedIrcClient.userId, virtualMatrixUser.getId(), fromUser.nick, server
+            );
             p = this.pmRoomPromises[pmRoomPromiseId];
         }
+
         // Yield on the PM room being created
         pmRoom = yield p;
     }
     else {
         // make sure that the matrix user is still in the room
         try {
-            yield this._ensureMatrixUserJoined(pmRoom.getId(), bridgedIrcClient.userId, virtualMatrixUser.getId(), req.log);
+            yield this._ensureMatrixUserJoined(
+                pmRoom.getId(), bridgedIrcClient.userId, virtualMatrixUser.getId(), req.log
+            );
         }
         catch (err) {
             // We still want to send the message into the room even if we can't check -
             // maybe the room state API has blown up.
-            req.log.error("Failed to ensure matrix user %s was joined to the existing PM room %s : %s", bridgedIrcClient.userId, pmRoom.getId(), err);
+            req.log.error(
+                "Failed to ensure matrix user %s was joined to the existing PM room %s : %s",
+                bridgedIrcClient.userId, pmRoom.getId(), err
+            );
         }
     }
+
     req.log.info("Relaying PM in room %s", pmRoom.getId());
     yield this.ircBridge.sendMatrixAction(pmRoom, virtualMatrixUser, mxAction, req);
 });
+
 /**
  * Called when the AS receives an IRC invite event.
  * @param {IrcServer} server : The sending IRC server.
@@ -225,28 +297,36 @@ IrcHandler.prototype.onPrivateMessage = Promise.coroutine(function* (req, server
  * @return {Promise} which is resolved/rejected when the request
  * finishes.
  */
-IrcHandler.prototype.onInvite = Promise.coroutine(function* (req, server, fromUser, toUser, channel) {
+IrcHandler.prototype.onInvite = Promise.coroutine(function*(req, server, fromUser,
+                                                              toUser, channel) {
     this.incrementMetric("invite");
     if (fromUser.isVirtual) {
         return BridgeRequest.ERR_VIRTUAL_USER;
     }
+
     if (!toUser.isVirtual) {
         req.log.error("Cannot route invite to %s", toUser);
         return;
     }
-    let bridgedIrcClient = this.ircBridge.getClientPool().getBridgedClientByNick(toUser.server, toUser.nick);
+
+    let bridgedIrcClient = this.ircBridge.getClientPool().getBridgedClientByNick(
+        toUser.server, toUser.nick
+    );
     if (!bridgedIrcClient) {
         req.log.error("Cannot route invite to %s - no client", toUser);
         return;
     }
+
     if (bridgedIrcClient.isBot) {
         req.log.info("Ignoring invite send to the bot");
         return;
     }
+
     let virtualMatrixUser = yield this.ircBridge.getMatrixUser(fromUser);
     req.log.info("Mapped to %s", JSON.stringify(virtualMatrixUser));
     let matrixRooms = yield this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
     let roomAlias = server.getAliasFromChannel(channel);
+
     if (matrixRooms.length === 0) {
         const initial_state = [
             {
@@ -274,9 +354,11 @@ IrcHandler.prototype.onInvite = Promise.coroutine(function* (req, server, fromUs
             });
         }
         let ircRoom = yield this.ircBridge.trackChannel(server, channel, null);
-        let response = yield this.ircBridge.getAppServiceBridge().getIntent(virtualMatrixUser.getId()).createRoom({
+        let response = yield this.ircBridge.getAppServiceBridge().getIntent(
+            virtualMatrixUser.getId()
+        ).createRoom({
             options: {
-                room_alias_name: roomAlias.split(":")[0].substring(1),
+                room_alias_name: roomAlias.split(":")[0].substring(1), // localpart
                 name: channel,
                 visibility: "private",
                 preset: "public_chat",
@@ -286,48 +368,85 @@ IrcHandler.prototype.onInvite = Promise.coroutine(function* (req, server, fromUs
                 initial_state
             }
         });
+
         // store the mapping
         let mxRoom = new MatrixRoom(response.room_id);
-        yield this.ircBridge.getStore().storeRoom(ircRoom, mxRoom, 'join');
+        yield this.ircBridge.getStore().storeRoom(
+            ircRoom, mxRoom, 'join'
+        );
+
         // /mode the channel AFTER we have created the mapping so we process +s and +i correctly.
-        this.ircBridge.publicitySyncer.initModeForChannel(server, channel).catch((err) => {
-            req.log.error("Could not init mode channel %s on %s", channel, server);
+        this.ircBridge.publicitySyncer.initModeForChannel(
+            server, channel
+        ).catch((err) => {
+            req.log.error(
+                "Could not init mode channel %s on %s",
+                channel, server
+            );
         });
-        req.log.info("Created a room to track %s on %s and invited %s", ircRoom.channel, server.domain, virtualMatrixUser.user_id);
+
+        req.log.info(
+            "Created a room to track %s on %s and invited %s",
+            ircRoom.channel, server.domain, virtualMatrixUser.user_id
+        );
         matrixRooms.push(mxRoom);
     }
+
     // send invite
     let invitePromises = matrixRooms.map((room) => {
-        req.log.info("Inviting %s to room %s", bridgedIrcClient.userId, room.getId());
-        return this.ircBridge.getAppServiceBridge().getIntent(virtualMatrixUser.getId()).invite(room.getId(), bridgedIrcClient.userId);
+        req.log.info(
+            "Inviting %s to room %s", bridgedIrcClient.userId, room.getId()
+        );
+        return this.ircBridge.getAppServiceBridge().getIntent(
+            virtualMatrixUser.getId()
+        ).invite(
+            room.getId(), bridgedIrcClient.userId
+        );
     });
     yield Promise.all(invitePromises);
 });
-IrcHandler.prototype._serviceTopicQueue = Promise.coroutine(function* (item) {
+
+IrcHandler.prototype._serviceTopicQueue = Promise.coroutine(function*(item) {
     let promises = item.entries.map((entry) => {
         if (entry.matrix.topic === item.topic) {
-            item.req.log.info("Topic of %s already set to '%s'", entry.matrix.getId(), item.topic);
+            item.req.log.info(
+                "Topic of %s already set to '%s'",
+                entry.matrix.getId(),
+                item.topic
+            );
             return Promise.resolve();
         }
-        return this.ircBridge.getAppServiceBridge().getIntent(item.matrixUser.getId()).setRoomTopic(entry.matrix.getId(), item.topic).catch(() => {
+        return this.ircBridge.getAppServiceBridge().getIntent(
+            item.matrixUser.getId()
+        ).setRoomTopic(
+            entry.matrix.getId(), item.topic
+        ).catch(() => {
             // Setter might not have powerlevels, trying again.
             return this.ircBridge.getAppServiceBridge().getIntent()
                 .setRoomTopic(entry.matrix.getId(), item.topic);
-        }).then(() => {
-            entry.matrix.topic = item.topic;
-            return this.ircBridge.getStore().upsertRoomStoreEntry(entry);
-        }, (err) => {
-            item.req.log.error(`Error storing room ${entry.matrix.getId()} (${err.message})`);
-        });
-    });
+        }).then(
+            () => {
+                entry.matrix.topic = item.topic;
+                return this.ircBridge.getStore().upsertRoomStoreEntry(entry);
+            },
+            (err) => {
+                item.req.log.error(`Error storing room ${entry.matrix.getId()} (${err.message})`);
+            }
+        );
+        }
+    );
     try {
         yield Promise.all(promises);
-        item.req.log.info(`Topic:  '${item.topic.substring(0, 20)}...' set in rooms: `, item.entries.map((entry) => entry.matrix.getId()).join(","));
+        item.req.log.info(
+            `Topic:  '${item.topic.substring(0, 20)}...' set in rooms: `,
+            item.entries.map((entry) => entry.matrix.getId()).join(",")
+        );
     }
     catch (err) {
         item.req.log.error(`Failed to set topic(s) ${err.message}`);
     }
 });
+
 /**
  * Called when the AS receives an IRC topic event.
  * @param {IrcServer} server : The sending IRC server.
@@ -336,24 +455,48 @@ IrcHandler.prototype._serviceTopicQueue = Promise.coroutine(function* (item) {
  * @param {Object} action : The IRC action performed.
  * @return {Promise} which is resolved/rejected when the request finishes.
  */
-IrcHandler.prototype.onTopic = Promise.coroutine(function* (req, server, fromUser, channel, action) {
+IrcHandler.prototype.onTopic = Promise.coroutine(function*(req, server, fromUser,
+                                                    channel, action) {
     this.incrementMetric("topic");
-    req.log.info("onTopic: %s from=%s to=%s action=%s", server.domain, fromUser, channel, JSON.stringify(action).substring(0, 80));
+    req.log.info("onTopic: %s from=%s to=%s action=%s",
+        server.domain, fromUser, channel, JSON.stringify(action).substring(0, 80)
+    );
+
     const ALLOWED_ORIGINS = ["join", "alias"];
     const topic = action.text;
+
     // Only bridge topics for rooms created by the bridge, via !join or an alias
-    const entries = yield this.ircBridge.getStore().getMappingsForChannelByOrigin(server, channel, ALLOWED_ORIGINS, true);
+    const entries = yield this.ircBridge.getStore().getMappingsForChannelByOrigin(
+        server, channel, ALLOWED_ORIGINS, true
+    );
     if (entries.length === 0) {
-        req.log.info("No mapped matrix rooms for IRC channel %s with origin = [%s]", channel, ALLOWED_ORIGINS);
+        req.log.info(
+            "No mapped matrix rooms for IRC channel %s with origin = [%s]",
+            channel,
+            ALLOWED_ORIGINS
+        );
         return;
     }
-    req.log.info("New topic in %s - bot queing to set topic in %s", channel, entries.map((e) => e.matrix.getId()));
-    const matrixUser = new MatrixUser(server.getUserIdFromNick(fromUser.nick));
+
+    req.log.info(
+        "New topic in %s - bot queing to set topic in %s",
+        channel,
+        entries.map((e) => e.matrix.getId())
+    );
+
+    const matrixUser = new MatrixUser(
+        server.getUserIdFromNick(fromUser.nick)
+    );
+
     if (!this.topicQueues[channel]) {
         this.topicQueues[channel] = new Queue(this._serviceTopicQueue.bind(this));
     }
-    yield this.topicQueues[channel].enqueue(server.domain + " " + channel + " " + topic, { req: req, entries: entries, topic: topic, matrixUser });
+    yield this.topicQueues[channel].enqueue(
+        server.domain + " " + channel + " " + topic,
+        {req: req, entries: entries, topic: topic, matrixUser}
+    );
 });
+
 /**
  * Called when the AS receives an IRC message event.
  * @param {IrcServer} server : The sending IRC server.
@@ -362,24 +505,32 @@ IrcHandler.prototype.onTopic = Promise.coroutine(function* (req, server, fromUse
  * @param {Object} action : The IRC action performed.
  * @return {Promise} which is resolved/rejected when the request finishes.
  */
-IrcHandler.prototype.onMessage = Promise.coroutine(function* (req, server, fromUser, channel, action) {
+IrcHandler.prototype.onMessage = Promise.coroutine(function*(req, server, fromUser,
+                                                    channel, action) {
     this.incrementMetric("message");
     if (fromUser.isVirtual) {
         return BridgeRequest.ERR_VIRTUAL_USER;
     }
-    req.log.info("onMessage: %s from=%s to=%s action=%s", server.domain, fromUser, channel, JSON.stringify(action).substring(0, 80));
+
+    req.log.info("onMessage: %s from=%s to=%s action=%s",
+        server.domain, fromUser, channel, JSON.stringify(action).substring(0, 80)
+    );
+
     let mxAction = MatrixAction.fromIrcAction(action);
     if (!mxAction) {
         req.log.error("Couldn't map IRC action to matrix action");
         return;
     }
+
     let mapping = null;
     if (this.nickUserIdMapCache.has(`${server.domain}:${channel}`)) {
         mapping = this.nickUserIdMapCache.get(`${server.domain}:${channel}`);
     }
     else if (this._mentionMode !== "force-off") {
         // Some users want to opt out of being mentioned.
-        mapping = this.ircBridge.getClientPool().getNickUserIdMappingForChannel(server, channel);
+        mapping = this.ircBridge.getClientPool().getNickUserIdMappingForChannel(
+            server, channel
+        );
         const store = this.ircBridge.getStore();
         const nicks = Object.keys(mapping);
         for (let nick of nicks) {
@@ -404,9 +555,15 @@ IrcHandler.prototype.onMessage = Promise.coroutine(function* (req, server, fromU
             this.nickUserIdMapCache.delete(this.nickUserIdMapCache.keys()[0]);
         }
     }
+
     if (mapping !== null) {
-        yield mxAction.formatMentions(mapping, this.ircBridge.getAppServiceBridge().getIntent(), this._mentionMode === "on");
+        yield mxAction.formatMentions(
+            mapping,
+            this.ircBridge.getAppServiceBridge().getIntent(),
+            this._mentionMode === "on"
+        );
     }
+
     const nickKey = server.domain + " " + fromUser.nick;
     let virtualMatrixUser;
     if (this._registeredNicks[nickKey]) {
@@ -418,16 +575,23 @@ IrcHandler.prototype.onMessage = Promise.coroutine(function* (req, server, fromU
         virtualMatrixUser = yield this.ircBridge.getMatrixUser(fromUser);
         this._registeredNicks[nickKey] = true;
     }
+
     let matrixRooms = yield this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
     let promises = matrixRooms.map((room) => {
-        req.log.info("Relaying in room %s", room.getId());
+        req.log.info(
+            "Relaying in room %s", room.getId()
+        );
         return this.ircBridge.sendMatrixAction(room, virtualMatrixUser, mxAction, req);
     });
     if (matrixRooms.length === 0) {
-        req.log.info("No mapped matrix rooms for IRC channel %s", channel);
+        req.log.info(
+            "No mapped matrix rooms for IRC channel %s",
+            channel
+        );
     }
     yield Promise.all(promises);
 });
+
 /**
  * Called when the AS receives an IRC join event.
  * @param {IrcServer} server : The sending IRC server.
@@ -437,37 +601,47 @@ IrcHandler.prototype.onMessage = Promise.coroutine(function* (req, server, fromU
  * the bot just connected, or an actual JOIN command)
  * @return {Promise} which is resolved/rejected when the request finishes.
  */
-IrcHandler.prototype.onJoin = Promise.coroutine(function* (req, server, joiningUser, chan, kind) {
+IrcHandler.prototype.onJoin = Promise.coroutine(function*(req, server, joiningUser, chan, kind) {
     if (kind === "names") {
         this.incrementMetric("join.names");
     }
     else { // Let's avoid any surprises
         this.incrementMetric("join");
     }
+
     this._invalidateNickUserIdMap(server, chan);
+
     let nick = joiningUser.nick;
     let syncType = kind === "names" ? "initial" : "incremental";
     if (!server.shouldSyncMembershipToMatrix(syncType, chan)) {
         req.log.info("IRC onJoin(%s) %s to %s - not syncing.", kind, nick, chan);
         return BridgeRequest.ERR_NOT_MAPPED;
     }
+
     req.log.info("onJoin(%s) %s to %s", kind, nick, chan);
     // if the person joining is a virtual IRC user, do nothing.
     if (joiningUser.isVirtual) {
         return BridgeRequest.ERR_VIRTUAL_USER;
     }
+
     this.quitDebouncer.onJoin(nick, server);
+
     // get virtual matrix user
     let matrixUser = yield this.ircBridge.getMatrixUser(joiningUser);
     let matrixRooms = yield this.ircBridge.getStore().getMatrixRoomsForChannel(server, chan);
-    const intent = this.ircBridge.getAppServiceBridge().getIntent(matrixUser.getId());
+    const intent = this.ircBridge.getAppServiceBridge().getIntent(
+        matrixUser.getId()
+    );
     const MAX_JOIN_ATTEMPTS = server.getJoinAttempts();
     let promises = matrixRooms.map((room) => {
         /** If this is a "NAMES" query, we can make use of the joinedMembers call we made
          * to check if the user already exists in the room. This should save oodles of time.
          */
         if (kind === "names" &&
-            this.ircBridge.memberListSyncers[server.domain].isRemoteJoinedToRoom(room.getId(), matrixUser.getId())) {
+            this.ircBridge.memberListSyncers[server.domain].isRemoteJoinedToRoom(
+                room.getId(),
+                matrixUser.getId()
+            )) {
             req.log.debug("Not joining to %s, already joined.", room.getId());
             return;
         }
@@ -477,12 +651,15 @@ IrcHandler.prototype.onJoin = Promise.coroutine(function* (req, server, joiningU
             return intent.join(room.getId()).catch((err) => {
                 // -1 to never retry, 0 to never give up
                 if (MAX_JOIN_ATTEMPTS !== 0 &&
-                    (attempts > MAX_JOIN_ATTEMPTS)) {
+                    (attempts > MAX_JOIN_ATTEMPTS) ) {
                     req.log.error(`Not retrying join for ${room.getId()}.`);
                     return Promise.reject(err);
                 }
                 attempts++;
-                const delay = Math.min((JOIN_DELAY_MS * attempts) + (Math.random() * 500), JOIN_DELAY_CAP_MS);
+                const delay = Math.min(
+                    (JOIN_DELAY_MS * attempts) + (Math.random() * 500),
+                    JOIN_DELAY_CAP_MS
+                );
                 req.log.warn(`Failed to join ${room.getId()}, delaying for ${delay}ms`);
                 req.log.debug(`Failed with: ${err.errcode} ${err.message}`);
                 return Promise.delay(delay).then(() => {
@@ -503,9 +680,15 @@ IrcHandler.prototype.onJoin = Promise.coroutine(function* (req, server, joiningU
     }
     yield Promise.all(promises);
 });
-IrcHandler.prototype.onKick = Promise.coroutine(function* (req, server, kicker, kickee, chan, reason) {
+
+IrcHandler.prototype.onKick = Promise.coroutine(function*(req, server,
+                                                kicker, kickee, chan, reason) {
     this.incrementMetric("kick");
-    req.log.info("onKick(%s) %s is kicking %s from %s", server.domain, kicker.nick, kickee.nick, chan);
+    req.log.info(
+        "onKick(%s) %s is kicking %s from %s",
+        server.domain, kicker.nick, kickee.nick, chan
+    );
+
     /*
     We know this is an IRC client kicking someone.
     There are 2 scenarios to consider here:
@@ -531,6 +714,7 @@ IrcHandler.prototype.onKick = Promise.coroutine(function* (req, server, kicker, 
     -----------------------------------------------------------------------
                Kickee      Kicker              |  Bot tries to kick Matrix user via /kick.
     */
+
     if (kickee.isVirtual) {
         // A real IRC user is kicking one of us - this is IRC on Matrix kicking.
         let matrixRooms = yield this.ircBridge.getStore().getMatrixRoomsForChannel(server, chan);
@@ -538,13 +722,18 @@ IrcHandler.prototype.onKick = Promise.coroutine(function* (req, server, kicker, 
             req.log.info("No mapped matrix rooms for IRC channel %s", chan);
             return;
         }
-        let bridgedIrcClient = this.ircBridge.getClientPool().getBridgedClientByNick(server, kickee.nick);
+        let bridgedIrcClient = this.ircBridge.getClientPool().getBridgedClientByNick(
+            server, kickee.nick
+        );
         if (!bridgedIrcClient || bridgedIrcClient.isBot) {
             return; // unexpected given isVirtual == true, but meh, bail.
         }
         let promises = matrixRooms.map((room) => {
             req.log.info("Kicking %s from room %s", bridgedIrcClient.userId, room.getId());
-            return this.ircBridge.getAppServiceBridge().getIntent().kick(room.getId(), bridgedIrcClient.userId, `${kicker.nick} has kicked ${bridgedIrcClient.userId} from ${chan} (${reason})`);
+            return this.ircBridge.getAppServiceBridge().getIntent().kick(
+                room.getId(), bridgedIrcClient.userId,
+                `${kicker.nick} has kicked ${bridgedIrcClient.userId} from ${chan} (${reason})`
+            );
         });
         yield Promise.all(promises);
     }
@@ -562,11 +751,14 @@ IrcHandler.prototype.onKick = Promise.coroutine(function* (req, server, kicker, 
         }
         let promises = matrixRooms.map((room) => {
             req.log.info("Leaving (due to kick) room %s", room.getId());
-            return this.ircBridge.getAppServiceBridge().getIntent(matrixUser.getId()).leave(room.getId());
+            return this.ircBridge.getAppServiceBridge().getIntent(
+                matrixUser.getId()
+            ).leave(room.getId());
         });
         yield Promise.all(promises);
     }
 });
+
 /**
  * Called when the AS receives an IRC part event.
  * @param {IrcServer} server : The sending IRC server.
@@ -576,7 +768,7 @@ IrcHandler.prototype.onKick = Promise.coroutine(function* (req, server, kicker, 
  * netsplit, etc)
  * @return {Promise} which is resolved/rejected when the request finishes.
  */
-IrcHandler.prototype.onPart = Promise.coroutine(function* (req, server, leavingUser, chan, kind) {
+IrcHandler.prototype.onPart = Promise.coroutine(function*(req, server, leavingUser, chan, kind) {
     this.incrementMetric("part");
     this._invalidateNickUserIdMap(server, chan);
     // parts are always incremental (only NAMES are initial)
@@ -586,6 +778,7 @@ IrcHandler.prototype.onPart = Promise.coroutine(function* (req, server, leavingU
     }
     let nick = leavingUser.nick;
     req.log.info("onPart(%s) %s to %s", kind, nick, chan);
+
     // if the person leaving is a virtual IRC user, do nothing.
     if (leavingUser.isVirtual) {
         return BridgeRequest.ERR_VIRTUAL_USER;
@@ -598,6 +791,7 @@ IrcHandler.prototype.onPart = Promise.coroutine(function* (req, server, leavingU
         req.log.info("No mapped matrix rooms for IRC channel %s", chan);
         return;
     }
+
     // Presence syncing and Quit Debouncing
     //  When an IRC user quits, debounce before leaving them from matrix rooms. In the meantime,
     //  update presence to "offline". If the user rejoins a channel before timeout, do not part
@@ -608,7 +802,8 @@ IrcHandler.prototype.onPart = Promise.coroutine(function* (req, server, leavingU
             return;
         }
     }
-    const promise = this._leaveQueue.enqueue(chan + leavingUser.nick, {
+
+    const promise = this._leaveQueue.enqueue(chan+leavingUser.nick, {
         rooms: matrixRooms,
         matrixUser,
         req
@@ -616,37 +811,51 @@ IrcHandler.prototype.onPart = Promise.coroutine(function* (req, server, leavingU
     stats.membership(true, "part");
     yield promise;
 });
-IrcHandler.prototype.onMode = Promise.coroutine(function* (req, server, channel, by, mode, enabled, arg) {
+
+IrcHandler.prototype.onMode = Promise.coroutine(function*(req, server, channel, by,
+                                                mode, enabled, arg) {
     this.incrementMetric("mode");
-    req.log.info("onMode(%s) in %s by %s (arg=%s)", (enabled ? ("+" + mode) : ("-" + mode)), channel, by, arg);
+    req.log.info(
+        "onMode(%s) in %s by %s (arg=%s)",
+        (enabled ? ("+" + mode) : ("-" + mode)),
+        channel, by, arg
+    );
+
     const privateModes = ["k", "i", "s"];
     if (privateModes.indexOf(mode) !== -1) {
         yield this._onPrivateMode(req, server, channel, by, mode, enabled, arg);
         return;
     }
+
     if (mode === "m") {
         yield this._onModeratedChannelToggle(req, server, channel, by, enabled, arg);
         return;
     }
+
     // Bridge usermodes to power levels
     let modeToPower = server.getModePowerMap();
     if (Object.keys(modeToPower).indexOf(mode) === -1) {
         // Not an operator power mode
         return;
     }
+
     const nick = arg;
     const matrixRooms = yield this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
     if (matrixRooms.length === 0) {
         req.log.info("No mapped matrix rooms for IRC channel %s", channel);
         return;
     }
+
     // Work out what power levels to give
     const userPowers = [];
     if (modeToPower[mode] && enabled) { // only give this power if it's +, not -
         userPowers.push(modeToPower[mode]);
     }
+
     // Try to also add in other modes for this client connection
-    const bridgedClient = this.ircBridge.getClientPool().getBridgedClientByNick(server, nick);
+    const bridgedClient = this.ircBridge.getClientPool().getBridgedClientByNick(
+        server, nick
+    );
     let userId = null;
     if (bridgedClient) {
         userId = bridgedClient.userId;
@@ -660,17 +869,21 @@ IrcHandler.prototype.onMode = Promise.coroutine(function* (req, server, channel,
             return;
         }
         const userPrefixes = chanData.users[nick];
-        userPrefixes.split('').forEach(prefix => {
-            const m = bridgedClient.unsafeClient.modeForPrefix[prefix];
-            if (modeToPower[m] !== undefined) {
-                userPowers.push(modeToPower[m]);
+
+        userPrefixes.split('').forEach(
+            prefix => {
+                const m = bridgedClient.unsafeClient.modeForPrefix[prefix];
+                if (modeToPower[m] !== undefined) {
+                    userPowers.push(modeToPower[m]);
+                }
             }
-        });
+        );
     }
     else {
         // real IRC user, work out their user ID
         userId = server.getUserIdFromNick(nick);
     }
+
     // By default, unset the user's power level. This will be treated
     // as the users_default defined in the power levels (or 0 otherwise).
     let level = undefined;
@@ -679,14 +892,21 @@ IrcHandler.prototype.onMode = Promise.coroutine(function* (req, server, channel,
     if (userPowers.length > 0) {
         level = userPowers.sort((a, b) => b - a)[0];
     }
-    req.log.info(`onMode: Mode ${mode} received for ${nick} - granting level of ${level} to ${userId}`);
+
+    req.log.info(
+        `onMode: Mode ${mode} received for ${nick} - granting level of ${level} to ${userId}`
+    );
+
     const promises = matrixRooms.map((room) => {
         return this.ircBridge.getAppServiceBridge().getIntent()
             .setPowerLevel(room.getId(), userId, level);
     });
+
     yield Promise.all(promises);
 });
-IrcHandler.prototype._onModeratedChannelToggle = Promise.coroutine(function* (req, server, channel, by, enabled, arg) {
+
+IrcHandler.prototype._onModeratedChannelToggle = Promise.coroutine(function*(req, server, channel,
+                                                by, enabled, arg) {
     let matrixRooms = yield this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
     // modify power levels for all mapped rooms to set events_default to something >0 so by default
     // people CANNOT speak into it (unless they are a mod or have voice, both of which need to be
@@ -698,7 +918,10 @@ IrcHandler.prototype._onModeratedChannelToggle = Promise.coroutine(function* (re
             const plContent = yield botClient.getStateEvent(roomId, "m.room.power_levels", "");
             plContent.events_default = enabled ? 1 : 0;
             yield botClient.sendStateEvent(roomId, "m.room.power_levels", plContent, "");
-            req.log.info("onModeratedChannelToggle: (channel=%s,enabled=%s) power levels updated in room %s", channel, enabled, roomId);
+            req.log.info(
+                "onModeratedChannelToggle: (channel=%s,enabled=%s) power levels updated in room %s",
+                channel, enabled, roomId
+            );
             this.ircBridge.getStore().setModeForRoom(roomId, "m", enabled);
         }
         catch (err) {
@@ -706,15 +929,20 @@ IrcHandler.prototype._onModeratedChannelToggle = Promise.coroutine(function* (re
         }
     }
 });
-IrcHandler.prototype._onPrivateMode = Promise.coroutine(function* (req, server, channel, by, mode, enabled, arg) {
+
+IrcHandler.prototype._onPrivateMode = Promise.coroutine(function*(req, server, channel, by,
+                                                mode, enabled, arg) {
     // 'k' = Channel requires 'keyword' to join.
     // 'i' = Channel is invite-only.
     // 's' = Channel is secret
+
     // For k and i, we currently want to flip the join_rules to be
     // 'invite' to prevent new people who are not in the room from
     // joining.
+
     // For s, we just want to control the room directory visibility
     // accordingly. (+s = 'private', -s = 'public')
+
     // TODO: Add support for specifying the correct 'keyword' and
     // support for sending INVITEs for virtual IRC users.
     let matrixRooms = yield this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
@@ -722,28 +950,35 @@ IrcHandler.prototype._onPrivateMode = Promise.coroutine(function* (req, server, 
         req.log.info("No mapped matrix rooms for IRC channel %s", channel);
         return;
     }
+
     if (mode === "s") {
         if (!server.shouldPublishRooms()) {
             req.log.info("Not syncing publicity: shouldPublishRooms is false");
             return Promise.resolve();
         }
         const key = this.ircBridge.publicitySyncer.getIRCVisMapKey(server.getNetworkId(), channel);
+
         matrixRooms.map((room) => {
             this.ircBridge.getStore().setModeForRoom(room.getId(), "s", enabled);
         });
         // Update the visibility for all rooms connected to this channel
-        return this.ircBridge.publicitySyncer.updateVisibilityMap(true, key, enabled);
+        return this.ircBridge.publicitySyncer.updateVisibilityMap(
+            true, key, enabled
+        );
     }
     // "k" and "i"
     matrixRooms.map((room) => {
         this.ircBridge.getStore().setModeForRoom(room.getId(), mode, enabled);
     });
+
     var promises = matrixRooms.map((room) => {
         switch (mode) {
             case "k":
             case "i":
                 req.log.info((enabled ? "Locking room %s" :
-                    "Reverting %s back to default join_rule"), room.getId());
+                    "Reverting %s back to default join_rule"),
+                    room.getId()
+                );
                 if (enabled) {
                     return this._setMatrixRoomAsInviteOnly(room, true);
                 }
@@ -757,8 +992,10 @@ IrcHandler.prototype._onPrivateMode = Promise.coroutine(function* (req, server, 
                 return Promise.resolve();
         }
     });
+
     yield Promise.all(promises);
 });
+
 /**
  * Called when channel mode information is received
  * @param {Request} req The metadata request
@@ -767,22 +1004,27 @@ IrcHandler.prototype._onPrivateMode = Promise.coroutine(function* (req, server, 
  * @param {string} mode The mode that the channel is in, e.g. +sabcdef
  * @return {Promise} which is resolved/rejected when the request finishes.
  */
-IrcHandler.prototype.onModeIs = Promise.coroutine(function* (req, server, channel, mode) {
+IrcHandler.prototype.onModeIs = Promise.coroutine(function*(req, server, channel, mode) {
     req.log.info(`onModeIs for ${channel} = ${mode}.`);
+
     // Delegate to this.onMode
-    let promises = mode.split('').map((modeChar) => {
-        if (modeChar === '+') {
-            return Promise.resolve();
+    let promises = mode.split('').map(
+        (modeChar) => {
+            if (modeChar === '+') {
+                return Promise.resolve();
+            }
+            return this.onMode(req, server, channel, 'onModeIs function', modeChar, true);
         }
-        return this.onMode(req, server, channel, 'onModeIs function', modeChar, true);
-    });
+    );
+
     // We cache modes per room, so extract the set of modes for all these rooms.
     const roomModeMap = yield this.ircBridge.getStore().getModesForChannel(server, channel);
     const oldModes = new Set();
     Object.values(roomModeMap).forEach((roomMode) => {
-        roomMode.forEach((m) => { oldModes.add(m); });
+        roomMode.forEach((m) => {oldModes.add(m)});
     });
     req.log.debug(`Got cached mode for ${channel} ${[...oldModes]}`);
+
     // For each cached mode we have for the room, that is no longer set: emit a disabled mode.
     promises.concat([...oldModes].map((oldModeChar) => {
         if (!MODES_TO_WATCH.includes(oldModeChar)) {
@@ -794,8 +1036,10 @@ IrcHandler.prototype.onModeIs = Promise.coroutine(function* (req, server, channe
             return this.onMode(req, server, channel, 'onModeIs function', oldModeChar, false);
         }
     }));
+
     yield Promise.all(promises);
 });
+
 /**
  * Called when the AS connects/disconnects a Matrix user to IRC.
  * @param {Request} req The metadata request
@@ -804,13 +1048,14 @@ IrcHandler.prototype.onModeIs = Promise.coroutine(function* (req, server, channe
  * @param {boolean} force True if ignoring startup suppresion.
  * @return {Promise} which is resolved/rejected when the request finishes.
  */
-IrcHandler.prototype.onMetadata = Promise.coroutine(function* (req, client, msg, force) {
+IrcHandler.prototype.onMetadata = Promise.coroutine(function*(req, client, msg, force) {
     req.log.info("%s : Sending metadata '%s'", client, msg);
     if (!this.ircBridge.isStartedUp() && !force) {
         req.log.info("Suppressing metadata: not started up.");
         return BridgeRequest.ERR_NOT_MAPPED;
     }
     let botUser = new MatrixUser(this.ircBridge.getAppServiceUserId());
+
     let adminRoom = yield this.ircBridge.getStore().getAdminRoomByUserId(client.userId);
     if (!adminRoom) {
         req.log.info("Creating an admin room with %s", client.userId);
@@ -818,9 +1063,9 @@ IrcHandler.prototype.onMetadata = Promise.coroutine(function* (req, client, msg,
             createAsClient: false,
             options: {
                 name: `${client.server.getReadableName()} IRC Bridge status`,
-                topic: `This room shows any errors or status messages from ` +
-                    `${client.server.domain}, as well as letting you control ` +
-                    "the connection. ",
+                topic:  `This room shows any errors or status messages from ` +
+                        `${client.server.domain}, as well as letting you control ` +
+                        "the connection. ",
                 preset: "trusted_private_chat",
                 visibility: "private",
                 invite: [client.userId]
@@ -829,22 +1074,28 @@ IrcHandler.prototype.onMetadata = Promise.coroutine(function* (req, client, msg,
         adminRoom = new MatrixRoom(response.room_id);
         yield this.ircBridge.getStore().storeAdminRoom(adminRoom, client.userId);
         let newRoomMsg = `You've joined a Matrix room which is bridged to the IRC network ` +
-            `'${client.server.domain}', where you ` +
-            `are now connected as ${client.nick}. ` +
-            `This room shows any errors or status messages from IRC, as well as ` +
-            `letting you control the connection. Type !help for more information`;
+                         `'${client.server.domain}', where you ` +
+                         `are now connected as ${client.nick}. ` +
+                         `This room shows any errors or status messages from IRC, as well as ` +
+                         `letting you control the connection. Type !help for more information`
+
         let notice = new MatrixAction("notice", newRoomMsg);
         yield this.ircBridge.sendMatrixAction(adminRoom, botUser, notice, req);
     }
+
     let notice = new MatrixAction("notice", msg);
     yield this.ircBridge.sendMatrixAction(adminRoom, botUser, notice, req);
 });
-IrcHandler.prototype._setMatrixRoomAsInviteOnly = function (room, isInviteOnly) {
-    return this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs().sendStateEvent(room.getId(), "m.room.join_rules", {
-        join_rule: (isInviteOnly ? "invite" : "public")
-    }, "");
+
+IrcHandler.prototype._setMatrixRoomAsInviteOnly = function(room, isInviteOnly) {
+    return this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs().sendStateEvent(
+        room.getId(), "m.room.join_rules", {
+            join_rule: (isInviteOnly ? "invite" : "public")
+        }, ""
+    );
 };
-IrcHandler.prototype.invalidateCachingForUserId = function (userId) {
+
+IrcHandler.prototype.invalidateCachingForUserId = function(userId) {
     if (this._mentionMode === "force-off") {
         return false;
     }
@@ -854,17 +1105,20 @@ IrcHandler.prototype.invalidateCachingForUserId = function (userId) {
         }
     });
     return true;
-};
-IrcHandler.prototype._invalidateNickUserIdMap = function (server, channel) {
+}
+
+IrcHandler.prototype._invalidateNickUserIdMap = function(server, channel) {
     this.nickUserIdMapCache.delete(`${server.domain}:${channel}`);
-};
-IrcHandler.prototype.incrementMetric = function (metric) {
+}
+
+IrcHandler.prototype.incrementMetric = function(metric) {
     if (this._callCountMetrics[metric] === undefined) {
         this._callCountMetrics[metric] = 0;
     }
     this._callCountMetrics[metric]++;
-};
-IrcHandler.prototype.getMetrics = function () {
+}
+
+IrcHandler.prototype.getMetrics = function() {
     const metrics = Object.assign({}, this._callCountMetrics);
     this._callCountMetrics = {
         "join.names": 0,
@@ -878,5 +1132,6 @@ IrcHandler.prototype.getMetrics = function () {
         "mode": 0,
     };
     return metrics;
-};
+}
+
 module.exports = IrcHandler;

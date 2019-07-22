@@ -1,4 +1,3 @@
-"use strict";
 const irc = require("irc");
 const promiseutil = require("../promiseutil");
 const logging = require("../logging");
@@ -17,18 +16,23 @@ const PING_TIMEOUT_MS = 1000 * 60 * 10;
 // The minimum time to wait between connection attempts if we were disconnected
 // due to throttling.
 const THROTTLE_WAIT_MS = 20 * 1000;
+
 const BANNED_TIME_MS = 6 * 60 * 60 * 1000; // once every 6 hours
+
 // The rate at which to send pings to the IRCd if the client is being quiet for a while.
 // Whilst the IRCd *should* be sending pings to us to keep the connection alive, it appears
 // that sometimes they don't get around to it and end up ping timing us out.
 const PING_RATE_MS = 1000 * 60;
+
 // String reply of any CTCP Version requests
 const CTCP_VERSION = 'matrix-appservice-irc, part of the Matrix.org Network';
+
 const CONN_LIMIT_MESSAGES = [
-    "too many host connections",
+    "too many host connections", // ircd-seven
     "no more connections allowed in your connection class",
-    "this server is full",
-];
+    "this server is full", // unrealircd
+]
+
 // Log an Error object to stderr
 function logError(err) {
     if (!err || !err.message) {
@@ -36,6 +40,7 @@ function logError(err) {
     }
     log.error(err.message);
 }
+
 /**
  * Create an IRC connection instance. Wraps the node-irc library to handle
  * connections correctly.
@@ -57,12 +62,13 @@ function ConnectionInstance(ircClient, domain, nick) {
     this._pingRateTimerId = null;
     this._clientSidePingTimeoutTimerId = null;
 }
+
 /**
  * Connect this client to the server. There are zero guarantees this will ever
  * connect.
  * @return {Promise} Resolves if connected; rejects if failed to connect.
  */
-ConnectionInstance.prototype.connect = function () {
+ConnectionInstance.prototype.connect = function() {
     if (this.dead) {
         throw new Error("connect() called on dead client: " + this.nick);
     }
@@ -70,13 +76,17 @@ ConnectionInstance.prototype.connect = function () {
     var self = this;
     var domain = self.domain;
     var gotConnectedCallback = false;
-    setTimeout(function () {
+    setTimeout(function() {
         if (!gotConnectedCallback && !self.dead) {
-            log.error("%s@%s still not connected after %sms. Killing connection.", self.nick, domain, CONNECT_TIMEOUT_MS);
+            log.error(
+                "%s@%s still not connected after %sms. Killing connection.",
+                self.nick, domain, CONNECT_TIMEOUT_MS
+            );
             self.disconnect("timeout").catch(logError);
         }
     }, CONNECT_TIMEOUT_MS);
-    self.client.connect(1, function () {
+
+    self.client.connect(1, function() {
         gotConnectedCallback = true;
         self.state = "connected";
         self._resetPingSendTimer();
@@ -84,20 +94,24 @@ ConnectionInstance.prototype.connect = function () {
     });
     return this._connectDefer.promise;
 };
+
 /**
  * Blow away the connection. You MUST destroy this object afterwards.
  * @param {string} reason - Reason to reject with. One of:
  * throttled|irc_error|net_error|timeout|raw_error|toomanyconns
  */
-ConnectionInstance.prototype.disconnect = function (reason) {
+ConnectionInstance.prototype.disconnect = function(reason) {
     if (this.dead) {
         return Promise.resolve();
     }
-    log.info("disconnect()ing %s@%s - %s", this.nick, this.domain, reason);
+    log.info(
+        "disconnect()ing %s@%s - %s", this.nick, this.domain, reason
+    );
     this.dead = true;
+
     return new Promise((resolve, reject) => {
         // close the connection
-        this.client.disconnect(reason, function () { });
+        this.client.disconnect(reason, function() {});
         // remove timers
         if (this._pingRateTimerId) {
             clearTimeout(this._pingRateTimerId);
@@ -122,22 +136,27 @@ ConnectionInstance.prototype.disconnect = function (reason) {
         resolve();
     });
 };
-ConnectionInstance.prototype.addListener = function (eventName, fn) {
+
+ConnectionInstance.prototype.addListener = function(eventName, fn) {
     var self = this;
-    this.client.addListener(eventName, function () {
+    this.client.addListener(eventName, function() {
         if (self.dead) {
-            log.error("%s@%s RECV a %s event for a dead connection", self.nick, self.domain, eventName);
+            log.error(
+                "%s@%s RECV a %s event for a dead connection",
+                self.nick, self.domain, eventName
+            );
             return;
         }
         // do the callback
         fn.apply(fn, arguments);
     });
 };
-ConnectionInstance.prototype._listenForErrors = function () {
+
+ConnectionInstance.prototype._listenForErrors = function() {
     var self = this;
     var domain = self.domain;
     var nick = self.nick;
-    self.client.addListener("error", function (err) {
+    self.client.addListener("error", function(err) {
         log.error("Server: %s (%s) Error: %s", domain, nick, JSON.stringify(err));
         // We should disconnect the client for some but not all error codes. This
         // list is a list of codes which we will NOT disconnect the client for.
@@ -164,20 +183,29 @@ ConnectionInstance.prototype._listenForErrors = function () {
         }
         self.disconnect("irc_error").catch(logError);
     });
-    self.client.addListener("netError", function (err) {
-        log.error("Server: %s (%s) Network Error: %s", domain, nick, JSON.stringify(err, undefined, 2));
+    self.client.addListener("netError", function(err) {
+        log.error(
+            "Server: %s (%s) Network Error: %s", domain, nick,
+            JSON.stringify(err, undefined, 2)
+        );
         self.disconnect("net_error").catch(logError);
     });
-    self.client.addListener("abort", function () {
-        log.error("Server: %s (%s) Connection Aborted", domain, nick);
+    self.client.addListener("abort", function() {
+        log.error(
+            "Server: %s (%s) Connection Aborted", domain, nick
+        );
         self.disconnect("net_error").catch(logError);
     });
-    self.client.addListener("raw", function (msg) {
+    self.client.addListener("raw", function(msg) {
         if (logging.isVerbose()) {
-            log.debug("%s@%s: %s", nick, domain, JSON.stringify(msg));
+            log.debug(
+                "%s@%s: %s", nick, domain, JSON.stringify(msg)
+            );
         }
         if (msg && (msg.command === "ERROR" || msg.rawCommand === "ERROR")) {
-            log.error("%s@%s: %s", nick, domain, JSON.stringify(msg));
+            log.error(
+                "%s@%s: %s", nick, domain, JSON.stringify(msg)
+            );
             var wasThrottled = false;
             if (msg.args) {
                 var errText = ("" + msg.args[0]) || "";
@@ -193,7 +221,7 @@ ConnectionInstance.prototype._listenForErrors = function () {
                     return;
                 }
                 const tooManyHosts = CONN_LIMIT_MESSAGES.find((connLimitMsg) => {
-                    return errText.includes(connLimitMsg);
+                   return errText.includes(connLimitMsg);
                 }) !== undefined;
                 if (tooManyHosts) {
                     self.disconnect("toomanyconns").catch(logError);
@@ -206,7 +234,8 @@ ConnectionInstance.prototype._listenForErrors = function () {
         }
     });
 };
-ConnectionInstance.prototype._listenForPings = function () {
+
+ConnectionInstance.prototype._listenForPings = function() {
     // BOTS-65 : A client can get ping timed out and not reconnect.
     // ------------------------------------------------------------
     // The client is doing IRC ping/pongs, but there is no check to say
@@ -217,37 +246,42 @@ ConnectionInstance.prototype._listenForPings = function () {
     var self = this;
     var domain = self.domain;
     var nick = self.nick;
-    function _keepAlivePing() {
+    function _keepAlivePing() { // refresh the ping timer
         if (self._clientSidePingTimeoutTimerId) {
             clearTimeout(self._clientSidePingTimeoutTimerId);
         }
-        self._clientSidePingTimeoutTimerId = setTimeout(function () {
-            log.info("Ping timeout: knifing connection for %s on %s", domain, nick);
+        self._clientSidePingTimeoutTimerId = setTimeout(function() {
+            log.info(
+                "Ping timeout: knifing connection for %s on %s",
+                domain, nick
+            );
             // Just emit an netError which clients need to handle anyway.
             self.client.emit("netError", {
                 msg: "Client-side ping timeout"
             });
         }, PING_TIMEOUT_MS);
     }
-    self.client.on("ping", function (svr) {
+    self.client.on("ping", function(svr) {
         log.debug("Received ping from %s directed at %s", svr, nick);
         _keepAlivePing();
     });
     // decorate client.send to refresh the timer
     var realSend = self.client.send;
-    self.client.send = function (command) {
+    self.client.send = function(command) {
         _keepAlivePing();
         self._resetPingSendTimer(); // sending a message counts as a ping
         realSend.apply(self.client, arguments);
     };
 };
-ConnectionInstance.prototype._listenForCTCPVersions = function () {
+
+ConnectionInstance.prototype._listenForCTCPVersions = function() {
     const self = this;
     self.client.addListener("ctcp-version", function (from) {
-        self.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
+       self.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
     });
 };
-ConnectionInstance.prototype._resetPingSendTimer = function () {
+
+ConnectionInstance.prototype._resetPingSendTimer = function() {
     // reset the ping rate timer
     if (this._pingRateTimerId) {
         clearTimeout(this._pingRateTimerId);
@@ -262,6 +296,7 @@ ConnectionInstance.prototype._resetPingSendTimer = function () {
         this._resetPingSendTimer();
     }, PING_RATE_MS);
 };
+
 /**
  * Create an IRC client connection and connect to it.
  * @param {IrcServer} server The server to connect to.
@@ -274,11 +309,11 @@ ConnectionInstance.prototype._resetPingSendTimer = function () {
  * @param {Function} onCreatedCallback Called with the client when created.
  * @return {Promise} Resolves to an ConnectionInstance or rejects.
  */
-ConnectionInstance.create = Promise.coroutine(function* (server, opts, onCreatedCallback) {
+ConnectionInstance.create = Promise.coroutine(function*(server, opts, onCreatedCallback) {
     if (!opts.nick || !server) {
         throw new Error("Bad inputs. Nick: " + opts.nick);
     }
-    onCreatedCallback = onCreatedCallback || function () { };
+    onCreatedCallback = onCreatedCallback || function() {};
     let connectionOpts = {
         userName: opts.username,
         realName: opts.realname,
@@ -296,16 +331,23 @@ ConnectionInstance.create = Promise.coroutine(function* (server, opts, onCreated
         bustRfc3484: true,
         sasl: opts.password ? server.useSasl() : false,
     };
+
     if (server.useSsl()) {
         connectionOpts.secure = { ca: server.getCA() };
     }
+
     // Returns: A promise which resolves to a ConnectionInstance
     let retryConnection = () => {
-        let nodeClient = new irc.Client(server.randomDomain(), opts.nick, connectionOpts);
-        let inst = new ConnectionInstance(nodeClient, server.domain, opts.nick);
+        let nodeClient = new irc.Client(
+            server.randomDomain(), opts.nick, connectionOpts
+        );
+        let inst = new ConnectionInstance(
+            nodeClient, server.domain, opts.nick
+        );
         onCreatedCallback(inst);
         return inst.connect();
     };
+
     let connAttempts = 0;
     let retryTimeMs = 0;
     const BASE_RETRY_TIME_MS = 1000;
@@ -313,7 +355,9 @@ ConnectionInstance.create = Promise.coroutine(function* (server, opts, onCreated
         try {
             if (server.getReconnectIntervalMs() > 0) {
                 // wait until scheduled
-                let cli = yield Scheduler.reschedule(server, retryTimeMs, retryConnection, opts.nick);
+                let cli = yield Scheduler.reschedule(
+                    server, retryTimeMs, retryConnection, opts.nick
+                );
                 return cli;
             }
             // Try to connect immediately: we'll wait if we fail.
@@ -322,27 +366,39 @@ ConnectionInstance.create = Promise.coroutine(function* (server, opts, onCreated
         }
         catch (err) {
             connAttempts += 1;
-            log.error(`ConnectionInstance.connect failed after ${connAttempts} attempts (${err.message})`);
+            log.error(
+                `ConnectionInstance.connect failed after ${connAttempts} attempts (${err.message})`
+            );
+
             if (err.message === "throttled") {
                 retryTimeMs += THROTTLE_WAIT_MS;
             }
+
             if (err.message === "banned") {
-                log.error(`${opts.nick} is banned from ${server.domain}, ` +
-                    `retrying in ${BANNED_TIME_MS}ms`);
+                log.error(
+                    `${opts.nick} is banned from ${server.domain}, ` +
+                    `retrying in ${BANNED_TIME_MS}ms`
+                );
                 yield Promise.delay(BANNED_TIME_MS);
             }
+
             if (err.message === "toomanyconns") {
-                log.error(`User ${opts.nick} was ILINED. This may be the network limiting us!`);
+                log.error(
+                    `User ${opts.nick} was ILINED. This may be the network limiting us!`
+                );
                 throw new Error("Connection was ILINED. We cannot retry this.");
             }
+
             // always set a staggered delay here to avoid thundering herd
             // problems on mass-disconnects
-            let delay = (BASE_RETRY_TIME_MS * Math.random()) + retryTimeMs +
-                Math.round((connAttempts * 1000) * Math.random());
-            log.info(`Retrying connection for ${opts.nick} on ${server.domain} ` +
-                `in ${delay}ms (attempts ${connAttempts})`);
+            let delay = (BASE_RETRY_TIME_MS * Math.random())+ retryTimeMs +
+                       Math.round((connAttempts * 1000) * Math.random());
+            log.info(`Retrying connection for ${opts.nick} on ${server.domain} `+
+                     `in ${delay}ms (attempts ${connAttempts})`);
             yield Promise.delay(delay);
         }
     }
 });
+
+
 module.exports = ConnectionInstance;

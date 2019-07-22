@@ -65,13 +65,13 @@
  * MSL is typically 2 minutes, so a collection interval of 10 minutes is long
  * enough.
  */
-"use strict";
 const IrcAction = require("../models/IrcAction");
 const IrcUser = require("../models/IrcUser");
-const BridgeRequest = require("../models/BridgeRequest").BridgeRequest;
+const BridgeRequest = require("../models/BridgeRequest");
 const log = require("../logging").get("IrcEventBroker");
 
 const CLEANUP_TIME_MS = 1000 * 60 * 10; // 10min
+
 function ProcessedDict() {
     this.processed = {
     // server.domain: {
@@ -82,13 +82,13 @@ function ProcessedDict() {
     };
     this.timeoutObj = null;
 }
-ProcessedDict.prototype.getClaimer = function (domain, hash) {
+ProcessedDict.prototype.getClaimer = function(domain, hash) {
     if (!this.processed[domain] || !this.processed[domain][hash]) {
         return null;
     }
     return this.processed[domain][hash].nick;
 };
-ProcessedDict.prototype.claim = function (domain, hash, nick, cmd) {
+ProcessedDict.prototype.claim = function(domain, hash, nick, cmd) {
     if (!this.processed[domain]) {
         this.processed[domain] = {};
     }
@@ -98,20 +98,19 @@ ProcessedDict.prototype.claim = function (domain, hash, nick, cmd) {
         ts: cmd === "names" ? null : Date.now()
     };
 };
-ProcessedDict.prototype.startCleaner = function () {
+
+ProcessedDict.prototype.startCleaner = function() {
     var self = this;
     var expiredList = {
-    // domain: [hash, hash, hash]
+        // domain: [hash, hash, hash]
     };
-    this.timeoutObj = setTimeout(function () {
+    this.timeoutObj = setTimeout(function() {
         var now = Date.now();
         // loop the processed list looking for entries older than CLEANUP_TIME_MS
-        Object.keys(self.processed).forEach(function (domain) {
+        Object.keys(self.processed).forEach(function(domain) {
             var entries = self.processed[domain];
-            if (!entries) {
-                return;
-            }
-            Object.keys(entries).forEach(function (hash) {
+            if (!entries) { return; }
+            Object.keys(entries).forEach(function(hash) {
                 var entry = entries[hash];
                 if (entry.ts && (entry.ts + CLEANUP_TIME_MS) < now) {
                     if (!expiredList[domain]) {
@@ -122,16 +121,18 @@ ProcessedDict.prototype.startCleaner = function () {
             });
         });
         // purge the entries
-        Object.keys(expiredList).forEach(function (domain) {
+        Object.keys(expiredList).forEach(function(domain) {
             var hashes = expiredList[domain];
             log.debug("Cleaning up %s entries from %s", hashes.length, domain);
-            hashes.forEach(function (hash) {
+            hashes.forEach(function(hash) {
                 delete self.processed[domain][hash];
             });
         });
+
         self.startCleaner();
     }, CLEANUP_TIME_MS);
 };
+
 function IrcEventBroker(bridge, clientPool, ircHandler) {
     this._processed = new ProcessedDict();
     this._processed.startCleaner();
@@ -139,15 +140,17 @@ function IrcEventBroker(bridge, clientPool, ircHandler) {
     this._appServiceBridge = bridge;
     this._ircHandler = ircHandler;
 }
+
 // debugging: util.inspect() override
-IrcEventBroker.prototype.inspect = function (depth) {
+IrcEventBroker.prototype.inspect = function(depth) {
     return this._processed.processed;
 };
+
 /*
  * Attempt to claim this message as this client
  * @return {boolean} True if you successfully claimed it.
  */
-IrcEventBroker.prototype._attemptClaim = function (client, msg) {
+IrcEventBroker.prototype._attemptClaim = function(client, msg) {
     var domain = client.server.domain;
     if (!msg.prefix || !msg.rawCommand || !msg.args) {
         log.warn("Unexpected msg format: %s", JSON.stringify(msg));
@@ -156,7 +159,9 @@ IrcEventBroker.prototype._attemptClaim = function (client, msg) {
     var hash = msg.prefix + msg.rawCommand + msg.args.join("");
     var handledByNick = this._processed.getClaimer(domain, hash);
     // we claim it if no one else has or if we previously did this hash.
-    var shouldClaim = (handledByNick === null || handledByNick === client.nick);
+    var shouldClaim = (
+        handledByNick === null || handledByNick === client.nick
+    );
     if (shouldClaim) {
         this._processed.claim(domain, hash, client.nick, msg.rawCommand);
         return true;
@@ -166,19 +171,24 @@ IrcEventBroker.prototype._attemptClaim = function (client, msg) {
         var owner = this._pool.getBridgedClientByNick(client.server, handledByNick);
         if (!owner) {
             // finders keepers
-            log.debug("%s is stealing hash %s from %s because they are dead", client.nick, hash, handledByNick);
+            log.debug(
+                "%s is stealing hash %s from %s because they are dead",
+                client.nick, hash, handledByNick
+            );
             this._processed.claim(domain, hash, client.nick, msg.rawCommand);
             return true;
         }
     }
     return false;
 };
-IrcEventBroker.prototype._hookIfClaimed = function (client, connInst, eventName, fn) {
+
+IrcEventBroker.prototype._hookIfClaimed = function(client, connInst, eventName, fn) {
     if (client.isBot && !client.server.isBotEnabled()) {
         return; // don't both attaching listeners we'll never invoke.
     }
     var self = this;
-    connInst.addListener(eventName, function () {
+
+    connInst.addListener(eventName, function() {
         if (client.server.isBotEnabled() && client.isBot) {
             // the bot handles all the things! Just proxy straight through.
             fn.apply(self, arguments);
@@ -207,6 +217,7 @@ IrcEventBroker.prototype._hookIfClaimed = function (client, connInst, eventName,
                     args: [chan]
                 };
             }
+
             if (self._attemptClaim(client, msg)) {
                 // We're responsible for passing this message to the bridge.
                 fn.apply(self, arguments);
@@ -214,100 +225,136 @@ IrcEventBroker.prototype._hookIfClaimed = function (client, connInst, eventName,
         }
     });
 };
-IrcEventBroker.prototype.sendMetadata = function (client, msg, force) {
+
+IrcEventBroker.prototype.sendMetadata = function(client, msg, force) {
     if ((client.isBot || !client.server.shouldSendConnectionNotices()) && !force) {
         return;
     }
-    var req = new BridgeRequest(this._appServiceBridge.getRequestFactory().newRequest({
-        data: {
-            isFromIrc: true
-        }
-    }));
-    complete(req, this._ircHandler.onMetadata(req, client, msg, force));
-};
-IrcEventBroker.prototype.addHooks = function (client, connInst) {
-    var server = client.server;
-    var ircHandler = this._ircHandler;
-    var createUser = (nick) => {
-        return new IrcUser(server, nick, this._pool.getBridgedClientByNick(server, nick) !== undefined);
-    };
-    var createRequest = () => {
-        return new BridgeRequest(this._appServiceBridge.getRequestFactory().newRequest({
+    var req = new BridgeRequest(
+        this._appServiceBridge.getRequestFactory().newRequest({
             data: {
                 isFromIrc: true
             }
-        }));
+        })
+    );
+    complete(req, this._ircHandler.onMetadata(req, client, msg, force));
+};
+
+IrcEventBroker.prototype.addHooks = function(client, connInst) {
+    var server = client.server;
+    var ircHandler = this._ircHandler;
+
+    var createUser = (nick) => {
+        return new IrcUser(
+            server, nick,
+            this._pool.getBridgedClientByNick(server, nick) !== undefined
+        );
     };
+
+    var createRequest = () => {
+        return new BridgeRequest(
+            this._appServiceBridge.getRequestFactory().newRequest({
+                data: {
+                    isFromIrc: true
+                }
+            })
+        );
+    };
+
     // === Attach client listeners ===
     // We want to listen for PMs for individual clients regardless of whether the
     // bot is enabled or disabled, as only they will receive the event. We handle
     // PMs to the bot now for provisioning.
-    // listen for PMs for clients. If you listen for rooms, you'll get
-    // duplicates since the bot will also invoke the callback fn!
-    connInst.addListener("message", function (from, to, text) {
-        if (to.indexOf("#") === 0) {
-            return;
-        }
+        // listen for PMs for clients. If you listen for rooms, you'll get
+        // duplicates since the bot will also invoke the callback fn!
+    connInst.addListener("message", function(from, to, text) {
+        if (to.indexOf("#") === 0) { return; }
         var req = createRequest();
-        complete(req, ircHandler.onPrivateMessage(req, server, createUser(from), createUser(to), new IrcAction("message", text)));
+        complete(req, ircHandler.onPrivateMessage(
+            req,
+            server, createUser(from), createUser(to),
+            new IrcAction("message", text)
+        ));
     });
-    connInst.addListener("notice", function (from, to, text) {
-        if (!from || to.indexOf("#") === 0) {
-            return;
-        }
+    connInst.addListener("notice", function(from, to, text) {
+        if (!from || to.indexOf("#") === 0) { return; }
         var req = createRequest();
-        complete(req, ircHandler.onPrivateMessage(req, server, createUser(from), createUser(to), new IrcAction("notice", text)));
+        complete(req, ircHandler.onPrivateMessage(
+            req,
+            server, createUser(from), createUser(to),
+            new IrcAction("notice", text)
+        ));
     });
-    connInst.addListener("ctcp-privmsg", function (from, to, text) {
-        if (to.indexOf("#") === 0) {
-            return;
-        }
+    connInst.addListener("ctcp-privmsg", function(from, to, text) {
+        if (to.indexOf("#") === 0) { return; }
         if (text.indexOf("ACTION ") === 0) {
             var req = createRequest();
-            complete(req, ircHandler.onPrivateMessage(req, server, createUser(from), createUser(to), new IrcAction("emote", text.substring("ACTION ".length))));
+            complete(req, ircHandler.onPrivateMessage(
+                req,
+                server, createUser(from), createUser(to),
+                new IrcAction("emote", text.substring("ACTION ".length))
+            ));
         }
     });
-    connInst.addListener("invite", function (channel, from) {
+    connInst.addListener("invite", function(channel, from) {
         var req = createRequest();
-        complete(req, ircHandler.onInvite(req, server, createUser(from), createUser(client.nick), channel));
+        complete(req, ircHandler.onInvite(
+            req, server, createUser(from), createUser(client.nick), channel
+        ));
     });
+
     // Only a bot should issue a mode, so only the bot should listen for mode_is reply
     if (client.isBot) {
-        connInst.addListener("mode_is", function (channel, mode) {
+        connInst.addListener("mode_is", function(channel, mode) {
             var req = createRequest();
             complete(req, ircHandler.onModeIs(req, server, channel, mode));
         });
     }
+
     // When a names event is received, emit names event in the BridgedClient
     connInst.addListener("names", (chan, names) => {
         client.emit("irc-names", client, chan, names);
     });
+
     // Listen for other events
-    this._hookIfClaimed(client, connInst, "part", function (chan, nick, reason, msg) {
+
+    this._hookIfClaimed(client, connInst, "part", function(chan, nick, reason, msg) {
         var req = createRequest();
-        complete(req, ircHandler.onPart(req, server, createUser(nick), chan, "part"));
+        complete(req, ircHandler.onPart(
+            req, server, createUser(nick), chan, "part"
+        ));
     });
-    this._hookIfClaimed(client, connInst, "quit", function (nick, reason, chans, msg) {
+    this._hookIfClaimed(client, connInst, "quit", function(nick, reason, chans, msg) {
         chans = chans || [];
-        chans.forEach(function (chan) {
+        chans.forEach(function(chan) {
             var req = createRequest();
-            complete(req, ircHandler.onPart(req, server, createUser(nick), chan, "quit"));
+            complete(req, ircHandler.onPart(
+                req, server, createUser(nick), chan, "quit"
+            ));
         });
     });
-    this._hookIfClaimed(client, connInst, "kick", function (chan, nick, by, reason, msg) {
+    this._hookIfClaimed(client, connInst, "kick", function(chan, nick, by, reason, msg) {
         var req = createRequest();
-        complete(req, ircHandler.onKick(req, server, createUser(by), createUser(nick), chan, reason));
+        complete(req, ircHandler.onKick(
+            req, server, createUser(by), createUser(nick), chan, reason
+        ));
     });
-    this._hookIfClaimed(client, connInst, "join", function (chan, nick, msg) {
+    this._hookIfClaimed(client, connInst, "join", function(chan, nick, msg) {
         var req = createRequest();
-        complete(req, ircHandler.onJoin(req, server, createUser(nick), chan, "join"));
+        complete(req, ircHandler.onJoin(
+            req, server, createUser(nick), chan, "join"
+        ));
     });
-    this._hookIfClaimed(client, connInst, "nick", function (oldNick, newNick, chans, msg) {
+    this._hookIfClaimed(client, connInst, "nick", function(oldNick, newNick, chans, msg) {
         chans = chans || [];
         chans.forEach((chan) => {
             const req = createRequest();
-            complete(req, ircHandler.onPart(req, server, createUser(oldNick), chan, "nick"));
-            complete(req, ircHandler.onJoin(req, server, createUser(newNick), chan, "nick"));
+            complete(req, ircHandler.onPart(
+                req, server, createUser(oldNick), chan, "nick"
+            ));
+            complete(req, ircHandler.onJoin(
+                req, server, createUser(newNick), chan, "nick"
+            ));
         });
     });
     // bucket names and drain them one at a time to avoid flooding
@@ -316,14 +363,16 @@ IrcEventBroker.prototype.addHooks = function (client, connInst) {
     //  { chan: <channel>, nick: <nick>, opLevel: <@+...> }
     ];
     var processingBucket = false;
-    var popName = function () {
+    var popName = function() {
         var name = namesBucket.pop(); // LIFO but who cares
         if (!name) {
             processingBucket = false;
             return null;
         }
         var req = createRequest();
-        let promise = complete(req, ircHandler.onJoin(req, server, createUser(name.nick), name.chan, "names"));
+        let promise = complete(req, ircHandler.onJoin(
+            req, server, createUser(name.nick), name.chan, "names"
+        ));
         if (!name.opLevel) {
             return promise;
         }
@@ -333,8 +382,10 @@ IrcEventBroker.prototype.addHooks = function (client, connInst) {
                 req.log.error("No client exists to set onMode for " + name.nick);
                 return null;
             }
-            req.log.info("Calculating +mode for " + name.nick + " in " + name.chan +
-                " with opLevel=" + name.opLevel);
+            req.log.info(
+                "Calculating +mode for " + name.nick + " in " + name.chan +
+                " with opLevel=" + name.opLevel
+            );
             // send onMode for the most powerful prefix only.
             let prefixLetter = null;
             for (let i = 0; i < name.opLevel.length; i++) {
@@ -351,28 +402,34 @@ IrcEventBroker.prototype.addHooks = function (client, connInst) {
             if (!modeLetter) {
                 return null;
             }
-            return complete(req, ircHandler.onMode(req, server, name.chan, name.nick, modeLetter, true, name.nick));
+
+            return complete(req, ircHandler.onMode(
+                req, server, name.chan, name.nick, modeLetter, true, name.nick
+            ));
         });
     };
-    var purgeNames = function () {
+    var purgeNames = function() {
         var promise = popName();
         if (promise) {
-            promise.finally(function () {
+            promise.finally(function() {
                 purgeNames();
             });
         }
     };
-    this._hookIfClaimed(client, connInst, "names", function (chan, names) {
+
+    this._hookIfClaimed(client, connInst, "names", function(chan, names) {
         if (names) {
             var userlist = Object.keys(names);
-            userlist.forEach(function (nick) {
+            userlist.forEach(function(nick) {
                 namesBucket.push({
                     chan: chan,
                     nick: nick,
                     opLevel: names[nick] || "",
                 });
             });
-            client.log.info("NAMEs: Adding %s nicks from %s.", userlist.length, chan);
+            client.log.info(
+                "NAMEs: Adding %s nicks from %s.", userlist.length, chan
+            );
             client.log.debug("Names bucket has %s entries", namesBucket.length);
             if (!processingBucket) {
                 processingBucket = true;
@@ -381,60 +438,70 @@ IrcEventBroker.prototype.addHooks = function (client, connInst) {
         }
     });
     // listen for mode changes
-    this._hookIfClaimed(client, connInst, "+mode", function (channel, by, mode, arg) {
+    this._hookIfClaimed(client, connInst, "+mode", function(channel, by, mode, arg) {
         var req = createRequest();
-        complete(req, ircHandler.onMode(req, server, channel, by, mode, true, arg));
+        complete(req, ircHandler.onMode(
+            req, server, channel, by, mode, true, arg
+        ));
     });
-    this._hookIfClaimed(client, connInst, "-mode", function (channel, by, mode, arg) {
+    this._hookIfClaimed(client, connInst, "-mode", function(channel, by, mode, arg) {
         var req = createRequest();
-        complete(req, ircHandler.onMode(req, server, channel, by, mode, false, arg));
+        complete(req, ircHandler.onMode(
+            req, server, channel, by, mode, false, arg
+        ));
     });
-    this._hookIfClaimed(client, connInst, "message", function (from, to, text) {
-        if (to.indexOf("#") !== 0) {
-            return;
-        }
+    this._hookIfClaimed(client, connInst, "message", function(from, to, text) {
+        if (to.indexOf("#") !== 0) { return; }
         var req = createRequest();
-        complete(req, ircHandler.onMessage(req, server, createUser(from), to, new IrcAction("message", text)));
+        complete(req, ircHandler.onMessage(
+            req, server, createUser(from), to,
+            new IrcAction("message", text)
+        ));
     });
-    this._hookIfClaimed(client, connInst, "ctcp-privmsg", function (from, to, text) {
-        if (to.indexOf("#") !== 0) {
-            return;
-        }
+    this._hookIfClaimed(client, connInst, "ctcp-privmsg", function(from, to, text) {
+        if (to.indexOf("#") !== 0) { return; }
         if (text.indexOf("ACTION ") === 0) {
             var req = createRequest();
-            complete(req, ircHandler.onMessage(req, server, createUser(from), to, new IrcAction("emote", text.substring("ACTION ".length))));
+            complete(req, ircHandler.onMessage(
+                req, server, createUser(from), to,
+                new IrcAction("emote", text.substring("ACTION ".length))
+            ));
         }
     });
-    this._hookIfClaimed(client, connInst, "notice", function (from, to, text) {
-        if (to.indexOf("#") !== 0) {
-            return;
-        }
+    this._hookIfClaimed(client, connInst, "notice", function(from, to, text) {
+        if (to.indexOf("#") !== 0) { return; }
         if (from) { // ignore server notices
             var req = createRequest();
-            complete(req, ircHandler.onMessage(req, server, createUser(from), to, new IrcAction("notice", text)));
+            complete(req, ircHandler.onMessage(
+                req, server, createUser(from), to, new IrcAction("notice", text)
+            ));
         }
     });
-    this._hookIfClaimed(client, connInst, "topic", function (channel, topic, nick) {
-        if (channel.indexOf("#") !== 0) {
-            return;
-        }
+    this._hookIfClaimed(client, connInst, "topic", function(channel, topic, nick) {
+        if (channel.indexOf("#") !== 0) { return; }
+
         if (nick && nick.indexOf("@") !== -1) {
             var match = nick.match(
-            // https://github.com/martynsmith/node-irc/blob/master/lib/parse_message.js#L26
-            /^([_a-zA-Z0-9\[\]\\`^{}|-]*)(!([^@]+)@(.*))?$/);
+                // https://github.com/martynsmith/node-irc/blob/master/lib/parse_message.js#L26
+                /^([_a-zA-Z0-9\[\]\\`^{}|-]*)(!([^@]+)@(.*))?$/
+            );
             if (match) {
                 nick = match[1];
             }
         }
         var req = createRequest();
-        complete(req, ircHandler.onTopic(req, server, createUser(nick), channel, new IrcAction("topic", topic)));
+        complete(req, ircHandler.onTopic(
+            req, server, createUser(nick), channel, new IrcAction("topic", topic)
+        ));
     });
 };
+
 function complete(req, promise) {
-    return promise.then(function (res) {
+    return promise.then(function(res) {
         req.resolve(res);
-    }, function (err) {
+    }, function(err) {
         req.reject(err);
     });
 }
+
 module.exports = IrcEventBroker;
