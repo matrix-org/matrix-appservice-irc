@@ -25,8 +25,6 @@
     "url": "https://github.com/matrix-org/matrix-appservice-irc/issues"
   },
   "dependencies": {
-    "@types/bluebird": "^3.5.27",
-    "@types/node": "^10.14.9",
     "bluebird": "^3.5.5",
     "crc": "^3.2.1",
     "escape-string-regexp": "^1.0.5",
@@ -41,11 +39,13 @@
     "prom-client": "^6.3.0",
     "request": "^2.54.0",
     "sanitize-html": "^1.6.1",
-    "typescript": "^3.5.1",
     "winston": "^2.4.2",
     "winston-daily-rotate-file": "^3.2.1"
   },
   "devDependencies": {
+    "@types/bluebird": "^3.5.27",
+    "@types/node": "^10.14.9",
+    "typescript": "^3.5.1",
     "jasmine": "^3.1.0",
     "nyc": "^12.0.2",
     "eslint": "^5.16.0",
