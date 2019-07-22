@@ -17,27 +17,32 @@ function Queue(processFn, intervalMs) {
     this._processing = null;
     this._procFn = processFn; // critical section Promise<result> = fn(item)
     this._onceFreeDefers = [];
-    if (intervalMs !== undefined && !(Number.isInteger(intervalMs) && intervalMs >= 0)) {
+
+    if (intervalMs !== undefined && !(Number.isInteger(intervalMs) && intervalMs >= 0) ) {
         throw new Error('intervalMs must be a positive integer');
     }
+
     this._intervalMs = intervalMs;
+
     if (this._intervalMs) {
         // Start consuming
         this._consume();
     }
 }
+
 /**
  * Return the length of the queue, including the currently processed item.
  * @return {Number} The length of the queue.
  */
-Queue.prototype.size = function () {
+Queue.prototype.size = function() {
     return this._queue.length + (this._processing ? 1 : 0);
 };
+
 /**
  * Return a promise which is resolved when this queue is free (0 items in queue).
  * @return {Promise<Queue>} Resolves to the Queue itself.
  */
-Queue.prototype.onceFree = function () {
+Queue.prototype.onceFree = function() {
     if (this.size() === 0) {
         return Promise.resolve();
     }
@@ -45,12 +50,14 @@ Queue.prototype.onceFree = function () {
     this._onceFreeDefers.push(defer);
     return defer.promise;
 };
-Queue.prototype._fireOnceFree = function () {
+
+Queue.prototype._fireOnceFree = function() {
     this._onceFreeDefers.forEach((d) => {
         d.resolve(this);
     });
     this._onceFreeDefers = [];
-};
+}
+
 /**
  * Queue up a request for the critical section function.
  * @param {string} id An ID to associate with this request. If there is already a
@@ -60,7 +67,7 @@ Queue.prototype._fireOnceFree = function () {
  * @return {Promise} A promise which will be resolved/rejected when the queued item
  * has been processed.
  */
-Queue.prototype.enqueue = function (id, thing) {
+Queue.prototype.enqueue = function(id, thing) {
     for (var i = 0; i < this._queue.length; i++) {
         if (this._queue[i].id === id) {
             return this._queue[i].defer.promise;
@@ -80,10 +87,12 @@ Queue.prototype.enqueue = function (id, thing) {
     }
     return defer.promise;
 };
+
 Queue.prototype._retry = function () {
     setTimeout(this._consume.bind(this), this._intervalMs);
-};
-Queue.prototype._consume = Promise.coroutine(function* () {
+}
+
+Queue.prototype._consume = Promise.coroutine(function*() {
     if (this._processing) {
         return;
     }
@@ -113,9 +122,12 @@ Queue.prototype._consume = Promise.coroutine(function* () {
         this._consume();
     }
 });
-Queue.prototype.killAll = function () {
+
+Queue.prototype.killAll = function() {
     for (var i = 0; i < this._queue.length; i++) {
         this._queue[i].defer.reject(new Error('Queue killed'));
     }
-};
+}
+
+
 module.exports = Queue;

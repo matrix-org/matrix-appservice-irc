@@ -1,11 +1,12 @@
-"use strict";
 let Promise = require("bluebird");
 let Queue = require("./Queue");
+
 // A Queue Pool is a queue which is backed by a pool of queues which can be serviced
 // concurrently. The number of items which can be processed concurrently is the size
 // of the queue. The QueuePool always operates in a FIFO manner, even when all queues
 // are occupied.
 class QueuePool {
+
     // Construct a new Queue Pool.
     // This consists of multiple queues. Items will be inserted into
     // the first available free queue. If no queue is free, items will
@@ -24,8 +25,10 @@ class QueuePool {
         this.overflow = new Queue(this._overflow.bind(this));
         this._overflowCount = 0;
     }
+
     // Get number of items waiting to be inserted into a queue.
     get waitingItems() { return this.overflow.size(); }
+
     // Add an item to the queue. ID and item are passed directly to the Queue.
     // Index is optional and should be between 0 ~ poolSize-1. It determines
     // which queue to put the item into, which will bypass the overflow queue.
@@ -38,6 +41,7 @@ class QueuePool {
             }
             return this.queues[index].enqueue(id, item);
         }
+
         // no index specified: first free queue gets it.
         let queue = this._freeQueue();
         if (queue) {
@@ -56,6 +60,7 @@ class QueuePool {
             return req.p;
         });
     }
+
     // This is called when a request is at the front of the overflow queue.
     _overflow(req) {
         let queue = this._freeQueue();
@@ -77,8 +82,9 @@ class QueuePool {
             return {
                 p: q.enqueue(req.id, req.item),
             };
-        });
+        })
     }
+
     _freeQueue() {
         for (let i = 0; i < this.queues.length; i++) {
             if (this.queues[i].size() === 0) {
@@ -87,5 +93,7 @@ class QueuePool {
         }
         return null;
     }
+
 }
+
 module.exports = QueuePool;
