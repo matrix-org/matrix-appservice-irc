@@ -24,9 +24,9 @@ export class IrcServer {
     constructor(public readonly domain: string, private config: any, public readonly homeserverDomain: string, private expiryTimeSeconds: number) {
         this.addresses = config.additionalAddresses || [];
         this.addresses.push(domain);
-        if (config.dynamicChannels.groupId !== undefined &&
+        if (config.dynamicChannels && config.dynamicChannels.groupId !== undefined &&
             config.dynamicChannels.groupId.trim() !== "") {
-            this.groupIdValid = GROUP_ID_REGEX.exec(this.config.dynamicChannels.groupId) !== null;
+            this.groupIdValid = GROUP_ID_REGEX.exec(config.dynamicChannels.groupId) !== null;
             if (!this.groupIdValid) {
                 log.warn(`${domain} has an incorrectly configured groupId for dynamicChannels and will not set groups.`);
             }
@@ -153,7 +153,7 @@ export class IrcServer {
         return this.groupIdValid;
     }
 
-    public getGroupId() {
+    public get groupId() {
         return this.config.dynamicChannels.groupId;
     }
 
@@ -167,6 +167,10 @@ export class IrcServer {
 
     public shouldFederate() {
         return this.config.dynamicChannels.federate;
+    }
+
+    public forceRoomVersion() {
+        return this.config.dynamicChannels.roomVersion;
     }
 
     public getPort() {

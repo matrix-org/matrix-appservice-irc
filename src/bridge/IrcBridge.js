@@ -2,7 +2,7 @@
 "use strict";
 var Promise = require("bluebird");
 var extend = require("extend");
-var promiseutil = require("../promiseutil").PromiseUtil;
+const promiseutil = require("../promiseutil");
 var IrcHandler = require("./IrcHandler.js");
 var MatrixHandler = require("./MatrixHandler.js");
 var MemberListSyncer = require("./MemberListSyncer.js");
@@ -15,7 +15,7 @@ var BridgedClient = require("../irc/BridgedClient");
 var IrcUser = require("../models/IrcUser");
 var IrcRoom = require("../models/IrcRoom");
 var IrcClientConfig = require("../models/IrcClientConfig");
-var BridgeRequest = require("../models/BridgeRequest");
+var BridgeRequest = require("../models/BridgeRequest").BridgeRequest;
 var stats = require("../config/stats");
 var DataStore = require("../DataStore");
 var log = require("../logging").get("IrcBridge");

@@ -40,6 +40,7 @@ describe("Creating admin rooms", function() {
             room_id: "!adminroomid:here",
             type: "m.room.member"
         });
+        
         expect(botJoinedRoom).toBe(true);
     }));
 });

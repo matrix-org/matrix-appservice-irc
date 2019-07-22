@@ -1,6 +1,6 @@
 "use strict";
 const Promise = require("bluebird");
-const promiseutil = require("../../lib/promiseutil").PromiseUtil;
+const promiseutil = require("../../lib/promiseutil");
 
 describe("promiseutil.allSettled", function() {
     it("waits for all", function(done) {
@@ -8,14 +8,14 @@ describe("promiseutil.allSettled", function() {
             Promise.resolve("good"),
             Promise.reject(new Error("bad")),
 
-            new Promise(function(resolve, reject) {
+            new Promise(function(resolve) {
                 setTimeout(function() {
                     console.log("Waited 50ms");
                     resolve("resolved value");
                 }, 50);
             }),
 
-            new Promise(function(resolve, reject) {
+            new Promise(function(_, reject) {
                 setTimeout(function() {
                     console.log("Waited 60ms");
                     reject(new Error("rejected value"));

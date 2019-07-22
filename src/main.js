@@ -7,7 +7,7 @@ const RoomBridgeStore = require("matrix-appservice-bridge").RoomBridgeStore;
 const UserBridgeStore = require("matrix-appservice-bridge").UserBridgeStore;
 
 const IrcBridge = require("./bridge/IrcBridge.js");
-const IrcServer = require("./irc/IrcServer.js");
+const { IrcServer, DEFAULT_CONFIG } = require("./irc/IrcServer.js");
 const stats = require("./config/stats");
 const ident = require("./irc/ident");
 const logging = require("./logging");
@@ -28,7 +28,7 @@ const _toServer = function(domain, serverConfig, homeserverDomain) {
             is deprecated. Use dynamicChannels.published, dynamicChannels.joinRule
             and dynamicChannels.createAlias instead.`);
     }
-    return new IrcServer(domain, extend(true, IrcServer.DEFAULT_CONFIG, serverConfig), homeserverDomain);
+    return new IrcServer(domain, extend(true, DEFAULT_CONFIG, serverConfig), homeserverDomain);
 };
 module.exports.generateRegistration = Promise.coroutine(function* (reg, config) {
     var asToken;

@@ -1,10 +1,9 @@
 /*eslint no-invalid-this: 0*/ // eslint doesn't understand Promise.coroutine wrapping
 // Controls the logic for determining which membership lists should be synced and
 // handles the sequence of events until the lists are in sync.
-"use strict";
 
 const Promise = require("bluebird");
-const promiseutil = require("../promiseutil").PromiseUtil;
+const promiseutil = require("../promiseutil");
 const log = require("../logging").get("MemberListSyncer");
 const stats = require("../config/stats");
 const QueuePool = require("../util/QueuePool");

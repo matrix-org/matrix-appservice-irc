@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 "use strict";
-const promiseutil = require("../lib/promiseutil").PromiseUtil;
+const promiseutil = require("../lib/promiseutil");
 const nopt = require("nopt");
 const request = require("request");
 const joinUrl = require("url").resolve;

@@ -1,7 +1,7 @@
 
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcServer } from "../irc/IrcServer";
-import PromiseUtil from "../promiseutil";
+import * as PromiseUtil from "../promiseutil";
 
 const QUIT_WAIT_DELAY_MS = 100;
 const QUIT_WINDOW_MS = 1000;

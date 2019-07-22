@@ -2,7 +2,7 @@
 "use strict";
 const querystring = require("querystring");
 const Promise = require("bluebird");
-const BridgeRequest = require("./models/BridgeRequest");
+const BridgeRequest = require("./models/BridgeRequest").BridgeRequest;
 const log = require("./logging").get("DebugApi");
 const http = require("http");
 

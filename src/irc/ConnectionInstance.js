@@ -1,6 +1,6 @@
 "use strict";
 const irc = require("irc");
-const promiseutil = require("../promiseutil").PromiseUtil;
+const promiseutil = require("../promiseutil");
 const logging = require("../logging");
 var log = logging.get("client-connection");
 const Scheduler = require("./Scheduler.js");
