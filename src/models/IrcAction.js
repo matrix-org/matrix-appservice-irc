@@ -1,8 +1,8 @@
-"use strict";
 const ircFormatting = require("../irc/formatting");
 const log = require("../logging").get("IrcAction");
 
 const ACTION_TYPES = ["message", "emote", "topic", "notice"];
+
 function IrcAction(type, text, timestamp) {
     if (ACTION_TYPES.indexOf(type) === -1) {
         throw new Error("Unknown IrcAction type: " + type);
@@ -11,7 +11,7 @@ function IrcAction(type, text, timestamp) {
     this.text = text;
     this.ts = timestamp || 0;
 }
-IrcAction.fromMatrixAction = function (matrixAction) {
+IrcAction.fromMatrixAction = function(matrixAction) {
     switch (matrixAction.type) {
         case "message":
         case "emote":
@@ -22,13 +22,17 @@ IrcAction.fromMatrixAction = function (matrixAction) {
                     ircText = matrixAction.text; // fallback
                 }
                 // irc formatted text is the main text part
-                return new IrcAction(matrixAction.type, ircText, matrixAction.ts);
+                return new IrcAction(matrixAction.type, ircText, matrixAction.ts)
             }
             return new IrcAction(matrixAction.type, matrixAction.text, matrixAction.ts);
         case "image":
-            return new IrcAction("emote", "uploaded an image: " + matrixAction.text, matrixAction.ts);
+            return new IrcAction(
+                "emote", "uploaded an image: " + matrixAction.text, matrixAction.ts
+            );
         case "video":
-            return new IrcAction("emote", "uploaded a video: " + matrixAction.text, matrixAction.ts);
+            return new IrcAction(
+                "emote", "uploaded a video: " + matrixAction.text, matrixAction.ts
+            );
         case "file":
             return new IrcAction("emote", "posted a file: " + matrixAction.text, matrixAction.ts);
         case "topic":
@@ -38,4 +42,5 @@ IrcAction.fromMatrixAction = function (matrixAction) {
             return null;
     }
 };
+
 module.exports = IrcAction;

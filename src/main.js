@@ -7,7 +7,7 @@ const RoomBridgeStore = require("matrix-appservice-bridge").RoomBridgeStore;
 const UserBridgeStore = require("matrix-appservice-bridge").UserBridgeStore;
 
 const IrcBridge = require("./bridge/IrcBridge.js");
-const { IrcServer, DEFAULT_CONFIG } = require("./irc/IrcServer.js");
+const IrcServer = require("./irc/IrcServer.js");
 const stats = require("./config/stats");
 const ident = require("./irc/ident");
 const logging = require("./logging");
@@ -17,23 +17,30 @@ const log = logging.get("main");
 // one to load the libraries in. Later on in runBridge we actually define the real limit.
 require("http").globalAgent.maxSockets = 1000;
 require("https").globalAgent.maxSockets = 1000;
-process.on("unhandledRejection", function (reason, promise) {
+
+process.on("unhandledRejection", function(reason, promise) {
     log.error(reason ? reason.stack : "No reason given");
 });
 
 const _toServer = function(domain, serverConfig, homeserverDomain) {
     // set server config defaults
     if (serverConfig.dynamicChannels.visibility) {
-        throw new Error(`[DEPRECATED] Use of the config field dynamicChannels.visibility
+        throw new Error(
+            `[DEPRECATED] Use of the config field dynamicChannels.visibility
             is deprecated. Use dynamicChannels.published, dynamicChannels.joinRule
-            and dynamicChannels.createAlias instead.`);
+            and dynamicChannels.createAlias instead.`
+        );
     }
-    return new IrcServer(domain, extend(true, DEFAULT_CONFIG, serverConfig), homeserverDomain);
+    return new IrcServer(
+        domain, extend(true, IrcServer.DEFAULT_CONFIG, serverConfig), homeserverDomain
+    );
 };
-module.exports.generateRegistration = Promise.coroutine(function* (reg, config) {
+
+module.exports.generateRegistration = Promise.coroutine(function*(reg, config) {
     var asToken;
     if (config.appService) {
-        console.warn(`[DEPRECATED] Use of config field 'appService' is deprecated.
+        console.warn(
+            `[DEPRECATED] Use of config field 'appService' is deprecated.
             Remove this field from the config file to remove this warning.
 
             This release will use values from this config file. This will produce
@@ -49,29 +56,34 @@ module.exports.generateRegistration = Promise.coroutine(function* (reg, config) 
             appservice.token - Automatically generated.
             appservice.url - Passed as a CLI flag --url
             localpart - Passed as a CLI flag --localpart
-            `);
+            `
+        );
         if (config.appService.localpart) {
             console.log("NOTICE: Using localpart from config file");
             reg.setSenderLocalpart(config.appService.localpart);
         }
         asToken = config.appService.appservice.token;
     }
+
     if (!reg.getSenderLocalpart()) {
         reg.setSenderLocalpart(IrcBridge.DEFAULT_LOCALPART);
     }
     reg.setId(AppServiceRegistration.generateToken());
     reg.setHomeserverToken(AppServiceRegistration.generateToken());
     reg.setAppServiceToken(asToken || AppServiceRegistration.generateToken());
+
     // Disable rate limiting to allow large numbers of requests when many IRC users
     // connect, for example on startup.
     reg.setRateLimited(false);
+
     // Set protocols to IRC, so that the bridge appears in the list of
     // thirdparty protocols
     reg.setProtocols(["irc"]);
+
     let serverDomains = Object.keys(config.ircService.servers);
-    serverDomains.sort().forEach(function (domain) {
+    serverDomains.sort().forEach(function(domain) {
         let server = _toServer(domain, config.ircService.servers[domain], config.homeserver.domain);
-        server.getHardCodedRoomIds().sort().forEach(function (roomId) {
+        server.getHardCodedRoomIds().sort().forEach(function(roomId) {
             reg.addRegexPattern("rooms", roomId, false);
         });
         // add an alias pattern for servers who want aliases exposed.
@@ -80,6 +92,7 @@ module.exports.generateRegistration = Promise.coroutine(function* (reg, config) 
         }
         reg.addRegexPattern("users", server.getUserRegex(), true);
     });
+
     return reg;
 });
 
@@ -96,9 +109,11 @@ module.exports.runBridge = Promise.coroutine(function*(port, config, reg, isDBIn
         ident.configure(config.ircService.ident);
         ident.run();
     }
+
     const maxSockets = (config["advanced"] || {})["maxHttpSockets"] || 1000;
     require("http").globalAgent.maxSockets = maxSockets;
     require("https").globalAgent.maxSockets = maxSockets;
+
     // backwards compat for 1 release. TODO remove
     if (config.appService && !config.homeserver) {
         config.homeserver = config.appService.homeserver;
@@ -111,6 +126,7 @@ module.exports.runBridge = Promise.coroutine(function*(port, config, reg, isDBIn
         ircBridge._bridge.opts.roomStore = new RoomBridgeStore(new Datastore());
         ircBridge._bridge.opts.userStore = new UserBridgeStore(new Datastore());
     }
+
     yield ircBridge.run(port);
     return ircBridge;
 });
@@ -122,4 +138,4 @@ module.exports.killBridge = function(ircBridge) {
     }
     log.info('Killing bridge');
     return ircBridge.kill();
-};
+}
