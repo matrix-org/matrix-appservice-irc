@@ -1,5 +1,4 @@
 /*eslint no-invalid-this: 0*/ // eslint doesn't understand Promise.coroutine wrapping
-"use strict";
 const Promise = require("bluebird");
 const IrcRoom = require("../models/IrcRoom");
 const IrcAction = require("../models/IrcAction");
@@ -7,7 +6,7 @@ const MatrixRoom = require("matrix-appservice-bridge").MatrixRoom;
 const ConfigValidator = require("matrix-appservice-bridge").ConfigValidator;
 const MatrixUser = require("matrix-appservice-bridge").MatrixUser;
 const BridgeRequest = require("../models/BridgeRequest").BridgeRequest;
-const ProvisionRequest = require("./ProvisionRequest");
+const { ProvisionRequest } = require("./ProvisionRequest");
 
 const log = require("../logging").get("Provisioner");
 const promiseutil = require("../promiseutil.js");
