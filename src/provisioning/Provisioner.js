@@ -630,7 +630,7 @@ Provisioner.prototype._doLink = Promise.coroutine(function* (req, server, ircCha
     try {
         // Cause the provisioner to join the IRC channel
         var bridgeReq = new BridgeRequest(this._ircBridge._bridge.getRequestFactory().newRequest(), false);
-        var target = new MatrixUser(userId, undefined, false);
+        var target = new MatrixUser(userId);
         // inject a fake join event which will do M->I connections and
         // therefore sync the member list
         yield this._ircBridge.matrixHandler.onJoin(bridgeReq, {

@@ -457,7 +457,7 @@ DataStore.prototype.getIrcClientConfig = function (userId, domain) {
 DataStore.prototype.storeIrcClientConfig = function (config) {
     return this._userStore.getMatrixUser(config.getUserId()).then((user) => {
         if (!user) {
-            user = new MatrixUser(config.getUserId(), undefined, false);
+            user = new MatrixUser(config.getUserId());
         }
         var userConfig = user.get("client_config") || {};
         if (config.getPassword()) {
@@ -482,7 +482,7 @@ DataStore.prototype.getUserFeatures = function (userId) {
 DataStore.prototype.storeUserFeatures = function (userId, features) {
     return this._userStore.getMatrixUser(userId).then((matrixUser) => {
         if (!matrixUser) {
-            matrixUser = new MatrixUser(userId, undefined, false);
+            matrixUser = new MatrixUser(userId);
         }
         matrixUser.set("features", features);
         return this._userStore.setMatrixUser(matrixUser);

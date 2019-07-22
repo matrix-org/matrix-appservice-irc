@@ -112,6 +112,26 @@ DebugApi.prototype.run = function () {
                 });
                 return;
             }
+            else if (req.method === "POST" && path == "/reapUsers") {
+                const msgCb = (msg) => {
+                    if (!response.headersSent) {
+                        response.writeHead(200, {"Content-Type": "text/plain"});
+                    }
+                    response.write(msg + "\n")
+                }
+                this.ircBridge.connectionReap(
+                    msgCb, query["server"], parseInt(query["since"]), query["reason"]
+                ).catch((err) => {
+                    log.error(err.stack);
+                    if (!response.headersSent) {
+                        response.writeHead(500, {"Content-Type": "text/plain"});
+                    }
+                    response.write(err + "\n");
+                }).finally(() => {
+                    response.end();
+                });
+                return;
+            }
             else if (req.method === "POST" && path == "/killPortal") {
                 this.killPortal(req, response);
                 return;
@@ -243,7 +263,6 @@ Remove Alias: ${remove_alias}`);
     }
     if (remove_alias) {
         const roomAlias = server.getAliasFromChannel(channel);
-        console.log("Alias", roomAlias);
         try {
             yield this.ircBridge.getAppServiceBridge().getIntent().client.deleteAlias(roomAlias);
             result.stages.push("Deleted alias for room");

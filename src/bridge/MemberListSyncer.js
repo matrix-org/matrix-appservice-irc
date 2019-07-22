@@ -61,7 +61,7 @@ MemberListSyncer.prototype.sync = Promise.coroutine(function* () {
     }
     log.info("Checking membership lists for syncing on %s", server.domain);
     let start = Date.now();
-    let rooms = yield this._getSyncableRooms();
+    let rooms = yield this.getSyncableRooms();
     log.info("Found %s syncable rooms (%sms)", rooms.length, Date.now() - start);
     this.leaveIrcUsersFromRooms(rooms, server);
     start = Date.now();
@@ -75,7 +75,8 @@ MemberListSyncer.prototype.sync = Promise.coroutine(function* () {
 MemberListSyncer.prototype.getChannelsToJoin = Promise.coroutine(function* () {
     let server = this.server;
     log.debug("getChannelsToJoin => %s", server.domain);
-    let rooms = yield this._getSyncableRooms();
+    let rooms = yield this.getSyncableRooms();
+
     // map room IDs to channels on this server.
     let channels = new Set();
     let roomInfoMap = {};
@@ -146,9 +147,12 @@ MemberListSyncer.prototype.checkBotPartRoom = Promise.coroutine(function* (ircRo
 //   },
 //   ...
 // ]
-MemberListSyncer.prototype._getSyncableRooms = function () {
+MemberListSyncer.prototype.getSyncableRooms = function(resetCache = false) {
+    if (resetCache) {
+        this._syncableRoomsPromise = null;
+    }
     if (this._syncableRoomsPromise) {
-        log.debug("Returning existing _getSyncableRooms Promise");
+        log.debug("Returning existing getSyncableRooms Promise");
         return this._syncableRoomsPromise;
     }
     let self = this;

@@ -20,6 +20,8 @@ var stats = require("../config/stats");
 var DataStore = require("../DataStore");
 var log = require("../logging").get("IrcBridge");
 const { Bridge, MatrixUser, PrometheusMetrics, Logging } = require("matrix-appservice-bridge");
+const MatrixActivityTracker = require("matrix-lastactive").MatrixActivityTracker;
+
 var DebugApi = require("../DebugApi");
 var Provisioner = require("../provisioning/Provisioner.js");
 var PublicitySyncer = require("./PublicitySyncer.js");
@@ -43,6 +45,14 @@ function IrcBridge(config, registration) {
     //  domain: MemberListSyncer
     };
     this.joinedRoomList = [];
+    this.activityTracker = config.ircService.debugApi.enabled ? new MatrixActivityTracker(
+        this.config.homeserver.url,
+        registration.as_token,
+        this.config.homeserver.domain,
+        this.config.homeserver.enablePresence,
+        require("../logging").get("MxActivityTracker"),
+    ) : null;
+
     // Dependency graph
     this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler);
     this.ircHandler = new IrcHandler(this, this.config.ircHandler);
@@ -94,6 +104,8 @@ function IrcBridge(config, registration) {
                 enablePresence: this.config.homeserver.enablePresence,
             }
         },
+        // See note below for ESCAPE_DEFAULT
+        escapeUserIds: false,
         roomLinkValidation,
         roomUpgradeOpts: {
             consumeEvent: true,
@@ -102,6 +114,10 @@ function IrcBridge(config, registration) {
             onRoomMigrated: this._onRoomUpgrade.bind(this),
         }
     });
+
+    // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
+    MatrixUser.ESCAPE_DEFAULT = false;
+
     this._timers = null; // lazy map of Histogram instances used as metrics
     if (this.config.ircService.metrics && this.config.ircService.metrics.enabled) {
         this._initialiseMetrics();
@@ -470,6 +486,9 @@ IrcBridge.prototype.onEvent = function (request, context) {
 };
 IrcBridge.prototype._onEvent = Promise.coroutine(function* (baseRequest, context) {
     var event = baseRequest.getData();
+    if (event.sender && this.activityTracker) {
+        this.activityTracker.bumpLastActiveTime(event.sender);
+    }
     var request = new BridgeRequest(baseRequest, false);
     if (event.type === "m.room.message") {
         if (event.origin_server_ts && this.config.homeserver.dropMatrixMessagesAfterSecs) {
@@ -490,8 +509,8 @@ IrcBridge.prototype._onEvent = Promise.coroutine(function* (baseRequest, context
             return BridgeRequest.ERR_NOT_MAPPED;
         }
         this.ircHandler.onMatrixMemberEvent(event);
-        var target = new MatrixUser(event.state_key, undefined, false);
-        var sender = new MatrixUser(event.user_id, undefined, false);
+        var target = new MatrixUser(event.state_key);
+        var sender = new MatrixUser(event.user_id);
         if (event.content.membership === "invite") {
             yield this.matrixHandler.onInvite(request, event, sender, target);
         }
@@ -768,7 +787,8 @@ IrcBridge.prototype.getBridgedClient = Promise.coroutine(function* (server, user
         log.debug("Returning cached bridged client %s", userId);
         return bridgedClient;
     }
-    let mxUser = new MatrixUser(userId, undefined, false);
+
+    let mxUser = new MatrixUser(userId);
     mxUser.setDisplayName(displayName);
     // check the database for stored config information for this irc client
     // including username, custom nick, nickserv password, etc.
@@ -874,5 +894,49 @@ IrcBridge.prototype._onRoomUpgrade = Promise.coroutine(function* (oldRoomId, new
     }));
     log.info(`Ghost migration to ${newRoomId} complete`);
 });
+
+IrcBridge.prototype.connectionReap = Promise.coroutine(function*(
+    logCb, serverName, maxIdleHours, reason = "User is inactive") {
+    if (!maxIdleHours || maxIdleHours < 0) {
+        throw Error("'since' must be greater than 0");
+    }
+    const maxIdleTime = maxIdleHours * 60 * 60 * 1000;
+    serverName = serverName ? serverName : Object.keys(this.memberListSyncers)[0];
+    const server = this.memberListSyncers[serverName];
+    if (!server) {
+        throw Error("Server not found");
+    }
+    const req = new BridgeRequest(this._bridge.getRequestFactory().newRequest());
+    logCb(`Connection reaping for ${serverName}`);
+    const rooms = yield server.getSyncableRooms(true);
+    const users = [];
+    for (const room of rooms) {
+        for (const u of room.realJoinedUsers) {
+            if (!users.includes(u)) {
+                users.push(u);
+            }
+        }
+    }
+    logCb(`Found ${users.length} real users for ${serverName}`);
+    let offlineCount = 0;
+    for (const userId of users) {
+        const status = yield this.activityTracker.isUserOnline(userId, maxIdleTime);
+        if (!status.online) {
+            const clients = this._clientPool.getBridgedClientsForUserId(userId);
+            const quitRes = yield this.matrixHandler.quitUser(req, userId, clients, null, reason);
+            if (!quitRes) {
+                logCb(`Quit ${userId}`);
+                // To avoid us catching them again for maxIdleHours
+                this.activityTracker.bumpLastActiveTime(userId);
+                offlineCount++;
+            }
+            else {
+                logCb(`Didn't quit ${userId}: ${quitRes}`);
+            }
+        }
+    }
+    logCb(`Quit ${offlineCount} *offline* real users for ${serverName}.`);
+});
+
 IrcBridge.DEFAULT_LOCALPART = "appservice-irc";
 module.exports = IrcBridge;
