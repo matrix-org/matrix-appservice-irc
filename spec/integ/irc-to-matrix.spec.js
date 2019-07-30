@@ -494,6 +494,9 @@ describe("IRC-to-Matrix operator modes bridging", function() {
             env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
             function(cli) {
                 cli.emit(
+                    "+mode", roomMapping.channel, "op-er", "v", tRealMatrixUserNick, "here you go"
+                );
+                cli.emit(
                     "-mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
                 );
             });
@@ -528,6 +531,9 @@ describe("IRC-to-Matrix operator modes bridging", function() {
 
             env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
             function(cli) {
+                cli.emit(
+                    "+mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
+                );
                 cli.emit(
                     "-mode", roomMapping.channel, "op-er", "v", tRealMatrixUserNick, "here you go"
                 );

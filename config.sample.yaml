@@ -107,6 +107,7 @@ ircService:
       # been given multiple modes, the one that maps to the highest power level will be used.
       modePowerMap:
         o: 50
+        v: 1
 
       botConfig:
         # Enable the presence of the bot in IRC channels. The bot serves as the entity
