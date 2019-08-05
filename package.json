@@ -31,7 +31,7 @@
     "he": "^1.1.1",
     "irc": "matrix-org/node-irc#c9abb427bec5016d94a2abf3e058cc62de09ea5a",
     "js-yaml": "^3.2.7",
-    "matrix-appservice-bridge": "^1.9.1",
+    "matrix-appservice-bridge": "^1.9.2",
     "matrix-lastactive": "^0.0.8",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
