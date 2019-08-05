@@ -552,7 +552,7 @@ describe("Matrix-to-IRC message bridging", function() {
             content: {
                 topic: testTopic
             },
-            user_id: testUser.id,
+            sender: testUser.id,
             room_id: roomMapping.roomId,
             state_key: "",
             type: "m.room.topic"
