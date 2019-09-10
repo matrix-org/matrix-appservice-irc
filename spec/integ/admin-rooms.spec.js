@@ -931,6 +931,7 @@ describe("Admin rooms", function() {
             expect(content.msgtype).toEqual("m.notice");
             expect(content.body).toEqual("'mentions' is set to the default value.");
             done();
+            return Promise.resolve({});
         });
 
         env.mockAppService._trigger("type:m.room.message", {
@@ -969,7 +970,7 @@ describe("Admin rooms", function() {
                 expect(content.body).toEqual("'mentions' is enabled.");
                 done();
             }
-
+            return Promise.resolve({});
         });
 
         env.mockAppService._trigger("type:m.room.message", {
@@ -996,6 +997,7 @@ describe("Admin rooms", function() {
             if (msgN === 3) {
                 done();
             }
+            return Promise.resolve({});
         });
         for (let body of ["!feature", "!feature doggo", "!feature enabled"]) {
             env.mockAppService._trigger("type:m.room.message", {
@@ -1035,7 +1037,7 @@ describe("Admin rooms", function() {
                 expect(content.body).toEqual("'mentions' is set to the default value.");
                 done();
             }
-
+            return Promise.resolve({});
         });
 
         env.mockAppService._trigger("type:m.room.message", {
