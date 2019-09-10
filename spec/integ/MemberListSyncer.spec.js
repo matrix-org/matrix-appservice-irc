@@ -51,25 +51,20 @@ describe("MemberListSyncer", function() {
         let ircUserId = function(nick) {
             return `@${roomMapping.server}_${nick}:${config.homeserver.domain}`;
         };
+        botClient.getJoinedRooms.and.callFake(
+        () => {
+            return Promise.resolve({joined_rooms: [
+                roomMapping.roomId
+            ]});
+        });
 
-        botClient._http.authedRequestWithPrefix.and.callFake(
-        (cb, method, path, qps, data) => {
-            if (method === "GET" && path === "/joined_rooms") {
-                return Promise.resolve({
-                    joined_rooms: [roomMapping.roomId]
-                });
-            }
-            else if (method === "GET" &&
-                    path === `/rooms/${encodeURIComponent(roomMapping.roomId)}/joined_members`) {
-                return Promise.resolve({
-                    joined: {
-                        "@alice:bar": {},
-                        [ircUserId("alpha")]: {},
-                        [ircUserId("beta")]: {},
-                    },
-                });
-            }
-            return Promise.reject(new Error("unhandled path"));
+        botClient.getJoinedRoomMembers.and.callFake(
+        () => {
+            return Promise.resolve({joined: {
+                "@alice:bar": {},
+                [ircUserId("alpha")]: {},
+                [ircUserId("beta")]: {},
+            }});
         });
 
         let promise = new Promise((resolve, reject) => {
@@ -87,31 +82,21 @@ describe("MemberListSyncer", function() {
     }));
 
     it("should sync initial joins from Matrix to IRC", test.coroutine(function*() {
-        botClient._http.authedRequestWithPrefix.and.callFake(
-        (cb, method, path, qps, data) => {
-            if (method === "GET" && path === "/joined_rooms") {
-                return Promise.resolve({
-                    joined_rooms: [roomMapping.roomId]
-                });
-            }
-            else if (method === "GET" &&
-                    path === `/rooms/${encodeURIComponent(roomMapping.roomId)}/joined_members`) {
-                return Promise.resolve({
-                    joined: {
-                        "@alice:bar": {
-                            display_name: null,
-                            avatar_url: null,
-                        },
-                        "@bob:bar": {
-                            display_name: "Bob",
-                            avatar_url: null,
-                        }
-                    },
-                });
-            }
-            return Promise.reject(new Error("unhandled path"));
+        botClient.getJoinedRoomMembers.and.callFake(() => {
+            return Promise.resolve({joined: {
+                "@alice:bar": {
+                    display_name: null,
+                    avatar_url: null,
+                },
+                "@bob:bar": {
+                    display_name: "Bob",
+                    avatar_url: null,
+                }
+            }});
         });
-
+        botClient.getJoinedRooms.and.callFake(() => {
+            return Promise.resolve({joined_rooms: [roomMapping.roomId]});
+        });
         let alicePromise = new Promise((resolve, reject) => {
             let aliceNick = "M-alice";
             env.ircMock._whenClient(roomMapping.server, aliceNick, "connect", function(client, cb) {

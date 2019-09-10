@@ -13,8 +13,7 @@ function MockClient(config) {
         userId: config.userId
     };
     this._http = { opts: {} };
-    this._http.authedRequest = jasmine.createSpy("sdk.authedRequestWithPrefix()");
-    this._http.authedRequestWithPrefix = jasmine.createSpy("sdk.authedRequestWithPrefix()");
+    this._http.authedRequest = jasmine.createSpy("sdk.authedRequest()");
     this.register = jasmine.createSpy("sdk.register(username, password)");
     this.createRoom = jasmine.createSpy("sdk.createRoom(opts)");
     this.joinRoom = jasmine.createSpy("sdk.joinRoom(idOrAlias, opts)");
@@ -34,6 +33,8 @@ function MockClient(config) {
     this.getHomeserverUrl = jasmine.createSpy("sdk.getHomeserverUrl()");
     this.setPowerLevel = jasmine.createSpy("sdk.setPowerLevel()");
     this.setPresence = jasmine.createSpy("sdk.setPresence()");
+    this.getJoinedRooms = jasmine.createSpy("sdk.getJoinedRooms()");
+    this.getJoinedRoomMembers = jasmine.createSpy("sdk.getJoinedRoomMembers()");
 
     this.setPresence.and.returnValue(Promise.resolve({}));
     // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms
@@ -45,12 +46,7 @@ function MockClient(config) {
         return Promise.resolve({});
     });
 
-    this._http.authedRequestWithPrefix.and.callFake(function(a, method, endpoint) {
-        if (endpoint === "/joined_rooms") {
-            return Promise.resolve([]);
-        }
-        return Promise.resolve();
-    });
+    this.getJoinedRooms.and.returnValue(Promise.resolve([]));
 
     // mock up sendStateEvent
     this.sendStateEvent.and.callFake(function() {
