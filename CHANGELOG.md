@@ -1,3 +1,11 @@
+Changes in 0.13.0-rc2 (2019-09-11)
+==============================
+
+* Users who are banned from an IRC network must be QUIT locally #790
+* Pending nicknames should be stored before they are confirmed to help dedupe #796
+* Clarify storepass response #799. Thanks @auscompgeek
+* Fix issue where room upgrades would not upgrade the room entry ID #797
+
 Changes in 0.13.0-rc1 (2019-08-06)
 ==============================
 
