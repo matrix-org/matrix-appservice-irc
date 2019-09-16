@@ -46,6 +46,7 @@
     "eslint": "^5.16.0",
     "jasmine": "^3.1.0",
     "nyc": "^14.1.1",
-    "proxyquire": "^1.4.0"
+    "proxyquire": "^1.4.0",
+    "typescript": "^3.6.3"
   }
 }
