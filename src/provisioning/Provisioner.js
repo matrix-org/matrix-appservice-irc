@@ -1,7 +1,7 @@
 /*eslint no-invalid-this: 0*/ // eslint doesn't understand Promise.coroutine wrapping
 "use strict";
 const Promise = require("bluebird");
-const IrcRoom = require("../models/IrcRoom");
+const { IrcRoom } = require("../models/IrcRoom");
 const IrcAction = require("../models/IrcAction");
 const MatrixRoom = require("matrix-appservice-bridge").MatrixRoom;
 const ConfigValidator = require("matrix-appservice-bridge").ConfigValidator;

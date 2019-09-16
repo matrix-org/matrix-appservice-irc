@@ -292,7 +292,7 @@ Remove Alias: ${remove_alias}`);
     }
 
     // Drop room from room store.
-    this.ircBridge.getStore().removeRoom(
+    yield this.ircBridge.getStore().removeRoom(
         roomId,
         domain,
         channel,

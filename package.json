@@ -44,6 +44,7 @@
     "winston-daily-rotate-file": "^3.2.1"
   },
   "devDependencies": {
+    "@types/bluebird": "^3.5.27",
     "eslint": "^5.16.0",
     "jasmine": "^3.1.0",
     "nyc": "^14.1.1",

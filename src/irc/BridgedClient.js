@@ -7,7 +7,7 @@ const util = require("util");
 const EventEmitter = require("events").EventEmitter;
 const ident = require("./ident");
 const ConnectionInstance = require("./ConnectionInstance");
-const IrcRoom = require("../models/IrcRoom");
+const { IrcRoom } = require("../models/IrcRoom");
 const log = require("../logging").get("BridgedClient");
 
 // The length of time to wait before trying to join the channel again
