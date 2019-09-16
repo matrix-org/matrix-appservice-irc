@@ -10,7 +10,9 @@
   "scripts": {
     "build": "tsc --project ./tsconfig.json",
     "test": "BLUEBIRD_DEBUG=1 node --max_old_space_size=3072 node_modules/jasmine/bin/jasmine.js --stop-on-failure=true",
-    "lint": "eslint --max-warnings 0 src/**/*.js app.js spec",
+    "lint:js": "eslint --max-warnings 0 src/**/*.js app.js spec",
+    "lint:ts": "eslint -c .ts.eslintrc --max-warnings 0 src/**/*.ts",
+    "lint": "npm run lint:js && npm run lint:ts",
     "check": "npm test && npm run lint",
     "ci-test": "node --max_old_space_size=3072 node_modules/nyc/bin/nyc.js --report text jasmine",
     "ci": "npm run lint && npm run ci-test"
@@ -44,6 +46,8 @@
     "winston-daily-rotate-file": "^3.2.1"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^2.2.0",
+    "@typescript-eslint/parser": "^2.2.0",
     "eslint": "^5.16.0",
     "jasmine": "^3.1.0",
     "nyc": "^14.1.1",
