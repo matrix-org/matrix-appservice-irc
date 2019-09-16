@@ -3,7 +3,7 @@
  */
 "use strict";
 const logging = require("../logging");
-const IrcClientConfig = require("../models/IrcClientConfig");
+const { IrcClientConfig } = require("../models/IrcClientConfig");
 const log = logging.get("IrcServer");
 const BridgedClient = require("./BridgedClient");
 
