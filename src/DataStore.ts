@@ -18,10 +18,11 @@ import * as crypto from "crypto";
 import * as fs from "fs";
 import {default as Bluebird} from "bluebird";
 import { IrcRoom } from "./models/IrcRoom";
+import { IrcClientConfig } from "./models/IrcClientConfig";
 
 // Ignore definition errors for now.
 //@ts-ignore
-import { MatrixRoom, RemoteRoom, MatrixUser, RemoteUser} from "matrix-appservice-bridge";
+import { MatrixRoom, RemoteRoom, MatrixUser, RemoteUser, Logging} from "matrix-appservice-bridge";
 
 interface RoomEntry {
     id: string;
@@ -38,10 +39,9 @@ interface UserFeatures {
     [name: string]: boolean
 }
 
-const IrcClientConfig = require("./models/IrcClientConfig");
-const log = require("./logging").get("DataStore");
-
 export type RoomOrigin = "config"|"provision"|"alias"|"join";
+
+const log = Logging.get("DataStore");
 
 export class DataStore {
     private serverMappings: {[domain: string]: any /*IrcServer*/} = {};
