@@ -40,3 +40,8 @@ node_modules
 
 #passwords
 passkey.pem
+
+# Typescript files
+*.tsbuildinfo
+*.map
+lib/

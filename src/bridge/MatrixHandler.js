@@ -4,10 +4,10 @@ const Promise = require("bluebird");
 
 const stats = require("../config/stats");
 const MatrixRoom = require("matrix-appservice-bridge").MatrixRoom;
-const IrcRoom = require("../models/IrcRoom");
+const { IrcRoom } = require("../models/IrcRoom");
 const MatrixAction = require("../models/MatrixAction");
 const IrcAction = require("../models/IrcAction");
-const IrcClientConfig = require("../models/IrcClientConfig");
+const { IrcClientConfig } = require("../models/IrcClientConfig");
 const MatrixUser = require("matrix-appservice-bridge").MatrixUser;
 const BridgeRequest = require("../models/BridgeRequest");
 const toIrcLowerCase = require("../irc/formatting").toIrcLowerCase;

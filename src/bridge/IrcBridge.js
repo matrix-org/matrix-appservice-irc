@@ -14,11 +14,11 @@ var ClientPool = require("../irc/ClientPool");
 var IrcEventBroker = require("../irc/IrcEventBroker");
 var BridgedClient = require("../irc/BridgedClient");
 var IrcUser = require("../models/IrcUser");
-var IrcRoom = require("../models/IrcRoom");
-var IrcClientConfig = require("../models/IrcClientConfig");
+const { IrcRoom } = require("../models/IrcRoom");
+const { IrcClientConfig } = require("../models/IrcClientConfig");
 var BridgeRequest = require("../models/BridgeRequest");
 var stats = require("../config/stats");
-var DataStore = require("../DataStore");
+const { DataStore } = require("../DataStore");
 var log = require("../logging").get("IrcBridge");
 const {
     Bridge,
