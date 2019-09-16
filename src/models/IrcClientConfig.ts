@@ -37,7 +37,10 @@ export class IrcClientConfig {
      * @param {string} domain The IRC network domain for the IRC client
      * @param {Object} configObj Serialised config information if known.
      */
-    constructor(public userId: string, public domain: string, private config: IrcClientConfigSeralized = {}) {
+    constructor(
+        public userId: string,
+        public domain: string,
+        private config: IrcClientConfigSeralized = {}) {
 
     }
 
@@ -86,7 +89,7 @@ export class IrcClientConfig {
     }
 
     public toString() {
-        let redactedConfig = {
+        const redactedConfig = {
             username: this.config.username,
             nick: this.config.nick,
             ipv6: this.config.ipv6,
@@ -95,7 +98,8 @@ export class IrcClientConfig {
         return this.userId + "=>" + this.domain + "=" + JSON.stringify(redactedConfig);
     }
 
-    public static newConfig(matrixUser: MatrixUser, domain: string, nick: string, username: string, password: string) {
+    public static newConfig(matrixUser: MatrixUser, domain: string,
+                            nick: string, username: string, password: string) {
         return new IrcClientConfig(matrixUser ? matrixUser.getId() : null, domain, {
             nick: nick,
             username: username,

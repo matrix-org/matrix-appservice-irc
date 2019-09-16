@@ -25,6 +25,7 @@ export class IrcRoom extends RemoteRoom {
      * @param {IrcServer} server : The IRC server which contains this room.
      * @param {String} channel : The channel this room represents.
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(public readonly server: any, public readonly channel: string) {
         // Because `super` must be called first, we convert the case several times.
         super(IrcRoom.createId(server, toIrcLowerCase(channel)), {
@@ -54,6 +55,8 @@ export class IrcRoom extends RemoteRoom {
         return super.get("type");
     }
 
+    // No types for IrcServer yet
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public static fromRemoteRoom(server: any, remoteRoom: RemoteRoom) {
         return new IrcRoom(server, remoteRoom.get("channel"));
     }
@@ -61,7 +64,7 @@ export class IrcRoom extends RemoteRoom {
     // An IRC room is uniquely identified by a combination of the channel name and the
     // IRC network the channel resides on. Space is the delimiter because neither the
     // domain nor the channel allows spaces.
-    public static createId(server: any, channel: string) {
+    public static createId(server: {domain: string}, channel: string) {
         return server.domain + " " + channel;
     }
 }
