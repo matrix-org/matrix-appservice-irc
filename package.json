@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc --project ./tsconfig.json",
     "test": "BLUEBIRD_DEBUG=1 node --max_old_space_size=3072 node_modules/jasmine/bin/jasmine.js --stop-on-failure=true",
-    "lint": "eslint --max-warnings 0 src spec",
+    "lint": "eslint --max-warnings 0 src/**/*.js app.js spec",
     "check": "npm test && npm run lint",
     "ci-test": "node --max_old_space_size=3072 node_modules/nyc/bin/nyc.js --report text jasmine",
     "ci": "npm run lint && npm run ci-test"
