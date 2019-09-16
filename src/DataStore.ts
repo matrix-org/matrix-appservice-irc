@@ -17,6 +17,7 @@ limitations under the License.
 import * as crypto from "crypto";
 import * as fs from "fs";
 import {default as Bluebird} from "bluebird";
+import { IrcRoom } from "./models/IrcRoom";
 
 // Ignore definition errors for now.
 //@ts-ignore
@@ -37,7 +38,6 @@ interface UserFeatures {
     [name: string]: boolean
 }
 
-const IrcRoom = require("./models/IrcRoom");
 const IrcClientConfig = require("./models/IrcClientConfig");
 const log = require("./logging").get("DataStore");
 
@@ -158,15 +158,15 @@ export class DataStore {
      * aliasing and "join" if it was created during a join.
      * @return {Promise}
      */
-    public async storeRoom(ircRoom: any, matrixRoom: any, origin: RoomOrigin): Promise<void> {
+    public async storeRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom, origin: RoomOrigin): Promise<void> {
         if (typeof origin !== "string") {
             throw new Error('Origin must be a string = "config"|"provision"|"alias"|"join"');
         }
 
         log.info("storeRoom (id=%s, addr=%s, chan=%s, origin=%s)",
-            matrixRoom.getId(), ircRoom.get("domain"), ircRoom.channel, origin);
+            matrixRoom.getId(), ircRoom.getDomain(), ircRoom.channel, origin);
 
-        const mappingId = DataStore.createMappingId(matrixRoom.getId(), ircRoom.get("domain"), ircRoom.channel);
+        const mappingId = DataStore.createMappingId(matrixRoom.getId(), ircRoom.getDomain(), ircRoom.channel);
         await this.roomStore.linkRooms(matrixRoom, ircRoom, {
             origin: origin
         }, mappingId);
@@ -272,7 +272,7 @@ export class DataStore {
      * @return {Promise<Array<IrcRoom>>} A promise which resolves to a list of
      * rooms.
      */
-    public async getIrcChannelsForRoomId(roomId: string): Promise<any[] /*IrcRoom*/> {
+    public async getIrcChannelsForRoomId(roomId: string): Promise<IrcRoom[]> {
         return this.roomStore.getLinkedRemoteRooms(roomId).then((remoteRooms: RemoteRoom[]) => {
             return remoteRooms.filter((remoteRoom) => {
                 return Boolean(this.serverMappings[remoteRoom.get("domain")]);
@@ -290,7 +290,7 @@ export class DataStore {
      * @return {Promise<Map<string, IrcRoom[]>>} A promise which resolves to a map of
      * room ID to an array of IRC rooms.
      */
-    public async getIrcChannelsForRoomIds(roomIds: string[]): Promise<{[roomId: string]: any[] /*IrcRoom*/ }> {
+    public async getIrcChannelsForRoomIds(roomIds: string[]): Promise<{[roomId: string]: IrcRoom[]}> {
         const roomIdToRemoteRooms: {[roomId: string]: RemoteRoom[]} = await this.roomStore.batchGetLinkedRemoteRooms(roomIds);
         for (const roomId of Object.keys(roomIdToRemoteRooms)) {
             // filter out rooms with unknown IRC servers and
@@ -379,7 +379,7 @@ export class DataStore {
         }
     }
 
-    public async setPmRoom(ircRoom: any, matrixRoom: MatrixRoom, userId: string, virtualUserId: string): Promise<void> {
+    public async setPmRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom, userId: string, virtualUserId: string): Promise<void> {
         log.info("setPmRoom (id=%s, addr=%s chan=%s real=%s virt=%s)",
             matrixRoom.getId(), ircRoom.server.domain, ircRoom.channel, userId,
             virtualUserId);
