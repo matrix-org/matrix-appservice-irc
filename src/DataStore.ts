@@ -526,13 +526,14 @@ export class DataStore {
             return null;
         }
         const clientConfig = new IrcClientConfig(userId, domain, configData);
-        if (clientConfig.getPassword()) {
+        const encryptedPass = clientConfig.getPassword();
+        if (encryptedPass) {
             if (!this.privateKey) {
                 throw new Error(`Cannot decrypt password of ${userId} - no private key`);
             }
             let decryptedPass = crypto.privateDecrypt(
                 this.privateKey,
-                new Buffer(clientConfig.getPassword(), 'base64')
+                new Buffer(encryptedPass, 'base64')
             ).toString();
             // Extract the password by removing the prefixed salt and seperating space
             decryptedPass = decryptedPass.split(' ')[1];
