@@ -114,10 +114,6 @@ module.exports.runBridge = Promise.coroutine(function*(port, config, reg, isDBIn
     require("http").globalAgent.maxSockets = maxSockets;
     require("https").globalAgent.maxSockets = maxSockets;
 
-    // backwards compat for 1 release. TODO remove
-    if (config.appService && !config.homeserver) {
-        config.homeserver = config.appService.homeserver;
-    }
     // run the bridge
     const ircBridge = new IrcBridge(config, reg);
 
@@ -125,6 +121,14 @@ module.exports.runBridge = Promise.coroutine(function*(port, config, reg, isDBIn
     if (isDBInMemory) {
         ircBridge._bridge.opts.roomStore = new RoomBridgeStore(new Datastore());
         ircBridge._bridge.opts.userStore = new UserBridgeStore(new Datastore());
+    }
+    else if (config.database && config.database.engine === "postgres") {
+        // Enforce these not to be created
+        ircBridge._bridge.opts.roomStore = undefined;
+        ircBridge._bridge.opts.userStore = undefined;
+    }
+    else if (config.database) {
+        throw Error("Invalid database configuration");
     }
 
     yield ircBridge.run(port);

@@ -14,24 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import * as crypto from "crypto";
-import * as fs from "fs";
 import {default as Bluebird} from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
-import { IrcClientConfig } from "../models/IrcClientConfig";
+import { IrcClientConfig } from "../models/IrcClientConfig"
+import * as logging from "../logging";
 
 // Ignore definition errors for now.
-//@ts-ignore
-import { MatrixRoom, RemoteRoom, MatrixUser, RemoteUser, Logging} from "matrix-appservice-bridge";
-import { DataStore, RoomOrigin, ChannelMappings, RoomEntry, UserFeatures } from "./DataStore";
 
-const log = Logging.get("DataStore");
+import { MatrixRoom, MatrixUser, RemoteUser, RemoteRoom} from "matrix-appservice-bridge";
+import { DataStore, RoomOrigin, ChannelMappings, RoomEntry, UserFeatures } from "./DataStore";
+import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
+import { StringCrypto } from "./StringCrypto";
+
+const log = logging.get("NeDBDataStore");
 
 export class NeDBDataStore implements DataStore {
-    private serverMappings: {[domain: string]: any /*IrcServer*/} = {};
-    private privateKey: string|null;
+    private serverMappings: {[domain: string]: IrcServer} = {};
+    private cryptoStore?: StringCrypto;
     constructor(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         private userStore: any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         private roomStore: any,
         pkeyPath: string,
         private bridgeDomain: string) {
@@ -44,7 +47,7 @@ export class NeDBDataStore implements DataStore {
                 log.info("Indexes checked on '%s' for store.", fieldName);
             };
         };
-        
+
         // add some indexes
         this.roomStore.db.ensureIndex({
             fieldName: "id",
@@ -72,40 +75,19 @@ export class NeDBDataStore implements DataStore {
             sparse: false
         }, errLog("user id"));
 
-        this.privateKey = null;
-
         if (pkeyPath) {
-            try {
-                this.privateKey = fs.readFileSync(pkeyPath, "utf8").toString();
-    
-                // Test whether key is a valid PEM key (publicEncrypt does internal validation)
-                try {
-                    crypto.publicEncrypt(
-                        this.privateKey,
-                        new Buffer("This is a test!")
-                    );
-                }
-                catch (err) {
-                    log.error(`Failed to validate private key: (${err.message})`);
-                    throw err;
-                }
-    
-                log.info(`Private key loaded from ${pkeyPath} - IRC password encryption enabled.`);
-            }
-            catch (err) {
-                log.error(`Could not load private key ${err.message}.`);
-                throw err;
-            }
+            this.cryptoStore = new StringCrypto();
+            this.cryptoStore.load(pkeyPath);
         }
         // Cache as many mappings as possible for hot paths like message sending.
-    
+
         // TODO: cache IRC channel -> [room_id] mapping (only need to remove them in
         //       removeRoom() which is infrequent)
         // TODO: cache room_id -> [#channel] mapping (only need to remove them in
         //       removeRoom() which is infrequent)
     }
 
-    public async setServerFromConfig(server: any, serverConfig: any): Promise<void> {
+    public async setServerFromConfig(server: IrcServer, serverConfig: IrcServerConfig): Promise<void> {
         this.serverMappings[server.domain] = server;
 
         for (const channel of Object.keys(serverConfig.mappings)) {
@@ -115,7 +97,7 @@ export class NeDBDataStore implements DataStore {
                 await this.storeRoom(ircRoom, mxRoom, "config");
             }
         }
-    
+
         // Some kinds of users may have the same user_id prefix so will cause ident code to hit
         // getMatrixUserByUsername hundreds of times which can be slow:
         // https://github.com/matrix-org/matrix-appservice-irc/issues/404
@@ -154,7 +136,7 @@ export class NeDBDataStore implements DataStore {
         await this.roomStore.linkRooms(matrixRoom, ircRoom, {
             origin: origin
         }, mappingId);
-    };
+    }
 
     /**
      * Get an IRC <--> Matrix room mapping from the database.
@@ -166,8 +148,9 @@ export class NeDBDataStore implements DataStore {
      * "join" if it was created during a join.
      * @return {Promise} A promise which resolves to a room entry, or null if one is not found.
      */
-    public async getRoom(roomId: string, ircDomain: string, ircChannel: string, origin: RoomOrigin): Promise<RoomEntry|null> {
-        if (typeof origin !== "undefined" && typeof origin !== "string") {
+    public async getRoom(roomId: string, ircDomain: string,
+                         ircChannel: string, origin?: RoomOrigin): Promise<RoomEntry|null> {
+        if (origin && typeof origin !== "string") {
             throw new Error(`If defined, origin must be a string =
                 "config"|"provision"|"alias"|"join"`);
         }
@@ -178,7 +161,7 @@ export class NeDBDataStore implements DataStore {
                     return null;
                 }
                 return entry;
-        });    
+        });
     }
 
     /**
@@ -197,13 +180,13 @@ export class NeDBDataStore implements DataStore {
 
         const mappings: ChannelMappings = {};
 
-        entries.forEach((e: any) => {
+        entries.forEach((e: { matrix_id: string; remote: {domain: string; channel: string}}) => {
             // drop unknown irc networks in the database
             if (!this.serverMappings[e.remote.domain]) {
                 return;
             }
             if (!mappings[e.matrix_id]) {
-                mappings[e.matrix_id] = new Array();
+                mappings[e.matrix_id] = [];
             }
             mappings[e.matrix_id].push({
                 networkId: this.serverMappings[e.remote.domain].getNetworkId(),
@@ -259,9 +242,9 @@ export class NeDBDataStore implements DataStore {
     public async getIrcChannelsForRoomId(roomId: string): Promise<IrcRoom[]> {
         return this.roomStore.getLinkedRemoteRooms(roomId).then((remoteRooms: RemoteRoom[]) => {
             return remoteRooms.filter((remoteRoom) => {
-                return Boolean(this.serverMappings[remoteRoom.get("domain")]);
+                return Boolean(this.serverMappings[remoteRoom.get("domain") as string]);
             }).map((remoteRoom) => {
-                let server = this.serverMappings[remoteRoom.get("domain")];
+                const server = this.serverMappings[remoteRoom.get("domain") as string];
                 return IrcRoom.fromRemoteRoom(server, remoteRoom);
             });
         });
@@ -275,14 +258,16 @@ export class NeDBDataStore implements DataStore {
      * room ID to an array of IRC rooms.
      */
     public async getIrcChannelsForRoomIds(roomIds: string[]): Promise<{[roomId: string]: IrcRoom[]}> {
-        const roomIdToRemoteRooms: {[roomId: string]: RemoteRoom[]} = await this.roomStore.batchGetLinkedRemoteRooms(roomIds);
+        const roomIdToRemoteRooms: {
+            [roomId: string]: IrcRoom[];
+        } = await this.roomStore.batchGetLinkedRemoteRooms(roomIds);
         for (const roomId of Object.keys(roomIdToRemoteRooms)) {
             // filter out rooms with unknown IRC servers and
             // map RemoteRooms to IrcRooms
             roomIdToRemoteRooms[roomId] = roomIdToRemoteRooms[roomId].filter((remoteRoom) => {
-                return Boolean(this.serverMappings[remoteRoom.get("domain")]);
+                return Boolean(this.serverMappings[remoteRoom.get("domain") as string]);
             }).map((remoteRoom) => {
-                const server = this.serverMappings[remoteRoom.get("domain")];
+                const server = this.serverMappings[remoteRoom.get("domain") as string];
                 return IrcRoom.fromRemoteRoom(server, remoteRoom);
             });
         }
@@ -295,14 +280,15 @@ export class NeDBDataStore implements DataStore {
      * @param {string} channel : The channel to get mapped rooms for.
      * @return {Promise<Array<MatrixRoom>>} A promise which resolves to a list of rooms.
      */
-    public async getMatrixRoomsForChannel(server: any, channel: string): Promise<Array<MatrixRoom>> {
+    public async getMatrixRoomsForChannel(server: IrcServer, channel: string): Promise<MatrixRoom[]> {
         const ircRoom = new IrcRoom(server, channel);
         return await this.roomStore.getLinkedMatrixRooms(
             IrcRoom.createId(ircRoom.getServer(), ircRoom.getChannel())
         );
     }
 
-    public async getMappingsForChannelByOrigin(server: any, channel: string, origin: RoomOrigin|RoomOrigin[], allowUnset: boolean) {
+    public async getMappingsForChannelByOrigin(server: IrcServer, channel: string,
+                                               origin: RoomOrigin|RoomOrigin[], allowUnset: boolean) {
         if (typeof origin === "string") {
             origin = [origin];
         }
@@ -324,27 +310,27 @@ export class NeDBDataStore implements DataStore {
         });
     }
 
-    public async getModesForChannel (server: any, channel: string): Promise<{[id: string]: string}> {
+    public async getModesForChannel (server: IrcServer, channel: string): Promise<{[id: string]: string}> {
         log.info("getModesForChannel (server=%s, channel=%s)",
             server.domain, channel
         );
         const remoteId = IrcRoom.createId(server, channel);
         return this.roomStore.getEntriesByRemoteId(remoteId).then((entries: RoomEntry[]) => {
-            const mapping: {[id: string]: string} = {};
+            const mapping: {[id: string]: string[]} = {};
             entries.forEach((entry) => {
-                mapping[entry.matrix.getId()] = entry.remote.get("modes") || [];
+                mapping[entry.matrix.getId()] = entry.remote.get("modes") as string[] || [];
             });
             return mapping;
         });
     }
 
-    public async setModeForRoom(roomId: string, mode: string, enabled: boolean = true): Promise<void> {
+    public async setModeForRoom(roomId: string, mode: string, enabled = true): Promise<void> {
         log.info("setModeForRoom (mode=%s, roomId=%s, enabled=%s)",
             mode, roomId, enabled
         );
         const entries: RoomEntry[] = await this.roomStore.getEntriesByMatrixId(roomId);
         for (const entry of entries) {
-            const modes = entry.remote.get("modes") || [];
+            const modes = entry.remote.get("modes") as string[] || [];
             const hasMode = modes.includes(mode);
 
             if (hasMode === enabled) {
@@ -363,17 +349,18 @@ export class NeDBDataStore implements DataStore {
         }
     }
 
-    public async setPmRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom, userId: string, virtualUserId: string): Promise<void> {
+    public async setPmRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom,
+                           userId: string, virtualUserId: string): Promise<void> {
         log.info("setPmRoom (id=%s, addr=%s chan=%s real=%s virt=%s)",
             matrixRoom.getId(), ircRoom.server.domain, ircRoom.channel, userId,
             virtualUserId);
-    
+
         await this.roomStore.linkRooms(matrixRoom, ircRoom, {
             real_user_id: userId,
             virtual_user_id: virtualUserId
         }, NeDBDataStore.createPmId(userId, virtualUserId));
     }
-    
+
     public async getMatrixPmRoom(realUserId: string, virtualUserId: string) {
         const id = NeDBDataStore.createPmId(realUserId, virtualUserId);
         const entry = await this.roomStore.getEntryById(id);
@@ -388,7 +375,7 @@ export class NeDBDataStore implements DataStore {
         const channels: string[] = [];
         entries.forEach((e) => {
             const r = e.remote;
-            const server = this.serverMappings[r.get("domain")];
+            const server = this.serverMappings[r.get("domain") as string];
             if (!server) {
                 return;
             }
@@ -437,7 +424,7 @@ export class NeDBDataStore implements DataStore {
         config.set("ipv6_counter", counter);
         await this.userStore.setRemoteUser(config);
     }
-    
+
     /**
      * Retrieve a stored admin room based on the room's ID.
      * @param {String} roomId : The room ID of the admin room.
@@ -475,20 +462,20 @@ export class NeDBDataStore implements DataStore {
     public async upsertRoomStoreEntry(entry: RoomEntry): Promise<void> {
         await this.roomStore.upsertEntry(entry);
     }
-    
-    public async getAdminRoomByUserId(userId: string): Promise<MatrixRoom> {
+
+    public async getAdminRoomByUserId(userId: string): Promise<MatrixRoom|null> {
         const entry = await this.roomStore.getEntryById(NeDBDataStore.createAdminId(userId));
         if (!entry) {
             return null;
         }
         return entry.matrix;
     }
-    
+
     public async storeMatrixUser(matrixUser: MatrixUser): Promise<void> {
         await this.userStore.setMatrixUser(matrixUser);
     }
 
-    public async getIrcClientConfig(userId: string, domain: string): Promise<IrcClientConfig|null>  {
+    public async getIrcClientConfig(userId: string, domain: string): Promise<IrcClientConfig|null> {
         const matrixUser = await this.userStore.getMatrixUser(userId);
         if (!matrixUser) {
             return null;
@@ -499,7 +486,7 @@ export class NeDBDataStore implements DataStore {
         }
         // map back from _ to .
         Object.keys(userConfig).forEach(function(domainWithUnderscores) {
-            let actualDomain = domainWithUnderscores.replace(/_/g, ".");
+            const actualDomain = domainWithUnderscores.replace(/_/g, ".");
             if (actualDomain !== domainWithUnderscores) { // false for 'localhost'
                 userConfig[actualDomain] = userConfig[domainWithUnderscores];
                 delete userConfig[domainWithUnderscores];
@@ -512,41 +499,37 @@ export class NeDBDataStore implements DataStore {
         const clientConfig = new IrcClientConfig(userId, domain, configData);
         const encryptedPass = clientConfig.getPassword();
         if (encryptedPass) {
-            if (!this.privateKey) {
+            if (!this.cryptoStore) {
                 throw new Error(`Cannot decrypt password of ${userId} - no private key`);
             }
-            let decryptedPass = crypto.privateDecrypt(
-                this.privateKey,
-                new Buffer(encryptedPass, 'base64')
-            ).toString();
-            // Extract the password by removing the prefixed salt and seperating space
-            decryptedPass = decryptedPass.split(' ')[1];
+            const decryptedPass = this.cryptoStore.decrypt(encryptedPass);
             clientConfig.setPassword(decryptedPass);
         }
         return clientConfig;
     }
-    
-    public async getMatrixUserByLocalpart(localpart: string): Promise<MatrixUser> {
+
+    public async getMatrixUserByLocalpart(localpart: string): Promise<MatrixUser|null> {
         return await this.userStore.getMatrixUser(`@${localpart}:${this.bridgeDomain}`);
     }
 
     public async storeIrcClientConfig(config: IrcClientConfig) {
-        let user = await this.userStore.getMatrixUser(config.getUserId());
+        const userId = config.getUserId();
+        if (!userId) {
+            throw Error("No userId defined in config");
+        }
+        let user = await this.userStore.getMatrixUser(userId);
         if (!user) {
-            user = new MatrixUser(config.getUserId());
+            user = new MatrixUser(userId);
         }
         const userConfig = user.get("client_config") || {};
-        if (config.getPassword()) {
-            if (!this.privateKey) {
+        const password = config.getPassword();
+        if (password) {
+            if (!this.cryptoStore) {
                 throw new Error(
                     'Cannot store plaintext passwords'
                 );
             }
-            const salt = crypto.randomBytes(16).toString('base64');
-            const encryptedPass = crypto.publicEncrypt(
-                this.privateKey,
-                new Buffer(salt + ' ' + config.getPassword())
-            ).toString('base64');
+            const encryptedPass = this.cryptoStore.encrypt(password);
             // Store the encrypted password, ready for the db
             config.setPassword(encryptedPass);
         }
@@ -554,7 +537,7 @@ export class NeDBDataStore implements DataStore {
         user.set("client_config", userConfig);
         await this.userStore.setMatrixUser(user);
     }
-    
+
     public async getUserFeatures(userId: string): Promise<UserFeatures> {
         const matrixUser = await this.userStore.getMatrixUser(userId);
         return matrixUser ? (matrixUser.get("features") || {}) : {};
@@ -570,7 +553,7 @@ export class NeDBDataStore implements DataStore {
     }
 
     public async storePass(userId: string, domain: string, pass: string) {
-        let config = await this.getIrcClientConfig(userId, domain);
+        const config = await this.getIrcClientConfig(userId, domain);
         if (!config) {
             throw new Error(`${userId} does not have an IRC client configured for ${domain}`);
         }
@@ -600,16 +583,16 @@ export class NeDBDataStore implements DataStore {
         }
         return matrixUsers[0];
     }
-    
+
     private static createPmId(userId: string, virtualUserId: string) {
         // space as delimiter as none of these IDs allow spaces.
         return "PM_" + userId + " " + virtualUserId; // clobber based on this.
     }
-    
+
     private static createAdminId(userId: string) {
         return "ADMIN_" + userId; // clobber based on this.
     }
-    
+
     private static createMappingId(roomId: string, ircDomain: string, ircChannel: string) {
         // space as delimiter as none of these IDs allow spaces.
         return roomId + " " + ircDomain + " " + ircChannel; // clobber based on this

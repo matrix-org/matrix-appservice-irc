@@ -1,28 +1,29 @@
-// Ignore definition errors for now.
-//@ts-ignore
 import { MatrixRoom, RemoteRoom, MatrixUser} from "matrix-appservice-bridge";
 import {default as Bluebird} from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig } from "../models/IrcClientConfig";
+import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
 
 export type RoomOrigin = "config"|"provision"|"alias"|"join";
 export interface RoomEntry {
     id: string;
     matrix: MatrixRoom;
     remote: RemoteRoom;
-    data: any;
+    data: {
+        origin: RoomOrigin;
+    };
 }
 
 export interface ChannelMappings {
-    [roomId: string]: Array<{networkId: string, channel: string}>
+    [roomId: string]: Array<{networkId: string; channel: string}>;
 }
 
 export interface UserFeatures {
-    [name: string]: boolean
+    [name: string]: boolean;
 }
 
 export interface DataStore {
-    setServerFromConfig(server: any, serverConfig: any): Promise<void>;
+    setServerFromConfig(server: IrcServer, serverConfig: IrcServerConfig): Promise<void>;
 
     /**
      * Persists an IRC <--> Matrix room mapping in the database.
@@ -45,7 +46,7 @@ export interface DataStore {
      * "join" if it was created during a join.
      * @return {Promise} A promise which resolves to a room entry, or null if one is not found.
      */
-    getRoom(roomId: string, ircDomain: string, ircChannel: string, origin: RoomOrigin): Promise<RoomEntry|null>;
+    getRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<RoomEntry|null>;
 
     /**
      * Get all Matrix <--> IRC room mappings from the database.
@@ -99,11 +100,12 @@ export interface DataStore {
      * @param {string} channel : The channel to get mapped rooms for.
      * @return {Promise<Array<MatrixRoom>>} A promise which resolves to a list of rooms.
      */
-    getMatrixRoomsForChannel(server: any, channel: string): Promise<Array<MatrixRoom>>;
+    getMatrixRoomsForChannel(server: IrcServer, channel: string): Promise<Array<MatrixRoom>>;
 
-    getMappingsForChannelByOrigin(server: any, channel: string, origin: RoomOrigin|RoomOrigin[], allowUnset: boolean): Promise<RoomEntry[]>;
+    getMappingsForChannelByOrigin(server: IrcServer, channel: string,
+                                  origin: RoomOrigin|RoomOrigin[], allowUnset: boolean): Promise<RoomEntry[]>;
 
-    getModesForChannel (server: any, channel: string): Promise<{[id: string]: string}>;
+    getModesForChannel (server: IrcServer, channel: string): Promise<{[id: string]: string}>;
 
     setModeForRoom(roomId: string, mode: string, enabled: boolean): Promise<void>;
 
@@ -127,7 +129,7 @@ export interface DataStore {
 
     upsertRoomStoreEntry(entry: RoomEntry): Promise<void>;
 
-    getAdminRoomByUserId(userId: string): Promise<MatrixRoom>;
+    getAdminRoomByUserId(userId: string): Promise<MatrixRoom|null>;
 
     storeMatrixUser(matrixUser: MatrixUser): Promise<void>;
 
@@ -135,7 +137,7 @@ export interface DataStore {
 
     storeIrcClientConfig(config: IrcClientConfig): Promise<void>;
 
-    getMatrixUserByLocalpart(localpart: string): Promise<MatrixUser>;
+    getMatrixUserByLocalpart(localpart: string): Promise<MatrixUser|null>;
 
     getUserFeatures(userId: string): Promise<UserFeatures>;
 

@@ -38,7 +38,7 @@ export class IrcClientConfig {
      * @param {Object} configObj Serialised config information if known.
      */
     constructor(
-        public userId: string,
+        public userId: string|null,
         public domain: string,
         private config: IrcClientConfigSeralized = {}) {
 
@@ -48,7 +48,7 @@ export class IrcClientConfig {
         return this.domain;
     }
 
-    public getUserId() {
+    public getUserId(): string|null {
         return this.userId;
     }
 
@@ -84,7 +84,12 @@ export class IrcClientConfig {
         return this.config.ipv6;
     }
 
-    public serialize() {
+    public serialize(removePassword = false) {
+        if (removePassword) {
+            const clone = JSON.parse(JSON.stringify(this.config));
+            delete clone.password;
+            return clone;
+        }
         return this.config;
     }
 
@@ -98,8 +103,8 @@ export class IrcClientConfig {
         return this.userId + "=>" + this.domain + "=" + JSON.stringify(redactedConfig);
     }
 
-    public static newConfig(matrixUser: MatrixUser, domain: string,
-                            nick: string, username: string, password: string) {
+    public static newConfig(matrixUser: MatrixUser|null, domain: string,
+                            nick: string, username: string, password?: string) {
         return new IrcClientConfig(matrixUser ? matrixUser.getId() : null, domain, {
             nick: nick,
             username: username,
