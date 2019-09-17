@@ -17,33 +17,17 @@ limitations under the License.
 import * as crypto from "crypto";
 import * as fs from "fs";
 import {default as Bluebird} from "bluebird";
-import { IrcRoom } from "./models/IrcRoom";
-import { IrcClientConfig } from "./models/IrcClientConfig";
+import { IrcRoom } from "../models/IrcRoom";
+import { IrcClientConfig } from "../models/IrcClientConfig";
 
 // Ignore definition errors for now.
 //@ts-ignore
 import { MatrixRoom, RemoteRoom, MatrixUser, RemoteUser, Logging} from "matrix-appservice-bridge";
-
-interface RoomEntry {
-    id: string;
-    matrix: MatrixRoom;
-    remote: RemoteRoom;
-    data: any;
-}
-
-interface ChannelMappings {
-    [roomId: string]: Array<{networkId: string, channel: string}>
-}
-
-interface UserFeatures {
-    [name: string]: boolean
-}
-
-export type RoomOrigin = "config"|"provision"|"alias"|"join";
+import { DataStore, RoomOrigin, ChannelMappings, RoomEntry, UserFeatures } from "./DataStore";
 
 const log = Logging.get("DataStore");
 
-export class DataStore {
+export class NeDBDataStore implements DataStore {
     private serverMappings: {[domain: string]: any /*IrcServer*/} = {};
     private privateKey: string|null;
     constructor(
@@ -166,7 +150,7 @@ export class DataStore {
         log.info("storeRoom (id=%s, addr=%s, chan=%s, origin=%s)",
             matrixRoom.getId(), ircRoom.getDomain(), ircRoom.channel, origin);
 
-        const mappingId = DataStore.createMappingId(matrixRoom.getId(), ircRoom.getDomain(), ircRoom.channel);
+        const mappingId = NeDBDataStore.createMappingId(matrixRoom.getId(), ircRoom.getDomain(), ircRoom.channel);
         await this.roomStore.linkRooms(matrixRoom, ircRoom, {
             origin: origin
         }, mappingId);
@@ -187,7 +171,7 @@ export class DataStore {
             throw new Error(`If defined, origin must be a string =
                 "config"|"provision"|"alias"|"join"`);
         }
-        const mappingId = DataStore.createMappingId(roomId, ircDomain, ircChannel);
+        const mappingId = NeDBDataStore.createMappingId(roomId, ircDomain, ircChannel);
         return this.roomStore.getEntryById(mappingId).then(
             (entry: RoomEntry) => {
                 if (origin && entry && origin !== entry.data.origin) {
@@ -261,7 +245,7 @@ export class DataStore {
         }
 
         return await this.roomStore.delete({
-            id: DataStore.createMappingId(roomId, ircDomain, ircChannel),
+            id: NeDBDataStore.createMappingId(roomId, ircDomain, ircChannel),
             'data.origin': origin
         });
     }
@@ -387,11 +371,11 @@ export class DataStore {
         await this.roomStore.linkRooms(matrixRoom, ircRoom, {
             real_user_id: userId,
             virtual_user_id: virtualUserId
-        }, DataStore.createPmId(userId, virtualUserId));
+        }, NeDBDataStore.createPmId(userId, virtualUserId));
     }
     
     public async getMatrixPmRoom(realUserId: string, virtualUserId: string) {
-        const id = DataStore.createPmId(realUserId, virtualUserId);
+        const id = NeDBDataStore.createPmId(realUserId, virtualUserId);
         const entry = await this.roomStore.getEntryById(id);
         if (!entry) {
             return null;
@@ -483,7 +467,7 @@ export class DataStore {
         log.info("storeAdminRoom (id=%s, user_id=%s)", room.getId(), userId);
         room.set("admin_id", userId);
         await this.roomStore.upsertEntry({
-            id: DataStore.createAdminId(userId),
+            id: NeDBDataStore.createAdminId(userId),
             matrix: room,
         });
     }
@@ -493,7 +477,7 @@ export class DataStore {
     }
     
     public async getAdminRoomByUserId(userId: string): Promise<MatrixRoom> {
-        const entry = await this.roomStore.getEntryById(DataStore.createAdminId(userId));
+        const entry = await this.roomStore.getEntryById(NeDBDataStore.createAdminId(userId));
         if (!entry) {
             return null;
         }
@@ -504,7 +488,7 @@ export class DataStore {
         await this.userStore.setMatrixUser(matrixUser);
     }
 
-    public async getIrcClientConfig(userId: string, domain: string): Promise<any> /*IrcClientConfig*/ {
+    public async getIrcClientConfig(userId: string, domain: string): Promise<IrcClientConfig|null>  {
         const matrixUser = await this.userStore.getMatrixUser(userId);
         if (!matrixUser) {
             return null;
@@ -546,7 +530,7 @@ export class DataStore {
         return await this.userStore.getMatrixUser(`@${localpart}:${this.bridgeDomain}`);
     }
 
-    public async storeIrcClientConfig(config: any /*IrcConfig*/) {
+    public async storeIrcClientConfig(config: IrcClientConfig) {
         let user = await this.userStore.getMatrixUser(config.getUserId());
         if (!user) {
             user = new MatrixUser(config.getUserId());
@@ -596,8 +580,10 @@ export class DataStore {
 
     public async removePass(userId: string, domain: string) {
         const config = await this.getIrcClientConfig(userId, domain);
-        config.setPassword(undefined);
-        await this.storeIrcClientConfig(config);
+        if (config) {
+            config.setPassword();
+            await this.storeIrcClientConfig(config);
+        }
     }
 
     public async getMatrixUserByUsername(domain: string, username: string) {
