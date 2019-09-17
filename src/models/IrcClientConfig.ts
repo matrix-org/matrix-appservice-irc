@@ -60,7 +60,7 @@ export class IrcClientConfig {
         return this.config.username;
     }
 
-    public setPassword(password: string) {
+    public setPassword(password?: string) {
         this.config.password = password;
     }
 
