@@ -10,7 +10,8 @@
     "outDir": "./lib",
     "composite": false,
     "strict": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "typeRoots": [ "./types" ]
   },
   "include": [
     "src/**/*"
