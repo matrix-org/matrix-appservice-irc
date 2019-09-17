@@ -1,5 +1,5 @@
 "use strict";
-const IrcServer = require("../../lib/irc/IrcServer");
+const { IrcServer } = require("../../lib/irc/IrcServer");
 const extend = require("extend");
 describe("IrcServer", function() {
     describe("getNick", function() {
