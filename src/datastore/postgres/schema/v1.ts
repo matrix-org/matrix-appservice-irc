@@ -1,9 +1,9 @@
-import { IDatabase } from "pg-promise";
+import { PoolClient } from "pg";
 
 // tslint:disable-next-line: no-any
-export async function runSchema(db: IDatabase<any>) {
+export async function runSchema(connection: PoolClient) {
     // Create schema
-    await db.none(`
+    await connection.query(`
     CREATE TABLE schema (
         version	INTEGER UNIQUE NOT NULL
     );
@@ -11,27 +11,32 @@ export async function runSchema(db: IDatabase<any>) {
     INSERT INTO schema VALUES (0);
 
     CREATE TABLE rooms (
-        origin TEXT,
-        room_id TEXT,
-        type TEXT,
-        irc_domain TEXT,
-        irc_channel TEXT,
-        irc_json JSON,
-        matrix_json JSON,
-        CONSTRAINT cons_rooms_unique UNIQUE(irc_domain, irc_channel, room_id)
+        origin TEXT NOT NULL,
+        room_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        irc_domain TEXT NOT NULL,
+        irc_channel TEXT NOT NULL,
+        irc_json JSON NOT NULL,
+        matrix_json JSON NOT NULL,
+        CONSTRAINT cons_rooms_unique UNIQUE(room_id, irc_domain, irc_channel)
     );
 
-    CREATE UNIQUE INDEX rooms_roomid_idx ON rooms (room_id);
-    CREATE UNIQUE INDEX rooms_ircdomainchannel_idx ON rooms (irc_domain, irc_channel);
-    CREATE UNIQUE INDEX rooms_ircdomainchannelroomid_idx ON rooms (irc_domain, irc_channel, room_id);
+    CREATE INDEX rooms_roomid_idx ON rooms (room_id);
+    CREATE INDEX rooms_ircdomainchannel_idx ON rooms (irc_domain, irc_channel);
 
     CREATE TABLE admin_rooms (
         room_id TEXT UNIQUE,
         user_id TEXT
     );
 
-    CREATE UNIQUE INDEX admin_rooms_room_id_idx ON admin_rooms (room_id);
-    CREATE UNIQUE INDEX admin_rooms_user_id_idx ON admin_rooms (user_id);
+    CREATE TABLE pm_rooms (
+        room_id TEXT UNIQUE,
+        irc_domain TEXT NOT NULL,
+        irc_nick TEXT NOT NULL,
+        matrix_user_id TEXT,
+        virtual_user_id TEXT,
+        CONSTRAINT cons_pm_rooms_matrix_irc_unique UNIQUE(matrix_user_id, irc_domain, irc_nick)
+    );
 
     CREATE TABLE matrix_users (
         user_id TEXT UNIQUE,
@@ -39,9 +44,9 @@ export async function runSchema(db: IDatabase<any>) {
     );
 
     CREATE TABLE client_config (
-        user_id TEXT UNIQUE,
+        user_id TEXT,
         domain TEXT NOT NULL,
-        config TEXT,
+        config JSON,
         password TEXT,
         CONSTRAINT cons_client_config_unique UNIQUE(user_id, domain)
     );
@@ -53,6 +58,17 @@ export async function runSchema(db: IDatabase<any>) {
 
     CREATE TABLE ipv6_counter (
         count INTEGER
+    );
+
+    CREATE TABLE  (
+        origin TEXT NOT NULL,
+        room_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        irc_domain TEXT NOT NULL,
+        irc_channel TEXT NOT NULL,
+        irc_json JSON NOT NULL,
+        matrix_json JSON NOT NULL,
+        CONSTRAINT cons_rooms_unique UNIQUE(room_id, irc_domain, irc_channel)
     );
 
     INSERT INTO ipv6_counter VALUES (0);`);
