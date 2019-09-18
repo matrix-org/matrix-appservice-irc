@@ -59,7 +59,7 @@
     "valid-typeof": 2,
 
     "array-bracket-spacing": [1, "never"],
-    "max-len": [1, 100],
+    "max-len": [1, 120],
     "brace-style": [1, "stroustrup", { "allowSingleLine": true }],
     "comma-spacing": [1, {"before": false, "after": true}],
     "comma-style": [1, "last"],
