@@ -9,7 +9,7 @@ var MatrixHandler = require("./MatrixHandler.js");
 var MemberListSyncer = require("./MemberListSyncer.js");
 var IdentGenerator = require("../irc/IdentGenerator.js");
 var Ipv6Generator = require("../irc/Ipv6Generator.js");
-var IrcServer = require("../irc/IrcServer.js");
+const { IrcServer } = require("../irc/IrcServer.js");
 var ClientPool = require("../irc/ClientPool");
 var IrcEventBroker = require("../irc/IrcEventBroker");
 var BridgedClient = require("../irc/BridgedClient");
@@ -18,7 +18,8 @@ const { IrcRoom } = require("../models/IrcRoom");
 const { IrcClientConfig } = require("../models/IrcClientConfig");
 var BridgeRequest = require("../models/BridgeRequest");
 var stats = require("../config/stats");
-const { DataStore } = require("../DataStore");
+const { NeDBDataStore } = require("../datastore/NedbDataStore");
+const { PgDataStore } = require("../datastore/postgres/PgDataStore");
 var log = require("../logging").get("IrcBridge");
 const {
     Bridge,
@@ -318,11 +319,13 @@ IrcBridge.prototype.run = Promise.coroutine(function*(port) {
     }
 
     let pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
+        this._dataStore = new NeDBDataStore(
+            this._bridge.getUserStore(),
+            this._bridge.getRoomStore(),
+            pkeyPath,
+            this.config.homeserver.domain,
+        );
 
-    this._dataStore = new DataStore(
-        this._bridge.getUserStore(), this._bridge.getRoomStore(), pkeyPath,
-        this.config.homeserver.domain
-    );
     yield this._dataStore.removeConfigMappings();
     this._identGenerator = new IdentGenerator(this._dataStore);
     this._ipv6Generator = new Ipv6Generator(this._dataStore);

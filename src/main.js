@@ -7,7 +7,7 @@ const RoomBridgeStore = require("matrix-appservice-bridge").RoomBridgeStore;
 const UserBridgeStore = require("matrix-appservice-bridge").UserBridgeStore;
 
 const IrcBridge = require("./bridge/IrcBridge.js");
-const IrcServer = require("./irc/IrcServer.js");
+const { IrcServer } = require("./irc/IrcServer.js");
 const stats = require("./config/stats");
 const ident = require("./irc/ident");
 const logging = require("./logging");
