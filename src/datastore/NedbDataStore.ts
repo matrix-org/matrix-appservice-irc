@@ -569,7 +569,7 @@ export class NeDBDataStore implements DataStore {
         }
     }
 
-    public async getMatrixUserByUsername(domain: string, username: string) {
+    public async getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined> {
         const domainKey = domain.replace(/\./g, "_");
         const matrixUsers = await this.userStore.getByMatrixData({
             ["client_config." + domainKey + ".username"]: username
