@@ -318,12 +318,22 @@ IrcBridge.prototype.run = Promise.coroutine(function*(port) {
     }
 
     let pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
+    const dbConfig = this.config.ircService.database;
+    if (dbConfig && dbConfig.engine === "postgres") {
+        this._dataStore = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
+        yield this._dataStore.ensureSchema();
+    }
+    else if (dbConfig) {
+        throw Error("Incorrect database config");
+    }
+    else {
         this._dataStore = new NeDBDataStore(
             this._bridge.getUserStore(),
             this._bridge.getRoomStore(),
             pkeyPath,
             this.config.homeserver.domain,
         );
+    }
 
     yield this._dataStore.removeConfigMappings();
     this._identGenerator = new IdentGenerator(this._dataStore);
