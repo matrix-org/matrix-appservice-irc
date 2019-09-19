@@ -1,6 +1,4 @@
-// Ignore definition errors for now.
-//@ts-ignore
-import { MatrixRoom, RemoteRoom, MatrixUser, Entry} from "matrix-appservice-bridge";
+import { MatrixRoom, MatrixUser, Entry} from "matrix-appservice-bridge";
 import {default as Bluebird} from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig } from "../models/IrcClientConfig";

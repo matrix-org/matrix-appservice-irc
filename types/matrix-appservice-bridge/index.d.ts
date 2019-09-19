@@ -89,7 +89,7 @@ declare module 'matrix-appservice-bridge' {
         db: Nedb
         delete (query: any): Promise<void>
         insert (query: any): Promise<void>
-        select (query: any, transformFn?: (item: Entry) => Entry): Promise<Entry[]>
+        select (query: any, transformFn?: (item: Entry) => Entry): Promise<any>
     }
 
     export class RoomBridgeStore extends BridgeStore {

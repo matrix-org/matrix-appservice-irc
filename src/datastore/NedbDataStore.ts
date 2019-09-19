@@ -19,16 +19,17 @@ import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
 import * as logging from "../logging";
 
-// Ignore definition errors for now.
-//@ts-ignore
-import { MatrixRoom, MatrixUser, RemoteUser, RemoteRoom, UserBridgeStore, RoomBridgeStore, Entry } from "matrix-appservice-bridge";
+import { MatrixRoom, MatrixUser, RemoteUser, RemoteRoom,
+    UserBridgeStore, RoomBridgeStore, Entry } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "./DataStore";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
 import { StringCrypto } from "./StringCrypto";
-import Nedb from "nedb";
 
 const log = logging.get("NeDBDataStore");
 
+interface ClientConfigMap {
+    [domain: string]: IrcClientConfigSeralized;
+}
 
 export class NeDBDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
@@ -157,7 +158,7 @@ export class NeDBDataStore implements DataStore {
         const mappingId = NeDBDataStore.createMappingId(roomId, ircDomain, ircChannel);
         return this.roomStore.getEntryById(mappingId).then(
             (entry) => {
-                if (origin && entry !== null && origin !== entry.data!.origin) {
+                if (origin && entry && entry.data && origin !== entry.data.origin) {
                     return null;
                 }
                 return entry;
@@ -180,7 +181,7 @@ export class NeDBDataStore implements DataStore {
 
         const mappings: ChannelMappings = {};
 
-        entries.forEach((e: any) => {
+        entries.forEach((e: { remote: { domain: string; channel: string}; matrix_id: string}) => {
             const domain = e.remote.domain;
             const channel = e.remote.channel;
             // drop unknown irc networks in the database
@@ -321,7 +322,8 @@ export class NeDBDataStore implements DataStore {
         const entries = await this.roomStore.getEntriesByRemoteId(remoteId);
         const mapping: {[id: string]: string[]} = {};
         entries.forEach((entry) => {
-            mapping[entry.matrix!.getId()] = entry.remote!.get("modes") as string[] || [];
+            if (!entry.matrix || !entry.remote) { return; }
+            mapping[entry.matrix.getId()] = entry.remote.get("modes") as string[] || [];
         });
         return mapping;
     }
@@ -379,12 +381,14 @@ export class NeDBDataStore implements DataStore {
         const entries: Entry[] = await this.roomStore.getEntriesByRemoteRoomData({ domain });
         const channels: string[] = [];
         entries.forEach((e) => {
-            const r = e.remote!;
-            const server = this.serverMappings[r.get("domain") as string];
+            if (!e.remote) {
+                return;
+            }
+            const server = this.serverMappings[e.remote.get("domain") as string];
             if (!server) {
                 return;
             }
-            const ircRoom = IrcRoom.fromRemoteRoom(server, r);
+            const ircRoom = IrcRoom.fromRemoteRoom(server, e.remote);
             if (ircRoom.getType() === "channel") {
                 channels.push(ircRoom.getChannel());
             }
@@ -396,9 +400,12 @@ export class NeDBDataStore implements DataStore {
         const entries: Entry[] = await this.roomStore.getEntriesByLinkData({
             origin: 'config'
         });
-        return entries.map((e) => 
-            e.matrix!.getId()
-        );
+        return entries.map((e) => {
+            if (!e.matrix) {
+                return "";
+            }
+            return e.matrix.getId();
+        }).filter((e) => e !== "");
     }
 
     public async removeConfigMappings() {
@@ -489,7 +496,8 @@ export class NeDBDataStore implements DataStore {
         if (!matrixUser) {
             return null;
         }
-        const userConfig = matrixUser.get("client_config") as any;
+
+        const userConfig = matrixUser.get("client_config") as ClientConfigMap;
         if (!userConfig) {
             return null;
         }
@@ -530,7 +538,8 @@ export class NeDBDataStore implements DataStore {
         if (!user) {
             user = new MatrixUser(userId);
         }
-        const userConfig = user.get("client_config") as any || {};
+
+        const userConfig = user.get("client_config") as ClientConfigMap || {};
         const password = config.getPassword();
         if (password) {
             if (!this.cryptoStore) {
