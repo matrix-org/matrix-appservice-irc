@@ -180,9 +180,9 @@ export class NeDBDataStore implements DataStore {
 
         const mappings: ChannelMappings = {};
 
-        entries.forEach((e: Entry) => {
-            const domain = e.remote!.get("domain") as string;
-            const channel = e.remote!.get("channel") as string;
+        entries.forEach((e: any) => {
+            const domain = e.remote.domain;
+            const channel = e.remote.channel;
             // drop unknown irc networks in the database
             if (!this.serverMappings[domain]) {
                 return;
