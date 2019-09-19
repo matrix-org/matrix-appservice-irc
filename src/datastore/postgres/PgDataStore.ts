@@ -18,8 +18,8 @@ import { Pool } from "pg";
 
 // eslint-disable-next-line @typescript-eslint/no-duplicate-imports
 
-import { MatrixUser, MatrixRoom, RemoteRoom } from "matrix-appservice-bridge";
-import { DataStore, RoomOrigin, ChannelMappings, RoomEntry, UserFeatures } from "../DataStore";
+import { MatrixUser, MatrixRoom, RemoteRoom, Entry } from "matrix-appservice-bridge";
+import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
 import { IrcRoom } from "../../models/IrcRoom";
 import { IrcClientConfig } from "../../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../../irc/IrcServer";
@@ -97,18 +97,20 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query(statement, Object.values(parameters));
     }
 
-    private static pgToRoomEntry(pgEntry: any): RoomEntry {
+    private static pgToRoomEntry(pgEntry: any): Entry {
         return {
             id: "",
             matrix: new MatrixRoom(pgEntry.room_id, JSON.parse(pgEntry.matrix_json)),
             remote: new RemoteRoom("", JSON.parse(pgEntry.irc_json)),
+            matrix_id: pgEntry.room_id,
+            remote_id: "foobar",
             data: {
                 origin: pgEntry.origin,
             },
         };
     }
 
-    public async getRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<RoomEntry | null> {
+    public async getRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<Entry | null> {
         let statement = "SELECT * FROM rooms WHERE room_id = $1, irc_domain = $2, irc_channel = $3";
         if (origin) {
             statement += ", origin = $4";
@@ -145,13 +147,13 @@ export class PgDataStore implements DataStore {
         return mappings;
     }
 
-    public getEntriesByMatrixId(roomId: string): Bluebird<RoomEntry[]> {
+    public getEntriesByMatrixId(roomId: string): Bluebird<Entry[]> {
         return Bluebird.cast(this.pgPool.query("SELECT * FROM rooms WHERE room_id = $1", [
             roomId
         ])).then((result) => result.rows).map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
-    public getProvisionedMappings(roomId: string): Bluebird<RoomEntry[]> {
+    public getProvisionedMappings(roomId: string): Bluebird<Entry[]> {
         return Bluebird.cast(this.pgPool.query("SELECT * FROM rooms WHERE room_id = $1 AND origin = 'provision'", [
             roomId
         ])).then((result) => result.rows).map((e) => PgDataStore.pgToRoomEntry(e));
@@ -204,7 +206,7 @@ export class PgDataStore implements DataStore {
         return entries.rows.map((e) => new MatrixRoom(e.room_id, JSON.parse(e.matrix_json)));
     }
 
-    public async getMappingsForChannelByOrigin(server: IrcServer, channel: string, origin: "config" | "provision" | "alias" | "join" | RoomOrigin[], allowUnset: boolean): Promise<RoomEntry[]> {
+    public async getMappingsForChannelByOrigin(server: IrcServer, channel: string, origin: RoomOrigin | RoomOrigin[], allowUnset: boolean): Promise<Entry[]> {
         const entries = await this.pgPool.query("SELECT * FROM rooms WHERE irc_domain = $1 AND irc_channel = $2 AND origin = $3",
         [
             server.domain,
@@ -214,8 +216,8 @@ export class PgDataStore implements DataStore {
         return entries.rows.map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
-    public async getModesForChannel(server: IrcServer, channel: string): Promise<{ [id: string]: string; }> {
-        const mapping: {[id: string]: string} = {};
+    public async getModesForChannel(server: IrcServer, channel: string): Promise<{ [id: string]: string[]; }> {
+        const mapping: {[id: string]: string[]} = {};
         const entries = await this.pgPool.query(
             "SELECT room_id, remote_json->>'modes' AS MODES FROM rooms " +
             "WHERE irc_domain = $1 AND irc_channel = $2",
@@ -233,8 +235,11 @@ export class PgDataStore implements DataStore {
         log.info("setModeForRoom (mode=%s, roomId=%s, enabled=%s)",
             mode, roomId, enabled
         );
-        const entries: RoomEntry[] = await this.getEntriesByMatrixId(roomId);
+        const entries: Entry[] = await this.getEntriesByMatrixId(roomId);
         for (const entry of entries) {
+            if (!entry.remote) {
+                continue;
+            }
             const modes = entry.remote.get("modes") as string[] || [];
             const hasMode = modes.includes(mode);
 
@@ -306,7 +311,7 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query("UPDATE ipv6_counter SET count = $1", [ counter ]);
     }
 
-    public async upsertRoomStoreEntry(entry: RoomEntry): Promise<void> {
+    public async upsertRoomStoreEntry(entry: Entry): Promise<void> {
         throw new Error("Method not implemented.");
     }
 

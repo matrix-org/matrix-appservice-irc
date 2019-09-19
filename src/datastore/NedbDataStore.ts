@@ -335,7 +335,7 @@ export class NeDBDataStore implements DataStore {
         const entries: Entry[] = await this.roomStore.getEntriesByMatrixId(roomId);
         for (const entry of entries) {
             if (!entry.remote) {
-                return;
+                continue;
             }
             const modes = entry.remote.get("modes") as string[] || [];
             const hasMode = modes.includes(mode);
