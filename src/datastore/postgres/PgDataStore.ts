@@ -26,7 +26,6 @@ import { IrcServer, IrcServerConfig } from "../../irc/IrcServer";
 
 import * as logging from "../../logging";
 import Bluebird from "bluebird";
-import { stat } from "fs";
 import { StringCrypto } from "../StringCrypto";
 
 const log = logging.get("PgDatastore");

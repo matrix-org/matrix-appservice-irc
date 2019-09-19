@@ -52,6 +52,7 @@
     "@types/bluebird": "^3.5.27",
     "@types/nedb": "^1.8.9",
     "@types/pg": "^7.11.1",
+    "@types/nopt": "^3.0.29",
     "eslint": "^5.16.0",
     "jasmine": "^3.1.0",
     "nyc": "^14.1.1",

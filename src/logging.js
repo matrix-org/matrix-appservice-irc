@@ -20,18 +20,19 @@ var loggers = {
 };
 var loggerTransports; // from config
 
+const timestampFn = function() {
+    return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+};
+const formatterFn = function(opts) {
+    return opts.timestamp() + ' ' +
+    opts.level.toUpperCase() + ':' +
+    (opts.meta && opts.meta.loggerName ? opts.meta.loggerName : "") + ' ' +
+    (opts.meta && opts.meta.reqId ? ("[" + opts.meta.reqId + "] ") : "") +
+    (opts.meta && opts.meta.dir ? opts.meta.dir : "") +
+    (undefined !== opts.message ? opts.message : '');
+};
+
 var makeTransports = function() {
-    var timestampFn = function() {
-        return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
-    };
-    var formatterFn = function(opts) {
-        return opts.timestamp() + ' ' +
-        opts.level.toUpperCase() + ':' +
-        (opts.meta && opts.meta.loggerName ? opts.meta.loggerName : "") + ' ' +
-        (opts.meta && opts.meta.reqId ? ("[" + opts.meta.reqId + "] ") : "") +
-        (opts.meta && opts.meta.dir ? opts.meta.dir : "") +
-        (undefined !== opts.message ? opts.message : '');
-    };
 
     var transports = [];
     if (loggerConfig.toConsole) {
@@ -211,5 +212,8 @@ module.exports = {
                 }
             });
         });
-    }
+    },
+
+    timestampFn,
+    formatterFn,
 };
