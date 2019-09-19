@@ -16,26 +16,26 @@ limitations under the License.
 
 import {default as Bluebird} from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
-import { IrcClientConfig } from "../models/IrcClientConfig"
+import { IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
 import * as logging from "../logging";
 
 // Ignore definition errors for now.
 //@ts-ignore
-import { MatrixRoom, MatrixUser, RemoteUser, RemoteRoom} from "matrix-appservice-bridge";
-import { DataStore, RoomOrigin, ChannelMappings, RoomEntry, UserFeatures } from "./DataStore";
+import { MatrixRoom, MatrixUser, RemoteUser, RemoteRoom, UserBridgeStore, RoomBridgeStore, Entry } from "matrix-appservice-bridge";
+import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "./DataStore";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
 import { StringCrypto } from "./StringCrypto";
+import Nedb from "nedb";
 
 const log = logging.get("NeDBDataStore");
+
 
 export class NeDBDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
     private cryptoStore?: StringCrypto;
     constructor(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        private userStore: any,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        private roomStore: any,
+        private userStore: UserBridgeStore,
+        private roomStore: RoomBridgeStore,
         pkeyPath: string,
         private bridgeDomain: string) {
         const errLog = function(fieldName: string) {
@@ -149,15 +149,15 @@ export class NeDBDataStore implements DataStore {
      * @return {Promise} A promise which resolves to a room entry, or null if one is not found.
      */
     public async getRoom(roomId: string, ircDomain: string,
-                         ircChannel: string, origin?: RoomOrigin): Promise<RoomEntry|null> {
+                         ircChannel: string, origin?: RoomOrigin): Promise<Entry|null> {
         if (origin && typeof origin !== "string") {
             throw new Error(`If defined, origin must be a string =
                 "config"|"provision"|"alias"|"join"`);
         }
         const mappingId = NeDBDataStore.createMappingId(roomId, ircDomain, ircChannel);
         return this.roomStore.getEntryById(mappingId).then(
-            (entry: RoomEntry) => {
-                if (origin && entry && origin !== entry.data.origin) {
+            (entry) => {
+                if (origin && entry !== null && origin !== entry.data!.origin) {
                     return null;
                 }
                 return entry;
@@ -180,17 +180,19 @@ export class NeDBDataStore implements DataStore {
 
         const mappings: ChannelMappings = {};
 
-        entries.forEach((e: { matrix_id: string; remote: {domain: string; channel: string}}) => {
+        entries.forEach((e: Entry) => {
+            const domain = e.remote!.get("domain") as string;
+            const channel = e.remote!.get("channel") as string;
             // drop unknown irc networks in the database
-            if (!this.serverMappings[e.remote.domain]) {
+            if (!this.serverMappings[domain]) {
                 return;
             }
             if (!mappings[e.matrix_id]) {
                 mappings[e.matrix_id] = [];
             }
             mappings[e.matrix_id].push({
-                networkId: this.serverMappings[e.remote.domain].getNetworkId(),
-                channel: e.remote.channel
+                networkId: this.serverMappings[domain].getNetworkId(),
+                channel,
             });
         });
 
@@ -204,9 +206,9 @@ export class NeDBDataStore implements DataStore {
      * @return {Promise} A promise which resolves to a list
      * of entries.
      */
-    public getProvisionedMappings(roomId: string): Bluebird<RoomEntry[]> {
+    public getProvisionedMappings(roomId: string): Bluebird<Entry[]> {
         return Bluebird.cast(this.roomStore.getEntriesByMatrixId(roomId)).filter(
-            (entry: RoomEntry) => {
+            (entry: Entry) => {
                 return entry.data && entry.data.origin === 'provision'
             }
         );
@@ -260,11 +262,12 @@ export class NeDBDataStore implements DataStore {
     public async getIrcChannelsForRoomIds(roomIds: string[]): Promise<{[roomId: string]: IrcRoom[]}> {
         const roomIdToRemoteRooms: {
             [roomId: string]: IrcRoom[];
-        } = await this.roomStore.batchGetLinkedRemoteRooms(roomIds);
-        for (const roomId of Object.keys(roomIdToRemoteRooms)) {
+        } = {};
+        const linkedRemoteRooms = await this.roomStore.batchGetLinkedRemoteRooms(roomIds);
+        for (const roomId of Object.keys(linkedRemoteRooms)) {
             // filter out rooms with unknown IRC servers and
             // map RemoteRooms to IrcRooms
-            roomIdToRemoteRooms[roomId] = roomIdToRemoteRooms[roomId].filter((remoteRoom) => {
+            roomIdToRemoteRooms[roomId] = linkedRemoteRooms[roomId].filter((remoteRoom) => {
                 return Boolean(this.serverMappings[remoteRoom.get("domain") as string]);
             }).map((remoteRoom) => {
                 const server = this.serverMappings[remoteRoom.get("domain") as string];
@@ -298,7 +301,7 @@ export class NeDBDataStore implements DataStore {
         }
 
         const remoteId = IrcRoom.createId(server, channel);
-        return this.roomStore.getEntriesByRemoteId(remoteId).then((entries: RoomEntry[]) => {
+        return this.roomStore.getEntriesByRemoteId(remoteId).then((entries: Entry[]) => {
             return entries.filter((e) => {
                 if (allowUnset) {
                     if (!e.data || !e.data.origin) {
@@ -310,26 +313,28 @@ export class NeDBDataStore implements DataStore {
         });
     }
 
-    public async getModesForChannel (server: IrcServer, channel: string): Promise<{[id: string]: string}> {
+    public async getModesForChannel (server: IrcServer, channel: string): Promise<{[id: string]: string[]}> {
         log.info("getModesForChannel (server=%s, channel=%s)",
             server.domain, channel
         );
         const remoteId = IrcRoom.createId(server, channel);
-        return this.roomStore.getEntriesByRemoteId(remoteId).then((entries: RoomEntry[]) => {
-            const mapping: {[id: string]: string[]} = {};
-            entries.forEach((entry) => {
-                mapping[entry.matrix.getId()] = entry.remote.get("modes") as string[] || [];
-            });
-            return mapping;
+        const entries = await this.roomStore.getEntriesByRemoteId(remoteId);
+        const mapping: {[id: string]: string[]} = {};
+        entries.forEach((entry) => {
+            mapping[entry.matrix!.getId()] = entry.remote!.get("modes") as string[] || [];
         });
+        return mapping;
     }
 
     public async setModeForRoom(roomId: string, mode: string, enabled = true): Promise<void> {
         log.info("setModeForRoom (mode=%s, roomId=%s, enabled=%s)",
             mode, roomId, enabled
         );
-        const entries: RoomEntry[] = await this.roomStore.getEntriesByMatrixId(roomId);
+        const entries: Entry[] = await this.roomStore.getEntriesByMatrixId(roomId);
         for (const entry of entries) {
+            if (!entry.remote) {
+                return;
+            }
             const modes = entry.remote.get("modes") as string[] || [];
             const hasMode = modes.includes(mode);
 
@@ -371,10 +376,10 @@ export class NeDBDataStore implements DataStore {
     }
 
     public async getTrackedChannelsForServer(domain: string) {
-        const entries: RoomEntry[] = await this.roomStore.getEntriesByRemoteRoomData({ domain });
+        const entries: Entry[] = await this.roomStore.getEntriesByRemoteRoomData({ domain });
         const channels: string[] = [];
         entries.forEach((e) => {
-            const r = e.remote;
+            const r = e.remote!;
             const server = this.serverMappings[r.get("domain") as string];
             if (!server) {
                 return;
@@ -388,12 +393,12 @@ export class NeDBDataStore implements DataStore {
     }
 
     public async getRoomIdsFromConfig() {
-        const entries: RoomEntry[] = await this.roomStore.getEntriesByLinkData({
+        const entries: Entry[] = await this.roomStore.getEntriesByLinkData({
             origin: 'config'
         });
-        return entries.map((e) => {
-            return e.matrix.getId();
-        });
+        return entries.map((e) => 
+            e.matrix!.getId()
+        );
     }
 
     public async removeConfigMappings() {
@@ -412,7 +417,7 @@ export class NeDBDataStore implements DataStore {
             config.set("ipv6_counter", 0);
             await this.userStore.setRemoteUser(config);
         }
-        return config.get("ipv6_counter");
+        return config.get("ipv6_counter") as number;
     }
 
 
@@ -431,14 +436,14 @@ export class NeDBDataStore implements DataStore {
      * @return {Promise} Resolved when the room is retrieved.
      */
     public async getAdminRoomById(roomId: string): Promise<MatrixRoom|null> {
-        const entries: RoomEntry[] = await this.roomStore.getEntriesByMatrixId(roomId);
+        const entries: Entry[] = await this.roomStore.getEntriesByMatrixId(roomId);
         if (entries.length == 0) {
             return null;
         }
         if (entries.length > 1) {
             log.error("getAdminRoomById(" + roomId + ") has " + entries.length + " entries");
         }
-        if (entries[0].matrix.get("admin_id")) {
+        if (entries[0].matrix && entries[0].matrix.get("admin_id")) {
             return entries[0].matrix;
         }
         return null;
@@ -455,11 +460,15 @@ export class NeDBDataStore implements DataStore {
         room.set("admin_id", userId);
         await this.roomStore.upsertEntry({
             id: NeDBDataStore.createAdminId(userId),
+            matrix_id: room.getId(),
             matrix: room,
+            remote: null,
+            remote_id: "",
+            data: {},
         });
     }
 
-    public async upsertRoomStoreEntry(entry: RoomEntry): Promise<void> {
+    public async upsertRoomStoreEntry(entry: Entry): Promise<void> {
         await this.roomStore.upsertEntry(entry);
     }
 
@@ -480,7 +489,7 @@ export class NeDBDataStore implements DataStore {
         if (!matrixUser) {
             return null;
         }
-        const userConfig = matrixUser.get("client_config");
+        const userConfig = matrixUser.get("client_config") as any;
         if (!userConfig) {
             return null;
         }
@@ -521,7 +530,7 @@ export class NeDBDataStore implements DataStore {
         if (!user) {
             user = new MatrixUser(userId);
         }
-        const userConfig = user.get("client_config") || {};
+        const userConfig = user.get("client_config") as any || {};
         const password = config.getPassword();
         if (password) {
             if (!this.cryptoStore) {
@@ -540,7 +549,7 @@ export class NeDBDataStore implements DataStore {
 
     public async getUserFeatures(userId: string): Promise<UserFeatures> {
         const matrixUser = await this.userStore.getMatrixUser(userId);
-        return matrixUser ? (matrixUser.get("features") || {}) : {};
+        return matrixUser ? (matrixUser.get("features") as UserFeatures || {}) : {};
     }
 
     public async storeUserFeatures(userId: string, features: UserFeatures) {

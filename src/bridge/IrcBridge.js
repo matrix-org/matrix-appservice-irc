@@ -19,7 +19,6 @@ const { IrcClientConfig } = require("../models/IrcClientConfig");
 var BridgeRequest = require("../models/BridgeRequest");
 var stats = require("../config/stats");
 const { NeDBDataStore } = require("../datastore/NedbDataStore");
-const { PgDataStore } = require("../datastore/postgres/PgDataStore");
 var log = require("../logging").get("IrcBridge");
 const {
     Bridge,
