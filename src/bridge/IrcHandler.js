@@ -420,7 +420,7 @@ IrcHandler.prototype._serviceTopicQueue = Promise.coroutine(function*(item) {
         }).then(
             () => {
                 entry.matrix.topic = item.topic;
-                return this.ircBridge.getStore().upsertRoomStoreEntry(entry);
+                return this.ircBridge.getStore().upsertMatrixRoom(entry.matrix);
             },
             (err) => {
                 item.req.log.error(`Error storing room ${entry.matrix.getId()} (${err.message})`);

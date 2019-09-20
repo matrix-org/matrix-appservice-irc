@@ -311,8 +311,14 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query("UPDATE ipv6_counter SET count = $1", [ counter ]);
     }
 
-    public async upsertRoomStoreEntry(entry: Entry): Promise<void> {
-        throw new Error("Method not implemented.");
+    public async upsertMatrixRoom(room: MatrixRoom): Promise<void> {
+        // XXX: This is an upsert operation, but we don't have enough details to go on
+        // so this will just update a rooms data entry. We only use this call to update
+        // topics on an existing room.
+        await this.pgPool.query("UPDATE rooms SET matrix_json = $1 WHERE room_id = $2", [
+            JSON.stringify(room.serialize()),
+            room.getId(),
+        ]);
     }
 
     public async getAdminRoomById(roomId: string): Promise<MatrixRoom|null> {
