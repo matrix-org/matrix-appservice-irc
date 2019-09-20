@@ -67,7 +67,13 @@ function IrcBridge(config, registration) {
     this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler);
     this.ircHandler = new IrcHandler(this, this.config.ircHandler);
     this._clientPool = new ClientPool(this);
-    var dirPath = this.config.ircService.databaseUri.substring("nedb://".length);
+    if (!this.config.database && this.config.ircService.databaseUri) {
+        log.warn("ircService.databaseUri is a deprecated config option. Please use the database configuration block");
+        this.config.database = {
+            engine: "nedb",
+            connectionString: this.config.ircService.databaseUri,
+        }
+    }
     let roomLinkValidation = undefined;
     let provisioning = config.ircService.provisioning;
     if (provisioning && provisioning.enabled &&
@@ -75,6 +81,16 @@ function IrcBridge(config, registration) {
         roomLinkValidation = {
             ruleFile: provisioning.ruleFile,
             triggerEndpoint: provisioning.enableReload
+        };
+    }
+
+    let bridgeStoreConfig = {};
+
+    if (this.confg.database.engine === "nedb") {
+        const dirPath = this.config.database.connectionString.substring("nedb://".length);
+        bridgeStoreConfig = {
+            roomStore: `${dirPath}/rooms.db`,
+            userStore: `${dirPath}/users.db`,
         };
     }
 
@@ -97,8 +113,7 @@ function IrcBridge(config, registration) {
                 getUser: this.getThirdPartyUser.bind(this),
             },
         },
-        roomStore: dirPath + "/rooms.db",
-        userStore: dirPath + "/users.db",
+        ...bridgeStoreConfig,
         disableContext: true,
         suppressEcho: false, // we use our own dupe suppress for now
         logRequestOutcome: false, // we use our own which has better logging
@@ -319,7 +334,7 @@ IrcBridge.prototype.run = Promise.coroutine(function*(port) {
     }
 
     let pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
-    const dbConfig = this.config.ircService.database;
+    const dbConfig = this.config.database;
     if (dbConfig && dbConfig.engine === "postgres") {
         this._dataStore = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
         yield this._dataStore.ensureSchema();
