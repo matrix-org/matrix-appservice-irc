@@ -1,55 +1,56 @@
-/*eslint no-invalid-this: 0*/
 /*
- * Maintains a lookup of connected IRC clients. These connections are transient
- * and may be closed for a variety of reasons.
- */
-"use strict";
+Copyright 2019 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 const stats = require("../config/stats");
 const log = require("../logging").get("ClientPool");
 const Promise = require("bluebird");
 const QueuePool = require("../util/QueuePool");
-const BridgeRequest = require("../models/BridgeRequest");
+import { BridgeRequest } from "../models/BridgeRequest";
 
-class ClientPool {
-    constructor(ircBridge) {
-        this._ircBridge = ircBridge;
+/*
+ * Maintains a lookup of connected IRC clients. These connections are transient
+ * and may be closed for a variety of reasons.
+ */
+export class ClientPool {
+    private botClients: { [serverDomain: string]: any};
+    private virtualClients: { [serverDomain: string]: {
+        nicks: { [nickname: string]: any},
+        userIds: { [userId: string]: any},
+        pending: { [nick: string]: any},
+    }};
+    private virtualClientCounts: { [serverDomain: string]: number };
+    private reconnectQueues: { [serverDomain: string]: any };
+    constructor(private ircBridge: any) {
         // The list of bot clients on servers (not specific users)
-        this._botClients = {
-            // server_domain: BridgedClient
-        };
+        this.botClients = { };
 
         // list of virtual users on servers
-        this._virtualClients = {
-            // server_domain: {
-            //    nicks: {
-            //      <nickname>: BridgedClient
-            //    },
-            //    userIds: {
-            //      <user_id>: BridgedClient
-            //    }
-            //    These users are in the process of being
-            //    connected with an *assumed* nick.
-            //    pending: {
-            //
-            //    }
-            // }
-        }
+        this.virtualClients = { };
 
         // map of numbers of connected clients on each server
         // Counting these is quite expensive because we have to
         // ignore entries where the value is undefined. Instead,
         // just keep track of how many we have.
-        this._virtualClientCounts = {
-            // server_domain: number
-        };
+        this.virtualClientCounts = { };
 
-        this._reconnectQueues = {
-            // server_domain: QueuePool
-        };
+        this.reconnectQueues = { };
     }
 
-    nickIsVirtual(server, nick) {
-        if (!this._virtualClients[server.domain]) {
+    public nickIsVirtual(server: any, nick: string) {
+        if (!this.virtualClients[server.domain]) {
             return false;
         }
 
@@ -61,34 +62,34 @@ class ClientPool {
         const pending = Object.keys(this._virtualClients[server.domain].pending || {});
         return pending.includes(nick);
     }
-}
 
-ClientPool.prototype.killAllClients = function() {
-    let domainList = Object.keys(this._virtualClients);
-    let clients = [];
-    domainList.forEach((domain) => {
-        clients = clients.concat(
-            Object.keys(this._virtualClients[domain].nicks).map(
-                (nick) => this._virtualClients[domain].nicks[nick]
+    public killAllClients() {
+        const domainList = Object.keys(this.virtualClients);
+        let clients: any[] = [];
+        domainList.forEach((domain) => {
+            clients = clients.concat(
+                Object.keys(this.virtualClients[domain].nicks).map(
+                    (nick) => this.virtualClients[domain].nicks[nick]
+                )
+            );
+    
+            clients = clients.concat(
+                Object.keys(this.virtualClients[domain].userIds).map(
+                    (userId) => this.virtualClients[domain].userIds[userId]
+                )
+            );
+    
+            clients.push(this.botClients[domain]);
+        });
+    
+        clients = clients.filter((c) => Boolean(c));
+    
+        return Promise.all(
+            clients.map(
+                (client) => client.kill()
             )
         );
-
-        clients = clients.concat(
-            Object.keys(this._virtualClients[domain].userIds).map(
-                (userId) => this._virtualClients[domain].userIds[userId]
-            )
-        );
-
-        clients.push(this._botClients[domain]);
-    });
-
-    clients = clients.filter((c) => Boolean(c));
-
-    return Promise.all(
-        clients.map(
-            (client) => client.kill()
-        )
-    );
+    }
 }
 
 ClientPool.prototype.getOrCreateReconnectQueue = function(server) {
