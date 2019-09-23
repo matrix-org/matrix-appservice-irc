@@ -141,4 +141,6 @@ export interface DataStore {
     removePass(userId: string, domain: string): Promise<void>;
 
     getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined>;
+
+    destroy(): Promise<void>;
 }

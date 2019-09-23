@@ -319,7 +319,7 @@ IrcBridge.prototype.run = Promise.coroutine(function*(port) {
     }
 
     let pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
-    const dbConfig = this.config.ircService.database;
+    const dbConfig = this.config.database;
     if (dbConfig && dbConfig.engine === "postgres") {
         this._dataStore = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
         yield this._dataStore.ensureSchema();

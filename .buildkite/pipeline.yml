@@ -25,6 +25,13 @@ steps:
       - docker#v3.0.1:
           image: "node:12"
 
+  - label: ":nodejs: 12 :postgres: 11 :mocha: Postgres Test"
+    plugins:
+      - docker-compose#v2.1.0:
+          run: testenv
+          config:
+            - .buildkite/docker-compose.postgres.yml
+
   - label: ":nyc: Coverage"
     command:
       - "npm install"
