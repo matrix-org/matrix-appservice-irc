@@ -293,12 +293,10 @@ describe("Provisioning API", function() {
             it("should create a M<--->I link", async () => {
                 await mockLink({}, true, true);
             });
-                
 
             it("should create a M<--->I link for a channel that has capital letters in it", async () => {
                 await mockLink({remote_room_channel: '#SomeCaps'}, true, true);
             });
-                
 
             it("should not create a M<--->I link with the same id as one existing", async () => {
                 await mockLink({
@@ -306,7 +304,6 @@ describe("Provisioning API", function() {
                     remote_room_server : 'irc.example',
                     remote_room_channel : '#coffee'}, false, true);
             });
-                
 
             it("should not create a M<--->I link when room_id is malformed", async () => {
                 await mockLink({matrix_room_id : '!fooooooo'}, false, true);
