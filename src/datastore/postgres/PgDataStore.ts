@@ -479,7 +479,7 @@ export class PgDataStore implements DataStore {
                 log.warn("Schema table could not be found");
                 return 0;
             }
-            log.error("Failed to get schema version:", ex);
+            log.error("Failed to get schema version: %s", ex);
         }
         throw Error("Couldn't fetch schema version");
     }
