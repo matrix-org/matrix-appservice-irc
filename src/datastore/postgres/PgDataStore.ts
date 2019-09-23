@@ -245,7 +245,6 @@ export class PgDataStore implements DataStore {
         }
         const inStatement = origin.map((_, i) => `\$${i + 3}`).join(", ");
         const statement = `SELECT * FROM rooms WHERE irc_domain = $1 AND irc_channel = $2 AND origin IN (${inStatement})`;
-        console.log(statement);
         const entries = await this.pgPool.query(statement,
         [
             server.domain,
