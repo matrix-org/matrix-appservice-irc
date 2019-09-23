@@ -475,8 +475,8 @@ export class NeDBDataStore implements DataStore {
         });
     }
 
-    public async upsertRoomStoreEntry(entry: Entry): Promise<void> {
-        await this.roomStore.upsertEntry(entry);
+    public async upsertMatrixRoom(room: MatrixRoom): Promise<void> {
+        await this.roomStore.setMatrixRoom(room);
     }
 
     public async getAdminRoomByUserId(userId: string): Promise<MatrixRoom|null> {

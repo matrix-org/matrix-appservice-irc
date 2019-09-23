@@ -40,7 +40,7 @@ export async function runSchema(connection: PoolClient) {
 
     CREATE TABLE matrix_users (
         user_id TEXT UNIQUE,
-        data TEXT
+        data JSON
     );
 
     CREATE TABLE client_config (
