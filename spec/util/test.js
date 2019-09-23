@@ -8,6 +8,8 @@ const clientMock = require("./client-sdk-mock");
 const ircMock = require("./irc-client-mock");
 const { Client } = require('pg');
 
+const USING_PG = process.env.IRCBRIDGE_TEST_ENABLEPG === "yes";
+
 clientMock["@global"] = true;
 ircMock["@global"] = true;
 const main = proxyquire("../../lib/main.js", {
@@ -27,6 +29,20 @@ jasmine.getEnv().addReporter({
     }
 });
 
+let pgClient;
+let pgClientConnectPromise;
+
+if (USING_PG) {
+    // Setup postgres for the whole process.
+    pgClient = new Client(`${process.env.IRCBRIDGE_TEST_PGURL}/postgres`);
+    pgClientConnectPromise = (async () => {
+        await pgClient.connect();
+    })();
+    process.on("beforeExit", async () => {
+        pgClient.end();
+    })
+}
+
 class TestEnv {
     constructor(config, mockAppService) {
         this.config = config;
@@ -35,15 +51,15 @@ class TestEnv {
         this.ircBridge = null;
         this.ircMock = ircMock;
         this.clientMock = clientMock;
-        this.usingPg = process.env.IRCBRIDGE_TEST_ENABLEPG === "yes";
         // Inject postgres
-        if (!this.usingPg) {
+        if (!USING_PG) {
             return;
         }
 
+        this.pgDb = process.env.IRCBRIDGE_TEST_PGDB;
         this.config.database = {
             engine: "postgres",
-            connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${process.env.IRCBRIDGE_TEST_PGDB}`,
+            connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${this.pgDb}`,
         };
     }
 
@@ -53,29 +69,15 @@ class TestEnv {
      * @return {Promise} which is resolved when the app has finished initiliasing.
      */
     async init(customConfig) {
-        console.log("FOOO");
         let ircBridge;
         try {
-            if (this.usingPg) {
-                console.log("FOOO1");
-                const db = process.env.IRCBRIDGE_TEST_PGDB;
-                const superClient = new Client(`${process.env.IRCBRIDGE_TEST_PGURL}/postgres`);
-                console.log("FOOO2");
-                await superClient.connect();
-                console.log("FOOO3");
-                await superClient.query(`DROP DATABASE IF EXISTS ${db};`);
-                await superClient.query(`CREATE DATABASE ${db};`);
-                console.log("FOOO4");
-                await superClient.end();
-                console.log("FOOO5");
-            }
             ircBridge = await this.main.runBridge(
                 this.config._port, customConfig || this.config,
-                AppServiceRegistration.fromObject(this.config._registration), true
+                AppServiceRegistration.fromObject(this.config._registration), !USING_PG
             )
         }
-        catch (ex) {
-            const msg = JSON.stringify(e);
+        catch (e) {
+            let msg = JSON.stringify(e);
             if (e.stack) {
                 msg = e.stack;
             }
@@ -83,7 +85,6 @@ class TestEnv {
             console.error(msg);
             return;
         }
-        console.log("Bridge created");
         this.ircBridge = ircBridge;
     }
 
@@ -91,15 +92,16 @@ class TestEnv {
      * Reset the test environment for a new test case that has just run.
      * This kills the bridge.
      **/
-    afterEach() {
+    async afterEach() {
         if (!this.main) {
-            return Promise.resolve();
+            return;
         }
         // If there was a previous bridge running, kill it
-        // This is prevent IRC clients spamming the logs
-        return this.main.killBridge(this.ircBridge).then(() => {
-            if (global.gc) {global.gc();}
-        })
+        // This prevents IRC clients spamming the logs
+        await this.main.killBridge(this.ircBridge);
+        if (global.gc) {
+            global.gc();
+        }
     }
 
     /**
@@ -108,6 +110,12 @@ class TestEnv {
     async beforeEach() {
         ircMock._reset();
         clientMock._reset();
+        if (USING_PG) {
+            const db = process.env.IRCBRIDGE_TEST_PGDB;
+            await pgClientConnectPromise;
+            await pgClient.query(`DROP DATABASE IF EXISTS ${db}`);
+            await pgClient.query(`CREATE DATABASE ${db}`);
+        }
         this.mockAppService = MockAppService.instance();
         return true;
     }

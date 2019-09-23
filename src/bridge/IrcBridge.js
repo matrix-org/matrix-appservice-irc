@@ -559,9 +559,12 @@ IrcBridge.prototype._addRequestCallbacks = function() {
 //  usefull once this has been called.
 //
 //  See (BridgedClient.prototype.kill)
-IrcBridge.prototype.kill = function() {
+IrcBridge.prototype.kill = async function() {
     log.info("Killing all clients");
-    return this._clientPool.killAllClients();
+    await this._clientPool.killAllClients();
+    if (this._dataStore) {
+        await this._dataStore.destroy();
+    }
 }
 
 IrcBridge.prototype.isStartedUp = function() {

@@ -602,6 +602,10 @@ export class NeDBDataStore implements DataStore {
         return matrixUsers[0];
     }
 
+    public async destroy() {
+        // This will no-op
+    }
+
     private static createPmId(userId: string, virtualUserId: string) {
         // space as delimiter as none of these IDs allow spaces.
         return "PM_" + userId + " " + virtualUserId; // clobber based on this.

@@ -36,6 +36,7 @@ export class PgDataStore implements DataStore {
 
     public static readonly LATEST_SCHEMA = 1;
     private pgPool: Pool;
+    private hasEnded: boolean = false;
     private cryptoStore?: StringCrypto;
 
     constructor(private bridgeDomain: string, connectionString: string, pkeyPath?: string, min: number = 1, max: number = 4) {
@@ -44,11 +45,17 @@ export class PgDataStore implements DataStore {
             min,
             max,
         });
+        this.pgPool.on("error", (err) => {
+            log.error("Postgres Error: %s", err);
+        });
         if (pkeyPath) {
             this.cryptoStore = new StringCrypto();
             this.cryptoStore.load(pkeyPath);
         }
         process.on("beforeExit", (e) => {
+            if (this.hasEnded) {
+                return;
+            }
             // Ensure we clean up on exit
             this.pgPool.end();
         })        
@@ -495,6 +502,18 @@ export class PgDataStore implements DataStore {
             }
         }
         log.info(`Database schema is at version v${currentVersion}`);
+    }
+
+    public async destroy() {
+        log.info("Destroy called");
+        if (this.hasEnded) {
+            // No-op if end has already been called.
+            return;
+        }
+        this.hasEnded = true;
+        await this.pgPool.end();
+        log.info("PostgresSQL connection ended");
+        // This will no-op
     }
 
     private async updateSchemaVersion(version: number) {
