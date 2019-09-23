@@ -608,7 +608,7 @@ describe("Matrix-to-Matrix message bridging", function() {
         yield test.afterEach(env);
     }));
 
-    it("should bridge matrix messages to other mapped matrix rooms", function(done) {
+    it("should bridge matrix messages to other mapped matrix rooms", test.coroutine(function*() {
         let testText = "Here is some test text.";
         let sdk = env.clientMock._client(mirroredUserId);
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
@@ -617,11 +617,10 @@ describe("Matrix-to-Matrix message bridging", function() {
                 body: testText,
                 msgtype: "m.text"
             });
-            done();
             return Promise.resolve();
         });
 
-        env.mockAppService._trigger("type:m.room.message", {
+        yield env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: testText,
                 msgtype: "m.text"
@@ -630,7 +629,7 @@ describe("Matrix-to-Matrix message bridging", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
-    });
+    }));
 
     it("should NOT bridge matrix messages to other mapped matrix rooms for PMs",
     test.coroutine(function*() {

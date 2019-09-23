@@ -28,6 +28,7 @@ import * as logging from "../../logging";
 import Bluebird from "bluebird";
 import { stat } from "fs";
 import { StringCrypto } from "../StringCrypto";
+import { toIrcLowerCase } from "../../irc/formatting";
 
 const log = logging.get("PgDatastore");
 
@@ -66,6 +67,7 @@ export class PgDataStore implements DataStore {
 
         for (const channel of Object.keys(serverConfig.mappings)) {
             const ircRoom = new IrcRoom(server, channel);
+            ircRoom.set("type", "channel");
             for (const roomId of serverConfig.mappings[channel]) {
                 const mxRoom = new MatrixRoom(roomId);
                 await this.storeRoom(ircRoom, mxRoom, "config");
@@ -77,17 +79,24 @@ export class PgDataStore implements DataStore {
         if (typeof origin !== "string") {
             throw new Error('Origin must be a string = "config"|"provision"|"alias"|"join"');
         }
-        log.info("storeRoom (id=%s, addr=%s, chan=%s, origin=%s)",
-            matrixRoom.getId(), ircRoom.getDomain(), ircRoom.channel, origin);
-        const ircRoomSerial = ircRoom.serialize() as any;
+        log.info("storeRoom (id=%s, addr=%s, chan=%s, origin=%s, type=%s)",
+            matrixRoom.getId(), ircRoom.getDomain(), ircRoom.channel, origin, ircRoom.getType());
+        // We need to *clone* this as we are about to be evil.
+        const ircRoomSerial = JSON.parse(JSON.stringify(ircRoom.serialize()));
+        // These keys do not need to be stored inside the JSON blob as we store them
+        // inside dedicated columns. They will be reinserted into the JSON blob
+        // when fetched.
+        const type = ircRoom.getType();
+        const domain = ircRoom.getDomain();
+        const channel = ircRoom.getChannel();
         delete ircRoomSerial.domain;
         delete ircRoomSerial.channel;
         delete ircRoomSerial.type;
-        this.upsertRoom(
+        await this.upsertRoom(
             origin,
-            ircRoom.getType(),
-            ircRoom.getDomain(),
-            ircRoom.getChannel(),
+            type,
+            domain,
+            channel,
             matrixRoom.getId(),
             JSON.stringify(ircRoomSerial),
             JSON.stringify(matrixRoom.serialize()),
@@ -128,11 +137,13 @@ export class PgDataStore implements DataStore {
     }
 
     public async getRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<Entry | null> {
-        let statement = "SELECT * FROM rooms WHERE room_id = $1, irc_domain = $2, irc_channel = $3";
+        let statement = "SELECT * FROM rooms WHERE room_id = $1 AND irc_domain = $2 AND irc_channel = $3";
+        let params = [roomId, ircDomain, ircChannel];
         if (origin) {
-            statement += ", origin = $4";
+            statement += " AND origin = $4";
+            params = params.concat(origin);
         }
-        const pgEntry = await this.pgPool.query(statement, [roomId, ircDomain, ircChannel, origin]);
+        const pgEntry = await this.pgPool.query(statement, params);
         if (!pgEntry.rowCount) {
             return null;
         }
@@ -178,7 +189,7 @@ export class PgDataStore implements DataStore {
 
     public async removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin: RoomOrigin): Promise<void> {
         await this.pgPool.query(
-            "DELETE FROM rooms WHERE room_id = $1, irc_domain = $2, irc_channel = $3, origin = $4",
+            "DELETE FROM rooms WHERE room_id = $1 AND irc_domain = $2 AND irc_channel = $3 AND origin = $4",
             [roomId, ircDomain, ircChannel, origin]
         );
     }
@@ -222,7 +233,8 @@ export class PgDataStore implements DataStore {
         const entries = await this.pgPool.query("SELECT room_id, matrix_json FROM rooms WHERE irc_domain = $1 AND irc_channel = $2",
         [
             server.domain,
-            channel,
+            // Channels must be lowercase
+            toIrcLowerCase(channel),
         ]);
         return entries.rows.map((e) => new MatrixRoom(e.room_id, e.matrix_json));
     }
@@ -237,7 +249,8 @@ export class PgDataStore implements DataStore {
         const entries = await this.pgPool.query(statement,
         [
             server.domain,
-            channel,
+            // Channels must be lowercase
+            toIrcLowerCase(channel),
         ].concat(origin));
         return entries.rows.map((e) => PgDataStore.pgToRoomEntry(e));
     }
@@ -250,7 +263,8 @@ export class PgDataStore implements DataStore {
             "WHERE irc_domain = $1 AND irc_channel = $2",
         [
             server.domain,
-            channel,
+            // Channels must be lowercase
+            toIrcLowerCase(channel),
         ]);
         entries.rows.forEach((e) => {
             mapping[e.room_id] = e.modes || [];
@@ -281,11 +295,12 @@ export class PgDataStore implements DataStore {
             }
 
             entry.remote.set("modes", modes);
-            const ircRoomSerial = entry.remote.serialize() as any;
+            // Clone the object
+            const ircRoomSerial = JSON.parse(JSON.stringify(entry.remote.serialize()));
             delete ircRoomSerial.domain;
             delete ircRoomSerial.channel;
             delete ircRoomSerial.type;
-            await this.pgPool.query("UPDATE rooms WHERE room_id = $1, irc_channel = $2, irc_domain = $3 SET irc_json = $4", [
+            await this.pgPool.query("UPDATE rooms SET irc_json = $4 WHERE room_id = $1 AND irc_channel = $2 AND irc_domain = $3", [
                 roomId,
                 entry.remote.get("channel"),
                 entry.remote.get("domain"),
@@ -408,6 +423,9 @@ export class PgDataStore implements DataStore {
         if (!userId) {
             throw Error("IrcClientConfig does not contain a userId");
         }
+        log.debug(`Storing client configuration for ${userId}`);
+        // We need to make sure we have a matrix user in the store.
+        await this.pgPool.query("INSERT INTO matrix_users VALUES ($1, NULL) ON CONFLICT DO NOTHING", [userId]);
         let password = undefined;
         if (config.getPassword() && this.cryptoStore) {
             password = this.cryptoStore.encrypt(config.getPassword()!);
@@ -482,6 +500,8 @@ export class PgDataStore implements DataStore {
         );
         if (res.rowCount === 0) {
             return;
+        } else if (res.rowCount > 1) {
+            log.error("getMatrixUserByUsername returned %s results for %s on %s", res.rowCount, username, domain);
         }
         return new MatrixUser(res.rows[0].user_id, res.rows[0].data);
     }

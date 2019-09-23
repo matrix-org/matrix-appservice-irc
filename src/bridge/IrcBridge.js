@@ -86,7 +86,7 @@ function IrcBridge(config, registration) {
 
     let bridgeStoreConfig = {};
 
-    if (this.confg.database.engine === "nedb") {
+    if (this.config.database.engine === "nedb") {
         const dirPath = this.config.database.connectionString.substring("nedb://".length);
         bridgeStoreConfig = {
             roomStore: `${dirPath}/rooms.db`,
@@ -335,20 +335,22 @@ IrcBridge.prototype.run = Promise.coroutine(function*(port) {
 
     let pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
     const dbConfig = this.config.database;
-    if (dbConfig && dbConfig.engine === "postgres") {
+    if (dbConfig.engine === "postgres") {
+        log.info("Using PgDataStore for Datastore");
         this._dataStore = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
         yield this._dataStore.ensureSchema();
     }
-    else if (dbConfig) {
-        throw Error("Incorrect database config");
-    }
-    else {
+    else if (dbConfig.engine === "nedb") {
+        log.info("Using NeDBDataStore for Datastore");
         this._dataStore = new NeDBDataStore(
             this._bridge.getUserStore(),
             this._bridge.getRoomStore(),
             pkeyPath,
             this.config.homeserver.domain,
         );
+    }
+    else {
+        throw Error("Incorrect database config");
     }
 
     yield this._dataStore.removeConfigMappings();
