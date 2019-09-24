@@ -17,6 +17,7 @@ limitations under the License.
 //@ts-ignore
 import { RemoteRoom } from "matrix-appservice-bridge";
 import { toIrcLowerCase } from "../irc/formatting";
+import { IrcServer } from "../irc/IrcServer";
 
 export class IrcRoom extends RemoteRoom {
     /**
@@ -26,7 +27,7 @@ export class IrcRoom extends RemoteRoom {
      * @param {String} channel : The channel this room represents.
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    constructor(public readonly server: any, public readonly channel: string) {
+    constructor(public readonly server: IrcServer, public readonly channel: string) {
         // Because `super` must be called first, we convert the case several times.
         super(IrcRoom.createId(server, toIrcLowerCase(channel)), {
             domain: server.domain,
@@ -40,7 +41,7 @@ export class IrcRoom extends RemoteRoom {
     }
 
     getDomain() {
-        return super.get("domain");
+        return super.get("domain") as string;
     }
 
     getServer() {
@@ -48,17 +49,17 @@ export class IrcRoom extends RemoteRoom {
     }
 
     getChannel() {
-        return super.get("channel");
+        return super.get("channel") as string;
     }
 
     getType() {
-        return super.get("type");
+        return super.get("type") as string;
     }
 
     // No types for IrcServer yet
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public static fromRemoteRoom(server: any, remoteRoom: RemoteRoom) {
-        return new IrcRoom(server, remoteRoom.get("channel"));
+        return new IrcRoom(server, remoteRoom.get("channel") as string);
     }
 
     // An IRC room is uniquely identified by a combination of the channel name and the
