@@ -16,9 +16,11 @@ limitations under the License.
 
 const stats = require("../config/stats");
 const log = require("../logging").get("ClientPool");
-const Promise = require("bluebird");
 const QueuePool = require("../util/QueuePool");
+import Bluebird from "bluebird";
 import { BridgeRequest } from "../models/BridgeRequest";
+import { IrcClientConfig } from "../models/IrcClientConfig";
+import { IrcServer } from "../irc/IrcServer";
 
 /*
  * Maintains a lookup of connected IRC clients. These connections are transient
@@ -49,7 +51,7 @@ export class ClientPool {
         this.reconnectQueues = { };
     }
 
-    public nickIsVirtual(server: any, nick: string) {
+    public nickIsVirtual(server: IrcServer, nick: string): boolean {
         if (!this.virtualClients[server.domain]) {
             return false;
         }
@@ -59,23 +61,23 @@ export class ClientPool {
         }
 
         // The client may not have signalled to us that it's connected, but it is connect*ing*.
-        const pending = Object.keys(this._virtualClients[server.domain].pending || {});
+        const pending = Object.keys(this.virtualClients[server.domain].pending || {});
         return pending.includes(nick);
     }
 
-    public killAllClients() {
+    public killAllClients(): Bluebird<void[]> {
         const domainList = Object.keys(this.virtualClients);
         let clients: any[] = [];
         domainList.forEach((domain) => {
             clients = clients.concat(
                 Object.keys(this.virtualClients[domain].nicks).map(
-                    (nick) => this.virtualClients[domain].nicks[nick]
+                    (nick: string) => this.virtualClients[domain].nicks[nick]
                 )
             );
     
             clients = clients.concat(
                 Object.keys(this.virtualClients[domain].userIds).map(
-                    (userId) => this.virtualClients[domain].userIds[userId]
+                    (userId: string) => this.virtualClients[domain].userIds[userId]
                 )
             );
     
@@ -84,398 +86,397 @@ export class ClientPool {
     
         clients = clients.filter((c) => Boolean(c));
     
-        return Promise.all(
+        return Bluebird.all(
             clients.map(
                 (client) => client.kill()
             )
         );
     }
-}
 
-ClientPool.prototype.getOrCreateReconnectQueue = function(server) {
-    if (server.getConcurrentReconnectLimit() === 0) {
-        return null;
-    }
-    let q = this._reconnectQueues[server.domain];
-    if (q === undefined) {
-        q = this._reconnectQueues[server.domain] = new QueuePool(
-            server.getConcurrentReconnectLimit(),
-            (item) => {
-                log.info(`Reconnecting client. ${q.waitingItems} left.`);
-                return this._reconnectClient(item);
-            }
-        );
-    }
-    return q;
-};
-
-ClientPool.prototype.setBot = function(server, client) {
-    this._botClients[server.domain] = client;
-};
-
-ClientPool.prototype.getBot = function(server) {
-    return this._botClients[server.domain];
-};
-
-ClientPool.prototype.createIrcClient = function(ircClientConfig, matrixUser, isBot) {
-    var bridgedClient = this._ircBridge.createBridgedClient(
-        ircClientConfig, matrixUser, isBot
-    );
-    var server = bridgedClient.server;
-
-    if (this._virtualClients[server.domain] === undefined) {
-        this._virtualClients[server.domain] = {
-            nicks: Object.create(null),
-            userIds: Object.create(null),
-            pending: {},
-        };
-        this._virtualClientCounts[server.domain] = 0;
-    }
-    if (isBot) {
-        this._botClients[server.domain] = bridgedClient;
-    }
-
-    // `pending` is used to ensure that we know if a nick belongs to a userId
-    // before they have been connected. It's impossible to know for sure
-    // what nick they will be assigned before being connected, but this
-    // should catch most cases. Knowing the nick is important, because
-    // slow clients may not send a 'client-connected' signal before a join is
-    // emitted, which means ghost users may join with their nickname into matrix.
-    this._virtualClients[server.domain].pending[bridgedClient.nick] = bridgedClient.userId;
-
-    // add event listeners
-    bridgedClient.on("client-connected", this._onClientConnected.bind(this));
-    bridgedClient.on("client-disconnected", this._onClientDisconnected.bind(this));
-    bridgedClient.on("nick-change", this._onNickChange.bind(this));
-    bridgedClient.on("join-error", this._onJoinError.bind(this));
-    bridgedClient.on("irc-names", this._onNames.bind(this));
-
-    // store the bridged client immediately in the pool even though it isn't
-    // connected yet, else we could spawn 2 clients for a single user if this
-    // function is called quickly.
-    this._virtualClients[server.domain].userIds[bridgedClient.userId] = bridgedClient;
-    this._virtualClientCounts[server.domain] = this._virtualClientCounts[server.domain] + 1;
-
-    // Does this server have a max clients limit? If so, check if the limit is
-    // reached and start cycling based on oldest time.
-    this._checkClientLimit(server);
-    return bridgedClient;
-};
-
-ClientPool.prototype.getBridgedClientByUserId = function(server, userId) {
-    if (!this._virtualClients[server.domain]) {
-        return undefined;
-    }
-    var cli = this._virtualClients[server.domain].userIds[userId];
-    if (!cli || cli.isDead()) {
-        return undefined;
-    }
-    return cli;
-};
-
-ClientPool.prototype.getBridgedClientByNick = function(server, nick) {
-    var bot = this.getBot(server);
-    if (bot && bot.nick === nick) {
-        return bot;
-    }
-
-    if (!this._virtualClients[server.domain]) {
-        return undefined;
-    }
-    var cli = this._virtualClients[server.domain].nicks[nick];
-    if (!cli || cli.isDead()) {
-        return undefined;
-    }
-    return cli;
-};
-
-ClientPool.prototype.getBridgedClientsForUserId = function(userId) {
-    var domainList = Object.keys(this._virtualClients);
-    var clientList = [];
-    domainList.forEach((domain) => {
-        var cli = this._virtualClients[domain].userIds[userId];
-        if (cli && !cli.isDead()) {
-            clientList.push(cli);
+    public getOrCreateReconnectQueue(server: IrcServer) {
+        if (server.getConcurrentReconnectLimit() === 0) {
+            return null;
         }
-    });
-    return clientList;
-};
+        let q = this.reconnectQueues[server.domain];
+        if (q === undefined) {
+            q = this.reconnectQueues[server.domain] = new QueuePool(
+                server.getConcurrentReconnectLimit(),
+                (item: any) => {
+                    log.info(`Reconnecting client. ${q.waitingItems} left.`);
+                    return this.reconnectClient(item);
+                }
+            );
+        }
+        return q;
+    }
 
-ClientPool.prototype.getBridgedClientsForRegex = function(userIdRegex) {
-    userIdRegex = new RegExp(userIdRegex);
-    const domainList = Object.keys(this._virtualClients);
-    const clientList = {};
-    domainList.forEach((domain) => {
-        Object.keys(
-            this._virtualClients[domain].userIds
-        ).filter(
-            (u) => userIdRegex.exec(u) !== null
-        ).forEach((userId) => {
-            if (!clientList[userId]) {
-                clientList[userId] = [];
+
+    public setBot(server: IrcServer, client: any) {
+        this.botClients[server.domain] = client;
+    }
+
+    public getBot(server: IrcServer) {
+        return this.botClients[server.domain];
+    }
+
+    public createIrcClient(ircClientConfig: IrcClientConfig, matrixUser: any, isBot: boolean) {
+        const bridgedClient = this.ircBridge.createBridgedClient(
+            ircClientConfig, matrixUser, isBot
+        );
+        const server = bridgedClient.server;
+
+        if (this.virtualClients[server.domain] === undefined) {
+            this.virtualClients[server.domain] = {
+                nicks: Object.create(null),
+                userIds: Object.create(null),
+                pending: {},
+            };
+            this.virtualClientCounts[server.domain] = 0;
+        }
+        if (isBot) {
+            this.botClients[server.domain] = bridgedClient;
+        }
+
+        // `pending` is used to ensure that we know if a nick belongs to a userId
+        // before they have been connected. It's impossible to know for sure
+        // what nick they will be assigned before being connected, but this
+        // should catch most cases. Knowing the nick is important, because
+        // slow clients may not send a 'client-connected' signal before a join is
+        // emitted, which means ghost users may join with their nickname into matrix.
+        this.virtualClients[server.domain].pending[bridgedClient.nick] = bridgedClient.userId;
+
+        // add event listeners
+        bridgedClient.on("client-connected", this.onClientConnected.bind(this));
+        bridgedClient.on("client-disconnected", this.onClientDisconnected.bind(this));
+        bridgedClient.on("nick-change", this.onNickChange.bind(this));
+        bridgedClient.on("join-error", this.onJoinError.bind(this));
+        bridgedClient.on("irc-names", this.onNames.bind(this));
+
+        // store the bridged client immediately in the pool even though it isn't
+        // connected yet, else we could spawn 2 clients for a single user if this
+        // function is called quickly.
+        this.virtualClients[server.domain].userIds[bridgedClient.userId] = bridgedClient;
+        this.virtualClientCounts[server.domain] = this.virtualClientCounts[server.domain] + 1;
+
+        // Does this server have a max clients limit? If so, check if the limit is
+        // reached and start cycling based on oldest time.
+        this.checkClientLimit(server);
+        return bridgedClient;
+    }
+
+    public getBridgedClientByUserId(server: IrcServer, userId: string) {
+        if (!this.virtualClients[server.domain]) {
+            return undefined;
+        }
+        const cli = this.virtualClients[server.domain].userIds[userId];
+        if (!cli || cli.isDead()) {
+            return undefined;
+        }
+        return cli;
+    }
+
+    public getBridgedClientByNick(server: IrcServer, nick: string) {
+        const bot = this.getBot(server);
+        if (bot && bot.nick === nick) {
+            return bot;
+        }
+
+        if (!this.virtualClients[server.domain]) {
+            return undefined;
+        }
+        const cli = this.virtualClients[server.domain].nicks[nick];
+        if (!cli || cli.isDead()) {
+            return undefined;
+        }
+        return cli;
+    }
+
+    public getBridgedClientsForUserId(userId: string) {
+        const domainList = Object.keys(this.virtualClients);
+        const clientList: any[] = [];
+        domainList.forEach((domain) => {
+            const cli = this.virtualClients[domain].userIds[userId];
+            if (cli && !cli.isDead()) {
+                clientList.push(cli);
             }
-            clientList[userId].push(this._virtualClients[domain].userIds[userId]);
         });
-    });
-    return clientList;
-};
-
-
-ClientPool.prototype._checkClientLimit = function(server) {
-    if (server.getMaxClients() === 0) {
-        return;
+        return clientList;
     }
 
-    var numConnections = this._getNumberOfConnections(server);
-    this._sendConnectionMetric(server);
+    public getBridgedClientsForRegex(userIdRegexString: string) {
+        const userIdRegex = new RegExp(userIdRegexString);
+        const domainList = Object.keys(this.virtualClients);
+        const clientList: {[userId: string]: any} = {};
+        domainList.forEach((domain) => {
+            Object.keys(
+                this.virtualClients[domain].userIds
+            ).filter(
+                (u) => userIdRegex.exec(u) !== null
+            ).forEach((userId: string) => {
+                if (!clientList[userId]) {
+                    clientList[userId] = [];
+                }
+                clientList[userId].push(this.virtualClients[domain].userIds[userId]);
+            });
+        });
+        return clientList;
+    }
 
-    if (numConnections < server.getMaxClients()) {
-        // under the limit, we're good for now.
+
+    private checkClientLimit(server: IrcServer) {
+        if (server.getMaxClients() === 0) {
+            return;
+        }
+
+        const numConnections = this.getNumberOfConnections(server);
+        this.sendConnectionMetric(server);
+
+        if (numConnections < server.getMaxClients()) {
+            // under the limit, we're good for now.
+            log.debug(
+                "%s active connections on %s",
+                numConnections, server.domain
+            );
+            return;
+        }
+
         log.debug(
-            "%s active connections on %s",
-            numConnections, server.domain
+            "%s active connections on %s (limit %s)",
+            numConnections, server.domain, server.getMaxClients()
         );
-        return;
-    }
 
-    log.debug(
-        "%s active connections on %s (limit %s)",
-        numConnections, server.domain, server.getMaxClients()
-    );
-
-    // find the oldest client to kill.
-    var oldest = null;
-    Object.keys(this._virtualClients[server.domain].nicks).forEach((nick) => {
-        var client = this._virtualClients[server.domain].nicks[nick];
-        if (!client) {
-            // possible since undefined/null values can be present from culled entries
+        // find the oldest client to kill.
+        let oldest: any = null;
+        Object.keys(this.virtualClients[server.domain].nicks).forEach((nick: string) => {
+            const client = this.virtualClients[server.domain].nicks[nick];
+            if (!client) {
+                // possible since undefined/null values can be present from culled entries
+                return;
+            }
+            if (client.isBot) {
+                return; // don't ever kick the bot off.
+            }
+            if (oldest === null) {
+                oldest = client;
+                return;
+            }
+            if (client.getLastActionTs() < oldest.getLastActionTs()) {
+                oldest = client;
+            }
+        });
+        if (!oldest) {
             return;
         }
-        if (client.isBot) {
-            return; // don't ever kick the bot off.
+        // disconnect and remove mappings.
+        this.removeBridgedClient(oldest);
+        oldest.disconnect("Client limit exceeded: " + server.getMaxClients()).then(
+        function() {
+            log.info("Client limit exceeded: Disconnected %s on %s.",
+                oldest.nick, oldest.server.domain);
+        },
+        function(e: Error) {
+            log.error("Error when disconnecting %s on server %s: %s",
+                oldest.nick, oldest.server.domain, JSON.stringify(e));
+        });
+    }
+
+    public countTotalConnections(): number {
+        let count = 0;
+
+        Object.keys(this.virtualClients).forEach((domain) => {
+            let server = this.ircBridge.getServer(domain);
+            count += this.getNumberOfConnections(server);
+        });
+
+        return count;
+    }
+
+    public totalReconnectsWaiting (serverDomain: string): number {
+        if (this.reconnectQueues[serverDomain] !== undefined) {
+            return this.reconnectQueues[serverDomain].waitingItems;
         }
-        if (oldest === null) {
-            oldest = client;
+        return 0;
+    }
+
+    public updateActiveConnectionMetrics(serverDomain: string, ageCounter: any): void {
+        if (this.virtualClients[serverDomain] === undefined) {
             return;
         }
-        if (client.getLastActionTs() < oldest.getLastActionTs()) {
-            oldest = client;
+        const clients = Object.values(this.virtualClients[serverDomain].userIds);
+        clients.forEach((bridgedClient) => {
+            if (!bridgedClient || bridgedClient.isDead()) {
+                // We don't want to include dead ones, or ones that don't exist.
+                return;
+            }
+            ageCounter.bump((Date.now() - bridgedClient.getLastActionTs()) / 1000);
+        });
+    }
+
+    public getNickUserIdMappingForChannel(server: IrcServer, channel: string): {[nick: string]: string} {
+        const nickUserIdMap: {[nick: string]: string} = {};
+        const cliSet = this.virtualClients[server.domain].userIds;
+        Object.keys(cliSet).filter((userId: string) =>
+            cliSet[userId] && cliSet[userId].chanList
+                && cliSet[userId].chanList.includes(channel)
+        ).forEach((userId: string) => {
+            nickUserIdMap[cliSet[userId].nick] = userId;
+        });
+        // Correctly map the bot too.
+        nickUserIdMap[server.getBotNickname()] = this.ircBridge.getAppServiceUserId();
+        return nickUserIdMap;
+    }
+
+    private getNumberOfConnections(server: IrcServer): number {
+        if (!server || !this.virtualClients[server.domain]) { return 0; }
+        return this.virtualClientCounts[server.domain];
+    }
+
+    private sendConnectionMetric(server: IrcServer): void {
+        stats.ircClients(server.domain, this.getNumberOfConnections(server));
+    }
+
+    private removeBridgedClient(bridgedClient: any): void {
+        const server = bridgedClient.server;
+        this.virtualClients[server.domain].userIds[bridgedClient.userId] = undefined;
+        this.virtualClients[server.domain].nicks[bridgedClient.nick] = undefined;
+        this.virtualClientCounts[server.domain] = this.virtualClientCounts[server.domain] - 1;
+
+        if (bridgedClient.isBot) {
+            this.botClients[server.domain] = undefined;
         }
-    });
-    if (!oldest) {
-        return;
     }
-    // disconnect and remove mappings.
-    this._removeBridgedClient(oldest);
-    oldest.disconnect("Client limit exceeded: " + server.getMaxClients()).then(
-    function() {
-        log.info("Client limit exceeded: Disconnected %s on %s.",
-            oldest.nick, oldest.server.domain);
-    },
-    function(e) {
-        log.error("Error when disconnecting %s on server %s: %s",
-            oldest.nick, oldest.server.domain, JSON.stringify(e));
-    });
-};
 
-ClientPool.prototype._getNumberOfConnections = function(server) {
-    if (!server || !this._virtualClients[server.domain]) { return 0; }
-    return this._virtualClientCounts[server.domain];
-};
+    private onClientConnected(bridgedClient: any): void {
+        const server = bridgedClient.server;
+        const oldNick = bridgedClient.nick;
+        const actualNick = bridgedClient.unsafeClient.nick;
 
-ClientPool.prototype.countTotalConnections = function() {
-    var count = 0;
+        // remove the pending nick we had set for this user
+        delete this.virtualClients[server.domain].pending[oldNick];
 
-    Object.keys(this._virtualClients).forEach((domain) => {
-        let server = this._ircBridge.getServer(domain);
-        count += this._getNumberOfConnections(server);
-    });
+        // assign a nick to this client
+        this.virtualClients[server.domain].nicks[actualNick] = bridgedClient;
 
-    return count;
-};
-
-ClientPool.prototype.totalReconnectsWaiting = function (serverDomain) {
-    if (this._reconnectQueues[serverDomain] !== undefined) {
-        return this._reconnectQueues[serverDomain].waitingItems;
+        // informative logging
+        if (oldNick !== actualNick) {
+            log.debug("Connected with nick '%s' instead of desired nick '%s'",
+                actualNick, oldNick);
+        }
     }
-    return 0;
-};
 
-ClientPool.prototype.updateActiveConnectionMetrics = function(server, ageCounter) {
-    if (this._virtualClients[server] === undefined) {
-        return;
-    }
-    const clients = Object.values(this._virtualClients[server].userIds);
-    clients.forEach((bridgedClient) => {
-        if (!bridgedClient || bridgedClient.isDead()) {
-            // We don't want to include dead ones, or ones that don't exist.
+    private onClientDisconnected(bridgedClient: any): void {
+        this.removeBridgedClient(bridgedClient);
+        this.sendConnectionMetric(bridgedClient.server);
+
+        // remove the pending nick we had set for this user
+        if (this.virtualClients[bridgedClient.server]) {
+            delete this.virtualClients[bridgedClient.server].pending[bridgedClient.nick];
+        }
+
+        if (bridgedClient.disconnectReason === "banned") {
+            const req = new BridgeRequest(this.ircBridge._bridge.getRequestFactory().newRequest());
+            this.ircBridge.matrixHandler.quitUser(
+                req, bridgedClient.userId, [bridgedClient],
+                null, "User was banned from the network"
+            );
+        }
+
+        if (bridgedClient.explicitDisconnect) {
+            // don't reconnect users which explicitly disconnected e.g. client
+            // cycling, idle timeouts, leaving rooms, etc.
             return;
         }
-        ageCounter.bump((Date.now() - bridgedClient.getLastActionTs()) / 1000);
-    });
-};
+        // Reconnect this user
+        // change the client config to use the current nick rather than the desired nick. This
+        // makes sure that the client attempts to reconnect with the *SAME* nick, and also draws
+        // from the latest !nick change, as the client config here may be very very old.
+        const cliConfig = bridgedClient.getClientConfig();
+        cliConfig.setDesiredNick(bridgedClient.nick);
 
-ClientPool.prototype.getNickUserIdMappingForChannel = function(server, channel) {
-    const nickUserIdMap = {};
-    const cliSet = this._virtualClients[server.domain].userIds;
-    Object.keys(cliSet).filter((userId) =>
-        cliSet[userId] && cliSet[userId].chanList
-            && cliSet[userId].chanList.includes(channel)
-    ).forEach((userId) => {
-        nickUserIdMap[cliSet[userId].nick] = userId;
-    });
-    // Correctly map the bot too.
-    nickUserIdMap[server.getBotNickname()] = this._ircBridge.getAppServiceUserId();
-    return nickUserIdMap;
-};
 
-ClientPool.prototype._sendConnectionMetric = function(server) {
-    stats.ircClients(server.domain, this._getNumberOfConnections(server));
-};
-
-ClientPool.prototype._removeBridgedClient = function(bridgedClient) {
-    var server = bridgedClient.server;
-    this._virtualClients[server.domain].userIds[bridgedClient.userId] = undefined;
-    this._virtualClients[server.domain].nicks[bridgedClient.nick] = undefined;
-    this._virtualClientCounts[server.domain] = this._virtualClientCounts[server.domain] - 1;
-
-    if (bridgedClient.isBot) {
-        this._botClients[server.domain] = undefined;
-    }
-};
-
-ClientPool.prototype._onClientConnected = function(bridgedClient) {
-    var server = bridgedClient.server;
-    var oldNick = bridgedClient.nick;
-    var actualNick = bridgedClient.unsafeClient.nick;
-
-    // remove the pending nick we had set for this user
-    delete this._virtualClients[server.domain].pending[oldNick];
-
-    // assign a nick to this client
-    this._virtualClients[server.domain].nicks[actualNick] = bridgedClient;
-
-    // informative logging
-    if (oldNick !== actualNick) {
-        log.debug("Connected with nick '%s' instead of desired nick '%s'",
-            actualNick, oldNick);
-    }
-};
-
-ClientPool.prototype._onClientDisconnected = function(bridgedClient) {
-    this._removeBridgedClient(bridgedClient);
-    this._sendConnectionMetric(bridgedClient.server);
-
-    // remove the pending nick we had set for this user
-    if (this._virtualClients[bridgedClient.server]) {
-        delete this._virtualClients[bridgedClient.server].pending[bridgedClient.nick];
-    }
-
-    if (bridgedClient.disconnectReason === "banned") {
-        const req = new BridgeRequest(this._ircBridge._bridge.getRequestFactory().newRequest());
-        this._ircBridge.matrixHandler.quitUser(
-            req, bridgedClient.userId, [bridgedClient],
-            null, "User was banned from the network"
+        const cli = this.createIrcClient(
+            cliConfig, bridgedClient.matrixUser, bridgedClient.isBot
         );
-    }
+        const chanList = bridgedClient.chanList;
+        // remove ref to the disconnected client so it can be GC'd. If we don't do this,
+        // the timeout below holds it in a closure, preventing it from being GC'd.
+        bridgedClient = undefined;
 
-    if (bridgedClient.explicitDisconnect) {
-        // don't reconnect users which explicitly disconnected e.g. client
-        // cycling, idle timeouts, leaving rooms, etc.
-        return;
-    }
-    // Reconnect this user
-    // change the client config to use the current nick rather than the desired nick. This
-    // makes sure that the client attempts to reconnect with the *SAME* nick, and also draws
-    // from the latest !nick change, as the client config here may be very very old.
-    var cliConfig = bridgedClient.getClientConfig();
-    cliConfig.setDesiredNick(bridgedClient.nick);
-
-
-    var cli = this.createIrcClient(
-        cliConfig, bridgedClient.matrixUser, bridgedClient.isBot
-    );
-    var chanList = bridgedClient.chanList;
-    // remove ref to the disconnected client so it can be GC'd. If we don't do this,
-    // the timeout below holds it in a closure, preventing it from being GC'd.
-    bridgedClient = undefined;
-
-    if (chanList.length === 0) {
-        log.info(`Dropping ${cli._id} ${cli.nick} because they are not joined to any channels`);
-        return;
-    }
-    let queue = this.getOrCreateReconnectQueue(cli.server);
-    if (queue === null) {
-        this._reconnectClient({
+        if (chanList.length === 0) {
+            log.info(`Dropping ${cli._id} ${cli.nick} because they are not joined to any channels`);
+            return;
+        }
+        let queue = this.getOrCreateReconnectQueue(cli.server);
+        if (queue === null) {
+            this.reconnectClient({
+                cli: cli,
+                chanList: chanList,
+            });
+            return;
+        }
+        queue.enqueue(cli._id, {
             cli: cli,
             chanList: chanList,
         });
-        return;
     }
-    queue.enqueue(cli._id, {
-        cli: cli,
-        chanList: chanList,
-    });
-};
 
-ClientPool.prototype._reconnectClient = function(cliChan) {
-    const cli = cliChan.cli;
-    const chanList = cliChan.chanList;
-    return cli.connect().then(() => {
-        log.info(
-            "<%s> Reconnected %s@%s", cli._id, cli.nick, cli.server.domain
-        );
-        log.info("<%s> Rejoining %s channels", cli._id, chanList.length);
-        chanList.forEach(function(c) {
-            cli.joinChannel(c);
+    private reconnectClient(cliChan: any): void {
+        const cli = cliChan.cli;
+        const chanList: string[] = cliChan.chanList;
+        return cli.connect().then(() => {
+            log.info(
+                "<%s> Reconnected %s@%s", cli._id, cli.nick, cli.server.domain
+            );
+            log.info("<%s> Rejoining %s channels", cli._id, chanList.length);
+            chanList.forEach(function(c: string) {
+                cli.joinChannel(c);
+            });
+            this.sendConnectionMetric(cli.server);
+        }, (e: Error) => {
+            log.error(
+                "<%s> Failed to reconnect %s@%s", cli._id, cli.nick, cli.server.domain
+            );
         });
-        this._sendConnectionMetric(cli.server);
-    }, (e) => {
-        log.error(
-            "<%s> Failed to reconnect %s@%s", cli._id, cli.nick, cli.server.domain
+    }
+
+    private onNickChange(bridgedClient: any, oldNick: string, newNick: string): void {
+        this.virtualClients[bridgedClient.server.domain].nicks[oldNick] = undefined;
+        this.virtualClients[bridgedClient.server.domain].nicks[newNick] = bridgedClient;
+    }
+
+    private async onJoinError (bridgedClient: any, chan: string, err: string): Promise<void> {
+        const errorsThatShouldKick = [
+            "err_bannedfromchan", // they aren't allowed in channels they are banned on.
+            "err_inviteonlychan", // they aren't allowed in invite only channels
+            "err_channelisfull", // they aren't allowed in if the channel is full
+            "err_badchannelkey", // they aren't allowed in channels with a bad key
+            "err_needreggednick", // they aren't allowed in +r channels if they haven't authed
+        ];
+        if (!errorsThatShouldKick.includes(err)) {
+            return;
+        }
+        if (!bridgedClient.userId || bridgedClient.isBot) {
+            return; // the bot itself can get these join errors
+        }
+        // TODO: this is a bit evil, no one in their right mind would expect
+        // the client pool to be kicking matrix users from a room :(
+        log.info(`Kicking ${bridgedClient.userId} from room due to ${err}`);
+        let matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
+            bridgedClient.server, chan
         );
-    });
+        let promises = matrixRooms.map((room: any) => {
+            return this.ircBridge.getAppServiceBridge().getIntent().kick(
+                room.getId(), bridgedClient.userId, `IRC error on ${chan}: ${err}`
+            );
+        });
+        await Promise.all(promises);
+    }
+
+    private onNames(bridgedClient: any, chan: string, names: any): Bluebird<void> {
+        let mls = this.ircBridge.memberListSyncers[bridgedClient.server.domain];
+        if (!mls) {
+            return Bluebird.resolve();
+        }
+        return mls.updateIrcMemberList(chan, names);
+    }
 }
-
-ClientPool.prototype._onNickChange = function(bridgedClient, oldNick, newNick) {
-    this._virtualClients[bridgedClient.server.domain].nicks[oldNick] = undefined;
-    this._virtualClients[bridgedClient.server.domain].nicks[newNick] = bridgedClient;
-};
-
-ClientPool.prototype._onJoinError = Promise.coroutine(function*(bridgedClient, chan, err) {
-    var errorsThatShouldKick = [
-        "err_bannedfromchan", // they aren't allowed in channels they are banned on.
-        "err_inviteonlychan", // they aren't allowed in invite only channels
-        "err_channelisfull", // they aren't allowed in if the channel is full
-        "err_badchannelkey", // they aren't allowed in channels with a bad key
-        "err_needreggednick", // they aren't allowed in +r channels if they haven't authed
-    ];
-    if (errorsThatShouldKick.indexOf(err) === -1) {
-        return;
-    }
-    if (!bridgedClient.userId || bridgedClient.isBot) {
-        return; // the bot itself can get these join errors
-    }
-    // TODO: this is a bit evil, no one in their right mind would expect
-    // the client pool to be kicking matrix users from a room :(
-    log.info(`Kicking ${bridgedClient.userId} from room due to ${err}`);
-    let matrixRooms = yield this._ircBridge.getStore().getMatrixRoomsForChannel(
-        bridgedClient.server, chan
-    );
-    let promises = matrixRooms.map((room) => {
-        return this._ircBridge.getAppServiceBridge().getIntent().kick(
-            room.getId(), bridgedClient.userId, `IRC error on ${chan}: ${err}`
-        );
-    });
-    yield Promise.all(promises);
-});
-
-ClientPool.prototype._onNames = Promise.coroutine(function*(bridgedClient, chan, names) {
-    let mls = this._ircBridge.memberListSyncers[bridgedClient.server.domain];
-    if (!mls) {
-        return;
-    }
-    yield mls.updateIrcMemberList(chan, names);
-});
-
-module.exports = ClientPool;
