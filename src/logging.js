@@ -1,12 +1,11 @@
 /*
  * This module provides python-like logging capabilities using winston.
  */
-"use strict";
 
 const winston = require("winston");
 require('winston-daily-rotate-file');
 
-var loggerConfig = {
+let loggerConfig = {
     level: "debug", //debug|info|warn|error
     logfile: undefined, // path to file
     errfile: undefined, // path to file
@@ -15,12 +14,14 @@ var loggerConfig = {
     verbose: false
 };
 
-var loggers = {
+const loggers = {
     // name_of_logger: Logger
 };
-var loggerTransports; // from config
+let loggerTransports; // from config
 
-var makeTransports = function() {
+const UNCAUGHT_EXCEPTION_ERRCODE = 101;
+
+const makeTransports = function() {
     var timestampFn = function() {
         return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
     };
@@ -79,7 +80,7 @@ var makeTransports = function() {
     return transports;
 };
 
-var createLogger = function(nameOfLogger) {
+const createLogger = function(nameOfLogger) {
     // lazily load the transports if one wasn't set from configure()
     if (!loggerTransports) {
         loggerTransports = makeTransports();
@@ -177,6 +178,11 @@ module.exports = {
 
     setUncaughtExceptionLogger: function(exceptionLogger) {
         process.on("uncaughtException", function(e) {
+            // Log to stderr first and foremost, to avoid any chance of us missing a flush.
+            console.error("FATAL EXCEPTION");
+            console.error(e && e.stack ? e.stack : String(e));
+
+            // Log to winston handlers afterwards, if we can.
             exceptionLogger.error("FATAL EXCEPTION");
             if (e && e.stack) {
                 exceptionLogger.error(e.stack);
@@ -184,6 +190,10 @@ module.exports = {
             else {
                 exceptionLogger.error(e);
             }
+
+            // We exit with UNCAUGHT_EXCEPTION_ERRCODE to ensure that the poor
+            // developers debugging the bridge can identify where it exploded.
+
             // There have been issues where winston has failed to log the last
             // few lines before quitting, which I suspect is due to it not flushing.
             // Since we know we're going to die at this point, log something else
@@ -197,7 +207,7 @@ module.exports = {
                         exceptionLogger.transports[k]._stream.once("finish", function() {
                             numFlushed += 1;
                             if (numFlushes === numFlushed) {
-                                process.exit(1);
+                                process.exit(UNCAUGHT_EXCEPTION_ERRCODE);
                             }
                         });
                         exceptionLogger.transports[k]._stream.on("error", function() {
@@ -207,7 +217,7 @@ module.exports = {
                     }
                 });
                 if (numFlushes === 0) {
-                    process.exit(1);
+                    process.exit(UNCAUGHT_EXCEPTION_ERRCODE);
                 }
             });
         });

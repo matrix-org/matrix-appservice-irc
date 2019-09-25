@@ -467,11 +467,7 @@ export class NeDBDataStore implements DataStore {
         room.set("admin_id", userId);
         await this.roomStore.upsertEntry({
             id: NeDBDataStore.createAdminId(userId),
-            matrix_id: room.getId(),
             matrix: room,
-            remote: null,
-            remote_id: "",
-            data: {},
         });
     }
 
