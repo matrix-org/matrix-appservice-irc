@@ -12,7 +12,7 @@ new Cli({
     enableLocalpart: true,
     bridgeConfig: {
         affectsRegistration: true,
-        schema: path.join(__dirname, "lib/config/schema.yml"),
+        schema: path.join(__dirname, "config.schema.yml"),
         defaults: {
             homeserver: {
                 dropMatrixMessagesAfterSecs: 0,
