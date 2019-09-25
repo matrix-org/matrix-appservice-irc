@@ -25,7 +25,7 @@ describe("MatrixAction", function() {
             "Some Person": "@foobar:localhost"
         }, FakeIntent).then(() => {
             expect(action.text).toEqual("Some text");
-            expect(action.htmlText).toBeUndefined();
+            expect(action.htmlText).toBeNull();
         });
     });
 

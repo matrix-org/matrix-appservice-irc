@@ -67,8 +67,8 @@
  */
 
 "use strict";
-const IrcAction = require("../models/IrcAction");
-const IrcUser = require("../models/IrcUser");
+const { IrcAction } = require("../models/IrcAction");
+const { IrcUser } = require("../models/IrcUser");
 const { BridgeRequest } = require("../models/BridgeRequest");
 const log = require("../logging").get("IrcEventBroker");
 
