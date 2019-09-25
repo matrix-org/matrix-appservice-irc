@@ -191,7 +191,6 @@ describe("Dynamic channels", function() {
         // when we get the create room request, process it.
         let sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.and.callFake(function(opts) {
-            console.log(opts);
             expect(opts.room_version).toEqual("the-best-version");
             return Promise.resolve({
                 room_id: tRoomId

@@ -6,6 +6,10 @@ const MockAppService = require("./app-service-mock");
 const Promise = require("bluebird");
 const clientMock = require("./client-sdk-mock");
 const ircMock = require("./irc-client-mock");
+const { Client } = require('pg');
+
+const USING_PG = process.env.IRCBRIDGE_TEST_ENABLEPG === "yes";
+
 clientMock["@global"] = true;
 ircMock["@global"] = true;
 const main = proxyquire("../../lib/main.js", {
@@ -25,6 +29,20 @@ jasmine.getEnv().addReporter({
     }
 });
 
+let pgClient;
+let pgClientConnectPromise;
+
+if (USING_PG) {
+    // Setup postgres for the whole process.
+    pgClient = new Client(`${process.env.IRCBRIDGE_TEST_PGURL}/postgres`);
+    pgClientConnectPromise = (async () => {
+        await pgClient.connect();
+    })();
+    process.on("beforeExit", async () => {
+        pgClient.end();
+    })
+}
+
 class TestEnv {
     constructor(config, mockAppService) {
         this.config = config;
@@ -33,6 +51,16 @@ class TestEnv {
         this.ircBridge = null;
         this.ircMock = ircMock;
         this.clientMock = clientMock;
+        // Inject postgres
+        if (!USING_PG) {
+            return;
+        }
+
+        this.pgDb = process.env.IRCBRIDGE_TEST_PGDB;
+        this.config.database = {
+            engine: "postgres",
+            connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${this.pgDb}`,
+        };
     }
 
     /**
@@ -40,37 +68,40 @@ class TestEnv {
      * register the IRC service (as if it were called by app.js).
      * @return {Promise} which is resolved when the app has finished initiliasing.
      */
-    init(customConfig) {
-        return this.main.runBridge(
-            this.config._port, customConfig || this.config,
-            AppServiceRegistration.fromObject(this.config._registration), true
-        ).then((ircBridge) => {
-            console.log("Bridge created");
-            this.ircBridge = ircBridge;
-        }).catch((e) => {
-            var msg = JSON.stringify(e);
+    async init(customConfig) {
+        let ircBridge;
+        try {
+            ircBridge = await this.main.runBridge(
+                this.config._port, customConfig || this.config,
+                AppServiceRegistration.fromObject(this.config._registration), !USING_PG
+            )
+        }
+        catch (e) {
+            let msg = JSON.stringify(e);
             if (e.stack) {
                 msg = e.stack;
             }
             console.error("FATAL");
             console.error(msg);
-        });
-
+            return;
+        }
+        this.ircBridge = ircBridge;
     }
 
     /**
      * Reset the test environment for a new test case that has just run.
      * This kills the bridge.
      **/
-    afterEach() {
+    async afterEach() {
         if (!this.main) {
-            return Promise.resolve();
+            return;
         }
         // If there was a previous bridge running, kill it
-        // This is prevent IRC clients spamming the logs
-        return this.main.killBridge(this.ircBridge).then(() => {
-            if (global.gc) {global.gc();}
-        })
+        // This prevents IRC clients spamming the logs
+        await this.main.killBridge(this.ircBridge);
+        if (global.gc) {
+            global.gc();
+        }
     }
 
     /**
@@ -79,6 +110,12 @@ class TestEnv {
     async beforeEach() {
         ircMock._reset();
         clientMock._reset();
+        if (USING_PG) {
+            const db = process.env.IRCBRIDGE_TEST_PGDB;
+            await pgClientConnectPromise;
+            await pgClient.query(`DROP DATABASE IF EXISTS ${db}`);
+            await pgClient.query(`CREATE DATABASE ${db}`);
+        }
         this.mockAppService = MockAppService.instance();
         return true;
     }
@@ -95,6 +132,7 @@ module.exports.mkEnv = function() {
         null // reset each test
     );
 };
+
 
 module.exports.initEnv = Promise.coroutine(function*(env, customConfig) {
     return yield env.init(customConfig);

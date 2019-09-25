@@ -312,9 +312,9 @@ class RoomAccessSyncer {
             );
         }
         // "k" and "i"
-        matrixRooms.map((room) => {
-            this._ircBridge.getStore().setModeForRoom(room.getId(), mode, enabled);
-        });
+        await Promise.all(matrixRooms.map((room) =>
+            this._ircBridge.getStore().setModeForRoom(room.getId(), mode, enabled)
+        ));
 
         const promises = matrixRooms.map((room) => {
             switch (mode) {

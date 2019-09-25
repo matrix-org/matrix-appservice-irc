@@ -27,6 +27,7 @@ import { IrcServer, IrcServerConfig } from "../../irc/IrcServer";
 import * as logging from "../../logging";
 import Bluebird from "bluebird";
 import { StringCrypto } from "../StringCrypto";
+import { toIrcLowerCase } from "../../irc/formatting";
 
 const log = logging.get("PgDatastore");
 
@@ -35,6 +36,7 @@ export class PgDataStore implements DataStore {
 
     public static readonly LATEST_SCHEMA = 1;
     private pgPool: Pool;
+    private hasEnded: boolean = false;
     private cryptoStore?: StringCrypto;
 
     constructor(private bridgeDomain: string, connectionString: string, pkeyPath?: string, min: number = 1, max: number = 4) {
@@ -43,11 +45,17 @@ export class PgDataStore implements DataStore {
             min,
             max,
         });
+        this.pgPool.on("error", (err) => {
+            log.error("Postgres Error: %s", err);
+        });
         if (pkeyPath) {
             this.cryptoStore = new StringCrypto();
             this.cryptoStore.load(pkeyPath);
         }
         process.on("beforeExit", (e) => {
+            if (this.hasEnded) {
+                return;
+            }
             // Ensure we clean up on exit
             this.pgPool.end();
         })        
@@ -58,6 +66,7 @@ export class PgDataStore implements DataStore {
 
         for (const channel of Object.keys(serverConfig.mappings)) {
             const ircRoom = new IrcRoom(server, channel);
+            ircRoom.set("type", "channel");
             for (const roomId of serverConfig.mappings[channel]) {
                 const mxRoom = new MatrixRoom(roomId);
                 await this.storeRoom(ircRoom, mxRoom, "config");
@@ -69,15 +78,26 @@ export class PgDataStore implements DataStore {
         if (typeof origin !== "string") {
             throw new Error('Origin must be a string = "config"|"provision"|"alias"|"join"');
         }
-        log.info("storeRoom (id=%s, addr=%s, chan=%s, origin=%s)",
-            matrixRoom.getId(), ircRoom.getDomain(), ircRoom.channel, origin);
-        this.upsertRoom(
+        log.info("storeRoom (id=%s, addr=%s, chan=%s, origin=%s, type=%s)",
+            matrixRoom.getId(), ircRoom.getDomain(), ircRoom.channel, origin, ircRoom.getType());
+        // We need to *clone* this as we are about to be evil.
+        const ircRoomSerial = JSON.parse(JSON.stringify(ircRoom.serialize()));
+        // These keys do not need to be stored inside the JSON blob as we store them
+        // inside dedicated columns. They will be reinserted into the JSON blob
+        // when fetched.
+        const type = ircRoom.getType();
+        const domain = ircRoom.getDomain();
+        const channel = ircRoom.getChannel();
+        delete ircRoomSerial.domain;
+        delete ircRoomSerial.channel;
+        delete ircRoomSerial.type;
+        await this.upsertRoom(
             origin,
-            ircRoom.getType(),
-            ircRoom.getDomain(),
-            ircRoom.getChannel(),
+            type,
+            domain,
+            channel,
             matrixRoom.getId(),
-            JSON.stringify(ircRoom.serialize()),
+            JSON.stringify(ircRoomSerial),
             JSON.stringify(matrixRoom.serialize()),
         );
     }
@@ -99,8 +119,14 @@ export class PgDataStore implements DataStore {
     private static pgToRoomEntry(pgEntry: any): Entry {
         return {
             id: "",
-            matrix: new MatrixRoom(pgEntry.room_id, JSON.parse(pgEntry.matrix_json)),
-            remote: new RemoteRoom("", JSON.parse(pgEntry.irc_json)),
+            matrix: new MatrixRoom(pgEntry.room_id, pgEntry.matrix_json),
+            remote: new RemoteRoom("", 
+            {
+                ...pgEntry.irc_json,
+                channel: pgEntry.irc_channel,
+                domain: pgEntry.irc_domain,
+                type: pgEntry.type,
+            }),
             matrix_id: pgEntry.room_id,
             remote_id: "foobar",
             data: {
@@ -110,11 +136,13 @@ export class PgDataStore implements DataStore {
     }
 
     public async getRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<Entry | null> {
-        let statement = "SELECT * FROM rooms WHERE room_id = $1, irc_domain = $2, irc_channel = $3";
+        let statement = "SELECT * FROM rooms WHERE room_id = $1 AND irc_domain = $2 AND irc_channel = $3";
+        let params = [roomId, ircDomain, ircChannel];
         if (origin) {
-            statement += ", origin = $4";
+            statement += " AND origin = $4";
+            params = params.concat(origin);
         }
-        const pgEntry = await this.pgPool.query(statement, [roomId, ircDomain, ircChannel, origin]);
+        const pgEntry = await this.pgPool.query(statement, params);
         if (!pgEntry.rowCount) {
             return null;
         }
@@ -160,20 +188,24 @@ export class PgDataStore implements DataStore {
 
     public async removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin: RoomOrigin): Promise<void> {
         await this.pgPool.query(
-            "DELETE FROM rooms WHERE room_id = $1, irc_domain = $2, irc_channel = $3, origin = $4",
+            "DELETE FROM rooms WHERE room_id = $1 AND irc_domain = $2 AND irc_channel = $3 AND origin = $4",
             [roomId, ircDomain, ircChannel, origin]
         );
     }
 
     public async getIrcChannelsForRoomId(roomId: string): Promise<IrcRoom[]> {
-        const entries = await this.pgPool.query("SELECT irc_domain, irc_channel FROM rooms WHERE room_id = $1", [ roomId ]);
+        let entries = await this.pgPool.query("SELECT irc_domain, irc_channel FROM rooms WHERE room_id = $1", [ roomId ]);
+        if (entries.rowCount === 0) {
+            // Could be a PM room, if it's not a channel.
+            entries = await this.pgPool.query("SELECT irc_domain, irc_nick FROM pm_rooms WHERE room_id = $1", [ roomId ]);
+        }
         return entries.rows.map((e) => {
             const server = this.serverMappings[e.irc_domain];
             if (!server) {
                 // ! is used here because typescript doesn't understand the .filter
                 return undefined!;
             }
-            return new IrcRoom(server, e.irc_channel);
+            return new IrcRoom(server, e.irc_channel || e.irc_nick);
         }).filter((i) => i !== undefined);
     }
 
@@ -200,32 +232,40 @@ export class PgDataStore implements DataStore {
         const entries = await this.pgPool.query("SELECT room_id, matrix_json FROM rooms WHERE irc_domain = $1 AND irc_channel = $2",
         [
             server.domain,
-            channel,
+            // Channels must be lowercase
+            toIrcLowerCase(channel),
         ]);
-        return entries.rows.map((e) => new MatrixRoom(e.room_id, JSON.parse(e.matrix_json)));
+        return entries.rows.map((e) => new MatrixRoom(e.room_id, e.matrix_json));
     }
 
     public async getMappingsForChannelByOrigin(server: IrcServer, channel: string, origin: RoomOrigin | RoomOrigin[], allowUnset: boolean): Promise<Entry[]> {
-        const entries = await this.pgPool.query("SELECT * FROM rooms WHERE irc_domain = $1 AND irc_channel = $2 AND origin = $3",
+        if (!Array.isArray(origin)) {
+            origin = [origin];
+        }
+        const inStatement = origin.map((_, i) => `\$${i + 3}`).join(", ");
+        const statement = `SELECT * FROM rooms WHERE irc_domain = $1 AND irc_channel = $2 AND origin IN (${inStatement})`;
+        const entries = await this.pgPool.query(statement,
         [
             server.domain,
-            channel,
-            origin,
-        ]);
+            // Channels must be lowercase
+            toIrcLowerCase(channel),
+        ].concat(origin));
         return entries.rows.map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
     public async getModesForChannel(server: IrcServer, channel: string): Promise<{ [id: string]: string[]; }> {
+        log.debug(`Getting modes for ${server.domain} ${channel}`);
         const mapping: {[id: string]: string[]} = {};
         const entries = await this.pgPool.query(
-            "SELECT room_id, remote_json->>'modes' AS MODES FROM rooms " +
+            "SELECT room_id, irc_json->>'modes' AS modes FROM rooms " +
             "WHERE irc_domain = $1 AND irc_channel = $2",
         [
             server.domain,
-            channel,
+            // Channels must be lowercase
+            toIrcLowerCase(channel),
         ]);
         entries.rows.forEach((e) => {
-            mapping[e.room_id] = e.modes;
+            mapping[e.room_id] = e.modes || [];
         });
         return mapping;
     }
@@ -253,11 +293,16 @@ export class PgDataStore implements DataStore {
             }
 
             entry.remote.set("modes", modes);
-            await this.pgPool.query("UPDATE rooms WHERE room_id = $1, irc_channel = $2, irc_domain = $3 SET irc_json = $4", [
+            // Clone the object
+            const ircRoomSerial = JSON.parse(JSON.stringify(entry.remote.serialize()));
+            delete ircRoomSerial.domain;
+            delete ircRoomSerial.channel;
+            delete ircRoomSerial.type;
+            await this.pgPool.query("UPDATE rooms SET irc_json = $4 WHERE room_id = $1 AND irc_channel = $2 AND irc_domain = $3", [
                 roomId,
                 entry.remote.get("channel"),
                 entry.remote.get("domain"),
-                JSON.stringify(entry.remote.serialize()),
+                JSON.stringify(ircRoomSerial),
             ]);
         }
     }
@@ -284,11 +329,13 @@ export class PgDataStore implements DataStore {
     }
 
     public async getTrackedChannelsForServer(domain: string): Promise<string[]> {
-        if (this.serverMappings[domain]) {
+        if (!this.serverMappings[domain]) {
+            // Return empty if we don't know the server.
             return [];
         }
-        const chanSet = await this.pgPool.query("SELECT channel FROM rooms WHERE irc_domain = $1", [ domain ]);
-        return [...new Set((chanSet.rows).map((e) => e.channel))];
+        log.info(`Fetching all channels for ${domain}`);
+        const chanSet = await this.pgPool.query("SELECT DISTINCT irc_channel FROM rooms WHERE irc_domain = $1", [ domain ]);
+        return chanSet.rows.map((e) => e.irc_channel as string);
     }
 
     public async getRoomIdsFromConfig(): Promise<string[]> {
@@ -310,8 +357,14 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query("UPDATE ipv6_counter SET count = $1", [ counter ]);
     }
 
-    public async upsertRoomStoreEntry(entry: Entry): Promise<void> {
-        throw new Error("Method not implemented.");
+    public async upsertMatrixRoom(room: MatrixRoom): Promise<void> {
+        // XXX: This is an upsert operation, but we don't have enough details to go on
+        // so this will just update a rooms data entry. We only use this call to update
+        // topics on an existing room.
+        await this.pgPool.query("UPDATE rooms SET matrix_json = $1 WHERE room_id = $2", [
+            JSON.stringify(room.serialize()),
+            room.getId(),
+        ]);
     }
 
     public async getAdminRoomById(roomId: string): Promise<MatrixRoom|null> {
@@ -356,7 +409,7 @@ export class PgDataStore implements DataStore {
             return null;
         }
         const row = res.rows[0];
-        let config = JSON.parse(row.config);
+        const config = row.config;
         if (row.password && this.cryptoStore) {
             config.password = this.cryptoStore.decrypt(row.password);
         }
@@ -368,6 +421,9 @@ export class PgDataStore implements DataStore {
         if (!userId) {
             throw Error("IrcClientConfig does not contain a userId");
         }
+        log.debug(`Storing client configuration for ${userId}`);
+        // We need to make sure we have a matrix user in the store.
+        await this.pgPool.query("INSERT INTO matrix_users VALUES ($1, NULL) ON CONFLICT DO NOTHING", [userId]);
         let password = undefined;
         if (config.getPassword() && this.cryptoStore) {
             password = this.cryptoStore.encrypt(config.getPassword()!);
@@ -391,7 +447,7 @@ export class PgDataStore implements DataStore {
             return null;
         }
         const row = res.rows[0];
-        return new MatrixUser(row.user_id, JSON.parse(row.data));
+        return new MatrixUser(row.user_id, row.data);
     }
 
     public async getUserFeatures(userId: string): Promise<UserFeatures> {
@@ -436,14 +492,16 @@ export class PgDataStore implements DataStore {
 
     public async getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined> {
         // This will need a join
-        const res = await this.pgPool.query("SELECT client_config.user_id, matrix_users.data FROM client_config, matrix_users" +
+        const res = await this.pgPool.query("SELECT client_config.user_id, matrix_users.data FROM client_config, matrix_users " +
             "WHERE config->>'username' = $1 AND domain = $2 AND client_config.user_id = matrix_users.user_id",
             [username, domain]
         );
         if (res.rowCount === 0) {
             return;
+        } else if (res.rowCount > 1) {
+            log.error("getMatrixUserByUsername returned %s results for %s on %s", res.rowCount, username, domain);
         }
-        return new MatrixUser(res.rows[0].user_id, JSON.parse(res.rows[0].data));
+        return new MatrixUser(res.rows[0].user_id, res.rows[0].data);
     }
 
     public async ensureSchema() {
@@ -464,6 +522,18 @@ export class PgDataStore implements DataStore {
         log.info(`Database schema is at version v${currentVersion}`);
     }
 
+    public async destroy() {
+        log.info("Destroy called");
+        if (this.hasEnded) {
+            // No-op if end has already been called.
+            return;
+        }
+        this.hasEnded = true;
+        await this.pgPool.end();
+        log.info("PostgresSQL connection ended");
+        // This will no-op
+    }
+
     private async updateSchemaVersion(version: number) {
         log.debug(`updateSchemaVersion: ${version}`);
         await this.pgPool.query("UPDATE schema SET version = $1;", [ version ]);
@@ -478,7 +548,7 @@ export class PgDataStore implements DataStore {
                 log.warn("Schema table could not be found");
                 return 0;
             }
-            log.error("Failed to get schema version:", ex);
+            log.error("Failed to get schema version: %s", ex);
         }
         throw Error("Couldn't fetch schema version");
     }

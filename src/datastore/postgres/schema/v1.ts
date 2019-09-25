@@ -40,7 +40,7 @@ export async function runSchema(connection: PoolClient) {
 
     CREATE TABLE matrix_users (
         user_id TEXT UNIQUE,
-        data TEXT
+        data JSON
     );
 
     CREATE TABLE client_config (
@@ -58,17 +58,6 @@ export async function runSchema(connection: PoolClient) {
 
     CREATE TABLE ipv6_counter (
         count INTEGER
-    );
-
-    CREATE TABLE  (
-        origin TEXT NOT NULL,
-        room_id TEXT NOT NULL,
-        type TEXT NOT NULL,
-        irc_domain TEXT NOT NULL,
-        irc_channel TEXT NOT NULL,
-        irc_json JSON NOT NULL,
-        matrix_json JSON NOT NULL,
-        CONSTRAINT cons_rooms_unique UNIQUE(room_id, irc_domain, irc_channel)
     );
 
     INSERT INTO ipv6_counter VALUES (0);`);
