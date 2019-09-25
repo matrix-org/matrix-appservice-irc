@@ -1,3 +1,8 @@
+Changes in 0.13.0 (2019-09-25)
+==============================
+
+* Fatal logging will now emit to stdout directly first, and exit with a unique error code #812
+
 Changes in 0.13.0-rc2 (2019-09-11)
 ==============================
 
