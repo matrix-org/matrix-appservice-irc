@@ -1,3 +1,36 @@
+Changes in 0.13.0 (2019-09-25)
+==============================
+
+* Fatal logging will now emit to stdout directly first, and exit with a unique error code #812
+
+Changes in 0.13.0-rc2 (2019-09-11)
+==============================
+
+* Users who are banned from an IRC network must be QUIT locally #790
+* Pending nicknames should be stored before they are confirmed to help dedupe #796
+* Clarify storepass response #799. Thanks @auscompgeek
+* Fix issue where room upgrades would not upgrade the room entry ID #797
+
+Changes in 0.13.0-rc1 (2019-08-06)
+==============================
+
+**NOTE:** This release requires Node.js 10 or greater.
+
+* Require Node 10 (and use Buildkite for CI) #764
+* Handle PARTs for Matrix users #754
+* Configurable room versions #763
+* Passwords stored by the bridge can now contain spaces #738. Thanks @14mRh14mRh4X0r!
+* Audit packages and update for security #779
+* Fix call to _incrementMetric #780
+* Disable escaping of userids for now #768
+* Reduce memory consumption of tests #766
+* Add a debug API endpoint to quit users who have been idle for a while #772
+* DebugApi endpoint to inspect connected users #781
+* Refactor powerlevel (mode) handling #785
+* Bump appservice sdk version #788
+
+Please also note that `CONTRIBUTING.md` has been updated with new guidelines.
+
 Changes in 0.12.0 (2019-06-06)
 ==============================
 
