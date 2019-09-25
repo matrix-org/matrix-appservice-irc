@@ -40,3 +40,14 @@ steps:
     plugins:
       - docker#v3.0.1:
           image: "node:12"
+
+  # Borrowed from https://github.com/matrix-org/synapse/blob/master/.buildkite/pipeline.yml
+  - label: ":newspaper: Newsfile"
+    branches: "!master !develop !release-*"
+    command:
+      - "python3 -m pip install towncrier"
+      - "python3 -m towncrier.check --compare-with=origin/develop"
+    plugins:
+      - docker#v3.0.1:
+          image: "python:3.6"
+          propagate-environment: true
