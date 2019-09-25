@@ -18,7 +18,7 @@ limitations under the License.
 //@ts-ignore
 import { MatrixUser } from "matrix-appservice-bridge";
 
-interface IrcClientConfigSeralized {
+export interface IrcClientConfigSeralized {
     username?: string;
     password?: string;
     nick?: string;
@@ -38,7 +38,7 @@ export class IrcClientConfig {
      * @param {Object} configObj Serialised config information if known.
      */
     constructor(
-        public userId: string,
+        public userId: string|null,
         public domain: string,
         private config: IrcClientConfigSeralized = {}) {
 
@@ -60,7 +60,7 @@ export class IrcClientConfig {
         return this.config.username;
     }
 
-    public setPassword(password: string) {
+    public setPassword(password?: string) {
         this.config.password = password;
     }
 
@@ -98,8 +98,8 @@ export class IrcClientConfig {
         return this.userId + "=>" + this.domain + "=" + JSON.stringify(redactedConfig);
     }
 
-    public static newConfig(matrixUser: MatrixUser, domain: string,
-                            nick: string, username: string, password: string) {
+    public static newConfig(matrixUser: MatrixUser|null, domain: string,
+                            nick: string, username: string, password?: string) {
         return new IrcClientConfig(matrixUser ? matrixUser.getId() : null, domain, {
             nick: nick,
             username: username,
