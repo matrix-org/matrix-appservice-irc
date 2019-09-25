@@ -14,10 +14,7 @@ type MembershipSyncKind = "incremental"|"initial";
 export class IrcServer {
     private addresses: string[];
     private groupIdValid: boolean;
-<<<<<<< HEAD
     private excludedUsers: { regex: RegExp; kickReason?: string; }[];
-=======
->>>>>>> hs/move-schema
     /**
      * Construct a new IRC Server.
      * @constructor
@@ -33,15 +30,12 @@ export class IrcServer {
                 private homeserverDomain: string, private expiryTimeSeconds: number = 0) {
         this.addresses = config.additionalAddresses || [];
         this.addresses.push(domain);
-<<<<<<< HEAD
         this.excludedUsers = config.excludedUsers.map((excluded) => {
             return {
                 ...excluded,
                 regex: new RegExp(excluded.regex)
             }
         })
-=======
->>>>>>> hs/move-schema
 
         if (this.config.dynamicChannels.groupId !== undefined &&
             this.config.dynamicChannels.groupId.trim() !== "") {
@@ -526,10 +520,7 @@ export class IrcServer {
                 exclude: []
             },
             mappings: {},
-<<<<<<< HEAD
             excludedUsers: [],
-=======
->>>>>>> hs/move-schema
             matrixClients: {
                 userTemplate: "@$SERVER_$NICK",
                 displayName: "$NICK (IRC)",
@@ -664,15 +655,12 @@ export interface IrcServerConfig {
         lineLimit: number;
         userModes?: string;
     };
-<<<<<<< HEAD
     excludedUsers: Array<
         {
             regex: string;
             kickReason?: string;
         }
     >;
-=======
->>>>>>> hs/move-schema
     membershipLists: {
         enabled: boolean;
         floodDelayMs: number;
