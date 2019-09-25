@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-const ircFormatting = require("../irc/formatting");
+import ircFormatting = require("../irc/formatting");
 const log = require("../logging").get("IrcAction");
 
 import { MatrixAction } from "./MatrixAction";

@@ -142,4 +142,12 @@ declare module 'matrix-appservice-bridge' {
         unlinkUserIds (matrixUserId: string, remoteUserId: string): Promise<number>
         unlinkUsers (matrixUser: MatrixUser, remoteUser: RemoteUser): Promise<number>
     }
+
+    export class ContentRepo {
+        static getHttpUriForMxc(baseUrl: string, mxc: string): string;
+    }
+
+    export class Intent {
+        getProfileInfo(userId: string, type?: "displayname"|"avatar_url", useCache?: boolean): Promise<{displayname: string|null, avatar_url: string|null}>
+    }
 }

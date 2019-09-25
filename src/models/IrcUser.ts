@@ -17,7 +17,7 @@ export class IrcUser extends RemoteUser {
     constructor(
         public readonly server: IrcServer,
         public readonly nick: string,
-        public readonly isVirtual: boolean, 
+        public readonly isVirtual: boolean,
         public readonly password: string|null = null,
         username: string|null = null) {
         super(server.domain + "__@__" + nick, {

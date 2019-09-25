@@ -16,10 +16,10 @@ limitations under the License.
 
 import { IrcAction } from "./IrcAction";
 
-const ircFormatting = require("../irc/formatting");
+import ircFormatting = require("../irc/formatting");
 const log = require("../logging").get("MatrixAction");
-const ContentRepo = require("matrix-appservice-bridge").ContentRepo;
-const escapeStringRegexp = require('escape-string-regexp');
+import { ContentRepo, Intent } from "matrix-appservice-bridge";
+import escapeStringRegexp from "escape-string-regexp";
 
 const ACTION_TYPES = ["message", "emote", "topic", "notice", "file", "image", "video", "audio"];
 const EVENT_TO_TYPE: {[mxKey: string]: string} = {
@@ -38,16 +38,28 @@ const MSGTYPE_TO_TYPE: {[mxKey: string]: string} = {
 const PILL_MIN_LENGTH_TO_MATCH = 4;
 const MAX_MATCHES = 5;
 
-interface MatrixEventContent {
-    body: string;
-    topic: string;
-    format: string;
-    formatted_body: string;
-    msgtype: string;
-    url: string;
-    info?: {
-        size: number;
-    }
+interface MatrixEvent {
+    type: string;
+    content: {
+        body: string;
+        topic: string;
+        format: string;
+        formatted_body: string;
+        msgtype: string;
+        url: string;
+        info?: {
+            size: number;
+        };
+    };
+    origin_server_ts: number;
+}
+
+const MentionRegex = function(matcher: string): RegExp {
+    const WORD_BOUNDARY = "^|\:|\#|```|\\s|$|,";
+    return new RegExp(
+        `(${WORD_BOUNDARY})(@?(${matcher}))(?=${WORD_BOUNDARY})`,
+        "igmu"
+    );
 }
 
 export class MatrixAction {
@@ -63,7 +75,7 @@ export class MatrixAction {
         }
     }
 
-    public async formatMentions(nickUserIdMap: {[nick: string]: string}, intent: any) {
+    public async formatMentions(nickUserIdMap: {[nick: string]: string}, intent: Intent) {
         const regexString = `(${Object.keys(nickUserIdMap).map((value) => escapeStringRegexp(value)).join("|")})`;
         const usersRegex = MentionRegex(regexString);
         const matched = new Set(); // lowercased nicknames we have matched already.
@@ -121,12 +133,12 @@ export class MatrixAction {
         }
     }
 
-    public static fromEvent(event: {type: string, content: MatrixEventContent, origin_server_ts: number}, mediaUrl: string) {
+    public static fromEvent(event: MatrixEvent, mediaUrl: string) {
         event.content = event.content || {};
         let type = EVENT_TO_TYPE[event.type] || "message"; // mx event type to action type
         let text = event.content.body;
         let htmlText = null;
-    
+
         if (event.type === "m.room.topic") {
             text = event.content.topic;
         }
@@ -138,12 +150,12 @@ export class MatrixAction {
                 type = MSGTYPE_TO_TYPE[event.content.msgtype];
             }
             if (["m.image", "m.file", "m.video", "m.audio"].indexOf(event.content.msgtype) !== -1) {
-                var fileSize = "";
+                let fileSize = "";
                 if (event.content.info && event.content.info.size &&
                         typeof event.content.info.size === "number") {
                     fileSize = " (" + Math.round(event.content.info.size / 1024) + "KB)";
                 }
-    
+
                 const url = ContentRepo.getHttpUriForMxc(mediaUrl, event.content.url);
                 text = `${event.content.body}${fileSize} < ${url} >`;
             }
@@ -156,7 +168,7 @@ export class MatrixAction {
             case "message":
             case "emote":
             case "notice":
-                let htmlText = ircFormatting.ircToHtml(ircAction.text);
+                const htmlText = ircFormatting.ircToHtml(ircAction.text);
                 return new MatrixAction(
                     ircAction.type,
                     ircFormatting.stripIrcFormatting(ircAction.text),
@@ -171,13 +183,4 @@ export class MatrixAction {
                 return null;
         }
     }
-}
-
-
-function MentionRegex(matcher: string) {
-    const WORD_BOUNDARY = "^|\:|\#|```|\\s|$|,";
-    return new RegExp(
-        `(${WORD_BOUNDARY})(@?(${matcher}))(?=${WORD_BOUNDARY})`,
-        "igmu"
-    );
 }

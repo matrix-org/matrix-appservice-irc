@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-const logging = require("../logging");
+import logging = require("../logging");
 const log = logging.get("req");
 
 interface Req {
@@ -24,10 +24,12 @@ interface Req {
     getId(): string;
     getData(): {
         isFromIrc: boolean;
-    } | undefined
+    } | undefined;
 }
 
 export class BridgeRequest {
+    // We don't have a type for this yet
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public readonly log: any;
     constructor(public readonly req: Req) {
         const data = req.getData();
