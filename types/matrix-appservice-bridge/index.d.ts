@@ -42,6 +42,13 @@ declare module 'matrix-appservice-bridge' {
         data: null|any // <nullable> Information about this mapping, which may be an empty.
     }
 
+    export interface UpsertableEntry {
+        id: string  // The unique ID for this entry.
+        matrix?: null|MatrixRoom // <nullable> The matrix room, if applicable.
+        remote?: null|RemoteRoom // <nullable> The remote room, if applicable.
+        data?: null|any // <nullable> Information about this mapping, which may be an empty.
+    }
+
     export class MatrixRoom {
         protected roomId: string
 
@@ -110,7 +117,7 @@ declare module 'matrix-appservice-bridge' {
         removeEntriesByRemoteRoomData (data: object): Promise<void>
         removeEntriesByRemoteRoomId (remoteId: string): Promise<void>
         setMatrixRoom  (matrixRoom: MatrixRoom): Promise<void>
-        upsertEntry  (entry: Entry): Promise<void>
+        upsertEntry  (entry: UpsertableEntry): Promise<void>
         linkRooms  (
             matrixRoom: MatrixRoom,
             remoteRoom: RemoteRoom,
