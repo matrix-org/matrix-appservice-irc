@@ -8,7 +8,7 @@ const stats = require("../config/stats");
 const log = require("../logging").get("ClientPool");
 const Promise = require("bluebird");
 const QueuePool = require("../util/QueuePool");
-const BridgeRequest = require("../models/BridgeRequest");
+const { BridgeRequest } = require("../models/BridgeRequest");
 
 class ClientPool {
     constructor(ircBridge) {
