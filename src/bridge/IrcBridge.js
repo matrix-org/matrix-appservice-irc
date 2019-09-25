@@ -297,6 +297,12 @@ IrcBridge.prototype.createBridgedClient = function(ircClientConfig, matrixUser, 
         );
     }
 
+    const excluded = this.server.isExcludedUser(matrixUser.getId());
+
+    if (excluded) {
+        throw Error("Cannot create bridged client - user is excluded from bridging");
+    }
+
     return new BridgedClient(
         server, ircClientConfig, matrixUser, isBot,
         this._ircEventBroker, this._identGenerator, this._ipv6Generator

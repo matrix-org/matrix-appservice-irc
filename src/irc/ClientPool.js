@@ -117,7 +117,7 @@ ClientPool.prototype.getBot = function(server) {
 };
 
 ClientPool.prototype.createIrcClient = function(ircClientConfig, matrixUser, isBot) {
-    var bridgedClient = this._ircBridge.createBridgedClient(
+    const bridgedClient = this._ircBridge.createBridgedClient(
         ircClientConfig, matrixUser, isBot
     );
     var server = bridgedClient.server;
