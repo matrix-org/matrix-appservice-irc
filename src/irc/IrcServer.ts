@@ -244,7 +244,7 @@ export class IrcServer {
     public createBotIrcClientConfig(username: string) {
         return IrcClientConfig.newConfig(
             null, this.domain, this.config.botConfig.nick, username,
-            this.config.botConfig.password!
+            this.config.botConfig.password
         );
     }
 

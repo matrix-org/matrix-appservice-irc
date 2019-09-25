@@ -18,7 +18,7 @@ const { IrcRoom } = require("../models/IrcRoom");
 const { IrcClientConfig } = require("../models/IrcClientConfig");
 var BridgeRequest = require("../models/BridgeRequest");
 var stats = require("../config/stats");
-const { DataStore } = require("../DataStore");
+const { NeDBDataStore } = require("../datastore/NedbDataStore");
 var log = require("../logging").get("IrcBridge");
 const {
     Bridge,
@@ -325,12 +325,12 @@ IrcBridge.prototype.run = Promise.coroutine(function*(port) {
     }
 
     let pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
-    this._dataStore = new DataStore(
-        this._bridge.getUserStore(),
-        this._bridge.getRoomStore(),
-        pkeyPath,
-        this.config.homeserver.domain,
-    );
+        this._dataStore = new NeDBDataStore(
+            this._bridge.getUserStore(),
+            this._bridge.getRoomStore(),
+            pkeyPath,
+            this.config.homeserver.domain,
+        );
 
     yield this._dataStore.removeConfigMappings();
     this._identGenerator = new IdentGenerator(this._dataStore);
