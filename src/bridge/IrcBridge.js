@@ -18,8 +18,7 @@ const { IrcRoom } = require("../models/IrcRoom");
 const { IrcClientConfig } = require("../models/IrcClientConfig");
 var BridgeRequest = require("../models/BridgeRequest");
 var stats = require("../config/stats");
-const { NeDBDataStore } = require("../datastore/NedbDataStore");
-const { PgDataStore } = require("../datastore/postgres/PgDataStore");
+const { DataStore } = require("../DataStore");
 var log = require("../logging").get("IrcBridge");
 const {
     Bridge,
@@ -297,10 +296,11 @@ IrcBridge.prototype.createBridgedClient = function(ircClientConfig, matrixUser, 
         );
     }
 
-    const excluded = this.server.isExcludedUser(matrixUser.getId());
-
-    if (excluded) {
-        throw Error("Cannot create bridged client - user is excluded from bridging");
+    if (matrixUser) { // Don't bother with the bot user
+        const excluded = server.isExcludedUser(matrixUser.userId);
+        if (excluded) {
+            throw Error("Cannot create bridged client - user is excluded from bridging");
+        }
     }
 
     return new BridgedClient(
@@ -325,12 +325,12 @@ IrcBridge.prototype.run = Promise.coroutine(function*(port) {
     }
 
     let pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
-        this._dataStore = new NeDBDataStore(
-            this._bridge.getUserStore(),
-            this._bridge.getRoomStore(),
-            pkeyPath,
-            this.config.homeserver.domain,
-        );
+    this._dataStore = new DataStore(
+        this._bridge.getUserStore(),
+        this._bridge.getRoomStore(),
+        pkeyPath,
+        this.config.homeserver.domain,
+    );
 
     yield this._dataStore.removeConfigMappings();
     this._identGenerator = new IdentGenerator(this._dataStore);
@@ -1004,9 +1004,8 @@ IrcBridge.prototype.getBridgedClient = Promise.coroutine(function*(server, userI
         "Creating virtual irc user with nick %s for %s (display name %s)",
         ircClientConfig.getDesiredNick(), userId, displayName
     );
-    bridgedClient = this._clientPool.createIrcClient(ircClientConfig, mxUser, false);
-
     try {
+        bridgedClient = this._clientPool.createIrcClient(ircClientConfig, mxUser, false);
         yield bridgedClient.connect();
         if (!storedConfig) {
             yield this.getStore().storeIrcClientConfig(ircClientConfig);
