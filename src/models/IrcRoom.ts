@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//@ts-ignore
 import { RemoteRoom } from "matrix-appservice-bridge";
 import { toIrcLowerCase } from "../irc/formatting";
 import { IrcServer } from "../irc/IrcServer";
