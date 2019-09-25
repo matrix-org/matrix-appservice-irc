@@ -320,4 +320,12 @@ properties:
                                     type: "integer"
                                 userModes:
                                     type: "string"
+                        excludeUsers:
+                            type: "array"
+                            properties:
+                                regex:
+                                    type: "string"
+                                kickReason:
+                                    type: "string"
+                            required: ["regex"]
         required: ["databaseUri", "servers"]
