@@ -35,7 +35,7 @@
     "iconv": "^2.3.4",
     "irc": "matrix-org/node-irc#matrix-irc-bridge",
     "js-yaml": "^3.2.7",
-    "matrix-appservice-bridge": "^1.10.3",
+    "matrix-appservice-bridge": "matrix-org/matrix-appservice-bridge#hs/option-to-disable-stores",
     "matrix-lastactive": "^0.0.8",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
