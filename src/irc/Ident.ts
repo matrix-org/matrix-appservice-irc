@@ -90,7 +90,7 @@ class IdentSrv {
                 sock.end();
                 return;
             }
-            this.tryRespond(sock,
+            this.respond(sock,
                 String(localOutgoingPort),
                 String(remoteConnectPort)).catch(() => {
                     // Just close the connection
@@ -123,32 +123,20 @@ class IdentSrv {
         return res;
     }
 
-    private async tryRespond(sock: net.Socket, localPort: string, remotePort: string) {
-        const username = this.portMappings[localPort];
-        if (username) {
-            log.debug("Port %s is %s", localPort, username);
-            this.respond(sock, localPort, remotePort, username);
-            return;
+    private async respond(sock: net.Socket, localPort: string, remotePort: string) {
+        let username = this.portMappings[localPort];
+        if (!username) {
+            // Wait for pending connections to finish first.
+            await Promise.all([...this.pendingConnections]);
+            username = this.portMappings[localPort];
         }
-        const mappingHash = Object.keys(this.portMappings).join("|");
-        // Wait for pending connections to finish first.
-        await Promise.all([...this.pendingConnections]);
-        // We don't know here if anything has actually changed, so compare hashes.
-        if (Object.keys(this.portMappings).join("|") !== mappingHash) {
-            // Hash has changed, retry.
-            await this.tryRespond(sock, localPort, remotePort);
-            return;
-        }
-        log.debug("No user on port %s", localPort);
-        this.respond(sock, localPort, remotePort);
-    }
 
-    private respond(sock: net.Socket, localPort: string, remotePort: string, username?: string) {
         let response;
         if (username) {
+            log.debug("Port %s is %s", localPort, username);
             response = `${localPort},${remotePort}:USERID:UNIX:${username}\r\n`;
-        }
-        else {
+        } else {
+            log.debug("No user on port %s", localPort);
             response = `${localPort},${remotePort}:ERROR:NO-USER\r\n`;
         }
         log.debug(response);
