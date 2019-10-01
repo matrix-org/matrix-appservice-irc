@@ -135,7 +135,8 @@ class IdentSrv {
         if (username) {
             log.debug("Port %s is %s", localPort, username);
             response = `${localPort},${remotePort}:USERID:UNIX:${username}\r\n`;
-        } else {
+        }
+        else {
             log.debug("No user on port %s", localPort);
             response = `${localPort},${remotePort}:ERROR:NO-USER\r\n`;
         }
