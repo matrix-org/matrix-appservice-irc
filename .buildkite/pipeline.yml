@@ -25,6 +25,13 @@ steps:
       - docker#v3.0.1:
           image: "node:12"
 
+  - label: ":nodejs: 12 :postgres: 11 :mocha: Postgres Test"
+    plugins:
+      - docker-compose#v2.1.0:
+          run: testenv
+          config:
+            - .buildkite/docker-compose.postgres.yml
+
   - label: ":nyc: Coverage"
     command:
       - "npm install"
@@ -33,3 +40,14 @@ steps:
     plugins:
       - docker#v3.0.1:
           image: "node:12"
+
+  # Borrowed from https://github.com/matrix-org/synapse/blob/master/.buildkite/pipeline.yml
+  - label: ":newspaper: Newsfile"
+    branches: "!master !develop !release-*"
+    command:
+      - "python3 -m pip install towncrier"
+      - "python3 -m towncrier.check --compare-with=origin/develop"
+    plugins:
+      - docker#v3.0.1:
+          image: "python:3.6"
+          propagate-environment: true

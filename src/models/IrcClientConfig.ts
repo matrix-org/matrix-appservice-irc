@@ -46,7 +46,7 @@ export class IrcClientConfig {
         return this.domain;
     }
 
-    public getUserId() {
+    public getUserId(): string|null {
         return this.userId;
     }
 
@@ -82,7 +82,12 @@ export class IrcClientConfig {
         return this.config.ipv6;
     }
 
-    public serialize() {
+    public serialize(removePassword = false) {
+        if (removePassword) {
+            const clone = JSON.parse(JSON.stringify(this.config));
+            delete clone.password;
+            return clone;
+        }
         return this.config;
     }
 

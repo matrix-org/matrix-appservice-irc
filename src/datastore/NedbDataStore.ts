@@ -335,7 +335,7 @@ export class NeDBDataStore implements DataStore {
         const entries: Entry[] = await this.roomStore.getEntriesByMatrixId(roomId);
         for (const entry of entries) {
             if (!entry.remote) {
-                return;
+                continue;
             }
             const modes = entry.remote.get("modes") as string[] || [];
             const hasMode = modes.includes(mode);
@@ -471,8 +471,8 @@ export class NeDBDataStore implements DataStore {
         });
     }
 
-    public async upsertRoomStoreEntry(entry: Entry): Promise<void> {
-        await this.roomStore.upsertEntry(entry);
+    public async upsertMatrixRoom(room: MatrixRoom): Promise<void> {
+        await this.roomStore.setMatrixRoom(room);
     }
 
     public async getAdminRoomByUserId(userId: string): Promise<MatrixRoom|null> {
@@ -596,6 +596,10 @@ export class NeDBDataStore implements DataStore {
             );
         }
         return matrixUsers[0];
+    }
+
+    public async destroy() {
+        // This will no-op
     }
 
     private static createPmId(userId: string, virtualUserId: string) {

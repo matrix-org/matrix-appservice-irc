@@ -6,6 +6,15 @@ properties:
         properties:
             maxHttpSockets:
                 type: "integer"
+    database:
+        type: "object"
+        required: ["engine", "connectionString"]
+        properties:
+            engine:
+                type: "string"
+                enum: ["postgres", "nedb"]
+            connectionString:
+                type: "string"
     homeserver:
         type: "object"
         properties:
@@ -23,8 +32,6 @@ properties:
     ircService:
         type: "object"
         properties:
-            databaseUri:
-                type: "string"
             metrics:
                 type: "object"
                 properties:
@@ -328,4 +335,4 @@ properties:
                                 kickReason:
                                     type: "string"
                             required: ["regex"]
-        required: ["databaseUri", "servers"]
+        required: ["servers"]

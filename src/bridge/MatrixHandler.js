@@ -1485,7 +1485,6 @@ MatrixHandler.prototype._onAliasQuery = Promise.coroutine(function*(req, roomAli
     let matrixRooms = yield this.ircBridge.getStore().getMatrixRoomsForChannel(
         channelInfo.server, channelInfo.channel
     );
-
     if (matrixRooms.length === 0) {
         // ====== Track the IRC channel
         // lower case the name to join (there's a bug in the IRC lib

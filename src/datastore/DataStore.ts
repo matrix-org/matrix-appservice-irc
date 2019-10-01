@@ -136,7 +136,7 @@ export interface DataStore {
 
     storeAdminRoom(room: MatrixRoom, userId: string): Promise<void>;
 
-    upsertRoomStoreEntry(entry: Entry): Promise<void>;
+    upsertMatrixRoom(room: MatrixRoom): Promise<void>;
 
     getAdminRoomByUserId(userId: string): Promise<MatrixRoom|null>;
 
@@ -157,4 +157,6 @@ export interface DataStore {
     removePass(userId: string, domain: string): Promise<void>;
 
     getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined>;
+
+    destroy(): Promise<void>;
 }
