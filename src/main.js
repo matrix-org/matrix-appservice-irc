@@ -9,7 +9,7 @@ const UserBridgeStore = require("matrix-appservice-bridge").UserBridgeStore;
 const IrcBridge = require("./bridge/IrcBridge.js");
 const { IrcServer } = require("./irc/IrcServer.js");
 const stats = require("./config/stats");
-const ident = require("./irc/ident");
+const ident = require("./irc/Ident");
 const logging = require("./logging");
 const log = logging.get("main");
 
