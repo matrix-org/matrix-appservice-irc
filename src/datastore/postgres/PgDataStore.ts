@@ -24,13 +24,13 @@ import { IrcRoom } from "../../models/IrcRoom";
 import { IrcClientConfig } from "../../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../../irc/IrcServer";
 
-import * as logging from "../../logging";
+import { getLogger } from "../../logging";
 import Bluebird from "bluebird";
 import { stat } from "fs";
 import { StringCrypto } from "../StringCrypto";
 import { toIrcLowerCase } from "../../irc/formatting";
 
-const log = logging.get("PgDatastore");
+const log = getLogger("PgDatastore");
 
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
