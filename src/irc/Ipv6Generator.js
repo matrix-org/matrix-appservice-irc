@@ -1,7 +1,7 @@
 /*eslint no-invalid-this: 0 */
 "use strict";
 const Promise = require("bluebird");
-const Queue = require("../util/Queue");
+const { Queue } = require("../util/Queue");
 const log = require("../logging").get("Ipv6Generator");
 
 function Ipv6Generator(store) {

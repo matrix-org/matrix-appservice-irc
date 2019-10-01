@@ -1,6 +1,6 @@
 "use strict";
 const Promise = require("bluebird");
-const Queue = require("../../lib/util/Queue.js");
+const { Queue } = require("../../lib/util/Queue.js");
 const test = require("../util/test");
 
 describe("Queue", function() {

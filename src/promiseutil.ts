@@ -16,15 +16,22 @@ limitations under the License.
 
 import Bluebird from "bluebird";
 
-export function defer() {
-    let resolve, reject;
-    const promise = new Bluebird(function() {
-        resolve = arguments[0];
-        reject = arguments[1];
+export interface Defer<T> {
+    resolve: (value?: T) => void;
+    reject: (err?: unknown) => void;
+    promise: Promise<T>;
+}
+
+export function defer<T>(): Defer<T> {
+    let resolve: (value?: T) => void;
+    let reject: (err?: unknown) => void;
+    const promise = new Bluebird((res, rej) => {
+        resolve = res;
+        reject = rej
     });
     return {
-        resolve: resolve,
-        reject: reject,
+        resolve: resolve!,
+        reject: reject!,
         promise: promise
     };
 }

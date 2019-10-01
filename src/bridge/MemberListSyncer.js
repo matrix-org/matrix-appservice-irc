@@ -9,7 +9,7 @@ const promiseutil = require("../promiseutil");
 const log = require("../logging").get("MemberListSyncer");
 const stats = require("../config/stats");
 const QueuePool = require("../util/QueuePool");
-const Queue = require("../util/Queue");
+const { Queue } = require("../util/Queue");
 
 function MemberListSyncer(ircBridge, appServiceBot, server, appServiceUserId, injectJoinFn) {
     this.ircBridge = ircBridge;
