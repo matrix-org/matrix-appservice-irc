@@ -26,7 +26,6 @@ import { IrcServer, IrcServerConfig } from "../../irc/IrcServer";
 
 import * as logging from "../../logging";
 import Bluebird from "bluebird";
-import { stat } from "fs";
 import { StringCrypto } from "../StringCrypto";
 import { toIrcLowerCase } from "../../irc/formatting";
 
@@ -459,7 +458,7 @@ export class PgDataStore implements DataStore {
         if (pgRes.rowCount === 0) {
             return {};
         }
-        return pgRes.rows[0].features;
+        return pgRes.rows[0].features || {};
     }
 
     public async storeUserFeatures(userId: string, features: UserFeatures): Promise<void> {
