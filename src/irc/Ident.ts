@@ -15,11 +15,8 @@ limitations under the License.
 */
 
 import net from "net";
-import { promisify } from "util";
 
 const log = require("../logging").get("irc-ident");
-
-
 
 interface IdentConfig {
     port: number;
@@ -52,10 +49,6 @@ class IdentSrv {
     private config: IdentConfig = DEFAULT_CONFIG;
     private portMappings: {[port: string]: string} = {};
     private pendingConnections: Set<Promise<void>> = new Set();
-
-    constructor() {
-
-    }
 
     public run() {
         net.createServer(
@@ -99,7 +92,7 @@ class IdentSrv {
             }
             this.tryRespond(sock,
                 String(localOutgoingPort),
-                String(remoteConnectPort)).catch((ex) => {
+                String(remoteConnectPort)).catch(() => {
                     // Just close the connection
                     sock.end();
                 });
@@ -115,7 +108,7 @@ class IdentSrv {
         });
     }
 
-    public clientBegin(): () => void { 
+    public clientBegin(): () => void {
         log.debug("IRC client started connection");
         let res!: () => void;
         const p: Promise<void> = new Promise((resolve) => {
@@ -146,11 +139,11 @@ class IdentSrv {
     private respond(sock: net.Socket, localPort: string, remotePort: string, username?: string) {
         let response;
         if (username) {
-            response = `${localPort},${remotePort}:USERID:UNIX:${username}\r\n`;
+            response = `${localPort}, ${remotePort}:USERID:UNIX:${username}\r\n`;
         }
         else {
-            response = `${localPort},${remotePort}:ERROR:NO-USER\r\n`;
-        }    
+            response = `${localPort}, ${remotePort}:ERROR:NO-USER\r\n`;
+        }
         log.debug(response);
         sock.end(response);
     }
