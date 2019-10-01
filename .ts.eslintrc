@@ -5,6 +5,7 @@
   "rules": {
     "@typescript-eslint/ban-ts-ignore": 0,
     "@typescript-eslint/explicit-function-return-type": 0,
-    "@typescript-eslint/camelcase": ["error", { "properties": "never" }]
+    "@typescript-eslint/camelcase": ["error", { "properties": "never" }],
+    "strict": ["error", "never" ],
   }
 }
