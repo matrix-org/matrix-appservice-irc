@@ -15,12 +15,14 @@ limitations under the License.
 */
 
 const stats = require("../config/stats");
-const log = require("../logging").get("ClientPool");
-const { QueuePool } = require("../util/QueuePool");
+import * as logging from "../logging";
+import { QueuePool } from "../util/QueuePool";
 import Bluebird from "bluebird";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer } from "../irc/IrcServer";
+
+const log = logging.get("ClientPool");
 
 /*
  * Maintains a lookup of connected IRC clients. These connections are transient
