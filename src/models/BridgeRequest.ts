@@ -15,11 +15,14 @@ limitations under the License.
 */
 
 import logging = require("../logging");
+import { Request } from "matrix-appservice-bridge";
 const log = logging.get("req");
 
+type Logger = any;
+
 export class BridgeRequest {
-    private log: any;
-    constructor(private req: any) {
+    private log: Logger;
+    constructor(private req: Request) {
         const isFromIrc = req.getData() ? Boolean(req.getData().isFromIrc) : false;
         this.log = logging.newRequestLogger(log, req.getId(), isFromIrc);
     }
@@ -28,11 +31,11 @@ export class BridgeRequest {
         return this.req.getPromise();
     }
 
-    resolve(thing: any) {
+    resolve(thing?: unknown) {
         this.req.resolve(thing);
     }
 
-    reject(err: any) {
+    reject(err?: unknown) {
         this.req.reject(err);
     }
 

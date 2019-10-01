@@ -135,4 +135,16 @@ declare module 'matrix-appservice-bridge' {
         unlinkUserIds (matrixUserId: string, remoteUserId: string): Promise<number>
         unlinkUsers (matrixUser: MatrixUser, remoteUser: RemoteUser): Promise<number>
     }
+
+    export class AgeCounter {
+        bump (ageInSec: number): void;
+    }
+
+    export class Request {
+        getData(): any;
+        getPromise(): Promise<any>;
+        getId(): string;
+        resolve(item: unknown): void;
+        reject(err: unknown): void;
+    }
 }

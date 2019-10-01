@@ -14,30 +14,41 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-const stats = require("../config/stats");
+import * as stats from "../config/stats";
 import * as logging from "../logging";
 import { QueuePool } from "../util/QueuePool";
 import Bluebird from "bluebird";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer } from "../irc/IrcServer";
-
+import { AgeCounter, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
 const log = logging.get("ClientPool");
+
+// We do not have these yet
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type BridgedClient = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type IrcBridge = any;
+
+interface ReconnectionItem {
+    cli: BridgedClient;
+    chanList: string[];
+}
 
 /*
  * Maintains a lookup of connected IRC clients. These connections are transient
  * and may be closed for a variety of reasons.
  */
 export class ClientPool {
-    private botClients: { [serverDomain: string]: any};
+    private botClients: { [serverDomain: string]: BridgedClient};
     private virtualClients: { [serverDomain: string]: {
-        nicks: { [nickname: string]: any},
-        userIds: { [userId: string]: any},
-        pending: { [nick: string]: any},
-    }};
+        nicks: { [nickname: string]: BridgedClient};
+        userIds: { [userId: string]: BridgedClient};
+        pending: { [nick: string]: BridgedClient};
+    };};
     private virtualClientCounts: { [serverDomain: string]: number };
-    private reconnectQueues: { [serverDomain: string]: any };
-    constructor(private ircBridge: any) {
+    private reconnectQueues: { [serverDomain: string]: QueuePool };
+    constructor(private ircBridge: IrcBridge) {
         // The list of bot clients on servers (not specific users)
         this.botClients = { };
 
@@ -69,25 +80,25 @@ export class ClientPool {
 
     public killAllClients(): Bluebird<void[]> {
         const domainList = Object.keys(this.virtualClients);
-        let clients: any[] = [];
+        let clients: BridgedClient[] = [];
         domainList.forEach((domain) => {
             clients = clients.concat(
                 Object.keys(this.virtualClients[domain].nicks).map(
                     (nick: string) => this.virtualClients[domain].nicks[nick]
                 )
             );
-    
+
             clients = clients.concat(
                 Object.keys(this.virtualClients[domain].userIds).map(
                     (userId: string) => this.virtualClients[domain].userIds[userId]
                 )
             );
-    
+
             clients.push(this.botClients[domain]);
         });
-    
+
         clients = clients.filter((c) => Boolean(c));
-    
+
         return Bluebird.all(
             clients.map(
                 (client) => client.kill()
@@ -103,9 +114,9 @@ export class ClientPool {
         if (q === undefined) {
             q = this.reconnectQueues[server.domain] = new QueuePool(
                 server.getConcurrentReconnectLimit(),
-                (item: any) => {
+                (item) => {
                     log.info(`Reconnecting client. ${q.waitingItems} left.`);
-                    return this.reconnectClient(item);
+                    return this.reconnectClient(item as ReconnectionItem);
                 }
             );
         }
@@ -113,7 +124,7 @@ export class ClientPool {
     }
 
 
-    public setBot(server: IrcServer, client: any) {
+    public setBot(server: IrcServer, client: BridgedClient) {
         this.botClients[server.domain] = client;
     }
 
@@ -121,7 +132,7 @@ export class ClientPool {
         return this.botClients[server.domain];
     }
 
-    public createIrcClient(ircClientConfig: IrcClientConfig, matrixUser: any, isBot: boolean) {
+    public createIrcClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser, isBot: boolean) {
         const bridgedClient = this.ircBridge.createBridgedClient(
             ircClientConfig, matrixUser, isBot
         );
@@ -193,9 +204,9 @@ export class ClientPool {
         return cli;
     }
 
-    public getBridgedClientsForUserId(userId: string) {
+    public getBridgedClientsForUserId(userId: string): BridgedClient[] {
         const domainList = Object.keys(this.virtualClients);
-        const clientList: any[] = [];
+        const clientList: BridgedClient[] = [];
         domainList.forEach((domain) => {
             const cli = this.virtualClients[domain].userIds[userId];
             if (cli && !cli.isDead()) {
@@ -208,7 +219,7 @@ export class ClientPool {
     public getBridgedClientsForRegex(userIdRegexString: string) {
         const userIdRegex = new RegExp(userIdRegexString);
         const domainList = Object.keys(this.virtualClients);
-        const clientList: {[userId: string]: any} = {};
+        const clientList: {[userId: string]: BridgedClient} = {};
         domainList.forEach((domain) => {
             Object.keys(
                 this.virtualClients[domain].userIds
@@ -248,7 +259,7 @@ export class ClientPool {
         );
 
         // find the oldest client to kill.
-        let oldest: any = null;
+        let oldest: BridgedClient|null = null;
         Object.keys(this.virtualClients[server.domain].nicks).forEach((nick: string) => {
             const client = this.virtualClients[server.domain].nicks[nick];
             if (!client) {
@@ -286,7 +297,7 @@ export class ClientPool {
         let count = 0;
 
         Object.keys(this.virtualClients).forEach((domain) => {
-            let server = this.ircBridge.getServer(domain);
+            const server = this.ircBridge.getServer(domain);
             count += this.getNumberOfConnections(server);
         });
 
@@ -300,7 +311,7 @@ export class ClientPool {
         return 0;
     }
 
-    public updateActiveConnectionMetrics(serverDomain: string, ageCounter: any): void {
+    public updateActiveConnectionMetrics(serverDomain: string, ageCounter: AgeCounter): void {
         if (this.virtualClients[serverDomain] === undefined) {
             return;
         }
@@ -337,7 +348,7 @@ export class ClientPool {
         stats.ircClients(server.domain, this.getNumberOfConnections(server));
     }
 
-    private removeBridgedClient(bridgedClient: any): void {
+    private removeBridgedClient(bridgedClient: BridgedClient): void {
         const server = bridgedClient.server;
         this.virtualClients[server.domain].userIds[bridgedClient.userId] = undefined;
         this.virtualClients[server.domain].nicks[bridgedClient.nick] = undefined;
@@ -348,7 +359,7 @@ export class ClientPool {
         }
     }
 
-    private onClientConnected(bridgedClient: any): void {
+    private onClientConnected(bridgedClient: BridgedClient): void {
         const server = bridgedClient.server;
         const oldNick = bridgedClient.nick;
         const actualNick = bridgedClient.unsafeClient.nick;
@@ -366,7 +377,7 @@ export class ClientPool {
         }
     }
 
-    private onClientDisconnected(bridgedClient: any): void {
+    private onClientDisconnected(bridgedClient: BridgedClient): void {
         this.removeBridgedClient(bridgedClient);
         this.sendConnectionMetric(bridgedClient.server);
 
@@ -408,7 +419,7 @@ export class ClientPool {
             log.info(`Dropping ${cli._id} ${cli.nick} because they are not joined to any channels`);
             return;
         }
-        let queue = this.getOrCreateReconnectQueue(cli.server);
+        const queue = this.getOrCreateReconnectQueue(cli.server);
         if (queue === null) {
             this.reconnectClient({
                 cli: cli,
@@ -422,7 +433,7 @@ export class ClientPool {
         });
     }
 
-    private reconnectClient(cliChan: any): void {
+    private reconnectClient(cliChan: ReconnectionItem): void {
         const cli = cliChan.cli;
         const chanList: string[] = cliChan.chanList;
         return cli.connect().then(() => {
@@ -434,19 +445,19 @@ export class ClientPool {
                 cli.joinChannel(c);
             });
             this.sendConnectionMetric(cli.server);
-        }, (e: Error) => {
+        }, () => {
             log.error(
                 "<%s> Failed to reconnect %s@%s", cli._id, cli.nick, cli.server.domain
             );
         });
     }
 
-    private onNickChange(bridgedClient: any, oldNick: string, newNick: string): void {
+    private onNickChange(bridgedClient: BridgedClient, oldNick: string, newNick: string): void {
         this.virtualClients[bridgedClient.server.domain].nicks[oldNick] = undefined;
         this.virtualClients[bridgedClient.server.domain].nicks[newNick] = bridgedClient;
     }
 
-    private async onJoinError (bridgedClient: any, chan: string, err: string): Promise<void> {
+    private async onJoinError (bridgedClient: BridgedClient, chan: string, err: string): Promise<void> {
         const errorsThatShouldKick = [
             "err_bannedfromchan", // they aren't allowed in channels they are banned on.
             "err_inviteonlychan", // they aren't allowed in invite only channels
@@ -463,10 +474,10 @@ export class ClientPool {
         // TODO: this is a bit evil, no one in their right mind would expect
         // the client pool to be kicking matrix users from a room :(
         log.info(`Kicking ${bridgedClient.userId} from room due to ${err}`);
-        let matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
+        const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
             bridgedClient.server, chan
         );
-        let promises = matrixRooms.map((room: any) => {
+        const promises = matrixRooms.map((room: MatrixRoom) => {
             return this.ircBridge.getAppServiceBridge().getIntent().kick(
                 room.getId(), bridgedClient.userId, `IRC error on ${chan}: ${err}`
             );
@@ -474,8 +485,8 @@ export class ClientPool {
         await Promise.all(promises);
     }
 
-    private onNames(bridgedClient: any, chan: string, names: any): Bluebird<void> {
-        let mls = this.ircBridge.memberListSyncers[bridgedClient.server.domain];
+    private onNames(bridgedClient: BridgedClient, chan: string, names: {[key: string]: string}): Bluebird<void> {
+        const mls = this.ircBridge.memberListSyncers[bridgedClient.server.domain];
         if (!mls) {
             return Bluebird.resolve();
         }

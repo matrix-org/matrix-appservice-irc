@@ -16,7 +16,7 @@ limitations under the License.
 import Promise from "bluebird";
 import { Queue, QueueProcessFn, QueueItem } from "./Queue";
 
-/** 
+/**
  * A Queue Pool is a queue which is backed by a pool of queues which can be serviced
  * concurrently. The number of items which can be processed concurrently is the size
  * of the queue. The QueuePool always operates in a FIFO manner, even when all queues
@@ -81,14 +81,14 @@ export class QueuePool {
         return this.overflow.enqueue(id, {
             id: id,
             item: item,
-        }).then((req: any) => {
-            return req.p;
+        }).then((req) => {
+            return (req as {p: Promise<unknown>}).p;
         });
     }
 
     // This is called when a request is at the front of the overflow queue.
     private onOverflow(req: QueueItem) {
-        let queue = this.freeQueue();
+        const queue = this.freeQueue();
         if (queue) {
             // cannot return the raw promise else it will be waited on, whereas we want to return
             // the actual promise to the caller of QueuePool.enqueue(); so wrap it up in an object.
@@ -98,7 +98,7 @@ export class QueuePool {
         }
         // wait for any queue to become available
         const promises = this.queues.map((q) => {
-            return q.onceFree();
+            return q.onceFree().then(() => q);
         });
         return Promise.any(promises).then((q) => {
             if ((q as Queue).size() !== 0) {

@@ -65,20 +65,20 @@ export class Queue {
      */
     public size(): number {
         return this.queue.length + (this.processing ? 1 : 0);
-    };
+    }
 
     /**
      * Return a promise which is resolved when this queue is free (0 items in queue).
      * @return {Promise<Queue>} Resolves to the Queue itself.
      */
-    public onceFree(): Promise<any> {
+    public onceFree(): Promise<unknown> {
         if (this.size() === 0) {
             return Promise.resolve();
         }
         const defer = promiseutil.defer();
         this.onceFreeDefers.push(defer);
         return defer.promise;
-    };
+    }
 
     private fireOnceFree() {
         this.onceFreeDefers.forEach((d) => {
@@ -115,7 +115,7 @@ export class Queue {
             });
         }
         return defer.promise;
-    };
+    }
 
     private retry () {
         setTimeout(this.consume.bind(this), this.intervalMs);
@@ -134,8 +134,8 @@ export class Queue {
             return;
         }
         try {
-            let thing = this.processFn(this.processing.item);
-            let result = yield thing;
+            const thing = this.processFn(this.processing.item);
+            const result = yield thing;
             this.processing.defer.resolve(result);
         }
         catch (err) {
