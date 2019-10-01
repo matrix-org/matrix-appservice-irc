@@ -88,7 +88,6 @@ describe("Provisioning API", function() {
         // Listen for m.room.bridging
         let sdk = env.clientMock._client(config._botUserId);
         sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
-            console.log(roomId, kind, content);
             if (kind === "m.room.bridging") {
                 if (content.status === "pending") {
                     env.isPending.resolve();
@@ -285,89 +284,117 @@ describe("Provisioning API", function() {
 
         describe("link endpoint", function() {
 
-            it("should create a M<--->I link",
-                mockLink({}, true, true));
+            // Hello future person. Please do NOT write your tests like this. It is
+            // very difficult to follow what is going on here and this actually introduced
+            // a bug where all the tests ran in parallel. For the time being these tests will
+            // be left in this function soup mess because we know the tests work, but please
+            // write your tests clearly.
 
-            it("should create a M<--->I link for a channel that has capital letters in it",
-                mockLink({remote_room_channel: '#SomeCaps'}, true, true));
+            it("should create a M<--->I link", async () => {
+                await mockLink({}, true, true);
+            });
 
-            it("should not create a M<--->I link with the same id as one existing",
-                mockLink({
+            it("should create a M<--->I link for a channel that has capital letters in it", async () => {
+                await mockLink({remote_room_channel: '#SomeCaps'}, true, true);
+            });
+
+            it("should not create a M<--->I link with the same id as one existing", async () => {
+                await mockLink({
                     matrix_room_id : '!foo:bar',
                     remote_room_server : 'irc.example',
-                    remote_room_channel : '#coffee'}, false, true));
+                    remote_room_channel : '#coffee'}, false, true);
+            });
 
-            it("should not create a M<--->I link when room_id is malformed",
-                mockLink({matrix_room_id : '!fooooooo'}, false, true));
+            it("should not create a M<--->I link when room_id is malformed", async () => {
+                await mockLink({matrix_room_id : '!fooooooo'}, false, true);
+            });
 
-            it("should not create a M<--->I link when remote_room_server is malformed",
-                mockLink({remote_room_server : 'irc./example'}, false, true));
+            it("should not create a M<--->I link when remote_room_server is malformed", async () => {
+                await mockLink({remote_room_server : 'irc./example'}, false, true);
+            });
 
-            it("should not create a M<--->I link when remote_room_channel is malformed",
-                mockLink({remote_room_channel : 'coffe####e'}, false, true));
+            it("should not create a M<--->I link when remote_room_channel is malformed", async () => {
+                await mockLink({remote_room_channel : 'coffe####e'}, false, true);
+            });
 
             // See dynamicChannels.exclude in config file
             it("should not create a M<--->I link when remote_room_channel is excluded by the " +
-                "config",
-                mockLink({remote_room_channel : '#excluded_channel'}, false, true));
+                "config", async () => {
+                await mockLink({remote_room_channel : '#excluded_channel'}, false, true);
+            });
 
-            it("should not create a M<--->I link when matrix_room_id is not defined",
-                mockLink({matrix_room_id : null}, false, true));
+            it("should not create a M<--->I link when matrix_room_id is not defined", async () => {
+                await mockLink({matrix_room_id : null}, false, true);
+            });
 
-            it("should not create a M<--->I link when remote_room_server is not defined",
-                mockLink({remote_room_server : null}, false, true));
+            it("should not create a M<--->I link when remote_room_server is not defined", async () => {
+                await mockLink({remote_room_server : null}, false, true);
+            });
 
-            it("should not create a M<--->I link when remote_room_channel is not defined",
-                mockLink({remote_room_channel : null}, false, true));
+            it("should not create a M<--->I link when remote_room_channel is not defined", async () => {
+                await mockLink({remote_room_channel : null}, false, true);
+            });
 
-            it("should not create a M<--->I link when op_nick is not defined",
-                mockLink({op_nick : null}, false, true));
+            it("should not create a M<--->I link when op_nick is not defined", async () => {
+                await mockLink({op_nick : null}, false, true);
+            });
 
-            it("should not create a M<--->I link when op_nick is not in the room",
-                mockLink({op_nick : 'somenonexistantop'}, false, true));
+            it("should not create a M<--->I link when op_nick is not in the room", async () => {
+                await mockLink({op_nick : 'somenonexistantop'}, false, true);
+            });
 
             it("should not create a M<--->I link when op_nick is not an operator, but is in the " +
-                "room",
-                mockLink({op_nick : notOp.nick}, false, true));
+                "room", async () => {
+                await mockLink({op_nick : notOp.nick}, false, true);
+            });
 
-            it("should not create a M<--->I link when user does not have enough power in room",
-                mockLink({user_id: 'powerless'}, false, true));
-
+            it("should not create a M<--->I link when user does not have enough power in room", async () => {
+                await mockLink({user_id: 'powerless'}, false, true);
+            });
         });
 
         describe("unlink endpoint", function() {
-            it("should remove an existing M<--->I link",
-                mockLink({}, true, false));
+            it("should remove an existing M<--->I link", async () => {
+                await mockLink({}, true, false)
+            });
 
-            it("should not remove a non-existing M<--->I link",
-                mockLink({matrix_room_id : '!idonot:exist'}, false, false, false));
+            it("should not remove a non-existing M<--->I link", async () => {
+                await mockLink({matrix_room_id : '!idonot:exist'}, false, false, false)
+            });
 
-            it("should not remove a non-provision M<--->I link",
-                mockLink({
+            it("should not remove a non-provision M<--->I link", async () => {
+                await mockLink({
                     matrix_room_id : '!foo:bar',
                     remote_room_server : 'irc.example',
-                    remote_room_channel : '#coffee'}, false, false));
+                    remote_room_channel : '#coffee'}, false, false)
+                });
 
-            it("should not remove a M<--->I link when room_id is malformed",
-                mockLink({matrix_room_id : '!fooooooooo'}, false, false));
+            it("should not remove a M<--->I link when room_id is malformed", async () => {
+                await mockLink({matrix_room_id : '!fooooooooo'}, false, false)
+            });
 
-            it("should not remove a M<--->I link when remote_room_server is malformed",
-                mockLink({remote_room_server : 'irc./example'}, false, false));
+            it("should not remove a M<--->I link when remote_room_server is malformed", async () => {
+                await mockLink({remote_room_server : 'irc./example'}, false, false)
+            });
 
-            it("should not remove a M<--->I link when remote_room_channel is malformed",
-                mockLink({remote_room_channel : 'coffe####e'}, false, false));
+            it("should not remove a M<--->I link when remote_room_channel is malformed", async () => {
+                await mockLink({remote_room_channel : 'coffe####e'}, false, false)
+            });
 
             it("should not remove a M<--->I link when matrix_room_id is " +
-                "not defined",
-                mockLink({matrix_room_id : null}, false, true));
+                "not defined", async () => {
+                await mockLink({matrix_room_id : null}, false, true)
+            });
 
             it("should not remove a M<--->I link when remote_room_server is " +
-                "not defined",
-                mockLink({remote_room_server : null}, false, true));
+                "not defined", async () => {
+                await mockLink({remote_room_server : null}, false, true)
+            });
 
             it("should not remove a M<--->I link when remote_room_channel is " +
-                "not defined",
-                mockLink({remote_room_channel : null}, false, true));
+                "not defined", async () => {
+                await mockLink({remote_room_channel : null}, false, true)
+            });
         });
     });
 
@@ -437,8 +464,6 @@ describe("Provisioning API", function() {
             let sdk = env.clientMock._client(config._botUserId);
             sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                 // Status of m.room.bridging is a success
-                // console.log(roomId, kind, content);
-                console.log(roomId, kind, content);
                 if (kind === "m.room.bridging") {
                     if (content.status === "pending") {
                         env.isPending.resolve();
@@ -463,9 +488,9 @@ describe("Provisioning API", function() {
             yield test.afterEach(env);
         }));
 
-        it("should not create a M<--->I link of the same link id",
-            mockLink({}, false, true)
-        );
+        it("should not create a M<--->I link of the same link id", async () => {
+            await mockLink({}, false, true)
+        });
     });
 
     describe("message sending and joining", function() {

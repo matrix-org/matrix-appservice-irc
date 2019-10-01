@@ -1,3 +1,18 @@
+/*
+Copyright 2019 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 import * as logging from "../logging";
 import * as BridgedClient from "./BridgedClient";
@@ -14,6 +29,7 @@ type MembershipSyncKind = "incremental"|"initial";
 export class IrcServer {
     private addresses: string[];
     private groupIdValid: boolean;
+    private excludedUsers: { regex: RegExp; kickReason?: string }[];
     /**
      * Construct a new IRC Server.
      * @constructor
@@ -29,6 +45,12 @@ export class IrcServer {
                 private homeserverDomain: string, private expiryTimeSeconds: number = 0) {
         this.addresses = config.additionalAddresses || [];
         this.addresses.push(domain);
+        this.excludedUsers = config.excludedUsers.map((excluded) => {
+            return {
+                ...excluded,
+                regex: new RegExp(excluded.regex)
+            }
+        })
 
         if (this.config.dynamicChannels.groupId !== undefined &&
             this.config.dynamicChannels.groupId.trim() !== "") {
@@ -259,6 +281,12 @@ export class IrcServer {
 
     public isExcludedChannel(channel: string) {
         return this.config.dynamicChannels.exclude.indexOf(channel) !== -1;
+    }
+
+    public isExcludedUser(userId: string) {
+        return this.excludedUsers.find((exclusion) => {
+            return exclusion.regex.exec(userId) !== null;
+        });
     }
 
     public hasInviteRooms() {
@@ -507,6 +535,7 @@ export class IrcServer {
                 exclude: []
             },
             mappings: {},
+            excludedUsers: [],
             matrixClients: {
                 userTemplate: "@$SERVER_$NICK",
                 displayName: "$NICK (IRC)",
@@ -641,6 +670,12 @@ export interface IrcServerConfig {
         lineLimit: number;
         userModes?: string;
     };
+    excludedUsers: Array<
+        {
+            regex: string;
+            kickReason?: string;
+        }
+    >;
     membershipLists: {
         enabled: boolean;
         floodDelayMs: number;

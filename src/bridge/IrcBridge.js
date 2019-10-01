@@ -19,6 +19,7 @@ const { IrcClientConfig } = require("../models/IrcClientConfig");
 const { BridgeRequest } = require("../models/BridgeRequest");
 var stats = require("../config/stats");
 const { NeDBDataStore } = require("../datastore/NedbDataStore");
+const { PgDataStore } = require("../datastore/postgres/PgDataStore");
 var log = require("../logging").get("IrcBridge");
 const {
     Bridge,
@@ -66,7 +67,13 @@ function IrcBridge(config, registration) {
     this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler);
     this.ircHandler = new IrcHandler(this, this.config.ircHandler);
     this._clientPool = new ClientPool(this);
-    var dirPath = this.config.ircService.databaseUri.substring("nedb://".length);
+    if (!this.config.database && this.config.ircService.databaseUri) {
+        log.warn("ircService.databaseUri is a deprecated config option. Please use the database configuration block");
+        this.config.database = {
+            engine: "nedb",
+            connectionString: this.config.ircService.databaseUri,
+        }
+    }
     let roomLinkValidation = undefined;
     let provisioning = config.ircService.provisioning;
     if (provisioning && provisioning.enabled &&
@@ -74,6 +81,16 @@ function IrcBridge(config, registration) {
         roomLinkValidation = {
             ruleFile: provisioning.ruleFile,
             triggerEndpoint: provisioning.enableReload
+        };
+    }
+
+    let bridgeStoreConfig = {};
+
+    if (this.config.database.engine === "nedb") {
+        const dirPath = this.config.database.connectionString.substring("nedb://".length);
+        bridgeStoreConfig = {
+            roomStore: `${dirPath}/rooms.db`,
+            userStore: `${dirPath}/users.db`,
         };
     }
 
@@ -96,8 +113,7 @@ function IrcBridge(config, registration) {
                 getUser: this.getThirdPartyUser.bind(this),
             },
         },
-        roomStore: dirPath + "/rooms.db",
-        userStore: dirPath + "/users.db",
+        ...bridgeStoreConfig,
         disableContext: true,
         suppressEcho: false, // we use our own dupe suppress for now
         logRequestOutcome: false, // we use our own which has better logging
@@ -296,6 +312,13 @@ IrcBridge.prototype.createBridgedClient = function(ircClientConfig, matrixUser, 
         );
     }
 
+    if (matrixUser) { // Don't bother with the bot user
+        const excluded = server.isExcludedUser(matrixUser.userId);
+        if (excluded) {
+            throw Error("Cannot create bridged client - user is excluded from bridging");
+        }
+    }
+
     return new BridgedClient(
         server, ircClientConfig, matrixUser, isBot,
         this._ircEventBroker, this._identGenerator, this._ipv6Generator
@@ -318,12 +341,24 @@ IrcBridge.prototype.run = Promise.coroutine(function*(port) {
     }
 
     let pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
+    const dbConfig = this.config.database;
+    if (dbConfig.engine === "postgres") {
+        log.info("Using PgDataStore for Datastore");
+        this._dataStore = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
+        yield this._dataStore.ensureSchema();
+    }
+    else if (dbConfig.engine === "nedb") {
+        log.info("Using NeDBDataStore for Datastore");
         this._dataStore = new NeDBDataStore(
             this._bridge.getUserStore(),
             this._bridge.getRoomStore(),
             pkeyPath,
             this.config.homeserver.domain,
         );
+    }
+    else {
+        throw Error("Incorrect database config");
+    }
 
     yield this._dataStore.removeConfigMappings();
     this._identGenerator = new IdentGenerator(this._dataStore);
@@ -533,9 +568,12 @@ IrcBridge.prototype._addRequestCallbacks = function() {
 //  usefull once this has been called.
 //
 //  See (BridgedClient.prototype.kill)
-IrcBridge.prototype.kill = function() {
+IrcBridge.prototype.kill = async function() {
     log.info("Killing all clients");
-    return this._clientPool.killAllClients();
+    await this._clientPool.killAllClients();
+    if (this._dataStore) {
+        await this._dataStore.destroy();
+    }
 }
 
 IrcBridge.prototype.isStartedUp = function() {
@@ -997,9 +1035,8 @@ IrcBridge.prototype.getBridgedClient = Promise.coroutine(function*(server, userI
         "Creating virtual irc user with nick %s for %s (display name %s)",
         ircClientConfig.getDesiredNick(), userId, displayName
     );
-    bridgedClient = this._clientPool.createIrcClient(ircClientConfig, mxUser, false);
-
     try {
+        bridgedClient = this._clientPool.createIrcClient(ircClientConfig, mxUser, false);
         yield bridgedClient.connect();
         if (!storedConfig) {
             yield this.getStore().storeIrcClientConfig(ircClientConfig);

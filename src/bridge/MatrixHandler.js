@@ -958,9 +958,12 @@ MatrixHandler.prototype._onJoin = Promise.coroutine(function*(req, event, user) 
 
             while (kickIntent) {
                 try {
+                    // If they are known blacklisted, get a specific reason string.
+                    const excluded = server.isExcludedUser(user.getId());
                     yield kickIntent.kick(
                         event.room_id, user.getId(),
-                    `IRC connection failure.`
+                        excluded && excluded.kickReason ? excluded.kickReason
+                         : `IRC connection failure.`,
                     );
                     self._incrementMetric(room.server.domain, "connection_failure_kicks");
                     break;
@@ -1482,7 +1485,6 @@ MatrixHandler.prototype._onAliasQuery = Promise.coroutine(function*(req, roomAli
     let matrixRooms = yield this.ircBridge.getStore().getMatrixRoomsForChannel(
         channelInfo.server, channelInfo.channel
     );
-
     if (matrixRooms.length === 0) {
         // ====== Track the IRC channel
         // lower case the name to join (there's a bug in the IRC lib

@@ -203,6 +203,10 @@ ircService:
         # circumstances.
         # exclude: ["#foo", "#bar"]
 
+      # excludedUsers:
+      #   - regex: "@.*:evilcorp.com"
+      #     kickReason: "We don't like Evilcorp"
+
       # Configuration for controlling how Matrix and IRC membership lists are
       # synced.
       membershipLists:
@@ -391,11 +395,6 @@ ircService:
       - "1d"
       - "1w"
 
-  # The nedb database URI to connect to. This is the name of the directory to
-  # dump .db files to. This is relative to the project directory.
-  # Required.
-  databaseUri: "nedb://data"
-
   # Configuration options for the debug HTTP API. To access this API, you must
   # append ?access_token=$APPSERVICE_TOKEN (from the registration file) to the requests.
   #
@@ -469,3 +468,12 @@ advanced:
   # accidentally overloading the homeserver. Defaults to 1000, which should be
   # enough for the vast majority of use cases.
   maxHttpSockets: 1000
+
+# Use an external database to store bridge state.
+database:
+  # database engine (must be 'postgres' or 'nedb'). Default: nedb
+  engine: "postgres"
+   # Either a PostgreSQL connection string, or a path to the NeDB storage directory.
+   # For postgres, it must start with postgres://
+   # For NeDB, it must start with nedb://. The path is relative to the project directory.
+  connectionString: "postgres://username:password@host:port/databasename"

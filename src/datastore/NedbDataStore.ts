@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {default as Bluebird} from "bluebird";
+import Bluebird from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
 import * as logging from "../logging";
@@ -335,7 +335,7 @@ export class NeDBDataStore implements DataStore {
         const entries: Entry[] = await this.roomStore.getEntriesByMatrixId(roomId);
         for (const entry of entries) {
             if (!entry.remote) {
-                return;
+                continue;
             }
             const modes = entry.remote.get("modes") as string[] || [];
             const hasMode = modes.includes(mode);
@@ -467,16 +467,12 @@ export class NeDBDataStore implements DataStore {
         room.set("admin_id", userId);
         await this.roomStore.upsertEntry({
             id: NeDBDataStore.createAdminId(userId),
-            matrix_id: room.getId(),
             matrix: room,
-            remote: null,
-            remote_id: "",
-            data: {},
         });
     }
 
-    public async upsertRoomStoreEntry(entry: Entry): Promise<void> {
-        await this.roomStore.upsertEntry(entry);
+    public async upsertMatrixRoom(room: MatrixRoom): Promise<void> {
+        await this.roomStore.setMatrixRoom(room);
     }
 
     public async getAdminRoomByUserId(userId: string): Promise<MatrixRoom|null> {
@@ -600,6 +596,10 @@ export class NeDBDataStore implements DataStore {
             );
         }
         return matrixUsers[0];
+    }
+
+    public async destroy() {
+        // This will no-op
     }
 
     private static createPmId(userId: string, virtualUserId: string) {

@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Ignore definition errors for now.
-//@ts-ignore
 import { MatrixUser } from "matrix-appservice-bridge";
 
 export interface IrcClientConfigSeralized {
@@ -48,7 +46,7 @@ export class IrcClientConfig {
         return this.domain;
     }
 
-    public getUserId() {
+    public getUserId(): string|null {
         return this.userId;
     }
 
@@ -84,7 +82,12 @@ export class IrcClientConfig {
         return this.config.ipv6;
     }
 
-    public serialize() {
+    public serialize(removePassword = false) {
+        if (removePassword) {
+            const clone = JSON.parse(JSON.stringify(this.config));
+            delete clone.password;
+            return clone;
+        }
         return this.config;
     }
 

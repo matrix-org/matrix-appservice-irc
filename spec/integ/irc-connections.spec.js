@@ -6,12 +6,19 @@ const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
 describe("IRC connections", function() {
+
     let testUser = {
         id: "@alice:hs",
         nick: "M-alice"
     };
 
     const {env, config, roomMapping, test} = envBundle();
+    // Ensure the right users are excluded.
+    Object.values(config.ircService.servers)[0].excludedUsers = [
+        {
+            regex: "@excluded:hs",
+        }
+    ];
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
@@ -30,7 +37,7 @@ describe("IRC connections", function() {
         );
 
         // do the init
-        yield test.initEnv(env);
+        yield test.initEnv(env, config);
     }));
 
     afterEach(test.coroutine(function*() {
@@ -519,5 +526,41 @@ describe("IRC connections", function() {
             expect(errorEmitted).toBe(true);
             done();
         });
+    });
+
+    it("should not bridge matrix users who are excluded", async function() {
+        const excludedUserId = "@excluded:hs";
+        const nick = "M-excluded";
+
+        env.ircMock._whenClient(roomMapping.server, nick, "connect",
+        function() {
+            throw Error("Client should not be saying anything")
+        });
+
+        const botSdk = env.clientMock._client(config._botUserId);
+        botSdk.kick.and.callFake(async (roomId, userId, reason) => {
+            if (roomId === roomMapping.roomId && userId === excludedUserId) {
+                throw Error("Should not kick");
+            }
+        });
+
+        try {
+            await env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: "Text that should never be sent",
+                    msgtype: "m.text"
+                },
+                user_id: excludedUserId,
+                room_id: roomMapping.roomId,
+                type: "m.room.message"
+            });
+        }
+        catch (ex) {
+            expect(ex.message).toBe(
+                "Cannot create bridged client - user is excluded from bridging"
+            );
+            return;
+        }
+        throw Error("Should have thrown");
     });
 });
