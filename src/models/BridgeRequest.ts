@@ -18,6 +18,8 @@ import logging = require("../logging");
 import { Request } from "matrix-appservice-bridge";
 const log = logging.get("req");
 
+// We do not have types for logging yet.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Logger = any;
 
 export class BridgeRequest {
