@@ -93,6 +93,11 @@ function IrcBridge(config, registration) {
             userStore: `${dirPath}/users.db`,
         };
     }
+    else {
+        bridgeStoreConfig = {
+            disableStores: true,
+        };
+    }
 
     this._bridge = new Bridge({
         registration: this.registration,
@@ -320,8 +325,9 @@ IrcBridge.prototype.createBridgedClient = function(ircClientConfig, matrixUser, 
 
 IrcBridge.prototype.run = Promise.coroutine(function*(port) {
     yield this._bridge.loadDatabases();
+    const dbConfig = this.config.database;
 
-    if (this._debugApi) {
+    if (this._debugApi && dbConfig.engine === "nedb") {
         // monkey patch inspect() values to avoid useless NeDB
         // struct spam on the debug API.
         this._bridge.getUserStore().inspect = function(depth) {
@@ -334,7 +340,6 @@ IrcBridge.prototype.run = Promise.coroutine(function*(port) {
     }
 
     let pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
-    const dbConfig = this.config.database;
     if (dbConfig.engine === "postgres") {
         log.info("Using PgDataStore for Datastore");
         this._dataStore = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
@@ -1105,6 +1110,7 @@ IrcBridge.prototype._roomUpgradeMigrateEntry = function(entry, newRoomId) {
 }
 
 IrcBridge.prototype._onRoomUpgrade = Promise.coroutine(function*(oldRoomId, newRoomId) {
+    yield this.getStore().roomUpgradeOnRoomMigrated(oldRoomId, newRoomId);
     log.info(`Room has been upgraded from ${oldRoomId} to ${newRoomId}, updating ghosts..`);
     // Get the channels for the room_id
     const rooms = yield this.getStore().getIrcChannelsForRoomId(newRoomId);
