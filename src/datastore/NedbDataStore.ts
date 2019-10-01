@@ -598,7 +598,7 @@ export class NeDBDataStore implements DataStore {
         return matrixUsers[0];
     }
 
-    public async roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string) {
+    public async roomUpgradeOnRoomMigrated() {
         // this can no-op, because the matrix-appservice-bridge library will take care of it.
     }
 
