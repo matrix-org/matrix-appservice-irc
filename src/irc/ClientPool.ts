@@ -16,7 +16,7 @@ limitations under the License.
 
 const stats = require("../config/stats");
 const log = require("../logging").get("ClientPool");
-const QueuePool = require("../util/QueuePool");
+const { QueuePool } = require("../util/QueuePool");
 import Bluebird from "bluebird";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcClientConfig } from "../models/IrcClientConfig";

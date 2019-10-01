@@ -2,13 +2,13 @@
 
 const Promise = require("bluebird");
 const stats = require("../config/stats");
-const { BridgeRequest } = require("../models/BridgeRequest");
+const BridgeRequest = require("../models/BridgeRequest");
 const { IrcRoom } = require("../models/IrcRoom");
 const MatrixRoom = require("matrix-appservice-bridge").MatrixRoom;
 const MatrixUser = require("matrix-appservice-bridge").MatrixUser;
 const MatrixAction = require("../models/MatrixAction");
 const { Queue } = require("../util/Queue.js");
-const QueuePool = require("../util/QueuePool.js");
+const { QueuePool } = require("../util/QueuePool.js");
 const QuitDebouncer = require("./QuitDebouncer.js");
 const RoomAccessSyncer = require("./RoomAccessSyncer.js");
 
