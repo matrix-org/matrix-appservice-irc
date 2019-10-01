@@ -312,6 +312,13 @@ IrcBridge.prototype.createBridgedClient = function(ircClientConfig, matrixUser, 
         );
     }
 
+    if (matrixUser) { // Don't bother with the bot user
+        const excluded = server.isExcludedUser(matrixUser.userId);
+        if (excluded) {
+            throw Error("Cannot create bridged client - user is excluded from bridging");
+        }
+    }
+
     return new BridgedClient(
         server, ircClientConfig, matrixUser, isBot,
         this._ircEventBroker, this._identGenerator, this._ipv6Generator
@@ -1028,9 +1035,8 @@ IrcBridge.prototype.getBridgedClient = Promise.coroutine(function*(server, userI
         "Creating virtual irc user with nick %s for %s (display name %s)",
         ircClientConfig.getDesiredNick(), userId, displayName
     );
-    bridgedClient = this._clientPool.createIrcClient(ircClientConfig, mxUser, false);
-
     try {
+        bridgedClient = this._clientPool.createIrcClient(ircClientConfig, mxUser, false);
         yield bridgedClient.connect();
         if (!storedConfig) {
             yield this.getStore().storeIrcClientConfig(ircClientConfig);
