@@ -123,7 +123,7 @@ class IdentSrv {
         return res;
     }
 
-    private async tryRespond(sock: net.Socket, localPort: string, remotePort: string): Promise<void> {
+    private async tryRespond(sock: net.Socket, localPort: string, remotePort: string) {
         const username = this.portMappings[localPort];
         if (username) {
             log.debug("Port %s is %s", localPort, username);
@@ -136,7 +136,8 @@ class IdentSrv {
         // We don't know here if anything has actually changed, so compare hashes.
         if (Object.keys(this.portMappings).join("|") !== mappingHash) {
             // Hash has changed, retry.
-            return this.tryRespond(sock, localPort, remotePort);
+            await this.tryRespond(sock, localPort, remotePort);
+            return;
         }
         log.debug("No user on port %s", localPort);
         this.respond(sock, localPort, remotePort);
