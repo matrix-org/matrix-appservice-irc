@@ -139,10 +139,10 @@ class IdentSrv {
     private respond(sock: net.Socket, localPort: string, remotePort: string, username?: string) {
         let response;
         if (username) {
-            response = `${localPort}, ${remotePort}:USERID:UNIX:${username}\r\n`;
+            response = `${localPort},${remotePort}:USERID:UNIX:${username}\r\n`;
         }
         else {
-            response = `${localPort}, ${remotePort}:ERROR:NO-USER\r\n`;
+            response = `${localPort},${remotePort}:ERROR:NO-USER\r\n`;
         }
         log.debug(response);
         sock.end(response);
