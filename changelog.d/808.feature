@@ -1,0 +1,1 @@
+The project now uses Typescript for it's source code.
