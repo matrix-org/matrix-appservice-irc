@@ -15,14 +15,14 @@ limitations under the License.
 */
 
 import * as stats from "../config/stats";
-import * as logging from "../logging";
+import { getLogger } from "../logging";
 import { QueuePool } from "../util/QueuePool";
 import Bluebird from "bluebird";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer } from "../irc/IrcServer";
 import { AgeCounter, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
-const log = logging.get("ClientPool");
+const log = getLogger("ClientPool");
 
 // We do not have these yet
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

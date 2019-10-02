@@ -23,6 +23,9 @@ import { BridgeRequest } from "./models/BridgeRequest";
 import { inspect } from "util";
 import { DataStore } from "./datastore/DataStore";
 import { ClientPool } from "./irc/ClientPool";
+import { getLogger } from "./logging";
+
+const log = getLogger("DebugApi");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type IrcBridge = any;
@@ -136,7 +139,7 @@ export class DebugApi {
                 response.write(r);
                 response.end();
             }, (err: Error) => {
-                log.error(err.stack);
+                log.error(err.stack!);
                 response.writeHead(500, {"Content-Type": "text/plain"});
                 response.write(err + "\n");
                 response.end();
@@ -169,7 +172,7 @@ export class DebugApi {
                 response.write(r + "\n");
                 response.end();
             }, (err: Error) => {
-                log.error(err.stack);
+                log.error(err.stack!);
                 response.writeHead(500, {"Content-Type": "text/plain"});
                 response.write(err + "\n");
                 response.end();
@@ -187,7 +190,7 @@ export class DebugApi {
         this.ircBridge.connectionReap(
             msgCb, query["server"], parseInt(query["since"] as string), query["reason"]
         ).catch((err: Error) => {
-            log.error(err.stack);
+            log.error(err.stack!);
             if (!response.headersSent) {
                 response.writeHead(500, {"Content-Type": "text/plain"});
             }
