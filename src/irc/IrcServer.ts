@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import * as logging from "../logging";
+import { getLogger } from "../logging";
 import * as BridgedClient from "./BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 
-const log = logging.get("IrcServer");
+const log = getLogger("IrcServer");
 const GROUP_ID_REGEX = /^\+\S+:\S+$/
 
 type MembershipSyncKind = "incremental"|"initial";
