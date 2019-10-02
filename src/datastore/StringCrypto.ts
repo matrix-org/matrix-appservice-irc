@@ -16,9 +16,9 @@ limitations under the License.
 
 import * as crypto from "crypto";
 import * as fs from "fs";
-import * as logging from "../logging";
+import { getLogger } from "../logging";
 
-const log = logging.get("CryptoStore");
+const log = getLogger("CryptoStore");
 
 export class StringCrypto {
     private privateKey!: string;
