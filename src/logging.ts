@@ -215,7 +215,8 @@ export function newRequestLogger(baseLogger: LoggerInstance, requestId: string, 
         info: function() { decorate(baseLogger.info, arguments); },
         warn: function() { decorate(baseLogger.warn, arguments); },
         error: function() { decorate(baseLogger.error, arguments); },
-    };
+        // This is sort of untrue, but we want to have sensible types. 
+    } as unknown as LoggerInstance;
 }
 
 export function setUncaughtExceptionLogger(exceptionLogger: LoggerInstance) {

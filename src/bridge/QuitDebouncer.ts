@@ -3,6 +3,8 @@ import { IrcServer } from "../irc/IrcServer";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { MatrixUser } from "matrix-appservice-bridge";
 
+// We have no type for this yet.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type IrcBridge = any;
 
 const QUIT_WAIT_DELAY_MS = 100;
@@ -14,18 +16,18 @@ export class QuitDebouncer {
         [domain: string]: {
             rejoinPromises: {
                 [nick: string]: {
-                    promise: Promise<unknown>,
-                    resolve: () => void,
-                },
-            },
-            quitTimestampsMs: number[]
-        }
-    }
+                    promise: Promise<unknown>;
+                    resolve: () => void;
+                };
+            };
+            quitTimestampsMs: number[];
+        };
+    };
 
     constructor(private ircBridge: IrcBridge) {
         // Measure the probability of a net-split having just happened using QUIT frequency.
         // This is to smooth incoming PART spam from IRC clients that suffer from a
-        // net-split (or other issues that lead to mass PART-ings)    
+        // net-split (or other issues that lead to mass PART-ings)
         this.debouncerForServer = {};
 
         // Keep a track of the times at which debounceQuit was called, and use this to
@@ -49,7 +51,7 @@ export class QuitDebouncer {
         if (!this.debouncerForServer[server.domain]) {
             return;
         }
-        let rejoin = this.debouncerForServer[server.domain].rejoinPromises[nick];
+        const rejoin = this.debouncerForServer[server.domain].rejoinPromises[nick];
         if (rejoin) {
             rejoin.resolve();
         }
@@ -118,9 +120,7 @@ export class QuitDebouncer {
 
         req.log.info('Debouncing for ' + debounceMs + 'ms');
 
-        let resolve: () => void;
-
-        let promise = new Bluebird((res) => {
+        const promise = new Bluebird((resolve) => {
             debouncer.rejoinPromises[nick] = {
                 resolve,
                 promise
