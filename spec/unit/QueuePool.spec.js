@@ -1,5 +1,5 @@
 "use strict";
-let QueuePool = require("../../lib/util/QueuePool");
+let { QueuePool } = require("../../lib/util/QueuePool");
 let promiseutil = require("../../lib/promiseutil");
 let test = require("../util/test");
 

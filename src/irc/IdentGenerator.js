@@ -1,7 +1,7 @@
 /*eslint no-invalid-this: 0 no-constant-condition: 0 */
 "use strict";
 const Promise = require("bluebird");
-const Queue = require("../util/Queue");
+const { Queue } = require("../util/Queue");
 const log = require("../logging").get("IdentGenerator");
 
 function IdentGenerator(store) {

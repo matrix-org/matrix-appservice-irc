@@ -69,7 +69,7 @@
 "use strict";
 const IrcAction = require("../models/IrcAction");
 const IrcUser = require("../models/IrcUser");
-const BridgeRequest = require("../models/BridgeRequest");
+const { BridgeRequest } = require("../models/BridgeRequest");
 const log = require("../logging").get("IrcEventBroker");
 
 const CLEANUP_TIME_MS = 1000 * 60 * 10; // 10min
