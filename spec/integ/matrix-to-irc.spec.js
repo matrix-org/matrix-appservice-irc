@@ -7,7 +7,7 @@ const mediaUrl = "http://some-media-repo.com";
 
 describe("Matrix-to-IRC message bridging", function() {
 
-    const {env, config, roomMapping, test} = envBundle();
+    const {env, roomMapping, test} = envBundle();
 
     let testUser = {
         id: "@flibble:wibble",
@@ -472,10 +472,7 @@ describe("Matrix-to-IRC message bridging", function() {
     it("should bridge matrix images as IRC action with a URL", function(done) {
         let tBody = "the_image.jpg";
         let tMxcSegment = "/somecontentid";
-        let tHsUrl = "http://somedomain.com";
-        let sdk = env.clientMock._client(config._botUserId);
-
-        sdk.getHomeserverUrl.and.returnValue(tHsUrl);
+        let tHsUrl = "https://some.home.server.goeshere/";
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
@@ -505,10 +502,7 @@ describe("Matrix-to-IRC message bridging", function() {
     it("should bridge matrix files as IRC action with a URL", function(done) {
         let tBody = "a_file.apk";
         let tMxcSegment = "/somecontentid";
-        let tHsUrl = "http://somedomain.com";
-        let sdk = env.clientMock._client(config._botUserId);
-
-        sdk.getHomeserverUrl.and.returnValue(tHsUrl);
+        let tHsUrl = "https://some.home.server.goeshere/";
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "action",
         function(client, channel, text) {
@@ -730,8 +724,6 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
     };
 
     beforeEach(test.coroutine(function*() {
-        // Set the media URL
-        env.config.homeserver.media_url = mediaUrl;
         env.config.homeserver.dropMatrixMessagesAfterSecs = 300; // 5 min
         jasmine.clock().install();
 
@@ -753,6 +745,8 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
 
         // do the init
         yield test.initEnv(env);
+        // Set the media URL
+        env.ircBridge.matrixHandler._mediaUrl = mediaUrl;
     }));
 
     afterEach(test.coroutine(function*() {
@@ -860,7 +854,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         let tHsUrl = "http://somedomain.com";
         let sdk = env.clientMock._client(config._botUserId);
 
-        // Not expected to be caleld, but hook to catch the error
+        // Not expected to be called, but hook to catch the error
         // see expectation not to see HS URL, below
         sdk.getHomeserverUrl.and.returnValue(tHsUrl);
 
