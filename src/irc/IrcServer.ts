@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import { getLogger } from "../logging";
-import * as BridgedClient from "./BridgedClient";
+import { BridgedClient, illegalCharactersRegex} from "./BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 
 const log = getLogger("IrcServer");
@@ -462,10 +462,9 @@ export class IrcServer {
     }
 
     public getNick(userId: string, displayName?: string) {
-        const illegalChars = BridgedClient.illegalCharactersRegex;
         let localpart = userId.substring(1).split(":")[0];
-        localpart = localpart.replace(illegalChars, "");
-        displayName = displayName ? displayName.replace(illegalChars, "") : undefined;
+        localpart = localpart.replace(illegalCharactersRegex, "");
+        displayName = displayName ? displayName.replace(illegalCharactersRegex, "") : undefined;
         const display = [displayName, localpart].find((n) => Boolean(n));
         if (!display) {
             throw new Error("Could not get nick for user, all characters were invalid");
@@ -617,6 +616,7 @@ export interface IrcServerConfig {
     ssl?: boolean;
     sslselfsign?: boolean;
     sasl?: boolean;
+    password?: string;
     allowExpiredCerts?: boolean;
     additionalAddresses?: string[];
     dynamicChannels: {

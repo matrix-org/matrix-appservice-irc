@@ -71,8 +71,10 @@ export interface ConnectionOpts {
     }
 }
 
+export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|"toomanyconns"|"banned";
+
 export class ConnectionInstance {
-    private dead: boolean = false;
+    public dead: boolean = false;
     private state: "created"|"connecting"|"connected" = "created";
     private pingRateTimerId: NodeJS.Timer|null = null;
     private clientSidePingTimeoutTimerId: NodeJS.Timer|null = null;
@@ -128,7 +130,7 @@ export class ConnectionInstance {
      * @param {string} reason - Reason to reject with. One of:
      * throttled|irc_error|net_error|timeout|raw_error|toomanyconns|banned
      */
-    public disconnect(reason: "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|"toomanyconns"|"banned") {
+    public disconnect(reason: InstanceDisconnectReason) {
         if (this.dead) {
             return Bluebird.resolve();
         }

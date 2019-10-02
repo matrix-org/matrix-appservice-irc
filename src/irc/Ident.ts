@@ -15,8 +15,9 @@ limitations under the License.
 */
 
 import net from "net";
+import { getLogger } from "../logging";
 
-const log = require("../logging").get("irc-ident");
+const log = getLogger("irc-ident");
 
 interface IdentConfig {
     port: number;
@@ -145,5 +146,4 @@ class IdentSrv {
     }
 }
 
-const staticInstance = new IdentSrv();
-module.exports = staticInstance;
+export const staticInstance = new IdentSrv();
