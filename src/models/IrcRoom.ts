@@ -25,7 +25,6 @@ export class IrcRoom extends RemoteRoom {
      * @param {IrcServer} server : The IRC server which contains this room.
      * @param {String} channel : The channel this room represents.
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(public readonly server: IrcServer, public readonly channel: string) {
         // Because `super` must be called first, we convert the case several times.
         super(IrcRoom.createId(server, toIrcLowerCase(channel)), {
@@ -55,9 +54,7 @@ export class IrcRoom extends RemoteRoom {
         return super.get("type") as string;
     }
 
-    // No types for IrcServer yet
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public static fromRemoteRoom(server: any, remoteRoom: RemoteRoom) {
+    public static fromRemoteRoom(server: IrcServer, remoteRoom: RemoteRoom) {
         return new IrcRoom(server, remoteRoom.get("channel") as string);
     }
 
