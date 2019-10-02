@@ -116,18 +116,21 @@ module.exports.runBridge = Promise.coroutine(function*(port, config, reg, isDBIn
 
     // run the bridge
     const ircBridge = new IrcBridge(config, reg);
-
+    const engine = config.database ? config.database.engine : "nedb";
     // Use in-memory DBs
     if (isDBInMemory) {
         ircBridge._bridge.opts.roomStore = new RoomBridgeStore(new Datastore());
         ircBridge._bridge.opts.userStore = new UserBridgeStore(new Datastore());
     }
-    else if (config.database && config.database.engine === "postgres") {
+    else if (engine === "postgres") {
         // Enforce these not to be created
         ircBridge._bridge.opts.roomStore = undefined;
         ircBridge._bridge.opts.userStore = undefined;
     }
-    else if (config.database) {
+    else if (engine === "nedb") {
+        // do nothing.
+    }
+    else {
         throw Error("Invalid database configuration");
     }
 
