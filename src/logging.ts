@@ -57,18 +57,20 @@ const loggers: {[name: string]: LoggerInstance } = {
 
 let loggerTransports: TransportInstance[]; // from config
 
+export const timestampFn = function() {
+    return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+};
+
+export const formatterFn = function(opts: FormatterFnOpts) {
+    return opts.timestamp() + ' ' +
+    opts.level.toUpperCase() + ':' +
+    (opts.meta && opts.meta.loggerName ? opts.meta.loggerName : "") + ' ' +
+    (opts.meta && opts.meta.reqId ? ("[" + opts.meta.reqId + "] ") : "") +
+    (opts.meta && opts.meta.dir ? opts.meta.dir : "") +
+    (undefined !== opts.message ? opts.message : '');
+};
+
 const makeTransports = function() {
-    const timestampFn = function() {
-        return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
-    };
-    const formatterFn = function(opts: FormatterFnOpts) {
-        return opts.timestamp() + ' ' +
-        opts.level.toUpperCase() + ':' +
-        (opts.meta && opts.meta.loggerName ? opts.meta.loggerName : "") + ' ' +
-        (opts.meta && opts.meta.reqId ? ("[" + opts.meta.reqId + "] ") : "") +
-        (opts.meta && opts.meta.dir ? opts.meta.dir : "") +
-        (undefined !== opts.message ? opts.message : '');
-    };
 
     let transports = [];
     if (loggerConfig.toConsole) {

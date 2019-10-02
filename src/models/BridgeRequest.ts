@@ -14,19 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import logging = require("../logging");
+import { getLogger, newRequestLogger } from "../logging";
 import { Request } from "matrix-appservice-bridge";
-const log = logging.get("req");
-
-// We do not have types for logging yet.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Logger = any;
+import { LoggerInstance } from "winston";
+const log = getLogger("req");
 
 export class BridgeRequest {
-    private log: Logger;
+    log: {
+        debug: () => void;
+        info: () => void;
+        warn: () => void;
+        error: () => void;
+    };
     constructor(private req: Request) {
         const isFromIrc = req.getData() ? Boolean(req.getData().isFromIrc) : false;
-        this.log = logging.newRequestLogger(log, req.getId(), isFromIrc);
+        this.log = newRequestLogger(log as LoggerInstance, req.getId(), isFromIrc);
     }
 
     getPromise() {
