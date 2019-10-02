@@ -60,6 +60,7 @@ let loggerTransports: TransportInstance[]; // from config
 export function timestampFn() {
     return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
 };
+
 export function formatterFn(opts: FormatterFnOpts) {
     return opts.timestamp() + ' ' +
     opts.level.toUpperCase() + ':' +
@@ -70,8 +71,6 @@ export function formatterFn(opts: FormatterFnOpts) {
 };
 
 const makeTransports = function() {
-
-
     let transports = [];
     if (loggerConfig.toConsole) {
         transports.push(new (winston.transports.Console)({

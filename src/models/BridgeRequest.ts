@@ -19,12 +19,13 @@ import { Request } from "matrix-appservice-bridge";
 import { LoggerInstance } from "winston";
 const log = getLogger("req");
 
-// We do not have types for logging yet.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Logger = any;
-
 export class BridgeRequest {
-    private log: Logger;
+    log: {
+        debug: () => void;
+        info: () => void;
+        warn: () => void;
+        error: () => void;
+    };
     constructor(private req: Request) {
         const isFromIrc = req.getData() ? Boolean(req.getData().isFromIrc) : false;
         this.log = newRequestLogger(log as LoggerInstance, req.getId(), isFromIrc);

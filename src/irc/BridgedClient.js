@@ -5,7 +5,7 @@ const Promise = require("bluebird");
 const promiseutil = require("../promiseutil");
 const util = require("util");
 const EventEmitter = require("events").EventEmitter;
-const ident = require("./ident");
+const ident = require("./Ident");
 const ConnectionInstance = require("./ConnectionInstance");
 const { IrcRoom } = require("../models/IrcRoom");
 const log = require("../logging").get("BridgedClient");
@@ -127,6 +127,8 @@ BridgedClient.prototype.connect = Promise.coroutine(function*() {
             `Connecting to the IRC network '${this.server.domain}' as ${this.nick}...`
         );
 
+        let identResolver = ident.clientBegin();
+
         let connInst = yield ConnectionInstance.create(server, {
             nick: this.nick,
             username: nameInfo.username,
@@ -138,7 +140,7 @@ BridgedClient.prototype.connect = Promise.coroutine(function*() {
                 this.server.getIpv6Prefix() ? this._clientConfig.getIpv6Address() : undefined
             )
         }, (inst) => {
-            this._onConnectionCreated(inst, nameInfo);
+            this._onConnectionCreated(inst, nameInfo, identResolver);
         });
 
         this.inst = connInst;
@@ -190,6 +192,9 @@ BridgedClient.prototype.connect = Promise.coroutine(function*() {
     catch (err) {
         this.log.debug("Failed to connect.");
         this.instCreationFailed = true;
+        if (identResolver) {
+            identResolver();
+        }
         throw err;
     }
 });
@@ -582,7 +587,7 @@ BridgedClient.prototype._addChannel = function(channel) {
 BridgedClient.prototype.getLastActionTs = function() {
     return this.lastActionTs;
 };
-BridgedClient.prototype._onConnectionCreated = function(connInst, nameInfo) {
+BridgedClient.prototype._onConnectionCreated = function(connInst, nameInfo, identResolver) {
     // listen for a connect event which is done when the TCP connection is
     // established and set ident info (this is different to the connect() callback
     // in node-irc which actually fires on a registered event..)
@@ -594,6 +599,7 @@ BridgedClient.prototype._onConnectionCreated = function(connInst, nameInfo) {
         if (localPort > 0) {
             ident.setMapping(nameInfo.username, localPort);
         }
+        identResolver();
     });
 
     connInst.onDisconnect = (reason) => {
@@ -608,6 +614,7 @@ BridgedClient.prototype._onConnectionCreated = function(connInst, nameInfo) {
             "' has been lost. "
         );
         clearTimeout(this._idleTimeout);
+        identResolver();
     };
 
     this._eventBroker.addHooks(this, connInst);
