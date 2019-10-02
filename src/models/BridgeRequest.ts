@@ -15,41 +15,33 @@ limitations under the License.
 */
 
 import logging = require("../logging");
+import { Request } from "matrix-appservice-bridge";
 const log = logging.get("req");
 
-interface Req {
-    getPromise(): Promise<unknown>;
-    resolve<T>(thing: T): void;
-    reject<T>(err: T): void;
-    getId(): string;
-    getData(): {
-        isFromIrc: boolean;
-    } | undefined;
-}
+// We do not have types for logging yet.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Logger = any;
 
 export class BridgeRequest {
-    // We don't have a type for this yet
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public readonly log: any;
-    constructor(public readonly req: Req) {
-        const data = req.getData();
-        const isFromIrc = data ? Boolean(data.isFromIrc) : false;
+    private log: Logger;
+    constructor(private req: Request) {
+        const isFromIrc = req.getData() ? Boolean(req.getData().isFromIrc) : false;
         this.log = logging.newRequestLogger(log, req.getId(), isFromIrc);
     }
 
-    public getPromise(): Promise<unknown> {
+    getPromise() {
         return this.req.getPromise();
     }
 
-    public resolve<T>(thing: T) {
+    resolve(thing?: unknown) {
         this.req.resolve(thing);
     }
 
-    public reject<T>(err: T) {
+    reject(err?: unknown) {
         this.req.reject(err);
     }
 
-    public static readonly ERR_VIRTUAL_USER = "virtual-user";
-    public static readonly ERR_NOT_MAPPED = "not-mapped";
-    public static readonly ERR_DROPPED = "dropped";
+    public static ERR_VIRTUAL_USER = "virtual-user";
+    public static ERR_NOT_MAPPED = "virtual-user";
+    public static ERR_DROPPED = "virtual-user";
 }

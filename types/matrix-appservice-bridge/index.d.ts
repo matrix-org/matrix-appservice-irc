@@ -150,4 +150,16 @@ declare module 'matrix-appservice-bridge' {
     export class Intent {
         getProfileInfo(userId: string, type?: "displayname"|"avatar_url", useCache?: boolean): Promise<{displayname: string|null, avatar_url: string|null}>
     }
+
+    export class AgeCounter {
+        bump (ageInSec: number): void;
+    }
+
+    export class Request {
+        getData(): any;
+        getPromise(): Promise<any>;
+        getId(): string;
+        resolve(item: unknown): void;
+        reject(err: unknown): void;
+    }
 }

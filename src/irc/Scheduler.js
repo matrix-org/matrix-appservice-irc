@@ -3,7 +3,7 @@
 const Promise = require("bluebird");
 const logging = require("../logging");
 var log = logging.get("scheduler");
-const Queue = require("../util/Queue.js");
+const { Queue } = require("../util/Queue.js");
 
 /**
  * An IRC connection scheduler. Enables ConnectionInstance to reconnect
