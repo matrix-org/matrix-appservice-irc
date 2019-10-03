@@ -14,11 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-/*
- * This module provides python-like logging capabilities using winston.
- */
-
 import winston, { TransportInstance, LeveledLogMethod, LoggerInstance } from "winston";
 import "winston-daily-rotate-file";
 import { WriteStream } from "fs";
@@ -72,7 +67,7 @@ export function formatterFn(opts: FormatterFnOpts) {
 
 const makeTransports = function() {
 
-    let transports = [];
+    const transports = [];
     if (loggerConfig.toConsole) {
         transports.push(new (winston.transports.Console)({
             json: false,
@@ -146,7 +141,7 @@ export function get(nameOfLogger: string) {
     if (loggers[nameOfLogger]) {
         return loggers[nameOfLogger];
     }
-    let logger = createLogger(nameOfLogger);
+    const logger = createLogger(nameOfLogger);
     loggers[nameOfLogger] = logger;
     const ircLogger = {
         logErr: (e: Error) => {
@@ -175,9 +170,9 @@ export function configure(opts: LoggerConfig) {
     // with the default config, which is now being overwritten by this
     // configure() call.
     Object.keys(loggers).forEach(function(loggerName) {
-        let existingLogger = loggers[loggerName];
+        const existingLogger = loggers[loggerName];
         // remove each individual transport
-        let transportNames = ["logfile", "console", "errorfile"];
+        const transportNames = ["logfile", "console", "errorfile"];
         transportNames.forEach(function(tname) {
             if (existingLogger.transports[tname]) {
                 existingLogger.remove(tname);
@@ -194,9 +189,11 @@ export function isVerbose() {
     return loggerConfig.verbose;
 }
 
+// We use any a lot here to avoid having to deal with IArguments inflexibity
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export function newRequestLogger(baseLogger: LoggerInstance, requestId: string, isFromIrc: boolean) {
-    const decorate = function(fn: LeveledLogMethod, args: IArguments ) {
-        let newArgs: Array<any> = [];
+    const decorate = function(fn: LeveledLogMethod, args: any[] ) {
+        const newArgs: Array<unknown> = [];
         // don't slice this; screws v8 optimisations apparently
         for (let i = 0; i < args.length; i++) {
             newArgs.push(args[i]);
@@ -206,17 +203,16 @@ export function newRequestLogger(baseLogger: LoggerInstance, requestId: string, 
             reqId: requestId,
             dir: (isFromIrc ? "[I->M] " : "[M->I] ")
         };
-        // Typescript doesn't like us mangling args like this, but we have to.
-        // @ts-ignore
-        fn.apply(baseLogger, newArgs);
+        fn.apply(baseLogger, newArgs as any);
     };
     return {
-        debug: function() { decorate(baseLogger.debug, arguments); },
-        info: function() { decorate(baseLogger.info, arguments); },
-        warn: function() { decorate(baseLogger.warn, arguments); },
-        error: function() { decorate(baseLogger.error, arguments); },
+        debug: (...args: any[]) => { decorate(baseLogger.debug, args); },
+        info: (...args: any[]) => { decorate(baseLogger.info, args); },
+        warn: (...args: any[]) => { decorate(baseLogger.warn, args); },
+        error: (...args: any[]) => { decorate(baseLogger.error, args); },
     };
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function setUncaughtExceptionLogger(exceptionLogger: LoggerInstance) {
     process.on("uncaughtException", function(e) {
@@ -240,7 +236,7 @@ export function setUncaughtExceptionLogger(exceptionLogger: LoggerInstance) {
         // few lines before quitting, which I suspect is due to it not flushing.
         // Since we know we're going to die at this point, log something else
         // and forcibly flush all the transports before exiting.
-        exceptionLogger.error("Terminating (exitcode=1)", function(err: Error) {
+        exceptionLogger.error("Terminating (exitcode=1)", function() {
             let numFlushes = 0;
             let numFlushed = 0;
             Object.keys(exceptionLogger.transports).forEach(function(k) {
