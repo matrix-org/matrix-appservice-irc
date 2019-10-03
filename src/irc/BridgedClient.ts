@@ -26,6 +26,7 @@ import { IrcClientConfig } from "../models/IrcClientConfig";
 import { MatrixUser } from "matrix-appservice-bridge";
 import { LoggerInstance } from "winston";
 import { IrcAction } from "../models/IrcAction";
+import { IdentGenerator } from "./IdentGenerator";
 
 const log = getLogger("BridgedClient");
 
@@ -36,7 +37,6 @@ const NICK_DELAY_TIMER_MS = 10 * 1000; // 10s
 // All of these are not defined yet.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type EventBroker = any;
-type IdentGenerator = any;
 type Ipv6Generator = any;
 type IrcClient = EventEmitter|any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -680,7 +680,7 @@ export class BridgedClient extends EventEmitter {
         return this.lastActionTs;
     }
 
-    private onConnectionCreated(connInst: ConnectionInstance, nameInfo: {username: string}) {
+    private onConnectionCreated(connInst: ConnectionInstance, nameInfo: {username?: string}) {
         // listen for a connect event which is done when the TCP connection is
         // established and set ident info (this is different to the connect() callback
         // in node-irc which actually fires on a registered event..)
@@ -689,7 +689,7 @@ export class BridgedClient extends EventEmitter {
             if (connInst.client.conn && connInst.client.conn.localPort) {
                 localPort = connInst.client.conn.localPort;
             }
-            if (localPort > 0) {
+            if (localPort > 0 && nameInfo.username) {
                 Ident.setMapping(nameInfo.username, localPort);
             }
         });

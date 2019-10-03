@@ -73,7 +73,7 @@ export interface ConnectionOpts {
     localAddress?: string;
     password?: string;
     realname: string;
-    username: string;
+    username?: string;
     nick: string;
     secure?: {
         ca?: string;
