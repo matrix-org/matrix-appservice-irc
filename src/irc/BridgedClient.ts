@@ -16,16 +16,16 @@ limitations under the License.
 
 import Bluebird from "bluebird";
 import * as promiseutil from "../promiseutil";
-import util from "util";
 import { EventEmitter } from "events";
-import * as Ident from "./Ident"
-import { ConnectionInstance, InstanceDisconnectReason } from "./ConnectionInstance";
+import Ident from "./Ident"
+import { ConnectionInstance, InstanceDisconnectReason, IrcError } from "./ConnectionInstance";
 import { IrcRoom } from "../models/IrcRoom";
 import { getLogger } from "../logging";
 import { IrcServer } from "./IrcServer";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { MatrixUser } from "matrix-appservice-bridge";
 import { LoggerInstance } from "winston";
+import { IrcAction } from "../models/IrcAction";
 
 const log = getLogger("BridgedClient");
 
@@ -33,10 +33,34 @@ const log = getLogger("BridgedClient");
 const JOIN_TIMEOUT_MS = 15 * 1000; // 15s
 const NICK_DELAY_TIMER_MS = 10 * 1000; // 10s
 
+// All of these are not defined yet.
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type EventBroker = any;
 type IdentGenerator = any;
 type Ipv6Generator = any;
-type IrcClient = any;
+type IrcClient = EventEmitter|any;
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+interface GetNicksResponse {
+    server: IrcServer;
+    channel: string;
+    nicks: string[];
+    names: {[nick: string]: string};
+}
+
+interface GetNicksResponseOperators extends GetNicksResponse {
+    operatorNicks: string[];
+}
+
+interface WhoisResponse {
+    user: string;
+    idle: number;
+    channels: string[];
+    host: string;
+    realname: string;
+}
+
+export const illegalCharactersRegex = /[^A-Za-z0-9\]\[\^\\\{\}\-`_\|]/g;
 
 export class BridgedClient extends EventEmitter {
     public readonly userId: string|null;
@@ -44,16 +68,17 @@ export class BridgedClient extends EventEmitter {
     private _nick: string;
     private readonly id: string;
     private readonly password?: string;
-    private unsafeClient: IrcClient|null;
+    private _unsafeClient: IrcClient|null = null;
     private lastActionTs: number;
-    private inst: ConnectionInstance|null;
-    private instCreationFailed: boolean;
-    private explicitDisconnect: boolean;
-    private disconnectReason: string|null;
-    private chanList: string[];
+    private inst: ConnectionInstance|null = null;
+    private instCreationFailed = false;
+    private _explicitDisconnect = false;
+    private _disconnectReason: string|null = null;
+    private _chanList: string[] = [];
     private connectDefer: promiseutil.Defer<void>;
     private log: LoggerInstance;
-    private cachedOperatorNicksInfo: {[channel: string]: any};
+    private cachedOperatorNicksInfo: {[channel: string]: GetNicksResponseOperators} = {};
+    private idleTimeout: NodeJS.Timer|null = null;
     /**
      * Create a new bridged IRC client.
      * @constructor
@@ -68,7 +93,7 @@ export class BridgedClient extends EventEmitter {
     constructor(
         public readonly server: IrcServer,
         private clientConfig: IrcClientConfig,
-        public readonly matrixUser: MatrixUser|undefined, 
+        public readonly matrixUser: MatrixUser|undefined,
         public readonly isBot: boolean,
         private readonly eventBroker: EventBroker,
         private readonly identGenerator: IdentGenerator,
@@ -76,66 +101,85 @@ export class BridgedClient extends EventEmitter {
         super();
         this.userId = matrixUser ? matrixUser.getId() : null;
         this.displayName = matrixUser ? matrixUser.getDisplayName() : null;
-        this._nick = this.getValidNick(
-            clientConfig.getDesiredNick() || server.getNick(this.userId!, this.displayName || undefined),
-            false
-        );
+
+        // Set nick block
+        const desiredNick = clientConfig.getDesiredNick();
+        let chosenNick: string|null = null;
+        if (desiredNick) {
+            chosenNick = desiredNick;
+        }
+        else if (this.userId !== null) {
+            chosenNick = server.getNick(this.userId, this.displayName || undefined);
+        }
+        else {
+            throw Error("Could not determine nick for user");
+        }
+        this._nick = this.getValidNick(chosenNick, false);
         this.password = (
             clientConfig.getPassword() ? clientConfig.getPassword() : server.config.password
         );
 
         this.lastActionTs = Date.now();
-        this.inst = null;
-        this.instCreationFailed = false;
-        this.explicitDisconnect = false;
-        this.disconnectReason = null;
-        this.chanList = [];
         this.connectDefer = promiseutil.defer();
         this.id = (Math.random() * 1e20).toString(36);
-        this.unsafeClient = null;
         // decorate log lines with the nick and domain, along with an instance id
-        var prefix = "<" + this.nick + "@" + this.server.domain + "#" + this.id + "> ";
+        let prefix = "<" + this.nick + "@" + this.server.domain + "#" + this.id + "> ";
         if (this.userId) {
             prefix += "(" + this.userId + ") ";
         }
         this.log = {
-            debug: function() {
-                arguments[0] = prefix + arguments[0];
-                log.debug.apply(log, arguments as any);
+            // More args magic
+            /* eslint-disable @typescript-eslint/no-explicit-any */
+            debug: (...args: any[]) => {
+                const msg = prefix + args[0];
+                log.debug(msg, ...args.slice(1));
             },
-            info: function() {
-                arguments[0] = prefix + arguments[0];
-                log.info.apply(log, arguments as any);
+            info: (...args: any[]) => {
+                const msg = prefix + args[0];
+                log.info(msg, ...args.slice(1));
             },
-            error: function() {
-                arguments[0] = prefix + arguments[0];
-                log.error.apply(log, arguments as any);
+            error: (...args: any[]) => {
+                const msg = prefix + args[0];
+                log.error(msg, ...args.slice(1));
             }
+            /* eslint-enable @typescript-eslint/no-explicit-any */
         } as unknown as LoggerInstance;
-
-        this.cachedOperatorNicksInfo = {
-            // $channel : info
-        }
     }
 
-    public get nick() : string {
+    public get explicitDisconnect() {
+        return this._explicitDisconnect;
+    }
+
+    public get disconnectReason() {
+        return this._disconnectReason;
+    }
+
+    public get chanList() {
+        return this._chanList;
+    }
+
+    public get unsafeClient() {
+        return this._unsafeClient;
+    }
+
+    public get nick(): string {
         return this._nick;
     }
-    
+
 
     public getClientConfig() {
         return this.clientConfig;
     }
 
-    public kill(reason: string) {
+    public kill(reason?: string) {
         // Nullify so that no further commands can be issued
         //  via unsafeClient, which should be null checked
         //  anyway as it is not instantiated until a connection
         //  has occurred.
-        this.unsafeClient = null;
+        this._unsafeClient = null;
         // kill connection instance
         log.info('Killing client ', this.nick);
-        return this.disconnect(reason || "Bridged client killed");
+        return this.disconnect("killed", reason);
     }
 
     public isDead() {
@@ -146,7 +190,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     public toString() {
-        let domain = this.server ? this.server.domain : "NO_DOMAIN";
+        const domain = this.server ? this.server.domain : "NO_DOMAIN";
         return `${this.nick}@${domain}#${this.id}~${this.userId}`;
     }
 
@@ -155,13 +199,13 @@ export class BridgedClient extends EventEmitter {
      */
     public async connect(): Promise<ConnectionInstance> {
         try {
-            let nameInfo = yield this._identGenerator.getIrcNames(
-                this._clientConfig, this.matrixUser
+            const nameInfo = await this.identGenerator.getIrcNames(
+                this.clientConfig, this.matrixUser
             );
             if (this.server.getIpv6Prefix()) {
                 // side-effects setting the IPv6 address on the client config
-                yield this._ipv6Generator.generate(
-                    this.server.getIpv6Prefix(), this._clientConfig
+                await this.ipv6Generator.generate(
+                    this.server.getIpv6Prefix(), this.clientConfig
                 );
             }
             this.log.info(
@@ -172,7 +216,7 @@ export class BridgedClient extends EventEmitter {
                 `Connecting to the IRC network '${this.server.domain}' as ${this.nick}...`
             );
 
-            const connInst = yield ConnectionInstance.create(server, {
+            const connInst = await ConnectionInstance.create(this.server, {
                 nick: this.nick,
                 username: nameInfo.username,
                 realname: nameInfo.realname,
@@ -180,14 +224,14 @@ export class BridgedClient extends EventEmitter {
                 // Don't use stored IPv6 addresses unless they have a prefix else they
                 // won't be able to turn off IPv6!
                 localAddress: (
-                    this.server.getIpv6Prefix() ? this._clientConfig.getIpv6Address() : undefined
+                    this.server.getIpv6Prefix() ? this.clientConfig.getIpv6Address() : undefined
                 )
-            }, (inst) => {
-                this._onConnectionCreated(inst, nameInfo);
+            }, (inst: ConnectionInstance) => {
+                this.onConnectionCreated(inst, nameInfo);
             });
 
             this.inst = connInst;
-            this.unsafeClient = connInst.client;
+            this._unsafeClient = connInst.client;
             this.emit("client-connected", this);
             // we may have been assigned a different nick, so update it from source
             this._nick = connInst.client.nick;
@@ -198,7 +242,7 @@ export class BridgedClient extends EventEmitter {
                 `You've been connected to the IRC network '${this.server.domain}' as ${this.nick}.`
             );
 
-            let userModes = this.server.getUserModes();
+            const userModes = this.server.getUserModes();
             if (userModes.length > 0 && !this.isBot) {
                 // These can fail, but the generic error listener will catch them and send them
                 // into the same room as the connect text, so it's probably good enough to not
@@ -211,7 +255,7 @@ export class BridgedClient extends EventEmitter {
 
             this.eventBroker.sendMetadata(this, connectText);
 
-            connInst.client.addListener("nick", (old, newNick) => {
+            connInst.client.addListener("nick", (old: string, newNick: string) => {
                 if (old === this.nick) {
                     this.log.info(
                         "NICK: Nick changed from '" + old + "' to '" + newNick + "'."
@@ -220,13 +264,13 @@ export class BridgedClient extends EventEmitter {
                     this.emit("nick-change", this, old, newNick);
                 }
             });
-            connInst.client.addListener("error", (err) => {
+            connInst.client.addListener("error", (err: IrcError) => {
                 // Errors we MUST notify the user about, regardless of the bridge's admin room config.
                 const ERRORS_TO_FORCE = ["err_nononreg"]
                 if (!err || !err.command || connInst.dead) {
                     return;
                 }
-                var msg = "Received an error on " + this.server.domain + ": " + err.command + "\n";
+                let msg = "Received an error on " + this.server.domain + ": " + err.command + "\n";
                 msg += JSON.stringify(err.args);
                 this.eventBroker.sendMetadata(this, msg, ERRORS_TO_FORCE.includes(err.command));
             });
@@ -237,14 +281,25 @@ export class BridgedClient extends EventEmitter {
             this.instCreationFailed = true;
             throw err;
         }
-    });
+    }
 
-    public disconnect(reason: InstanceDisconnectReason) {
-        this.explicitDisconnect = true;
+    public async reconnect() {
+        this.log.info(
+            "Reconnected %s@%s", this.nick, this.server.domain
+        );
+        this.log.info("Rejoining %s channels", this.chanList.length);
+        await Promise.all(this.chanList.map((c: string) => {
+            return this.joinChannel(c);
+        }));
+        this.log.info("Rejoined channels");
+    }
+
+    public disconnect(reason: InstanceDisconnectReason, textReason?: string) {
+        this._explicitDisconnect = true;
         if (!this.inst || this.inst.dead) {
             return Promise.resolve();
         }
-        return this.inst.disconnect(reason);
+        return this.inst.disconnect(reason, textReason);
     }
 
     /**
@@ -270,7 +325,9 @@ export class BridgedClient extends EventEmitter {
         }
 
         return new Promise((resolve, reject) => {
-            let nickListener, nickErrListener;
+            // These are nullified to prevent the linter from thinking these should be consts.
+            let nickListener: ((old: string, n: string) => void) | null = null;
+            let nickErrListener: ((err: IrcError) => void) | null = null;
             const timeoutId = setTimeout(() => {
                 this.log.error("Timed out trying to change nick to %s", validNick);
                 // may have d/ced between sending nick change and now so recheck
@@ -287,7 +344,7 @@ export class BridgedClient extends EventEmitter {
             }
             nickErrListener = (err) => {
                 if (!err || !err.command) { return; }
-                var failCodes = [
+                const failCodes = [
                     "err_banonchan", "err_nickcollision", "err_nicknameinuse",
                     "err_erroneusnickname", "err_nonicknamegiven", "err_eventnickchange",
                     "err_nicktoofast", "err_unavailresource"
@@ -306,8 +363,7 @@ export class BridgedClient extends EventEmitter {
     }
 
 
-    public leaveChannel(channel: string, reason: string) {
-        reason = reason || "User left";
+    public leaveChannel(channel: string, reason = "User left") {
         if (!this.inst || this.inst.dead) {
             return Promise.resolve(); // we were never connected to the network.
         }
@@ -317,12 +373,11 @@ export class BridgedClient extends EventEmitter {
         if (!this.inChannel(channel)) {
             return Promise.resolve(); // we were never joined to it.
         }
-        var self = this;
-        var defer = promiseutil.defer();
+        const defer = promiseutil.defer();
         this.removeChannel(channel);
-        self.log.debug("Leaving channel %s", channel);
-        this.unsafeClient.part(channel, reason, function() {
-            self.log.debug("Left channel %s", channel);
+        this.log.debug("Leaving channel %s", channel);
+        this.unsafeClient.part(channel, reason, () => {
+            this.log.debug("Left channel %s", channel);
             defer.resolve();
         });
 
@@ -353,21 +408,21 @@ export class BridgedClient extends EventEmitter {
         });
     }
 
-    public sendAction(room, action:) {
-        this._keepAlive();
+    public sendAction(room: IrcRoom, action: IrcAction) {
+        this.keepAlive();
         let expiryTs = 0;
         if (action.ts && this.server.getExpiryTimeSeconds()) {
             expiryTs = action.ts + (this.server.getExpiryTimeSeconds() * 1000);
         }
         switch (action.type) {
             case "message":
-                return this._sendMessage(room, "message", action.text, expiryTs);
+                return this.sendMessage(room, "message", action.text, expiryTs);
             case "notice":
-                return this._sendMessage(room, "notice", action.text, expiryTs);
+                return this.sendMessage(room, "notice", action.text, expiryTs);
             case "emote":
-                return this._sendMessage(room, "action", action.text, expiryTs);
+                return this.sendMessage(room, "action", action.text, expiryTs);
             case "topic":
-                return this._setTopic(room, action.text);
+                return this.setTopic(room, action.text);
             default:
                 this.log.error("Unknown action type: %s", action.type);
         }
@@ -378,28 +433,27 @@ export class BridgedClient extends EventEmitter {
      * Get the whois info for an IRC user
      * @param {string} nick : The nick to call /whois on
      */
-    public whois(nick) {
-        var self = this;
-        return new Promise(function(resolve, reject) {
-            self.unsafeClient.whois(nick, function(whois) {
+    public whois(nick: string): Promise<{ server: IrcServer; nick: string; msg: string}> {
+        return new Promise((resolve, reject) => {
+            this.unsafeClient.whois(nick, (whois: WhoisResponse) => {
                 if (!whois.user) {
                     reject(new Error("Cannot find nick on whois."));
                     return;
                 }
-                let idle = whois.idle ? `${whois.idle} seconds idle` : "";
-                let chans = (
+                const idle = whois.idle ? `${whois.idle} seconds idle` : "";
+                const chans = (
                     (whois.channels && whois.channels.length) > 0 ?
                     `On channels: ${JSON.stringify(whois.channels)}` :
                     ""
                 );
 
-                let info = `${whois.user}@${whois.host}
+                const info = `${whois.user}@${whois.host}
                 Real name: ${whois.realname}
                 ${chans}
                 ${idle}
                 `;
                 resolve({
-                    server: self.server,
+                    server: this.server,
                     nick: nick,
                     msg: `Whois info for '${nick}': ${info}`
                 });
@@ -418,91 +472,94 @@ export class BridgedClient extends EventEmitter {
      *         whilst the cache is still valid and it will become invalid after cacheDurationMs
      *         milliseconds. Cache will not be used if left undefined.
      */
-    public getOperators(channel, opts) {
-        let key = opts.key;
-        let cacheDurationMs = opts.cacheDurationMs;
+    public async getOperators(channel: string, opts: {
+        key?: string;
+        cacheDurationMs?: number;
+    } = {}): Promise<GetNicksResponseOperators> {
+        const key = opts.key;
+        const cacheDurationMs = opts.cacheDurationMs;
 
-        if (typeof key !== 'undefined' && typeof key !== 'string') {
+        if (key !== undefined && typeof key !== 'string') {
             throw new Error('key must be a string');
         }
 
-        if (typeof cacheDurationMs !== 'undefined') {
+        if (cacheDurationMs !== undefined) {
             if (!(Number.isInteger(cacheDurationMs) && cacheDurationMs > 0)) {
                 throw new Error('cacheDurationMs must be a positive integer');
             }
             // If cached previously, use cache
-            if (typeof this._cachedOperatorNicksInfo[channel] !== 'undefined') {
-                return Promise.resolve(this._cachedOperatorNicksInfo[channel]);
+            if (this.cachedOperatorNicksInfo[channel] !== undefined) {
+                return Promise.resolve(this.cachedOperatorNicksInfo[channel]);
             }
         }
+        await this.joinChannel(channel, key);
+        const nicksInfo = await this.getNicks(channel);
+        await this.leaveChannel(channel);
+        const nicks = nicksInfo.nicks;
+        // RFC 1459 1.3.1:
+        // A channel operator is identified by the '@' symbol next to their
+        // nickname whenever it is associated with a channel (ie replies to the
+        // NAMES, WHO and WHOIS commands).
 
-        return this._joinChannel(channel, key).then(() => {
-            return this.getNicks(channel);
-        }).then((nicksInfo) => {
-            return this._leaveChannel(channel).then(() => nicksInfo);
-        }).then((nicksInfo) => {
-            let nicks = nicksInfo.nicks;
-            // RFC 1459 1.3.1:
-            // A channel operator is identified by the '@' symbol next to their
-            // nickname whenever it is associated with a channel (ie replies to the
-            // NAMES, WHO and WHOIS commands).
+        // http://www.irc.org/tech_docs/005.html
+        // ISUPPORT PREFIX:
+        // A list of channel modes a person can get and the respective prefix a channel
+        // or nickname will get in case the person has it. The order of the modes goes
+        // from most powerful to least powerful. Those prefixes are shown in the output
+        // of the WHOIS, WHO and NAMES command.
+        // Note: Some servers only show the most powerful, others may show all of them.
 
-            // http://www.irc.org/tech_docs/005.html
-            // ISUPPORT PREFIX:
-            // A list of channel modes a person can get and the respective prefix a channel
-            // or nickname will get in case the person has it. The order of the modes goes
-            // from most powerful to least powerful. Those prefixes are shown in the output
-            // of the WHOIS, WHO and NAMES command.
-            // Note: Some servers only show the most powerful, others may show all of them.
-
-            // Ergo: They are a chan op if they are "@" or "more powerful than @".
-            nicksInfo.operatorNicks = nicks.filter((nick) => {
-                for (let i = 0; i < nicksInfo.names[nick].length; i++) {
-                    let prefix = nicksInfo.names[nick][i];
-                    if (prefix === "@") {
-                        return true;
-                    }
-                    let cli = this.unsafeClient;
-                    if (!cli) {
-                        throw new Error("Missing client");
-                    }
-                    if (cli.isUserPrefixMorePowerfulThan(prefix, "@")) {
-                        return true;
-                    }
+        // Ergo: They are a chan op if they are "@" or "more powerful than @".
+        const operatorNicks = nicks.filter((nick) => {
+            for (let i = 0; i < nicksInfo.names[nick].length; i++) {
+                const prefix = nicksInfo.names[nick][i];
+                if (prefix === "@") {
+                    return true;
                 }
-                return false;
-            });
-
-            if (typeof cacheDurationMs !== 'undefined') {
-                this._cachedOperatorNicksInfo[channel] = nicksInfo;
-                setTimeout(()=>{
-                    //Invalidate the cache
-                    delete this._cachedOperatorNicksInfo[channel];
-                }, cacheDurationMs);
+                const cli = this.unsafeClient;
+                if (!cli) {
+                    throw new Error("Missing client");
+                }
+                if (cli.isUserPrefixMorePowerfulThan(prefix, "@")) {
+                    return true;
+                }
             }
-
-            return nicksInfo;
+            return false;
         });
+
+        const nicksInfoExtended = {
+            ...nicksInfo,
+            operatorNicks
+        };
+
+        if (typeof cacheDurationMs !== 'undefined') {
+            this.cachedOperatorNicksInfo[channel] = nicksInfoExtended;
+            setTimeout(()=>{
+                //Invalidate the cache
+                delete this.cachedOperatorNicksInfo[channel];
+            }, cacheDurationMs);
+        }
+
+        return nicksInfoExtended;
     }
 
     /**
      * Get the nicks of the users in a channel
      * @param {string} channel : The channel to call /names on
      */
-    public getNicks(channel) {
-        var self = this;
-        return new Promise(function(resolve, reject) {
-            self.unsafeClient.names(channel, function(channelName, names) {
+    public getNicks(channel: string): Bluebird<GetNicksResponse> {
+        return new Bluebird((resolve) => {
+            this.unsafeClient.names(channel, (channelName: string, names: {[nick: string]: string}) => {
                 // names maps nicks to chan op status, where '@' indicates chan op
                 // names = {'nick1' : '', 'nick2' : '@', ...}
                 resolve({
-                    server: self.server,
+                    server: this.server,
                     channel: channelName,
                     nicks: Object.keys(names),
                     names: names,
                 });
             });
-        }).timeout(5000);
+        }).timeout(5000) as Bluebird<GetNicksResponse>;
     }
 
 
@@ -569,7 +626,7 @@ export class BridgedClient extends EventEmitter {
 
     private keepAlive() {
         this.lastActionTs = Date.now();
-        var idleTimeout = this.server.getIdleTimeout();
+        const idleTimeout = this.server.getIdleTimeout();
         if (idleTimeout > 0) {
             if (this.idleTimeout) {
                 // stop the timeout
@@ -579,32 +636,31 @@ export class BridgedClient extends EventEmitter {
                 "_keepAlive; Restarting %ss idle timeout", idleTimeout
             );
             // restart the timeout
-            var self = this;
-            this.idleTimeout = setTimeout(function() {
-                self.log.info("Idle timeout has expired");
-                if (self.server.shouldSyncMembershipToIrc("initial")) {
-                    self.log.info(
+            this.idleTimeout = setTimeout(() => {
+                this.log.info("Idle timeout has expired");
+                if (this.server.shouldSyncMembershipToIrc("initial")) {
+                    this.log.info(
                         "Not disconnecting because %s is mirroring matrix membership lists",
-                        self.server.domain
+                        this.server.domain
                     );
                     return;
                 }
-                if (self.isBot) {
-                    self.log.info("Not disconnecting because this is the bot");
+                if (this.isBot) {
+                    this.log.info("Not disconnecting because this is the bot");
                     return;
                 }
-                self.disconnect(
-                    "Idle timeout reached: " + idleTimeout + "s"
-                ).done(function() {
-                    self.log.info("Idle timeout reached: Disconnected");
-                }, function(e) {
-                    self.log.error("Error when disconnecting: %s", JSON.stringify(e));
+                this.disconnect(
+                    "idle", `Idle timeout reached: ${idleTimeout}s`
+                ).then(() => {
+                    this.log.info("Idle timeout reached: Disconnected");
+                }).catch((e) => {
+                    this.log.error("Error when disconnecting: %s", JSON.stringify(e));
                 });
             }, (1000 * idleTimeout));
         }
     }
     private removeChannel(channel: string) {
-        var i = this.chanList.indexOf(channel);
+        const i = this.chanList.indexOf(channel);
         if (i === -1) {
             return;
         }
@@ -612,7 +668,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     private addChannel(channel: string) {
-        var i = this.chanList.indexOf(channel);
+        const i = this.chanList.indexOf(channel);
         if (i !== -1) {
             return; // already added
         }
@@ -628,7 +684,7 @@ export class BridgedClient extends EventEmitter {
         // established and set ident info (this is different to the connect() callback
         // in node-irc which actually fires on a registered event..)
         connInst.client.once("connect", function() {
-            var localPort = -1;
+            let localPort = -1;
             if (connInst.client.conn && connInst.client.conn.localPort) {
                 localPort = connInst.client.conn.localPort;
             }
@@ -638,37 +694,38 @@ export class BridgedClient extends EventEmitter {
         });
 
         connInst.onDisconnect = (reason) => {
-            this.disconnectReason = reason;
+            this._disconnectReason = reason;
             if (reason === "banned") {
                 // If we've been banned, this is intentional.
-                this.explicitDisconnect = true;
+                this._explicitDisconnect = true;
             }
             this.emit("client-disconnected", this);
-            this._eventBroker.sendMetadata(this,
+            this.eventBroker.sendMetadata(this,
                 "Your connection to the IRC network '" + this.server.domain +
                 "' has been lost. "
             );
-            clearTimeout(this._idleTimeout);
+            if (this.idleTimeout) {
+                clearTimeout(this.idleTimeout);
+            }
         }
 
-        this._eventBroker.addHooks(this, connInst);
+        this.eventBroker.addHooks(this, connInst);
     }
 
-    private setTopic(room, topic) {
+    private async setTopic(room: IrcRoom, topic: string): Promise<void> {
         // join the room if we haven't already
-        return this._joinChannel(room.channel).then(() => {
-            this.log.info("Setting topic to %s in channel %s", topic, room.channel);
-            this.unsafeClient.send("TOPIC", room.channel, topic);
-        });
+        await this.joinChannel(room.channel)
+        this.log.info("Setting topic to %s in channel %s", topic, room.channel);
+        this.unsafeClient.send("TOPIC", room.channel, topic);
     }
 
-    private sendMessage(room, msgType, text, expiryTs) {
+    private async sendMessage(room: IrcRoom, msgType: string, text: string, expiryTs: number) {
         // join the room if we haven't already
-        var defer = promiseutil.defer();
+        const defer = promiseutil.defer();
         msgType = msgType || "message";
-        this._connectDefer.promise.then(() => {
-            return this._joinChannel(room.channel);
-        }).done(() => {
+        try {
+            await this.connectDefer.promise;
+            await this.joinChannel(room.channel);
             // re-check timestamp to see if we should send it now
             if (expiryTs && Date.now() > expiryTs) {
                 this.log.error(`Dropping event: too old (expired at ${expiryTs})`);
@@ -686,54 +743,53 @@ export class BridgedClient extends EventEmitter {
                 this.unsafeClient.say(room.channel, text);
             }
             defer.resolve();
-        }, (e) => {
+        }
+        catch (ex) {
             this.log.error("sendMessage: Failed to join channel " + room.channel);
-            defer.reject(e);
-        });
-        return defer.promise;
+            defer.reject(ex);
+        }
+        await defer.promise;
     }
 
-    private joinChannel(channel, key, attemptCount) {
-        attemptCount = attemptCount || 1;
+    private joinChannel(channel: string, key?: string, attemptCount = 1): Bluebird<IrcRoom> {
         if (!this.unsafeClient) {
             // we may be trying to join before we've connected, so check and wait
-            if (this._connectDefer && this._connectDefer.promise.isPending()) {
-                return this._connectDefer.promise.then(() => {
-                    return this._joinChannel(channel, key, attemptCount);
+            if (this.connectDefer && this.connectDefer.promise.isPending()) {
+                return this.connectDefer.promise.then(() => {
+                    return this.joinChannel(channel, key, attemptCount);
                 });
             }
-            return Promise.reject(new Error("No client"));
+            return Bluebird.reject(new Error("No client"));
         }
         if (Object.keys(this.unsafeClient.chans).indexOf(channel) !== -1) {
-            return Promise.resolve(new IrcRoom(this.server, channel));
+            return Bluebird.resolve(new IrcRoom(this.server, channel));
         }
         if (channel.indexOf("#") !== 0) {
             // PM room
-            return Promise.resolve(new IrcRoom(this.server, channel));
+            return Bluebird.resolve(new IrcRoom(this.server, channel));
         }
         if (this.server.isExcludedChannel(channel)) {
-            return Promise.reject(new Error(channel + " is a do-not-track channel."));
+            return Bluebird.reject(new Error(channel + " is a do-not-track channel."));
         }
-        var defer = promiseutil.defer();
+        const defer = promiseutil.defer() as promiseutil.Defer<IrcRoom>;
         this.log.debug("Joining channel %s", channel);
-        this._addChannel(channel);
-        var client = this.unsafeClient;
+        this.addChannel(channel);
+        const client = this.unsafeClient;
         // listen for failures to join a channel (e.g. +i, +k)
-        var failFn = (err) => {
+        const failFn = (err: IrcError) => {
             if (!err || !err.args) { return; }
-            var failCodes = [
+            const failCodes = [
                 "err_nosuchchannel", "err_toomanychannels", "err_channelisfull",
                 "err_inviteonlychan", "err_bannedfromchan", "err_badchannelkey",
                 "err_needreggednick"
             ];
             this.log.error("Join channel %s : %s", channel, JSON.stringify(err));
-            if (failCodes.indexOf(err.command) !== -1 &&
-                    err.args.indexOf(channel) !== -1) {
+            if (err.command && failCodes.includes(err.command) && err.args.includes(channel)) {
                 this.log.error("Cannot track channel %s: %s", channel, err.command);
                 client.removeListener("error", failFn);
                 defer.reject(new Error(err.command));
                 this.emit("join-error", this, channel, err.command);
-                this._eventBroker.sendMetadata(
+                this.eventBroker.sendMetadata(
                     this, `Could not join ${channel} on '${this.server.domain}': ${err.command}`, true
                 );
             }
@@ -768,9 +824,9 @@ export class BridgedClient extends EventEmitter {
                 this.log.error("Timed out trying to join %s - trying again.", channel);
                 // try joining again.
                 attemptCount += 1;
-                this._joinChannel(channel, key, attemptCount).done(function(s) {
+                this.joinChannel(channel, key, attemptCount).then((s) => {
                     defer.resolve(s);
-                }, function(e) {
+                }).catch((e: Error) => {
                     defer.reject(e);
                 });
             }
@@ -780,12 +836,10 @@ export class BridgedClient extends EventEmitter {
         this.unsafeClient.join(channel + (key ? " " + key : ""), () => {
             this.log.debug("Joined channel %s", channel);
             client.removeListener("error", failFn);
-            var room = new IrcRoom(this.server, channel);
+            const room = new IrcRoom(this.server, channel);
             defer.resolve(room);
         });
 
         return defer.promise;
     }
 }
-
-export const illegalCharactersRegex = /[^A-Za-z0-9\]\[\^\\\{\}\-`_\|]/g;
