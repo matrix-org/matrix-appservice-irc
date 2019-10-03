@@ -19,20 +19,20 @@ import Bluebird from "bluebird";
 export interface Defer<T> {
     resolve: (value?: T) => void;
     reject: (err?: unknown) => void;
-    promise: Promise<T>;
+    promise: Bluebird<T>;
 }
 
 export function defer<T>(): Defer<T> {
-    let resolve: (value?: T) => void;
-    let reject: (err?: unknown) => void;
+    let resolve!: (value?: T) => void;
+    let reject!: (err?: unknown) => void;
     const promise = new Bluebird((res, rej) => {
         resolve = res;
         reject = rej
     });
     return {
-        resolve: resolve!,
-        reject: reject!,
-        promise: promise
+        resolve: resolve,
+        reject: reject,
+        promise: promise as Bluebird<T>
     };
 }
 

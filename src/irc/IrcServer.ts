@@ -315,7 +315,7 @@ export class IrcServer {
         return this.config.privateMessages.enabled;
     }
 
-    public shouldSyncMembershipToIrc(kind: MembershipSyncKind, roomId: string) {
+    public shouldSyncMembershipToIrc(kind: MembershipSyncKind, roomId?: string) {
         return this._shouldSyncMembership(kind, roomId, true);
     }
 
@@ -323,7 +323,7 @@ export class IrcServer {
         return this._shouldSyncMembership(kind, channel, false);
     }
 
-    public _shouldSyncMembership(kind: MembershipSyncKind, identifier: string, toIrc: boolean) {
+    public _shouldSyncMembership(kind: MembershipSyncKind, identifier: string|undefined, toIrc: boolean) {
         if (["incremental", "initial"].indexOf(kind) === -1) {
             throw new Error("Bad kind: " + kind);
         }

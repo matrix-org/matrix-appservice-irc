@@ -146,4 +146,4 @@ class IdentSrv {
     }
 }
 
-export const staticInstance = new IdentSrv();
+export default new IdentSrv();

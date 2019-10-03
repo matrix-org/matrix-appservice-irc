@@ -36,10 +36,10 @@ export class PgDataStore implements DataStore {
 
     public static readonly LATEST_SCHEMA = 1;
     private pgPool: Pool;
-    private hasEnded: boolean = false;
+    private hasEnded = false;
     private cryptoStore?: StringCrypto;
 
-    constructor(private bridgeDomain: string, connectionString: string, pkeyPath?: string, min: number = 1, max: number = 4) {
+    constructor(private bridgeDomain: string, connectionString: string, pkeyPath?: string, min = 1, max = 4) {
         this.pgPool = new Pool({
             connectionString,
             min,
@@ -58,7 +58,7 @@ export class PgDataStore implements DataStore {
             }
             // Ensure we clean up on exit
             this.pgPool.end();
-        })        
+        })
     }
 
     public async setServerFromConfig(server: IrcServer, serverConfig: IrcServerConfig): Promise<void> {
@@ -112,7 +112,7 @@ export class PgDataStore implements DataStore {
             irc_json: ircJson,
             matrix_json: matrixJson,
         };
-        const statement = PgDataStore.BuildUpsertStatement("rooms","ON CONSTRAINT cons_rooms_unique", Object.keys(parameters));
+        const statement = PgDataStore.BuildUpsertStatement("rooms", "ON CONSTRAINT cons_rooms_unique", Object.keys(parameters));
         await this.pgPool.query(statement, Object.values(parameters));
     }
 
@@ -120,7 +120,7 @@ export class PgDataStore implements DataStore {
         return {
             id: "",
             matrix: new MatrixRoom(pgEntry.room_id, pgEntry.matrix_json),
-            remote: new RemoteRoom("", 
+            remote: new RemoteRoom("",
             {
                 ...pgEntry.irc_json,
                 channel: pgEntry.irc_channel,
@@ -170,7 +170,7 @@ export class PgDataStore implements DataStore {
                 channel: e.irc_channel,
             });
         })
-    
+
         return mappings;
     }
 
@@ -194,10 +194,10 @@ export class PgDataStore implements DataStore {
     }
 
     public async getIrcChannelsForRoomId(roomId: string): Promise<IrcRoom[]> {
-        let entries = await this.pgPool.query("SELECT irc_domain, irc_channel FROM rooms WHERE room_id = $1", [ roomId ]);
+        let entries = await this.pgPool.query("SELECT irc_domain, irc_channel FROM rooms WHERE room_id = $1", [roomId]);
         if (entries.rowCount === 0) {
             // Could be a PM room, if it's not a channel.
-            entries = await this.pgPool.query("SELECT irc_domain, irc_nick FROM pm_rooms WHERE room_id = $1", [ roomId ]);
+            entries = await this.pgPool.query("SELECT irc_domain, irc_nick FROM pm_rooms WHERE room_id = $1", [roomId]);
         }
         return entries.rows.map((e) => {
             const server = this.serverMappings[e.irc_domain];
@@ -209,11 +209,11 @@ export class PgDataStore implements DataStore {
         }).filter((i) => i !== undefined);
     }
 
-    public async getIrcChannelsForRoomIds(roomIds: string[]): Promise<{ [roomId: string]: IrcRoom[]; }> {
+    public async getIrcChannelsForRoomIds(roomIds: string[]): Promise<{ [roomId: string]: IrcRoom[] }> {
         const entries = await this.pgPool.query("SELECT room_id, irc_domain, irc_channel FROM rooms WHERE room_id IN $1", [
             roomIds
         ]);
-        const mapping: { [roomId: string]: IrcRoom[]; } = {};
+        const mapping: { [roomId: string]: IrcRoom[] } = {};
         entries.rows.forEach((e) => {
             const server = this.serverMappings[e.irc_domain];
             if (!server) {
@@ -253,7 +253,7 @@ export class PgDataStore implements DataStore {
         return entries.rows.map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
-    public async getModesForChannel(server: IrcServer, channel: string): Promise<{ [id: string]: string[]; }> {
+    public async getModesForChannel(server: IrcServer, channel: string): Promise<{ [id: string]: string[] }> {
         log.debug(`Getting modes for ${server.domain} ${channel}`);
         const mapping: {[id: string]: string[]} = {};
         const entries = await this.pgPool.query(
@@ -334,7 +334,7 @@ export class PgDataStore implements DataStore {
             return [];
         }
         log.info(`Fetching all channels for ${domain}`);
-        const chanSet = await this.pgPool.query("SELECT DISTINCT irc_channel FROM rooms WHERE irc_domain = $1", [ domain ]);
+        const chanSet = await this.pgPool.query("SELECT DISTINCT irc_channel FROM rooms WHERE irc_domain = $1", [domain]);
         return chanSet.rows.map((e) => e.irc_channel as string);
     }
 
@@ -354,7 +354,7 @@ export class PgDataStore implements DataStore {
     }
 
     public async setIpv6Counter(counter: number): Promise<void> {
-        await this.pgPool.query("UPDATE ipv6_counter SET count = $1", [ counter ]);
+        await this.pgPool.query("UPDATE ipv6_counter SET count = $1", [counter]);
     }
 
     public async upsertMatrixRoom(room: MatrixRoom): Promise<void> {
@@ -368,7 +368,7 @@ export class PgDataStore implements DataStore {
     }
 
     public async getAdminRoomById(roomId: string): Promise<MatrixRoom|null> {
-        const res = await this.pgPool.query("SELECT room_id FROM admin_rooms WHERE room_id = $1", [ roomId ]);
+        const res = await this.pgPool.query("SELECT room_id FROM admin_rooms WHERE room_id = $1", [roomId]);
         if (res.rowCount === 0) {
             return null;
         }
@@ -379,11 +379,11 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query(PgDataStore.BuildUpsertStatement("admin_rooms", "(room_id)", [
             "room_id",
             "user_id",
-        ]), [ room.getId(), userId ]);
+        ]), [room.getId(), userId]);
     }
 
     public async getAdminRoomByUserId(userId: string): Promise<MatrixRoom|null> {
-        const res = await this.pgPool.query("SELECT room_id FROM admin_rooms WHERE user_id = $1", [ userId ]);
+        const res = await this.pgPool.query("SELECT room_id FROM admin_rooms WHERE user_id = $1", [userId]);
         if (res.rowCount === 0) {
             return null;
         }
@@ -400,7 +400,7 @@ export class PgDataStore implements DataStore {
     }
 
     public async getIrcClientConfig(userId: string, domain: string): Promise<IrcClientConfig | null> {
-        const res = await this.pgPool.query("SELECT config, password FROM client_config WHERE user_id = $1 and domain = $2", 
+        const res = await this.pgPool.query("SELECT config, password FROM client_config WHERE user_id = $1 and domain = $2",
         [
             userId,
             domain
@@ -453,7 +453,7 @@ export class PgDataStore implements DataStore {
     public async getUserFeatures(userId: string): Promise<UserFeatures> {
         const pgRes = (
             await this.pgPool.query("SELECT features FROM user_features WHERE user_id = $1",
-            [ userId ])
+            [userId])
         );
         if (pgRes.rowCount === 0) {
             return {};
@@ -469,7 +469,7 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query(statement, [userId, JSON.stringify(features)]);
     }
 
-    public async storePass(userId: string, domain: string, pass: string, encrypt: boolean = true): Promise<void> {
+    public async storePass(userId: string, domain: string, pass: string, encrypt = true): Promise<void> {
         let password = pass;
         if (encrypt) {
             if (!this.cryptoStore) {
@@ -498,7 +498,8 @@ export class PgDataStore implements DataStore {
         );
         if (res.rowCount === 0) {
             return;
-        } else if (res.rowCount > 1) {
+        }
+ else if (res.rowCount > 1) {
             log.error("getMatrixUserByUsername returned %s results for %s on %s", res.rowCount, username, domain);
         }
         return new MatrixUser(res.rows[0].user_id, res.rows[0].data);
@@ -514,7 +515,8 @@ export class PgDataStore implements DataStore {
                 await runSchema(this.pgPool);
                 currentVersion++;
                 await this.updateSchemaVersion(currentVersion);
-            } catch (ex) {
+            }
+ catch (ex) {
                 log.warn(`Failed to run schema v${currentVersion + 1}:`, ex);
                 throw Error("Failed to update database schema");
             }
@@ -536,14 +538,15 @@ export class PgDataStore implements DataStore {
 
     private async updateSchemaVersion(version: number) {
         log.debug(`updateSchemaVersion: ${version}`);
-        await this.pgPool.query("UPDATE schema SET version = $1;", [ version ]);
+        await this.pgPool.query("UPDATE schema SET version = $1;", [version]);
     }
 
     private async getSchemaVersion(): Promise<number> {
         try {
             const { rows } = await this.pgPool.query("SELECT version FROM SCHEMA");
             return rows[0].version;
-        } catch (ex) {
+        }
+ catch (ex) {
             if (ex.code === "42P01") { // undefined_table
                 log.warn("Schema table could not be found");
                 return 0;
