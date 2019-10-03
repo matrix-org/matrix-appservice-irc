@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import { getLogger } from "../logging";
-import { BridgedClient, illegalCharactersRegex} from "./BridgedClient";
+import { illegalCharactersRegex} from "./BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 
 const log = getLogger("IrcServer");

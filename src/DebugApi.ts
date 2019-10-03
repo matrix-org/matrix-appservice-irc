@@ -17,13 +17,14 @@ limitations under the License.
 import querystring, { ParsedUrlQuery } from "querystring";
 import Bluebird from "bluebird";
 import http, { IncomingMessage, ServerResponse } from "http";
-import { IrcServer } from "./irc/IrcServer"; 
+import { IrcServer } from "./irc/IrcServer";
 
 import { BridgeRequest } from "./models/BridgeRequest";
 import { inspect } from "util";
 import { DataStore } from "./datastore/DataStore";
 import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
+import { BridgedClient } from "./irc/BridgedClient";
 
 const log = getLogger("DebugApi");
 

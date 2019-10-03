@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import Bluebird from "bluebird";
-import{ getLogger } from "../logging";
+import { getLogger } from "../logging";
 import { Queue } from "../util/Queue";
 import { IrcServer } from "./IrcServer";
 
