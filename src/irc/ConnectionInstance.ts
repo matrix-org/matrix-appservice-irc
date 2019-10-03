@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// We have no types for IRC yet.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const irc = require("irc");
 
 import * as promiseutil from "../promiseutil";
@@ -25,6 +27,13 @@ import { IrcServer } from "./IrcServer";
 
 const log = logging.get("client-connection");
 
+export interface IrcError {
+    command?: string;
+    args: string[];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type IrcClient = any;
 
 // The time we're willing to wait for a connect callback when connecting to IRC.
 const CONNECT_TIMEOUT_MS = 30 * 1000; // 30s
@@ -61,20 +70,21 @@ function logError(err: Error) {
 }
 
 export interface ConnectionOpts {
-    localAddress: string;
+    localAddress?: string;
     password?: string;
     realname: string;
     username: string;
     nick: string;
     secure?: {
         ca?: string;
-    }
+    };
 }
 
-export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|"toomanyconns"|"banned";
+export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|
+                                       "toomanyconns"|"banned"|"killed"|"idle"|"limit_reached";
 
 export class ConnectionInstance {
-    public dead: boolean = false;
+    public dead = false;
     private state: "created"|"connecting"|"connected" = "created";
     private pingRateTimerId: NodeJS.Timer|null = null;
     private clientSidePingTimeoutTimerId: NodeJS.Timer|null = null;
@@ -88,7 +98,7 @@ export class ConnectionInstance {
      * @param {string} domain The domain (for logging purposes)
      * @param {string} nick The nick (for logging purposes)
      */
-    constructor (private readonly client: any, private readonly domain: string, private nick: string) {
+    constructor (public readonly client: IrcClient, private readonly domain: string, private nick: string) {
         this.listenForErrors();
         this.listenForPings();
         this.listenForCTCPVersions();
@@ -130,10 +140,11 @@ export class ConnectionInstance {
      * @param {string} reason - Reason to reject with. One of:
      * throttled|irc_error|net_error|timeout|raw_error|toomanyconns|banned
      */
-    public disconnect(reason: InstanceDisconnectReason) {
+    public disconnect(reason: InstanceDisconnectReason, ircReason?: string) {
         if (this.dead) {
             return Bluebird.resolve();
         }
+        ircReason = ircReason || reason;
         log.info(
             "disconnect()ing %s@%s - %s", this.nick, this.domain, reason
         );
@@ -141,7 +152,7 @@ export class ConnectionInstance {
 
         return new Bluebird((resolve) => {
             // close the connection
-            this.client.disconnect(reason, () => {});
+            this.client.disconnect(ircReason, () => {});
             // remove timers
             if (this.pingRateTimerId) {
                 clearTimeout(this.pingRateTimerId);
@@ -168,7 +179,7 @@ export class ConnectionInstance {
     }
 
     public addListener(eventName: string, fn: (item: IArguments) => void) {
-        this.client.addListener(eventName, () => {
+        this.client.addListener(eventName, (...args: Array<unknown>) => {
             if (this.dead) {
                 log.error(
                     "%s@%s RECV a %s event for a dead connection",
@@ -177,12 +188,14 @@ export class ConnectionInstance {
                 return;
             }
             // do the callback
-            fn.apply(fn, arguments as any);
+            // eslint is usually confused about IArguments
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            fn.apply(fn, args as any);
         });
     }
 
     private listenForErrors() {
-        this.client.addListener("error", (err?: {command?: string}) => {
+        this.client.addListener("error", (err?: IrcError) => {
             log.error("Server: %s (%s) Error: %s", this.domain, this.nick, JSON.stringify(err));
             // We should disconnect the client for some but not all error codes. This
             // list is a list of codes which we will NOT disconnect the client for.
@@ -222,7 +235,7 @@ export class ConnectionInstance {
             );
             this.disconnect("net_error").catch(logError);
         });
-        this.client.addListener("raw", (msg?: {command?: string, rawCommand: string, args?: string[]}) => {
+        this.client.addListener("raw", (msg?: {command?: string; rawCommand: string; args?: string[]}) => {
             if (logging.isVerbose()) {
                 log.debug(
                     "%s@%s: %s", this.nick, this.domain, JSON.stringify(msg)
@@ -232,9 +245,9 @@ export class ConnectionInstance {
                 log.error(
                     "%s@%s: %s", this.nick, this.domain, JSON.stringify(msg)
                 );
-                var wasThrottled = false;
+                let wasThrottled = false;
                 if (msg.args) {
-                    var errText = ("" + msg.args[0]) || "";
+                    let errText = ("" + msg.args[0]) || "";
                     errText = errText.toLowerCase();
                     wasThrottled = errText.indexOf("throttl") !== -1;
                     if (wasThrottled) {
@@ -259,8 +272,8 @@ export class ConnectionInstance {
                 }
             }
         });
-    };
-    
+    }
+
     private listenForPings() {
         // BOTS-65 : A client can get ping timed out and not reconnect.
         // ------------------------------------------------------------
@@ -290,19 +303,20 @@ export class ConnectionInstance {
         });
         // decorate client.send to refresh the timer
         const realSend = this.client.send;
-        this.client.send = (command: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.client.send = (...args: unknown[]) => {
             keepAlivePing();
             this.resetPingSendTimer(); // sending a message counts as a ping
-            realSend.apply(this.client, arguments);
+            realSend.apply(this.client, args);
         };
-    };
-    
+    }
+
     private listenForCTCPVersions() {
         this.client.addListener("ctcp-version", (from: string) => {
            this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
         });
-    };
-    
+    }
+
     private resetPingSendTimer() {
         // reset the ping rate timer
         if (this.pingRateTimerId) {
@@ -317,7 +331,7 @@ export class ConnectionInstance {
             // keep doing it.
             this.resetPingSendTimer();
         }, PING_RATE_MS);
-    } 
+    }
 
     /**
      * Create an IRC client connection and connect to it.
@@ -331,11 +345,11 @@ export class ConnectionInstance {
      * @param {Function} onCreatedCallback Called with the client when created.
      * @return {Promise} Resolves to an ConnectionInstance or rejects.
      */
-    public static async create (server: IrcServer, opts: ConnectionOpts, onCreatedCallback: (inst: ConnectionInstance) => void) {
+    public static async create (server: IrcServer, opts: ConnectionOpts,
+                                onCreatedCallback?: (inst: ConnectionInstance) => void): Promise<ConnectionInstance> {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
         }
-        onCreatedCallback = onCreatedCallback || function() {};
         const connectionOpts = {
             userName: opts.username,
             realName: opts.realname,
@@ -356,14 +370,16 @@ export class ConnectionInstance {
         };
 
         // Returns: A promise which resolves to a ConnectionInstance
-        let retryConnection = () => {
-            let nodeClient = new irc.Client(
+        const retryConnection = () => {
+            const nodeClient = new irc.Client(
                 server.randomDomain(), opts.nick, connectionOpts
             );
-            let inst = new ConnectionInstance(
+            const inst = new ConnectionInstance(
                 nodeClient, server.domain, opts.nick
             );
-            onCreatedCallback(inst);
+            if (onCreatedCallback) {
+                onCreatedCallback(inst);
+            }
             return inst.connect();
         };
 
@@ -374,14 +390,12 @@ export class ConnectionInstance {
             try {
                 if (server.getReconnectIntervalMs() > 0) {
                     // wait until scheduled
-                    let cli = await Scheduler.reschedule(
+                    return (await Scheduler.reschedule(
                         server, retryTimeMs, retryConnection, opts.nick
-                    );
-                    return cli;
+                    )) as ConnectionInstance;
                 }
                 // Try to connect immediately: we'll wait if we fail.
-                let cli = await retryConnection();
-                return cli;
+                return await retryConnection();
             }
             catch (err) {
                 connAttempts += 1;
