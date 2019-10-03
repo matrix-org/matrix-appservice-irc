@@ -59,7 +59,8 @@ let loggerTransports: TransportInstance[]; // from config
 
 export function timestampFn() {
     return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
-};
+}
+
 export function formatterFn(opts: FormatterFnOpts) {
     return opts.timestamp() + ' ' +
     opts.level.toUpperCase() + ':' +
@@ -67,10 +68,9 @@ export function formatterFn(opts: FormatterFnOpts) {
     (opts.meta && opts.meta.reqId ? ("[" + opts.meta.reqId + "] ") : "") +
     (opts.meta && opts.meta.dir ? opts.meta.dir : "") +
     (undefined !== opts.message ? opts.message : '');
-};
+}
 
 const makeTransports = function() {
-
 
     let transports = [];
     if (loggerConfig.toConsole) {
