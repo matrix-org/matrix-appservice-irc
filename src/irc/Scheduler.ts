@@ -22,8 +22,8 @@ import { IrcServer } from "./IrcServer";
 const log = getLogger("scheduler");
 
 interface QueueItem {
-    fn: () => Promise<unknown>,
-    addedDelayMs: number,
+    fn: () => Promise<unknown>;
+    addedDelayMs: number;
 }
 
 // Maps domain => Queue
@@ -54,10 +54,14 @@ export default {
     // Returns a promise that will be resolved when retryConnection returns a promise that
     //  resolves, in other words, when the connection is made. The promise will reject if the
     //  promise returned from retryConnection is rejected.
-    reschedule: Bluebird.coroutine(function*(server: IrcServer, addedDelayMs: number, retryConnection: () => Promise<unknown>, nick: string) {
-        var q = getQueue(server);
+    reschedule: Bluebird.coroutine(function*(
+        server: IrcServer,
+        addedDelayMs: number,
+        retryConnection: () => Promise<unknown>,
+        nick: string) {
+        const q = getQueue(server);
 
-        var promise = q.enqueue(
+        const promise = q.enqueue(
             `Scheduler.reschedule ${server.domain} ${nick}`,
             {
                 fn: retryConnection,
@@ -79,9 +83,9 @@ export default {
 
     // Reject all queued promises
     killAll: function () {
-        let queueKeys = Object.keys(queues);
-        for (var i = 0; i < queueKeys.length; i++) {
-            var q = queues[queueKeys[i]];
+        const queueKeys = Object.keys(queues);
+        for (let i = 0; i < queueKeys.length; i++) {
+            const q = queues[queueKeys[i]];
             q.killAll();
         }
     }
