@@ -34,7 +34,7 @@ export class IdentGenerator {
         // We need to queue them because otherwise 2 clashing user_ids could be assigned
         // the same ident value (won't be in the database yet)
         this.queue = new Queue((item: unknown) => {
-            const {matrixUser, ircClientConfig} = item as { matrixUser: MatrixUser, ircClientConfig: IrcClientConfig};
+            const {matrixUser, ircClientConfig} = item as { matrixUser: MatrixUser; ircClientConfig: IrcClientConfig};
             return this.process(matrixUser, ircClientConfig);
         });
     }
@@ -50,7 +50,7 @@ export class IdentGenerator {
      */
     public async getIrcNames(ircClientConfig: IrcClientConfig, matrixUser?: MatrixUser) {
         const username = ircClientConfig.getUsername();
-        const info: {username?: string, realname: string} = {
+        const info: {username?: string; realname: string} = {
             username: undefined,
             realname: (matrixUser ?
                 IdentGenerator.sanitiseRealname(matrixUser.getId()) :
@@ -112,7 +112,7 @@ export class IdentGenerator {
         const existingConfig = await this.dataStore.getIrcClientConfig(matrixUser.getId(), configDomain);
         const config = existingConfig ? existingConfig : ircClientConfig;
         config.setUsername(uname);
-    
+
         // persist to db here before releasing the lock on this request.
         await this.dataStore.storeIrcClientConfig(config);
         return config.getUsername();
@@ -159,7 +159,7 @@ export class IdentGenerator {
         *
         * return uname
         */
-        var delim = "_";
+        const delim = "_";
         const modifyUsername = () => {
             if (uname.indexOf(delim) === -1) {
                 uname = uname.substring(0, uname.length - 2) + delim + "1";
@@ -208,7 +208,7 @@ export class IdentGenerator {
         return uname;
     }
 
-    private static sanitiseUsername(username: string, replacementChar: string = "") {
+    private static sanitiseUsername(username: string, replacementChar = "") {
         username = username.toLowerCase();
         // strip illegal chars according to RFC 1459 Sect 2.3.1
         // (technically it's any <nonwhite> ascii for <user> but meh)
@@ -223,7 +223,7 @@ export class IdentGenerator {
         }
         return username;
     }
-    
+
     private static sanitiseRealname(realname: string) {
         // real name can be any old ASCII
         return realname.replace(/[^\x00-\x7F]/g, "");

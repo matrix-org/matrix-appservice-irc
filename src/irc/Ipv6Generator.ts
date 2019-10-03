@@ -1,5 +1,19 @@
+/*
+Copyright 2019 The Matrix.org Foundation C.I.C.
 
-import Bluebird from "bluebird";
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 import { Queue } from "../util/Queue";
 import { getLogger } from "../logging";
 import { DataStore } from "../datastore/DataStore";
@@ -8,14 +22,14 @@ import { IrcClientConfig } from "../models/IrcClientConfig";
 const log = getLogger("Ipv6Generator");
 
 export class Ipv6Generator {
-    private counter: number = -1;
+    private counter = -1;
     private queue: Queue;
     constructor (private readonly dataStore: DataStore) {
         // Queue of ipv6 generation requests.
         // We need to queue them because otherwise 2 clashing user_ids could be assigned
         // the same ipv6 value (won't be in the database yet)
         this.queue = new Queue((item) => {
-            const processItem = item as {prefix: string, ircClientConfig: IrcClientConfig};
+            const processItem = item as {prefix: string; ircClientConfig: IrcClientConfig};
             return this.process(processItem.prefix, processItem.ircClientConfig);
         });
     }
@@ -32,14 +46,15 @@ export class Ipv6Generator {
      * @return {Promise} Resolves to the IPv6 address generated; the IPv6 address will
      * already be set on the given config.
      */
-    public async generate (prefix: string, ircClientConfig: IrcClientConfig) {
-        if (ircClientConfig.getIpv6Address()) {
+    public async generate (prefix: string, ircClientConfig: IrcClientConfig): Promise<string> {
+        const existingAddress = ircClientConfig.getIpv6Address();
+        if (existingAddress) {
             log.info(
                 "Using existing IPv6 address %s for %s",
-                ircClientConfig.getIpv6Address(),
+                existingAddress,
                 ircClientConfig.getUserId()
             );
-            return ircClientConfig.getIpv6Address();
+            return existingAddress;
         }
         if (this.counter === -1) {
             log.info("Retrieving counter...");
@@ -49,13 +64,13 @@ export class Ipv6Generator {
         // the bot user will not have a user ID
         const id = ircClientConfig.getUserId() || ircClientConfig.getUsername();
         if (!id) {
-            return;
+            throw Error("Neither a userId or username were provided to generate.");
         }
         log.info("Enqueueing IPv6 generation request for %s", id);
-        await this.queue.enqueue(id, {
+        return (await this.queue.enqueue(id, {
             prefix: prefix,
             ircClientConfig: ircClientConfig
-        });
+        })) as string;
     }
 
     public async process (prefix: string, ircClientConfig: IrcClientConfig) {
