@@ -27,6 +27,7 @@ import { MatrixUser } from "matrix-appservice-bridge";
 import { LoggerInstance } from "winston";
 import { IrcAction } from "../models/IrcAction";
 import { IdentGenerator } from "./IdentGenerator";
+import { Ipv6Generator } from "./Ipv6Generator";
 
 const log = getLogger("BridgedClient");
 
@@ -37,7 +38,6 @@ const NICK_DELAY_TIMER_MS = 10 * 1000; // 10s
 // All of these are not defined yet.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type EventBroker = any;
-type Ipv6Generator = any;
 type IrcClient = EventEmitter|any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -202,10 +202,11 @@ export class BridgedClient extends EventEmitter {
             const nameInfo = await this.identGenerator.getIrcNames(
                 this.clientConfig, this.matrixUser
             );
-            if (this.server.getIpv6Prefix()) {
+            const ipv6Prefix = this.server.getIpv6Prefix();
+            if (ipv6Prefix) {
                 // side-effects setting the IPv6 address on the client config
                 await this.ipv6Generator.generate(
-                    this.server.getIpv6Prefix(), this.clientConfig
+                    ipv6Prefix, this.clientConfig
                 );
             }
             this.log.info(
