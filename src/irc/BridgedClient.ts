@@ -18,7 +18,7 @@ import Bluebird from "bluebird";
 import * as promiseutil from "../promiseutil";
 import { EventEmitter } from "events";
 import Ident from "./Ident"
-import { ConnectionInstance, InstanceDisconnectReason, IrcError } from "./ConnectionInstance";
+import { ConnectionInstance, InstanceDisconnectReason, IrcMessage } from "./ConnectionInstance";
 import { IrcRoom } from "../models/IrcRoom";
 import { getLogger } from "../logging";
 import { IrcServer } from "./IrcServer";
@@ -28,6 +28,7 @@ import { LoggerInstance } from "winston";
 import { IrcAction } from "../models/IrcAction";
 import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
+import { IrcEventBroker } from "./IrcEventBroker";
 
 const log = getLogger("BridgedClient");
 
@@ -37,7 +38,6 @@ const NICK_DELAY_TIMER_MS = 10 * 1000; // 10s
 
 // All of these are not defined yet.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type EventBroker = any;
 type IrcClient = EventEmitter|any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -76,7 +76,7 @@ export class BridgedClient extends EventEmitter {
     private _disconnectReason: string|null = null;
     private _chanList: string[] = [];
     private connectDefer: promiseutil.Defer<void>;
-    private log: LoggerInstance;
+    public readonly log: LoggerInstance;
     private cachedOperatorNicksInfo: {[channel: string]: GetNicksResponseOperators} = {};
     private idleTimeout: NodeJS.Timer|null = null;
     /**
@@ -95,7 +95,7 @@ export class BridgedClient extends EventEmitter {
         private clientConfig: IrcClientConfig,
         public readonly matrixUser: MatrixUser|undefined,
         public readonly isBot: boolean,
-        private readonly eventBroker: EventBroker,
+        private readonly eventBroker: IrcEventBroker,
         private readonly identGenerator: IdentGenerator,
         private readonly ipv6Generator: Ipv6Generator) {
         super();
@@ -265,7 +265,7 @@ export class BridgedClient extends EventEmitter {
                     this.emit("nick-change", this, old, newNick);
                 }
             });
-            connInst.client.addListener("error", (err: IrcError) => {
+            connInst.client.addListener("error", (err: IrcMessage) => {
                 // Errors we MUST notify the user about, regardless of the bridge's admin room config.
                 const ERRORS_TO_FORCE = ["err_nononreg"]
                 if (!err || !err.command || connInst.dead) {
@@ -329,7 +329,7 @@ export class BridgedClient extends EventEmitter {
         return new Promise((resolve, reject) => {
             // These are nullified to prevent the linter from thinking these should be consts.
             let nickListener: ((old: string, n: string) => void) | null = null;
-            let nickErrListener: ((err: IrcError) => void) | null = null;
+            let nickErrListener: ((err: IrcMessage) => void) | null = null;
             const timeoutId = setTimeout(() => {
                 this.log.error("Timed out trying to change nick to %s", validNick);
                 // may have d/ced between sending nick change and now so recheck
@@ -778,7 +778,7 @@ export class BridgedClient extends EventEmitter {
         this.addChannel(channel);
         const client = this.unsafeClient;
         // listen for failures to join a channel (e.g. +i, +k)
-        const failFn = (err: IrcError) => {
+        const failFn = (err: IrcMessage) => {
             if (!err || !err.args) { return; }
             const failCodes = [
                 "err_nosuchchannel", "err_toomanychannels", "err_channelisfull",

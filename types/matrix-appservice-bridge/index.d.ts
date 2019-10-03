@@ -162,4 +162,12 @@ declare module 'matrix-appservice-bridge' {
         resolve(item: unknown): void;
         reject(err: unknown): void;
     }
+
+    export class Bridge {
+        getRequestFactory(): RequestFactory
+    }
+
+    export class RequestFactory {
+        newRequest(opts: {data: {}}): Request
+    }
 }

@@ -27,9 +27,11 @@ import { IrcServer } from "./IrcServer";
 
 const log = logging.get("client-connection");
 
-export interface IrcError {
+export interface IrcMessage {
     command?: string;
     args: string[];
+    rawCommand: string;
+    prefix: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -178,8 +180,10 @@ export class ConnectionInstance {
         });
     }
 
-    public addListener(eventName: string, fn: (item: IArguments) => void) {
-        this.client.addListener(eventName, (...args: Array<unknown>) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public addListener(eventName: string, fn: (...args: Array<any>) => void) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.client.addListener(eventName, (...args: Array<any>) => {
             if (this.dead) {
                 log.error(
                     "%s@%s RECV a %s event for a dead connection",
@@ -195,7 +199,7 @@ export class ConnectionInstance {
     }
 
     private listenForErrors() {
-        this.client.addListener("error", (err?: IrcError) => {
+        this.client.addListener("error", (err?: IrcMessage) => {
             log.error("Server: %s (%s) Error: %s", this.domain, this.nick, JSON.stringify(err));
             // We should disconnect the client for some but not all error codes. This
             // list is a list of codes which we will NOT disconnect the client for.

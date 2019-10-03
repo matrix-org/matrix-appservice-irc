@@ -20,15 +20,10 @@ import { LoggerInstance } from "winston";
 const log = getLogger("req");
 
 export class BridgeRequest {
-    log: {
-        debug: () => void;
-        info: () => void;
-        warn: () => void;
-        error: () => void;
-    };
+    log: LoggerInstance;
     constructor(private req: Request) {
         const isFromIrc = req.getData() ? Boolean(req.getData().isFromIrc) : false;
-        this.log = newRequestLogger(log as LoggerInstance, req.getId(), isFromIrc);
+        this.log = newRequestLogger(log as LoggerInstance, req.getId(), isFromIrc) as LoggerInstance;
     }
 
     getPromise() {

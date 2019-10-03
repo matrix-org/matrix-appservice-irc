@@ -21,16 +21,15 @@ const CLEANUP_TIME_MS = 1000 * 60 * 10; // 10min
 interface ProcessedSet {
     [domain: string]: {
         [hash: string]: {
-            nick: string,
-            ts: number|null,
-        }
-    }
-};
+            nick: string;
+            ts: number|null;
+        };
+    };
+}
 
 export class ProcessedDict {
-    processed: ProcessedSet  = {};
+    processed: ProcessedSet = {};
     private timeoutObj: NodeJS.Timeout|null = null;
-    constructor() { }
 
     public getClaimer(domain: string, hash: string) {
         if (!this.processed[domain] || !this.processed[domain][hash]) {
