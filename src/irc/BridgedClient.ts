@@ -284,6 +284,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     public async reconnect() {
+        await this.connect();
         this.log.info(
             "Reconnected %s@%s", this.nick, this.server.domain
         );

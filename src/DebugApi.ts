@@ -43,7 +43,7 @@ export class DebugApi {
             try {
                 this.onRequest(req, res);
             }
- catch (err) {
+            catch (err) {
                 if (!res.finished) {
                     res.end();
                 }

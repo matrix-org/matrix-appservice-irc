@@ -516,7 +516,7 @@ export class PgDataStore implements DataStore {
                 currentVersion++;
                 await this.updateSchemaVersion(currentVersion);
             }
- catch (ex) {
+            catch (ex) {
                 log.warn(`Failed to run schema v${currentVersion + 1}:`, ex);
                 throw Error("Failed to update database schema");
             }
@@ -546,7 +546,7 @@ export class PgDataStore implements DataStore {
             const { rows } = await this.pgPool.query("SELECT version FROM SCHEMA");
             return rows[0].version;
         }
- catch (ex) {
+        catch (ex) {
             if (ex.code === "42P01") { // undefined_table
                 log.warn("Schema table could not be found");
                 return 0;

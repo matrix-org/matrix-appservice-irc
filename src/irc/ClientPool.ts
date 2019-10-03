@@ -265,14 +265,14 @@ export class ClientPool {
         for (const client of Object.values(this.virtualClients[server.domain].nicks)) {
             if (!client) {
                 // possible since undefined/null values can be present from culled entries
-                return;
+                continue;
             }
             if (client.isBot) {
-                return; // don't ever kick the bot off.
+                continue; // don't ever kick the bot off.
             }
             if (oldest === null) {
                 oldest = client;
-                return;
+                continue;
             }
             if (client.getLastActionTs() < oldest.getLastActionTs()) {
                 oldest = client;
@@ -448,7 +448,7 @@ export class ClientPool {
             await cliChan.cli.reconnect();
             this.sendConnectionMetric(cliChan.cli.server);
         }
- catch (ex) {
+        catch (ex) {
             log.error(
                 "Failed to reconnect %s@%s", cliChan.cli.nick, cliChan.cli.server.domain
             );
