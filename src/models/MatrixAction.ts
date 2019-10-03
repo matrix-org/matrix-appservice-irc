@@ -111,7 +111,7 @@ export class MatrixAction {
             we need the plain text to match something.*/
             let identifier;
             try {
-                identifier = (await intent.getProfileInfo(userId, 'displayname', true)).displayname;
+                identifier = (await intent.getProfileInfo(userId, 'displayname', true)).displayname || undefined;
             }
             catch (e) {
                 // This shouldn't happen, but let's not fail to match if so.
