@@ -56,7 +56,7 @@ class TestEnv {
             return;
         }
 
-        this.pgDb = `${process.env.IRCBRIDGE_TEST_PGDB}_${Date.now()}`;
+        this.pgDb = `${process.env.IRCBRIDGE_TEST_PGDB}_${process.hrtime().join("_")}}`;
         this.config.database = {
             engine: "postgres",
             connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${this.pgDb}`,
