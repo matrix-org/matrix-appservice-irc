@@ -111,9 +111,8 @@ class TestEnv {
         ircMock._reset();
         clientMock._reset();
         if (USING_PG) {
-            const db = process.env.IRCBRIDGE_TEST_PGDB;
             await pgClientConnectPromise;
-            await pgClient.query(`CREATE DATABASE ${db}`);
+            await pgClient.query(`CREATE DATABASE ${this.pgDb}`);
         }
         this.mockAppService = MockAppService.instance();
         return true;
