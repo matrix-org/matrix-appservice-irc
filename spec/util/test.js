@@ -104,7 +104,7 @@ class TestEnv {
         if (USING_PG) {
             await pgClientConnectPromise;
             // Create a new DB for each test
-            this.pgDb = `${process.env.IRCBRIDGE_TEST_PGDB}_${process.hrtime().join("_")}}`;
+            this.pgDb = `${process.env.IRCBRIDGE_TEST_PGDB}_${process.hrtime().join("_")}`;
             this.config.database = {
                 engine: "postgres",
                 connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${this.pgDb}`,
