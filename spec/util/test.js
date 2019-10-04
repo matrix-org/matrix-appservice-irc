@@ -56,7 +56,7 @@ class TestEnv {
             return;
         }
 
-        this.pgDb = process.env.IRCBRIDGE_TEST_PGDB;
+        this.pgDb = `${process.env.IRCBRIDGE_TEST_PGDB}_${Date.now()}`;
         this.config.database = {
             engine: "postgres",
             connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${this.pgDb}`,
@@ -113,7 +113,6 @@ class TestEnv {
         if (USING_PG) {
             const db = process.env.IRCBRIDGE_TEST_PGDB;
             await pgClientConnectPromise;
-            await pgClient.query(`DROP DATABASE IF EXISTS ${db}`);
             await pgClient.query(`CREATE DATABASE ${db}`);
         }
         this.mockAppService = MockAppService.instance();
