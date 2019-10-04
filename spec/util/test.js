@@ -51,16 +51,7 @@ class TestEnv {
         this.ircBridge = null;
         this.ircMock = ircMock;
         this.clientMock = clientMock;
-        // Inject postgres
-        if (!USING_PG) {
-            return;
-        }
 
-        this.pgDb = `${process.env.IRCBRIDGE_TEST_PGDB}_${process.hrtime().join("_")}}`;
-        this.config.database = {
-            engine: "postgres",
-            connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${this.pgDb}`,
-        };
     }
 
     /**
@@ -112,6 +103,12 @@ class TestEnv {
         clientMock._reset();
         if (USING_PG) {
             await pgClientConnectPromise;
+            // Create a new DB for each test
+            this.pgDb = `${process.env.IRCBRIDGE_TEST_PGDB}_${process.hrtime().join("_")}}`;
+            this.config.database = {
+                engine: "postgres",
+                connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${this.pgDb}`,
+            };
             await pgClient.query(`CREATE DATABASE ${this.pgDb}`);
         }
         this.mockAppService = MockAppService.instance();
