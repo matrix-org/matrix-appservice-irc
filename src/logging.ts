@@ -57,11 +57,11 @@ const loggers: {[name: string]: LoggerInstance } = {
 
 let loggerTransports: TransportInstance[]; // from config
 
-export const timestampFn = function() {
+export function timestampFn() {
     return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
 };
 
-export const formatterFn = function(opts: FormatterFnOpts) {
+export function formatterFn(opts: FormatterFnOpts) {
     return opts.timestamp() + ' ' +
     opts.level.toUpperCase() + ':' +
     (opts.meta && opts.meta.loggerName ? opts.meta.loggerName : "") + ' ' +
@@ -71,7 +71,6 @@ export const formatterFn = function(opts: FormatterFnOpts) {
 };
 
 const makeTransports = function() {
-
     let transports = [];
     if (loggerConfig.toConsole) {
         transports.push(new (winston.transports.Console)({
