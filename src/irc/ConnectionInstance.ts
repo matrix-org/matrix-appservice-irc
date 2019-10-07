@@ -1,0 +1,436 @@
+/*
+Copyright 2019 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// We have no types for IRC yet.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const irc = require("irc");
+
+import * as promiseutil from "../promiseutil";
+import Scheduler from "./Scheduler";
+import * as logging from "../logging";
+import Bluebird from "bluebird";
+import { Defer } from "../promiseutil";
+import { IrcServer } from "./IrcServer";
+
+const log = logging.get("client-connection");
+
+export interface IrcError {
+    command?: string;
+    args: string[];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type IrcClient = any;
+
+// The time we're willing to wait for a connect callback when connecting to IRC.
+const CONNECT_TIMEOUT_MS = 30 * 1000; // 30s
+// The delay between messages when there are >1 messages to send.
+const FLOOD_PROTECTION_DELAY_MS = 700;
+// The max amount of time we should wait for the server to ping us before reconnecting.
+// Servers ping infrequently (2-3mins) so this should be high enough to allow up
+// to 2 pings to lapse before reconnecting (5-6mins).
+const PING_TIMEOUT_MS = 1000 * 60 * 10;
+// The minimum time to wait between connection attempts if we were disconnected
+// due to throttling.
+const THROTTLE_WAIT_MS = 20 * 1000;
+
+// The rate at which to send pings to the IRCd if the client is being quiet for a while.
+// Whilst the IRCd *should* be sending pings to us to keep the connection alive, it appears
+// that sometimes they don't get around to it and end up ping timing us out.
+const PING_RATE_MS = 1000 * 60;
+
+// String reply of any CTCP Version requests
+const CTCP_VERSION = 'matrix-appservice-irc, part of the Matrix.org Network';
+
+const CONN_LIMIT_MESSAGES = [
+    "too many host connections", // ircd-seven
+    "no more connections allowed in your connection class",
+    "this server is full", // unrealircd
+];
+
+// Log an Error object to stderr
+function logError(err: Error) {
+    if (!err || !err.message) {
+        return;
+    }
+    log.error(err.message);
+}
+
+export interface ConnectionOpts {
+    localAddress?: string;
+    password?: string;
+    realname: string;
+    username: string;
+    nick: string;
+    secure?: {
+        ca?: string;
+    };
+}
+
+export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|
+                                       "toomanyconns"|"banned"|"killed"|"idle"|"limit_reached";
+
+export class ConnectionInstance {
+    public dead = false;
+    private state: "created"|"connecting"|"connected" = "created";
+    private pingRateTimerId: NodeJS.Timer|null = null;
+    private clientSidePingTimeoutTimerId: NodeJS.Timer|null = null;
+    private connectDefer: Defer<ConnectionInstance>;
+    public onDisconnect?: (reason: string) => void;
+    /**
+     * Create an IRC connection instance. Wraps the node-irc library to handle
+     * connections correctly.
+     * @constructor
+     * @param {IrcClient} ircClient The new IRC client.
+     * @param {string} domain The domain (for logging purposes)
+     * @param {string} nick The nick (for logging purposes)
+     */
+    constructor (public readonly client: IrcClient, private readonly domain: string, private nick: string) {
+        this.listenForErrors();
+        this.listenForPings();
+        this.listenForCTCPVersions();
+        this.connectDefer = promiseutil.defer();
+    }
+
+    /**
+     * Connect this client to the server. There are zero guarantees this will ever
+     * connect.
+     * @return {Promise} Resolves if connected; rejects if failed to connect.
+     */
+    public connect(): Promise<ConnectionInstance> {
+        if (this.dead) {
+            throw new Error("connect() called on dead client: " + this.nick);
+        }
+        this.state = "connecting";
+        let gotConnectedCallback = false;
+        setTimeout(() => {
+            if (!gotConnectedCallback && !this.dead) {
+                log.error(
+                    "%s@%s still not connected after %sms. Killing connection.",
+                    this.nick, this.domain, CONNECT_TIMEOUT_MS
+                );
+                this.disconnect("timeout").catch(logError);
+            }
+        }, CONNECT_TIMEOUT_MS);
+
+        this.client.connect(1, () => {
+            gotConnectedCallback = true;
+            this.state = "connected";
+            this.resetPingSendTimer();
+            this.connectDefer.resolve(this);
+        });
+        return this.connectDefer.promise;
+    }
+
+    /**
+     * Blow away the connection. You MUST destroy this object afterwards.
+     * @param {string} reason - Reason to reject with. One of:
+     * throttled|irc_error|net_error|timeout|raw_error|toomanyconns|banned
+     */
+    public disconnect(reason: InstanceDisconnectReason, ircReason?: string) {
+        if (this.dead) {
+            return Bluebird.resolve();
+        }
+        ircReason = ircReason || reason;
+        log.info(
+            "disconnect()ing %s@%s - %s", this.nick, this.domain, reason
+        );
+        this.dead = true;
+
+        return new Bluebird((resolve) => {
+            // close the connection
+            this.client.disconnect(ircReason, () => {});
+            // remove timers
+            if (this.pingRateTimerId) {
+                clearTimeout(this.pingRateTimerId);
+                this.pingRateTimerId = null;
+            }
+            if (this.clientSidePingTimeoutTimerId) {
+                clearTimeout(this.clientSidePingTimeoutTimerId);
+                this.clientSidePingTimeoutTimerId = null;
+            }
+            if (this.state !== "connected") {
+                // we never resolved this defer, so reject it.
+                this.connectDefer.reject(new Error(reason));
+            }
+            if (this.state === "connected" && this.onDisconnect) {
+                // we only invoke onDisconnect once we've had a successful connect.
+                // Connection *attempts* are managed by the create() function so if we
+                // call this now it would potentially invoke this 3 times (once per
+                // connection instance!). Each time would have dead=false as they are
+                // separate objects.
+                this.onDisconnect(reason);
+            }
+            resolve();
+        });
+    }
+
+    public addListener(eventName: string, fn: (item: IArguments) => void) {
+        this.client.addListener(eventName, (...args: Array<unknown>) => {
+            if (this.dead) {
+                log.error(
+                    "%s@%s RECV a %s event for a dead connection",
+                    this.nick, this.domain, eventName
+                );
+                return;
+            }
+            // do the callback
+            // eslint is usually confused about IArguments
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            fn.apply(fn, args as any);
+        });
+    }
+
+    private listenForErrors() {
+        this.client.addListener("error", (err?: IrcError) => {
+            log.error("Server: %s (%s) Error: %s", this.domain, this.nick, JSON.stringify(err));
+            // We should disconnect the client for some but not all error codes. This
+            // list is a list of codes which we will NOT disconnect the client for.
+            const failCodes = [
+                "err_nosuchchannel", "err_toomanychannels", "err_channelisfull",
+                "err_inviteonlychan", "err_bannedfromchan", "err_badchannelkey",
+                "err_needreggednick", "err_nosuchnick", "err_cannotsendtochan",
+                "err_toomanychannels", "err_erroneusnickname", "err_usernotinchannel",
+                "err_notonchannel", "err_useronchannel", "err_notregistered",
+                "err_alreadyregistred", "err_noprivileges", "err_chanoprivsneeded",
+                "err_banonchan", "err_nickcollision", "err_nicknameinuse",
+                "err_erroneusnickname", "err_nonicknamegiven", "err_eventnickchange",
+                "err_nicktoofast", "err_unknowncommand", "err_unavailresource",
+                "err_umodeunknownflag", "err_nononreg"
+            ];
+            if (err && err.command) {
+                if (failCodes.indexOf(err.command) !== -1) {
+                    return; // don't disconnect for these error codes.
+                }
+            }
+            if (err && err.command === "err_yourebannedcreep") {
+                this.disconnect("banned").catch(logError);
+                return;
+            }
+            this.disconnect("irc_error").catch(logError);
+        });
+        this.client.addListener("netError", (err: unknown) => {
+            log.error(
+                "Server: %s (%s) Network Error: %s", this.domain, this.nick,
+                JSON.stringify(err, undefined, 2)
+            );
+            this.disconnect("net_error").catch(logError);
+        });
+        this.client.addListener("abort", () => {
+            log.error(
+                "Server: %s (%s) Connection Aborted", this.domain, this.nick
+            );
+            this.disconnect("net_error").catch(logError);
+        });
+        this.client.addListener("raw", (msg?: {command?: string; rawCommand: string; args?: string[]}) => {
+            if (logging.isVerbose()) {
+                log.debug(
+                    "%s@%s: %s", this.nick, this.domain, JSON.stringify(msg)
+                );
+            }
+            if (msg && (msg.command === "ERROR" || msg.rawCommand === "ERROR")) {
+                log.error(
+                    "%s@%s: %s", this.nick, this.domain, JSON.stringify(msg)
+                );
+                let wasThrottled = false;
+                if (msg.args) {
+                    let errText = ("" + msg.args[0]) || "";
+                    errText = errText.toLowerCase();
+                    wasThrottled = errText.indexOf("throttl") !== -1;
+                    if (wasThrottled) {
+                        this.disconnect("throttled").catch(logError);
+                        return;
+                    }
+                    const wasBanned = errText.includes("banned") || errText.includes("k-lined");
+                    if (wasBanned) {
+                        this.disconnect("banned").catch(logError);
+                        return;
+                    }
+                    const tooManyHosts = CONN_LIMIT_MESSAGES.find((connLimitMsg) => {
+                       return errText.includes(connLimitMsg);
+                    }) !== undefined;
+                    if (tooManyHosts) {
+                        this.disconnect("toomanyconns").catch(logError);
+                        return;
+                    }
+                }
+                if (!wasThrottled) {
+                    this.disconnect("raw_error").catch(logError);
+                }
+            }
+        });
+    }
+
+    private listenForPings() {
+        // BOTS-65 : A client can get ping timed out and not reconnect.
+        // ------------------------------------------------------------
+        // The client is doing IRC ping/pongs, but there is no check to say
+        // "hey, the server hasn't pinged me in a while, it's probably dead". The
+        // RFC for pings states that pings are sent "if no other activity detected
+        // from a connection." so we need to count anything we shove down the wire
+        // as a ping refresh.
+        const keepAlivePing = () => { // refresh the ping timer
+            if (this.clientSidePingTimeoutTimerId) {
+                clearTimeout(this.clientSidePingTimeoutTimerId);
+            }
+            this.clientSidePingTimeoutTimerId = setTimeout(() => {
+                log.info(
+                    "Ping timeout: knifing connection for %s on %s",
+                    this.domain, this.nick,
+                );
+                // Just emit an netError which clients need to handle anyway.
+                this.client.emit("netError", {
+                    msg: "Client-side ping timeout"
+                });
+            }, PING_TIMEOUT_MS);
+        }
+        this.client.on("ping", (svr: string) => {
+            log.debug("Received ping from %s directed at %s", svr, this.nick);
+            keepAlivePing();
+        });
+        // decorate client.send to refresh the timer
+        const realSend = this.client.send;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.client.send = (...args: unknown[]) => {
+            keepAlivePing();
+            this.resetPingSendTimer(); // sending a message counts as a ping
+            realSend.apply(this.client, args);
+        };
+    }
+
+    private listenForCTCPVersions() {
+        this.client.addListener("ctcp-version", (from: string) => {
+           this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
+        });
+    }
+
+    private resetPingSendTimer() {
+        // reset the ping rate timer
+        if (this.pingRateTimerId) {
+            clearTimeout(this.pingRateTimerId);
+        }
+        this.pingRateTimerId = setTimeout(() => {
+            if (this.dead) {
+                return;
+            }
+            // Do what XChat does
+            this.client.send("PING", "LAG" + Date.now());
+            // keep doing it.
+            this.resetPingSendTimer();
+        }, PING_RATE_MS);
+    }
+
+    /**
+     * Create an IRC client connection and connect to it.
+     * @param {IrcServer} server The server to connect to.
+     * @param {Object} opts Options for this connection.
+     * @param {string} opts.nick The nick to use.
+     * @param {string} opts.username The username to use.
+     * @param {string} opts.realname The real name of the user.
+     * @param {string} opts.password The password to give NickServ.
+     * @param {string} opts.localAddress The local address to bind to when connecting.
+     * @param {Function} onCreatedCallback Called with the client when created.
+     * @return {Promise} Resolves to an ConnectionInstance or rejects.
+     */
+    public static async create (server: IrcServer, opts: ConnectionOpts,
+                                onCreatedCallback?: (inst: ConnectionInstance) => void): Promise<ConnectionInstance> {
+        if (!opts.nick || !server) {
+            throw new Error("Bad inputs. Nick: " + opts.nick);
+        }
+        const connectionOpts = {
+            userName: opts.username,
+            realName: opts.realname,
+            password: opts.password,
+            localAddress: opts.localAddress,
+            autoConnect: false,
+            autoRejoin: false,
+            floodProtection: true,
+            floodProtectionDelay: FLOOD_PROTECTION_DELAY_MS,
+            port: server.getPort(),
+            selfSigned: server.useSslSelfSigned(),
+            certExpired: server.allowExpiredCerts(),
+            retryCount: 0,
+            family: server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null,
+            bustRfc3484: true,
+            sasl: opts.password ? server.useSasl() : false,
+            secure: server.useSsl() ? { ca: server.getCA() } : undefined,
+        };
+
+        // Returns: A promise which resolves to a ConnectionInstance
+        const retryConnection = () => {
+            const nodeClient = new irc.Client(
+                server.randomDomain(), opts.nick, connectionOpts
+            );
+            const inst = new ConnectionInstance(
+                nodeClient, server.domain, opts.nick
+            );
+            if (onCreatedCallback) {
+                onCreatedCallback(inst);
+            }
+            return inst.connect();
+        };
+
+        let connAttempts = 0;
+        let retryTimeMs = 0;
+        const BASE_RETRY_TIME_MS = 1000;
+        while (true) {
+            try {
+                if (server.getReconnectIntervalMs() > 0) {
+                    // wait until scheduled
+                    return (await Scheduler.reschedule(
+                        server, retryTimeMs, retryConnection, opts.nick
+                    )) as ConnectionInstance;
+                }
+                // Try to connect immediately: we'll wait if we fail.
+                return await retryConnection();
+            }
+            catch (err) {
+                connAttempts += 1;
+                log.error(
+                    `ConnectionInstance.connect failed after ${connAttempts} attempts (${err.message})`
+                );
+
+                if (err.message === "throttled") {
+                    retryTimeMs += THROTTLE_WAIT_MS;
+                }
+
+                if (err.message === "banned") {
+                    log.error(
+                        `${opts.nick} is banned from ${server.domain}, ` +
+                        `throwing`
+                    );
+                    throw new Error("User is banned from the network.");
+                    // If the user is banned, we should part them from any rooms.
+                }
+
+                if (err.message === "toomanyconns") {
+                    log.error(
+                        `User ${opts.nick} was ILINED. This may be the network limiting us!`
+                    );
+                    throw new Error("Connection was ILINED. We cannot retry this.");
+                }
+
+                // always set a staggered delay here to avoid thundering herd
+                // problems on mass-disconnects
+                const delay = (BASE_RETRY_TIME_MS * Math.random())+ retryTimeMs +
+                        Math.round((connAttempts * 1000) * Math.random());
+                log.info(`Retrying connection for ${opts.nick} on ${server.domain} `+
+                        `in ${delay}ms (attempts ${connAttempts})`);
+                await Bluebird.delay(delay);
+            }
+        }
+    }
+}

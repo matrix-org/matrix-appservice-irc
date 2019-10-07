@@ -24,7 +24,7 @@ export interface QueueItem {
     defer: Defer<unknown>;
 }
 
-export type QueueProcessFn = (item: unknown) => Bluebird<unknown>|void;
+export type QueueProcessFn = (item: unknown) => Promise<unknown>|void;
 
 export class Queue {
     private queue: QueueItem[] = [];

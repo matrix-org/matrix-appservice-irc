@@ -17,33 +17,38 @@ limitations under the License.
 import querystring, { ParsedUrlQuery } from "querystring";
 import Bluebird from "bluebird";
 import http, { IncomingMessage, ServerResponse } from "http";
-import { IrcServer } from "./irc/IrcServer"; 
+import { IrcServer } from "./irc/IrcServer";
 
 import { BridgeRequest } from "./models/BridgeRequest";
 import { inspect } from "util";
 import { DataStore } from "./datastore/DataStore";
 import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
+import { BridgedClient } from "./irc/BridgedClient";
 
 const log = getLogger("DebugApi");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type IrcBridge = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type BridgedClient = any;
 
 export class DebugApi {
-    constructor(private ircBridge: IrcBridge, private port: number, private servers: IrcServer[], private pool: ClientPool, private token: string) {
+    constructor(
+        private ircBridge: IrcBridge,
+        private port: number,
+        private servers: IrcServer[],
+        private pool: ClientPool,
+        private token: string) {
 
     }
 
     public run () {
         log.info("DEBUG API LISTENING ON :%d", this.port);
-    
+
         http.createServer((req, res) => {
             try {
                 this.onRequest(req, res);
-            } catch (err) {
+            }
+            catch (err) {
                 if (!res.finished) {
                     res.end();
                 }
@@ -85,7 +90,7 @@ export class DebugApi {
         }
 
         // Looks like /irc/$domain/user/$user_id
-        let segs = path.split("/");
+        const segs = path.split("/");
         if (segs.length !== 5 || segs[1] !== "irc" || segs[3] !== "user") {
             response.writeHead(404, {"Content-Type": "text/plain"});
             response.write("Not a valid debug path.\n");
@@ -93,13 +98,13 @@ export class DebugApi {
             return;
         }
 
-        let domain = segs[2];
-        let user = segs[4];
+        const domain = segs[2];
+        const user = segs[4];
 
         log.debug("Domain: %s User: %s", domain, user);
 
         const server = this.servers.find((s) => s.domain === domain);
-        
+
         if (server === undefined) {
             response.writeHead(400, {"Content-Type": "text/plain"});
             response.write("Not a valid domain.\n");
@@ -204,7 +209,7 @@ export class DebugApi {
         if (!user) {
             return this.pool.getBot(server);
         }
-        return this.pool.getBridgedClientByUserId(server, user);    
+        return this.pool.getBridgedClientByUserId(server, user);
     }
 
     private getClientState(server: IrcServer, user: string) {
@@ -265,7 +270,7 @@ export class DebugApi {
 
     private async killPortal (req: IncomingMessage, response: ServerResponse) {
         const store = this.ircBridge.getStore() as DataStore;
-        const result: { error: string[], stages: string[] } = {
+        const result: { error: string[]; stages: string[] } = {
             error: [], // string|[string] containing a fatal error or minor errors.
             stages: [] // stages completed for removing the room. It's possible it might only
                        // half complete, and we should make that obvious.
@@ -305,14 +310,14 @@ export class DebugApi {
             this.wrapJsonResponse(result.error, false, response);
             return;
         }
-    
+
         log.warn(
     `Requested deletion of portal room alias ${roomId} through debug API
     Domain: ${domain}
     Channel: ${channel}
     Leave Notice: ${notice}
     Remove Alias: ${remove_alias}`);
-    
+
         // Find room
         const room = await store.getRoom(
             roomId,
@@ -325,14 +330,14 @@ export class DebugApi {
             this.wrapJsonResponse(result, false, response);
             return;
         }
-    
+
         const server = this.servers.find((srv) => srv.domain === domain);
         if (server === undefined) {
             result.error.push("Server not found!");
             this.wrapJsonResponse(result, false, response);
             return;
         }
-    
+
         // Drop room from room store.
         await store.removeRoom(
             roomId,
@@ -341,7 +346,7 @@ export class DebugApi {
             "alias"
         );
         result.stages.push("Removed room from store");
-    
+
         if (notice) {
             try {
                 await this.ircBridge.getAppServiceBridge().getIntent().sendEvent(roomId, "notice",
@@ -354,7 +359,7 @@ export class DebugApi {
                 result.error.push("Failed to send a leave notice");
             }
         }
-    
+
         if (remove_alias) {
             const roomAlias = server.getAliasFromChannel(channel);
             try {
@@ -365,7 +370,7 @@ export class DebugApi {
                 result.error.push("Failed to remove alias");
             }
         }
-    
+
         // Drop clients from room.
         // The provisioner will only drop clients who are not in other rooms.
         // It will also leave the MatrixBot.
@@ -383,7 +388,7 @@ export class DebugApi {
             this.wrapJsonResponse(result, false, response);
             return;
         }
-    
+
         result.stages.push("Parted clients where applicable.");
         this.wrapJsonResponse(result, true, response);
     }
@@ -421,8 +426,8 @@ export class DebugApi {
                 "info": String(ex),
             }, false, response);
         }
-    };
-    
+    }
+
     private wrapJsonReq (req: IncomingMessage, response: ServerResponse): Bluebird<unknown> {
         let body = "";
         req.on("data", (chunk) => { body += chunk; });
@@ -443,7 +448,7 @@ export class DebugApi {
             });
         });
     }
-    
+
     private wrapJsonResponse (json: unknown, isOk: boolean, response: ServerResponse) {
         response.writeHead(isOk === true ? 200 : 500, {"Content-Type": "application/json"});
         response.write(JSON.stringify(json));
