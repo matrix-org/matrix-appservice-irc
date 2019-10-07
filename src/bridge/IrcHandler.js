@@ -9,7 +9,7 @@ const MatrixUser = require("matrix-appservice-bridge").MatrixUser;
 const { MatrixAction } = require("../models/MatrixAction");
 const { Queue } = require("../util/Queue.js");
 const { QueuePool } = require("../util/QueuePool.js");
-const QuitDebouncer = require("./QuitDebouncer.js");
+const { QuitDebouncer } = require("./QuitDebouncer.js");
 const RoomAccessSyncer = require("./RoomAccessSyncer.js");
 
 const JOIN_DELAY_MS = 250;

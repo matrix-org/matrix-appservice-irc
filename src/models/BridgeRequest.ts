@@ -14,20 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { getLogger, newRequestLogger } from "../logging";
+import { getLogger, newRequestLogger, RequestLogger } from "../logging";
 import { Request } from "matrix-appservice-bridge";
 import { LoggerInstance } from "winston";
 const log = getLogger("req");
 
 export class BridgeRequest {
-    log: {
-        debug: () => void;
-        info: () => void;
-        warn: () => void;
-        error: () => void;
-    };
+    log: RequestLogger;
     constructor(private req: Request) {
         const isFromIrc = req.getData() ? Boolean(req.getData().isFromIrc) : false;
+        // using "unknown" to fix odd typing.
         this.log = newRequestLogger(log as LoggerInstance, req.getId(), isFromIrc);
     }
 

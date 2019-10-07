@@ -953,6 +953,7 @@ describe("Provisioning API", function() {
                 });
 
                 yield env.mockAppService._link(parameters[0], status, json);
+                yield isLinked[0].promise;
                 yield env.mockAppService._link(parameters[1], status, json);
                 yield Promise.all(isLinked.map((d)=>{return d.promise;}));
 
@@ -997,7 +998,6 @@ describe("Provisioning API", function() {
                 let i = 0;
 
                 let ignoreNextBotMessage = false;
-
                 env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
                     if (ignoreNextBotMessage) {
                         ignoreNextBotMessage = false;
@@ -1020,6 +1020,7 @@ describe("Provisioning API", function() {
                 });
 
                 yield env.mockAppService._link(parameters[0], status, json);
+                yield isLinked[0].promise;
                 yield env.mockAppService._link(parameters[1], status, json);
                 yield Promise.all(isLinked.map((d)=>{return d.promise;}));
 

@@ -32,7 +32,12 @@ const log = getLogger("DebugApi");
 type IrcBridge = any;
 
 export class DebugApi {
-    constructor(private ircBridge: IrcBridge, private port: number, private servers: IrcServer[], private pool: ClientPool, private token: string) {
+    constructor(
+        private ircBridge: IrcBridge,
+        private port: number,
+        private servers: IrcServer[],
+        private pool: ClientPool,
+        private token: string) {
 
     }
 

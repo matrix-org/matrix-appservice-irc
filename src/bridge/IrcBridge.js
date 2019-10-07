@@ -326,28 +326,30 @@ IrcBridge.prototype.createBridgedClient = function(ircClientConfig, matrixUser, 
 };
 
 IrcBridge.prototype.run = Promise.coroutine(function*(port) {
-    yield this._bridge.loadDatabases();
+    const dbConfig = this.config.database;
+    const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
 
     if (this._debugApi) {
-        // monkey patch inspect() values to avoid useless NeDB
-        // struct spam on the debug API.
-        this._bridge.getUserStore().inspect = function(depth) {
-            return "UserStore";
-        }
-        this._bridge.getRoomStore().inspect = function(depth) {
-            return "RoomStore";
-        }
         this._debugApi.run();
     }
 
-    let pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
-    const dbConfig = this.config.database;
     if (dbConfig.engine === "postgres") {
         log.info("Using PgDataStore for Datastore");
         this._dataStore = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
         yield this._dataStore.ensureSchema();
     }
     else if (dbConfig.engine === "nedb") {
+        yield this._bridge.loadDatabases();
+        if (this._debugApi) {
+            // monkey patch inspect() values to avoid useless NeDB
+            // struct spam on the debug API.
+            this._bridge.getUserStore().inspect = function(depth) {
+                return "UserStore";
+            }
+            this._bridge.getRoomStore().inspect = function(depth) {
+                return "RoomStore";
+            }
+        }
         log.info("Using NeDBDataStore for Datastore");
         this._dataStore = new NeDBDataStore(
             this._bridge.getUserStore(),
