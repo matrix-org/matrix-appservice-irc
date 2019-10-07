@@ -1,6 +1,6 @@
 "use strict";
 const Promise = require("bluebird");
-const IdentGenerator = require("../../lib/irc/IdentGenerator.js");
+const { IdentGenerator } = require("../../lib/irc/IdentGenerator.js");
 
 describe("Username generation", function() {
     var identGenerator;
@@ -49,71 +49,62 @@ describe("Username generation", function() {
         IdentGenerator.MAX_USER_NAME_LENGTH = 8;
     });
 
-    it("should attempt to truncate the user ID on a long user ID", function(done) {
+    it("should attempt to truncate the user ID on a long user ID", async function() {
         var userId = "@myreallylonguseridhere:localhost";
         var uname = "myreally";
-        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
-            expect(info.username).toEqual(uname);
-            done();
-        });
+        const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+        expect(info.username).toEqual(uname);
     });
 
-    it("should start with '_1' on an occupied user ID", function(done) {
-        var userId = "@myreallylonguseridhere:localhost";
-        var uname = "myreal_1";
+    it("should start with '_1' on an occupied user ID", async function() {
+        const userId = "@myreallylonguseridhere:localhost";
+        const uname = "myreal_1";
         existingUsernames.myreally = "@someone:else";
-        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
-            expect(info.username).toEqual(uname);
-            done();
-        });
+        const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+        expect(info.username).toEqual(uname);
     });
 
-    it("should loop from '_9' to '_10' and keep the same total length", function(done) {
-        var userId = "@myreallylonguseridhere:localhost";
-        var uname = "myrea_10";
+    it("should loop from '_9' to '_10' and keep the same total length", async function() {
+        const userId = "@myreallylonguseridhere:localhost";
+        const uname = "myrea_10";
         existingUsernames.myreally = "@someone:else";
-        for (var i = 1; i < 10; i++) {
+        for (let i = 1; i < 10; i++) {
             existingUsernames["myreal_" + i] = "@someone:else";
         }
-        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
-            expect(info.username).toEqual(uname);
-            done();
-        });
+        const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+        expect(info.username).toEqual(uname);
     });
 
-    it("should loop from '_1' to '_2' and keep the same total length", function(done) {
-        var userId = "@myreallylonguseridhere:localhost";
-        var uname = "myreal_2";
+    it("should loop from '_1' to '_2' and keep the same total length", async function() {
+        const userId = "@myreallylonguseridhere:localhost";
+        const uname = "myreal_2";
         existingUsernames = {
             myreally: "@someone:else",
             myreal_1: "@someone:else"
         };
-        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
-            expect(info.username).toEqual(uname);
-            done();
-        });
+        const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+        expect(info.username).toEqual(uname);
     });
 
-    it("should eventually give up trying usernames", function(done) {
+    it("should eventually give up trying usernames", async function() {
         IdentGenerator.MAX_USER_NAME_LENGTH = 3;
         storeMock.getMatrixUserByUsername = function() {
             return Promise.resolve({getId: function() { return "@someone:else"} });
         };
-        var userId = "@myreallylonguseridhere:localhost";
-        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
-            expect(true).toBe(false, "Promise was unexpectedly resolved.");
-            done();
-        }, function(err) {
-            done();
-        });
+        const userId = "@myreallylonguseridhere:localhost";
+        try {
+            await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+        }
+        catch (ex) {
+            return;
+        }
+        throw Error("Promise was unexpectedly resolved");
     });
 
-    it("should prefix 'M' onto usernames which don't begin with A-z", function(done) {
-        var userId = "@-myname:localhost";
-        var uname = "M-myname";
-        identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId)).done(function(info) {
-            expect(info.username).toEqual(uname);
-            done();
-        });
+    it("should prefix 'M' onto usernames which don't begin with A-z", async function() {
+        const userId = "@-myname:localhost";
+        const uname = "M-myname";
+        const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+        expect(info.username).toEqual(uname);
     });
 });
