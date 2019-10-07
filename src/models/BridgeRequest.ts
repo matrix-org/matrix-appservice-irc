@@ -23,7 +23,6 @@ export class BridgeRequest {
     log: RequestLogger;
     constructor(private req: Request) {
         const isFromIrc = req.getData() ? Boolean(req.getData().isFromIrc) : false;
-        // using "unknown" to fix odd typing.
         this.log = newRequestLogger(log as LoggerInstance, req.getId(), isFromIrc);
     }
 
