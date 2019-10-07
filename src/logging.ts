@@ -35,6 +35,15 @@ interface LoggerConfig {
     verbose: boolean;
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export interface RequestLogger {
+    error: (msg: string, ...meta: any[]) => void;
+    warn: (msg: string, ...meta: any[]) => void;
+    info: (msg: string, ...meta: any[]) => void;
+    debug: (msg: string, ...meta: any[]) => void;
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 const UNCAUGHT_EXCEPTION_ERRCODE = 101;
 
 let loggerConfig: LoggerConfig = {
@@ -191,7 +200,7 @@ export function isVerbose() {
 
 // We use any a lot here to avoid having to deal with IArguments inflexibity
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export function newRequestLogger(baseLogger: LoggerInstance, requestId: string, isFromIrc: boolean) {
+export function newRequestLogger(baseLogger: LoggerInstance, requestId: string, isFromIrc: boolean): RequestLogger {
     const decorate = function(fn: LeveledLogMethod, args: any[] ) {
         const newArgs: Array<unknown> = [];
         // don't slice this; screws v8 optimisations apparently
@@ -205,11 +214,12 @@ export function newRequestLogger(baseLogger: LoggerInstance, requestId: string, 
         };
         fn.apply(baseLogger, newArgs as any);
     };
+    
     return {
-        debug: (...args: any[]) => { decorate(baseLogger.debug, args); },
-        info: (...args: any[]) => { decorate(baseLogger.info, args); },
-        warn: (...args: any[]) => { decorate(baseLogger.warn, args); },
-        error: (...args: any[]) => { decorate(baseLogger.error, args); },
+        debug: (msg: string, ...meta: any[]) => { decorate(baseLogger.debug, [msg, ...meta]); },
+        info: (msg: string, ...meta: any[]) => { decorate(baseLogger.info, [msg, ...meta]); },
+        warn: (msg: string, ...meta: any[]) => { decorate(baseLogger.warn, [msg, ...meta]); },
+        error: (msg: string, ...meta: any[]) => { decorate(baseLogger.error, [msg, ...meta]); },
     };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

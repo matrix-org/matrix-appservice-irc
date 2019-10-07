@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { getLogger, newRequestLogger } from "../logging";
+import { getLogger, newRequestLogger, RequestLogger } from "../logging";
 import { Request } from "matrix-appservice-bridge";
 import { LoggerInstance } from "winston";
 const log = getLogger("req");
 
 export class BridgeRequest {
-    log: LoggerInstance;
+    log: RequestLogger;
     constructor(private req: Request) {
         const isFromIrc = req.getData() ? Boolean(req.getData().isFromIrc) : false;
-        this.log = newRequestLogger(log as LoggerInstance, req.getId(), isFromIrc) as LoggerInstance;
+        this.log = newRequestLogger(log as LoggerInstance, req.getId(), isFromIrc);
     }
 
     getPromise() {

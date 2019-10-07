@@ -458,7 +458,7 @@ export class PgDataStore implements DataStore {
         if (pgRes.rowCount === 0) {
             return {};
         }
-        return pgRes.rows[0].features;
+        return pgRes.rows[0].features || {};
     }
 
     public async storeUserFeatures(userId: string, features: UserFeatures): Promise<void> {
