@@ -77,6 +77,8 @@ export async function runBridge(port: number, config: any, reg: AppServiceRegist
         logging.setUncaughtExceptionLogger(log as LoggerInstance);
     }
     if (config.ircService.statsd.hostname) {
+        log.warn("STATSD WILL BE DEPRECATED SOON")
+        log.warn("SEE https://github.com/matrix-org/matrix-appservice-irc/issues/818")
         stats.setEndpoint(config.ircService.statsd);
     }
     if (config.ircService.ident.enabled) {
