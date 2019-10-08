@@ -25,11 +25,9 @@ import { DataStore } from "./datastore/DataStore";
 import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
 import { BridgedClient } from "./irc/BridgedClient";
+import { IrcBridge } from "./bridge/IrcBridge";
 
 const log = getLogger("DebugApi");
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type IrcBridge = any;
 
 export class DebugApi {
     constructor(
@@ -192,8 +190,11 @@ export class DebugApi {
             }
             response.write(msg + "\n")
         };
+        const server = query["server"] as string;
+        const since = parseInt(query["since"] as string);
+        const reason = query["reason"] as string;
         this.ircBridge.connectionReap(
-            msgCb, query["server"], parseInt(query["since"] as string), query["reason"]
+            msgCb, server, since, reason
         ).catch((err: Error) => {
             log.error(err.stack!);
             if (!response.headersSent) {
@@ -222,7 +223,7 @@ export class DebugApi {
     }
 
     private killUser(userId: string, reason: string) {
-        const req = new BridgeRequest(this.ircBridge._bridge.getRequestFactory().newRequest());
+        const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
         const clients = this.pool.getBridgedClientsForUserId(userId);
         return this.ircBridge.matrixHandler.quitUser(req, userId, clients, null, reason);
     }
@@ -349,8 +350,9 @@ export class DebugApi {
 
         if (notice) {
             try {
-                await this.ircBridge.getAppServiceBridge().getIntent().sendEvent(roomId, "notice",
+                await this.ircBridge.getAppServiceBridge().getIntent().sendMessage(roomId,
                 {
+                    msgtype: "m.notice",
                     body: `This room has been unbridged from ${channel} (${server.getReadableName()})`
                 });
                 result.stages.push("Left notice in room");
@@ -402,7 +404,12 @@ export class DebugApi {
         }
         try {
             const userClients = this.ircBridge.getBridgedClientsForRegex(regex);
-            const clientsResponse: {[userId: string]: BridgedClient} = {};
+            const clientsResponse: {[userId: string]: Array<{
+                channels: string[],
+                dead: boolean,
+                server: string,
+                nick: string
+            }|undefined>} = {};
             Object.keys(userClients).forEach((userId) => {
                 clientsResponse[userId] = userClients[userId].map((client: BridgedClient) => {
                     if (!client) {

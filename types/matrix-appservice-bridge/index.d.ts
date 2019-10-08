@@ -14,7 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 /**
  * This has been borrowed from https://github.com/huan/matrix-appservice-wechaty/blob/master/src/typings/matrix-appservice-bridge.d.ts
  * under the Apache2 licence.
@@ -49,6 +48,18 @@ declare module 'matrix-appservice-bridge' {
         data?: null|any // <nullable> Information about this mapping, which may be an empty.
     }
 
+    export class PrometheusMetrics {
+        addCollector(cb: () => void): void;
+        addCounter(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Counter
+        addTimer(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Histogram;
+        addGauge(arg0: { name: string; help: string; labels: string[]; }): import("prom-client").Gauge;
+
+    }
+
+    export class AppserviceBot {
+        getJoinedRooms(): Promise<string[]>
+    }
+
     export class MatrixRoom {
         protected roomId: string
 
@@ -61,10 +72,11 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class MatrixUser {
+        public static ESCAPE_DEFAULT: boolean;
         public readonly localpart: string
         public readonly host: string
 
-        private userId: string
+        userId: string
 
         constructor (userId: string, data?: object, escape?: boolean)
         escapeUserId(): void
@@ -97,9 +109,11 @@ declare module 'matrix-appservice-bridge' {
         delete (query: any): Promise<void>
         insert (query: any): Promise<void>
         select (query: any, transformFn?: (item: Entry) => Entry): Promise<any>
+        inspect: () => string;
     }
 
     export class RoomBridgeStore extends BridgeStore {
+        constructor(ds: Nedb);
         batchGetLinkedRemoteRooms (matrixIds: Array<string>): Promise<RemoteRoomDict>
         getEntriesByLinkData (data: object): Promise<Array<Entry>>
         getEntriesByMatrixId (matrixId: string): Promise<Array<Entry>>
@@ -127,6 +141,7 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class UserBridgeStore extends BridgeStore {
+        constructor(ds: Nedb);
         getByMatrixData (dataQuery: object): Promise<Array<MatrixUser>>
         getByMatrixLocalpart (localpart: string): Promise<null|MatrixUser>
         getByRemoteData (dataQuery: object): Promise<Array<RemoteUser>>
@@ -148,7 +163,13 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class Intent {
-        getProfileInfo(userId: string, type?: "displayname"|"avatar_url", useCache?: boolean): Promise<{displayname: string|null, avatar_url: string|null}>
+        getProfileInfo(userId: string, type?: "displayname"|"avatar_url", useCache?: boolean): Promise<{displayname: string|null, avatar_url: string|null}>;
+        setPresence(presence: string): Promise<void>;
+        sendMessage(roomId: string, content: any): Promise<void>;
+        sendStateEvent(roomId: string, type: string, stateKey: string, content: any): Promise<void>;
+        kick(roomId: string, userId: string, reason: string): Promise<void>;
+        readonly client: JsClient;
+        getClient(): JsClient;
     }
 
     export class AgeCounter {
@@ -163,11 +184,40 @@ declare module 'matrix-appservice-bridge' {
         reject(err: unknown): void;
     }
 
+    export class JsClient {
+        deleteAlias(alias: string): Promise<void>
+    }
+
     export class Bridge {
-        getRequestFactory(): RequestFactory
+        constructor(config: any);
+        opts: {
+            roomStore: RoomBridgeStore|undefined,
+            userStore: UserBridgeStore|undefined,
+        }
+        getRoomStore(): RoomBridgeStore;
+        getUserStore(): UserBridgeStore;
+        getBot(): AppserviceBot;
+        loadDatabases(): Promise<void>;
+        getRequestFactory(): RequestFactory;
+        getPrometheusMetrics(): PrometheusMetrics;
+        getIntent(userId?: string): Intent;
+        run(port: number): void;
     }
 
     export class RequestFactory {
-        newRequest(opts: {data: {}}): Request
+        newRequest(opts?: {data: {}}): Request
+    }
+
+    export class AppServiceRegistration {
+        static generateToken(): string
+        setSenderLocalpart(localpart: string): void;
+        getSenderLocalpart(): string;
+        setId(id: string): void;
+        setHomeserverToken(token: string): void;
+        setAppServiceToken(token: string): void;
+        getAppServiceToken(): string;
+        setRateLimited(limited: boolean): void;
+        setProtocols(protocols: string[]): void;
+        addRegexPattern(type: "rooms"|"aliases"|"users", regex: string, exclusive: boolean): void;
     }
 }
