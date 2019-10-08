@@ -1,28 +1,28 @@
-const Promise = require("bluebird");
-const extend = require("extend");
-const Datastore = require("nedb");
+import Bluebird from "bluebird";
+import Datastore from "nedb";
+import extend from "extend";
+import http from "http";
+import https from "https";
+import { AppServiceRegistration, RoomBridgeStore, UserBridgeStore } from "matrix-appservice-bridge";
+import { IrcBridge } from "./bridge/IrcBridge";
+import { IrcServer } from "./irc/IrcServer";
+import stats from "./config/stats";
+import ident from "./irc/Ident";
+import * as logging from "./logging";
+import { LoggerInstance } from "winston";
 
-const AppServiceRegistration = require("matrix-appservice-bridge").AppServiceRegistration;
-const RoomBridgeStore = require("matrix-appservice-bridge").RoomBridgeStore;
-const UserBridgeStore = require("matrix-appservice-bridge").UserBridgeStore;
-
-const IrcBridge = require("./bridge/IrcBridge.js");
-const { IrcServer } = require("./irc/IrcServer.js");
-const stats = require("./config/stats");
-const ident = require("./irc/Ident").default;
-const logging = require("./logging");
 const log = logging.get("main");
 
 // We set this to 1000 by default now to set a default, and to ensure we're the first
 // one to load the libraries in. Later on in runBridge we actually define the real limit.
-require("http").globalAgent.maxSockets = 1000;
-require("https").globalAgent.maxSockets = 1000;
+http.globalAgent.maxSockets = 1000;
+https.globalAgent.maxSockets = 1000;
 
-process.on("unhandledRejection", function(reason, promise) {
-    log.error(reason ? reason.stack : "No reason given");
+process.on("unhandledRejection", (reason?: Error) => {
+    log.error((reason ? reason.stack : undefined) ||  "No reason given");
 });
 
-const _toServer = function(domain, serverConfig, homeserverDomain) {
+const _toServer = (domain: string, serverConfig: any, homeserverDomain: string) => {
     // set server config defaults
     if (serverConfig.dynamicChannels.visibility) {
         throw new Error(
@@ -36,34 +36,8 @@ const _toServer = function(domain, serverConfig, homeserverDomain) {
     );
 };
 
-module.exports.generateRegistration = Promise.coroutine(function*(reg, config) {
-    var asToken;
-    if (config.appService) {
-        console.warn(
-            `[DEPRECATED] Use of config field 'appService' is deprecated.
-            Remove this field from the config file to remove this warning.
-
-            This release will use values from this config file. This will produce
-            a fatal error in a later release.
-
-            The new format looks like:
-            homeserver:
-                url: "https://home.server.url"
-                domain: "home.server.url"
-
-            The new locations for the missing fields are as follows:
-            http.port - Passed as a CLI flag --port.
-            appservice.token - Automatically generated.
-            appservice.url - Passed as a CLI flag --url
-            localpart - Passed as a CLI flag --localpart
-            `
-        );
-        if (config.appService.localpart) {
-            console.log("NOTICE: Using localpart from config file");
-            reg.setSenderLocalpart(config.appService.localpart);
-        }
-        asToken = config.appService.appservice.token;
-    }
+export async function generateRegistration(reg: AppServiceRegistration, config: any) {
+    let asToken;
 
     if (!reg.getSenderLocalpart()) {
         reg.setSenderLocalpart(IrcBridge.DEFAULT_LOCALPART);
@@ -80,7 +54,7 @@ module.exports.generateRegistration = Promise.coroutine(function*(reg, config) {
     // thirdparty protocols
     reg.setProtocols(["irc"]);
 
-    let serverDomains = Object.keys(config.ircService.servers);
+    const serverDomains = Object.keys(config.ircService.servers);
     serverDomains.sort().forEach(function(domain) {
         let server = _toServer(domain, config.ircService.servers[domain], config.homeserver.domain);
         server.getHardCodedRoomIds().sort().forEach(function(roomId) {
@@ -94,13 +68,13 @@ module.exports.generateRegistration = Promise.coroutine(function*(reg, config) {
     });
 
     return reg;
-});
+}
 
-module.exports.runBridge = Promise.coroutine(function*(port, config, reg, isDBInMemory) {
+export async function runBridge(port: number, config: any, reg: AppServiceRegistration, isDBInMemory: boolean = false) {
     // configure global stuff for the process
     if (config.ircService.logging) {
         logging.configure(config.ircService.logging);
-        logging.setUncaughtExceptionLogger(log);
+        logging.setUncaughtExceptionLogger(log as LoggerInstance);
     }
     if (config.ircService.statsd.hostname) {
         stats.setEndpoint(config.ircService.statsd);
@@ -119,29 +93,29 @@ module.exports.runBridge = Promise.coroutine(function*(port, config, reg, isDBIn
     const engine = config.database ? config.database.engine : "nedb";
     // Use in-memory DBs
     if (isDBInMemory) {
-        ircBridge._bridge.opts.roomStore = new RoomBridgeStore(new Datastore());
-        ircBridge._bridge.opts.userStore = new UserBridgeStore(new Datastore());
+        ircBridge.getAppServiceBridge().opts.roomStore = new RoomBridgeStore(new Datastore());
+        ircBridge.getAppServiceBridge().opts.userStore = new UserBridgeStore(new Datastore());
     }
     else if (engine === "postgres") {
         // Enforce these not to be created
-        ircBridge._bridge.opts.roomStore = undefined;
-        ircBridge._bridge.opts.userStore = undefined;
+        ircBridge.getAppServiceBridge().opts.roomStore = undefined;
+        ircBridge.getAppServiceBridge().opts.userStore = undefined;
     }
-    else if (engine === "nedb") {
+    else if (engine !== "nedb") {
         // do nothing.
     }
     else {
         throw Error("Invalid database configuration");
     }
 
-    yield ircBridge.run(port);
+    await ircBridge.run(port);
     return ircBridge;
-});
+}
 
-module.exports.killBridge = function(ircBridge) {
+export function killBridge(ircBridge: IrcBridge) {
     if (!ircBridge) {
         log.info('killBridge(): No bridge running');
-        return Promise.resolve();
+        return Bluebird.resolve();
     }
     log.info('Killing bridge');
     return ircBridge.kill();
