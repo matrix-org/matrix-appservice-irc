@@ -48,6 +48,7 @@
     "winston-daily-rotate-file": "^3.2.1"
   },
   "devDependencies": {
+    "@types/extend": "^3.0.1",
     "@types/bluebird": "^3.5.27",
     "@types/he": "^1.1.0",
     "@types/nedb": "^1.8.9",
