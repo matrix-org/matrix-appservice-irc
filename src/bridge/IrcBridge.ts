@@ -17,7 +17,7 @@ import { BridgeRequest } from "../models/BridgeRequest";
 import stats from "../config/stats";
 import { NeDBDataStore } from "../datastore/NedbDataStore";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
-import { getLogger } from "../logging";
+import { getLogger, logErr } from "../logging";
 import { DebugApi } from "../DebugApi";
 import { MatrixActivityTracker } from "matrix-lastactive";
 import Provisioner from "../provisioning/Provisioner.js";
@@ -32,20 +32,27 @@ import {
     Logging,
     AppServiceRegistration,
     Entry,
+    Request,
+    AgeCounters,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
+import { MatrixAction } from "../models/MatrixAction";
 
 
 const log = getLogger("IrcBridge");
 const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
-const ACTION_TYPE_TO_MSGTYPE = {
-    message: "m.text",
-    emote: "m.emote",
-    notice: "m.notice"
-};
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type MatrixHandler = any;
+type MemberListSyncer = any;
+type IrcHandler = any;
+type PublicitySyncer = any;
+type Provisioner = any;
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 
 export class IrcBridge {
     public static readonly DEFAULT_LOCALPART = "appservice-irc";
@@ -55,7 +62,7 @@ export class IrcBridge {
     private ircServers: IrcServer[] = [];
     private domain: string|null = null;
     private appServiceUserId: string|null = null;
-    private memberListSyncers: {[domain: string]: MemberListSyncer};
+    private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
     private activityTracker: MatrixActivityTracker|null;
     private ircHandler: IrcHandler;
@@ -186,12 +193,12 @@ export class IrcBridge {
     }
 
     private initialiseMetrics() {
-        const zeroAge = new PrometheusMetrics.AgeCounters();
+        const zeroAge = new AgeCounters();
 
         const metrics = this.bridge.getPrometheusMetrics();
 
         this.bridge.registerBridgeGauges(() => {
-            const remoteUsersByAge = new PrometheusMetrics.AgeCounters(
+            const remoteUsersByAge = new AgeCounters(
                 this.config.ircService.metrics.remoteUserAgeBuckets || ["1h", "1d", "1w"]
             );
 
@@ -218,7 +225,7 @@ export class IrcBridge {
             };
         });
 
-        const timers = this.timers = {
+        this.timers = {
             matrix_request_seconds: metrics.addTimer({
                 name: "matrix_request_seconds",
                 help: "Histogram of processing durations of received Matrix messages",
@@ -465,11 +472,11 @@ export class IrcBridge {
             // TODO Remove injectJoinFn bodge
             this.memberListSyncers[server.domain] = new MemberListSyncer(
                 this, this.bridge.getBot(), server, this.appServiceUserId,
-                (roomId, joiningUserId, displayName, isFrontier) => {
-                    var req = new BridgeRequest(
-                        this.bridge.getRequestFactory().newRequest(), false
+                (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
+                    const req = new BridgeRequest(
+                        this.bridge.getRequestFactory().newRequest()
                     );
-                    var target = new MatrixUser(joiningUserId);
+                    const target = new MatrixUser(joiningUserId);
                     // inject a fake join event which will do M->I connections and
                     // therefore sync the member list
                     return this.matrixHandler.onJoin(req, {
@@ -517,7 +524,7 @@ export class IrcBridge {
         this.startedUp = true;
     }
 
-    private logMetric(req, outcome) {
+    private logMetric(req: Request, outcome: string) {
         if (!this.timers) {
             return; // metrics are disabled
         }
@@ -531,7 +538,7 @@ export class IrcBridge {
     }
 
     private addRequestCallbacks() {
-        function logMessage(req, msg) {
+        function logMessage(req: Request, msg: string) {
             const data = req.getData();
             const dir = data && data.isFromIrc ? "I->M" : "M->I";
             const duration = " (" + req.getDuration() + "ms)";
@@ -539,7 +546,7 @@ export class IrcBridge {
         }
 
         // SUCCESS
-        this.bridge.getRequestFactory().addDefaultResolveCallback((req, res) => {
+        this.bridge.getRequestFactory().addDefaultResolveCallback((req, res: string) => {
             if (res === BridgeRequest.ERR_VIRTUAL_USER) {
                 logMessage(req, "IGNORE virtual user");
                 return; // these aren't true successes so don't skew graphs
@@ -570,7 +577,7 @@ export class IrcBridge {
             logMessage(req, "DELAYED");
             var isFromIrc = Boolean((req.getData() || {}).isFromIrc);
             stats.request(isFromIrc, "delay", req.getDuration());
-        }, DELAY_TIME_MS);
+        }, DELAY_TIME_MS); 
         // DEAD
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
             logMessage(req, "DEAD");
@@ -587,7 +594,7 @@ export class IrcBridge {
     //  usefull once this has been called.
     //
     //  See (BridgedClient.prototype.kill)
-    public kill = async function() {
+    public kill = async () => {
         log.info("Killing all clients");
         await this.clientPool.killAllClients();
         if (this.dataStore) {
@@ -595,29 +602,28 @@ export class IrcBridge {
         }
     }
 
-    public isStartedUp() {
+    public get isStartedUp() {
         return this.startedUp;
     }
 
     private async joinMappedMatrixRooms() {
         let roomIds = await this.getStore().getRoomIdsFromConfig();
-        let promises = roomIds.map((roomId) => {
+        let promises = roomIds.map(async (roomId) => {
             if (this.joinedRoomList.includes(roomId)) {
                 log.debug(`Not joining ${roomId} because we are marked as joined`);
-                return Bluebird.resolve();
+                return;
             }
             return this.bridge.getIntent().join(roomId);
-        });
+        }).map(Bluebird.cast);
         await promiseutil.allSettled(promises);
     }
 
-    public sendMatrixAction(room, from, action, req) {
-        let msgtype = ACTION_TYPE_TO_MSGTYPE[action.type];
-        let intent = this.bridge.getIntent(from.userId);
-        if (msgtype) {
+    public sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction, req: Request) {
+        const intent = this.bridge.getIntent(from.userId);
+        if (action.msgType) {
             if (action.htmlText) {
                 return intent.sendMessage(room.getId(), {
-                    msgtype: msgtype,
+                    msgtype: action.msgType,
                     body: (
                         action.text || action.htmlText.replace(/(<([^>]+)>)/ig, "") // strip html tags
                     ),
@@ -626,7 +632,7 @@ export class IrcBridge {
                 });
             }
             return intent.sendMessage(room.getId(), {
-                msgtype: msgtype,
+                msgtype: action.msgType,
                 body: action.text
             });
         }
@@ -636,7 +642,7 @@ export class IrcBridge {
         return Bluebird.reject(new Error("Unknown action: " + action.type));
     }
 
-    public uploadTextFile(fileName, plaintext, req) {
+    public uploadTextFile(fileName: string, plaintext: string, req: Request) {
         return this.bridge.getIntent().getClient().uploadContent({
             stream: new Buffer(plaintext),
             name: fileName,
@@ -645,7 +651,7 @@ export class IrcBridge {
         });
     }
 
-    public async getMatrixUser(ircUser) {
+    public async getMatrixUser(ircUser: IrcUser) {
         let matrixUser = null;
         let userLocalpart = ircUser.server.getUserLocalpart(ircUser.nick);
         let displayName = ircUser.server.getDisplayNameFromNick(ircUser.nick);
@@ -668,16 +674,16 @@ export class IrcBridge {
         return matrixUser;
     }
 
-    public onEvent(request, context) {
-        request.outcomeFrom(this._onEvent(request, context));
+    public onEvent(request: Request) {
+        request.outcomeFrom(this._onEvent(request));
     }
 
-    private async _onEvent (baseRequest, context) {
+    private async _onEvent (baseRequest: Request) {
         const event = baseRequest.getData();
         if (event.sender && this.activityTracker) {
             this.activityTracker.bumpLastActiveTime(event.sender);
         }
-        const request = new BridgeRequest(baseRequest, false);
+        const request = new BridgeRequest(baseRequest);
         if (event.type === "m.room.message") {
             if (event.origin_server_ts && this.config.homeserver.dropMatrixMessagesAfterSecs) {
                 const now = Date.now();
@@ -788,7 +794,7 @@ export class IrcBridge {
         });
     }
 
-    public getThirdPartyLocation(protocol: string, fields) {
+    public getThirdPartyLocation(protocol: string, fields: {domain?: string, channel?: string}) {
         if (!fields.domain) {
             return Bluebird.reject({err: "Expected 'domain' field", code: 400});
         }
@@ -823,7 +829,7 @@ export class IrcBridge {
         ]);
     }
 
-    public getThirdPartyUser(protocol: string, fields) {
+    public getThirdPartyUser(protocol: string, fields: {domain?: string, nick?: string}) {
         if (!fields.domain) {
             return Bluebird.reject({err: "Expected 'domain' field", code: 400});
         }
@@ -942,12 +948,12 @@ export class IrcBridge {
     }
 
     public connectToIrcNetworks() {
-        return promiseutil.allSettled(this.ircServers.map((server) => {
-            return this.loginToServer(server);
-        }));
+        return promiseutil.allSettled(this.ircServers.map((server) => 
+            Bluebird.cast(this.loginToServer(server))
+        ));
     }
 
-    private async loginToServer(server: IrcServer) {
+    private async loginToServer(server: IrcServer): Promise<void> {
         const uname = "matrixirc";
         let bridgedClient = this.getIrcUserFromCache(server, uname);
         if (!bridgedClient) {
@@ -958,7 +964,7 @@ export class IrcBridge {
                 server.domain, bridgedClient.id, server.isBotEnabled()
             );
         }
-        var chansToJoin = [];
+        let chansToJoin: string[] = [];
         if (server.isBotEnabled()) {
             if (server.shouldJoinChannelsIfNoUsers()) {
                 chansToJoin = await this.getStore().getTrackedChannelsForServer(server.domain);
@@ -976,15 +982,18 @@ export class IrcBridge {
         catch (err) {
             log.error("Bot failed to connect to %s : %s - Retrying....",
                 server.domain, JSON.stringify(err));
-            log.logErr(err);
+            logErr(log, err as Error);
             return this.loginToServer(server);
         }
         this.clientPool.setBot(server, bridgedClient);
-        var num = 1;
-        chansToJoin.forEach((c) => {
+        let num = 1;
+        chansToJoin.forEach((c: string) => {
             // join a channel every 500ms. We stagger them like this to
             // avoid thundering herds
             setTimeout(() => {
+                if (!bridgedClient) { // For types.
+                    return;
+                }
                 // catch this as if this rejects it will hard-crash
                 // since this is a new stack frame which will bubble
                 // up as an uncaught exception.
@@ -995,7 +1004,6 @@ export class IrcBridge {
             }, 500 * num);
             num += 1;
         });
-        return undefined;
     }
 
     public async checkNickExists(server: IrcServer, nick: string) {
@@ -1123,9 +1131,9 @@ export class IrcBridge {
         // Often our IDs for entries depend upon the room, so replace them.
         entry.id = entry.id.replace(oldRoomId, newRoomId);
         entry.matrix = new MatrixRoom(newRoomId, {
-            name: entry.get("name"),
-            topic: entry.topic,
-            extras: entry._extras,
+            // name: entry.name,
+            // topic: entry.topic,
+            // extras: entry._extras,
         });
         // matrix-appservice-bridge will know to remove the old room entry
         // and insert the new room entry despite the differing IDs
@@ -1139,7 +1147,7 @@ export class IrcBridge {
         // Get users who we wish to leave.
         const asBot = this.bridge.getBot();
         const stateEvents = await asBot.getClient().roomState(oldRoomId);
-        const roomInfo = asBot._getRoomInfo(oldRoomId, {
+        const roomInfo = (asBot as any)._getRoomInfo(oldRoomId, {
             state: {
                 events: stateEvents
             }

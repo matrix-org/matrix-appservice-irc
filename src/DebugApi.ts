@@ -245,8 +245,7 @@ export class DebugApi {
         // store all received response strings
         const buffer: string[] = [];
         // "raw" can take many forms
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const listener = (msg: any) => {
+        const listener = (msg: object) => {
             buffer.push(JSON.stringify(msg));
         }
 
