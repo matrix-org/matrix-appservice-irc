@@ -319,10 +319,12 @@ export class MemberListSyncer {
             this.usersToJoin--;
             injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier).timeout(
                 server.getMemberListFloodDelayMs()
-            ).finally(() => {
+            ).then(() => {
+                joinNextUser();
+            }).catch(() => {
                 // discard error, this will be due to timeouts which we don't want to log
                 joinNextUser();
-            });
+            })
         }
 
         joinNextUser();
