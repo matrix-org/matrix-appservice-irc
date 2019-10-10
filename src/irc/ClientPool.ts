@@ -128,7 +128,7 @@ export class ClientPool {
         return this.botClients[server.domain];
     }
 
-    public createIrcClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean = false) {
+    public createIrcClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean) {
         const bridgedClient = this.ircBridge.createBridgedClient(
             ircClientConfig, matrixUser, isBot
         );

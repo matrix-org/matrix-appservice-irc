@@ -85,7 +85,7 @@ export class MatrixAction {
     public get msgType() {
         return (ACTION_TYPE_TO_MSGTYPE as {[key: string]: string|undefined})[this.type];
     }
-  
+
     public async formatMentions(nickUserIdMap: {[nick: string]: string}, intent: Intent) {
         const regexString = `(${Object.keys(nickUserIdMap).map((value) => escapeStringRegexp(value)).join("|")})`;
         const usersRegex = MentionRegex(regexString);

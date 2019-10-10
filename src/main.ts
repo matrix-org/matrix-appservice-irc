@@ -10,6 +10,7 @@ import stats from "./config/stats";
 import ident from "./irc/Ident";
 import * as logging from "./logging";
 import { LoggerInstance } from "winston";
+import { BridgeConfig } from "./config/BridgeConfig";
 
 const log = logging.get("main");
 
@@ -36,7 +37,7 @@ const _toServer = (domain: string, serverConfig: any, homeserverDomain: string) 
     );
 };
 
-export async function generateRegistration(reg: AppServiceRegistration, config: any) {
+export async function generateRegistration(reg: AppServiceRegistration, config: BridgeConfig) {
     let asToken;
 
     if (!reg.getSenderLocalpart()) {
@@ -70,7 +71,7 @@ export async function generateRegistration(reg: AppServiceRegistration, config: 
     return reg;
 }
 
-export async function runBridge(port: number, config: any, reg: AppServiceRegistration, isDBInMemory: boolean = false) {
+export async function runBridge(port: number, config: BridgeConfig, reg: AppServiceRegistration, isDBInMemory: boolean = false) {
     // configure global stuff for the process
     if (config.ircService.logging) {
         logging.configure(config.ircService.logging);
@@ -79,12 +80,12 @@ export async function runBridge(port: number, config: any, reg: AppServiceRegist
     if (config.ircService.statsd.hostname) {
         stats.setEndpoint(config.ircService.statsd);
     }
-    if (config.ircService.ident.enabled) {
+    if (config.ircService.ident && config.ircService.ident.enabled) {
         ident.configure(config.ircService.ident);
         ident.run();
     }
 
-    const maxSockets = (config["advanced"] || {})["maxHttpSockets"] || 1000;
+    const maxSockets = (config.advanced || {maxHttpSockets: 1000}).maxHttpSockets;
     require("http").globalAgent.maxSockets = maxSockets;
     require("https").globalAgent.maxSockets = maxSockets;
 

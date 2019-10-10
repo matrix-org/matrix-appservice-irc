@@ -26,7 +26,7 @@ interface FormatterFnOpts {
     message: string;
 }
 
-interface LoggerConfig {
+export interface LoggerConfig {
     level: "debug"|"info"|"warn"|"error";
     logfile?: string; // path to file
     errfile?: string; // path to file

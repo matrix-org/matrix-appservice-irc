@@ -37,8 +37,8 @@ export class NeDBDataStore implements DataStore {
     constructor(
         private userStore: UserBridgeStore,
         private roomStore: RoomBridgeStore,
-        pkeyPath: string,
-        private bridgeDomain: string) {
+        private bridgeDomain: string,
+        pkeyPath?: string) {
         const errLog = function(fieldName: string) {
             return (err: Error) => {
                 if (err) {
