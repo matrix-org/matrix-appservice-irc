@@ -989,7 +989,7 @@ MatrixHandler.prototype._onJoin = Promise.coroutine(function*(req, event, user) 
                     bridgedClient.userId, room.server.domain
                 );
                 if (room.server.allowsNickChanges() &&
-                    config.getDesiredNick() === null
+                    !config.getDesiredNick()
                 ) {
                     try {
                         const newNick = room.server.getNick(

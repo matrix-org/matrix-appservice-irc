@@ -934,16 +934,17 @@ export class IrcBridge {
         return Bluebird.resolve(new IrcUser(ircInfo.server, ircInfo.nick, true));
     }
 
-    public async trackChannel(server: IrcServer, channel: string, key: string) {
+    public async trackChannel(server: IrcServer, channel: string, key: string): Promise<IrcRoom> {
         if (!server.isBotEnabled()) {
             log.info("trackChannel: Bot is disabled.");
             return new IrcRoom(server, channel);
         }
         const client = await this.getBotClient(server);
         try {
-            await client.joinChannel(channel, key);
+            return await client.joinChannel(channel, key);
         } catch (ex) {
             log.error(ex);
+            throw Error("Failed to join channel");
         }
     }
 
