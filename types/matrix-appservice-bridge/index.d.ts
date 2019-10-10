@@ -61,6 +61,8 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class AppserviceBot {
+        getJoinedMembers(roomId: string): {[userId: string]: {display_name: string|null}}
+        isRemoteUser(userId: string): boolean;
         getJoinedRooms(): Promise<string[]>;
         getClient(): JsClient;
     }
@@ -171,6 +173,7 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class Intent {
+        leave(roomId: string): Promise<void>;
         setPowerLevel(roomId: string, userId: string, level: number | undefined): Promise<void>;
         getStateEvent(roomId: string, type: string): Promise<any>;
         getProfileInfo(userId: string, type?: "displayname"|"avatar_url", useCache?: boolean): Promise<{displayname: string|null, avatar_url: string|null}>;
