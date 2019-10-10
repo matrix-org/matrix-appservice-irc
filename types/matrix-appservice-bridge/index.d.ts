@@ -21,31 +21,31 @@ limitations under the License.
 declare module 'matrix-appservice-bridge' {
     interface RoomMemberDict {
         [id: string]: {
-            display_name: string,
-            avatar_url: string,
-        }
+            display_name: string;
+            avatar_url: string;
+        };
     }
     interface RemoteRoomDict {
-        [id: string]: RemoteRoom[]
+        [id: string]: RemoteRoom[];
     }
     interface EntryDict {
-        [id: string]: Array<Entry> 
+        [id: string]: Array<Entry> ;
     }
 
     export interface Entry {
-        id: string  // The unique ID for this entry.
-        matrix_id: string  // "room_id",
-        remote_id: string  // "remote_room_id",
-        matrix: null|MatrixRoom // <nullable> The matrix room, if applicable.
-        remote: null|RemoteRoom // <nullable> The remote room, if applicable.
-        data: null|any // <nullable> Information about this mapping, which may be an empty.
+        id: string;  // The unique ID for this entry.
+        matrix_id: string;  // "room_id",
+        remote_id: string;  // "remote_room_id",
+        matrix: null|MatrixRoom; // <nullable> The matrix room, if applicable.
+        remote: null|RemoteRoom; // <nullable> The remote room, if applicable.
+        data: null|any; // <nullable> Information about this mapping, which may be an empty
     }
 
     export interface UpsertableEntry {
-        id: string  // The unique ID for this entry.
-        matrix?: null|MatrixRoom // <nullable> The matrix room, if applicable.
-        remote?: null|RemoteRoom // <nullable> The remote room, if applicable.
-        data?: null|any // <nullable> Information about this mapping, which may be an empty.
+        id: string;  // The unique ID for this entry.
+        matrix?: null|MatrixRoom; // <nullable> The matrix room, if applicable.
+        remote?: null|RemoteRoom; // <nullable> The remote room, if applicable.
+        data?: null|any; // <nullable> Information about this mapping, which may be an empty.
     }
 
     export class PrometheusMetrics {
@@ -53,22 +53,30 @@ declare module 'matrix-appservice-bridge' {
         addCounter(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Counter
         addTimer(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Histogram;
         addGauge(arg0: { name: string; help: string; labels: string[]; }): import("prom-client").Gauge;
+    }
 
+    class AgeCounters {
+        constructor(buckets?: string[]);
+        bump (ageInSec: number): void;
     }
 
     export class AppserviceBot {
-        getJoinedRooms(): Promise<string[]>
+        getJoinedRooms(): Promise<string[]>;
+        getClient(): JsClient;
     }
 
     export class MatrixRoom {
-        protected roomId: string
+        protected roomId: string;
+        public name: string;
+        public topic: string;
+        public _extras : any;
 
-        constructor (roomId: string, data?: object)
-        deserialize(data: object): void
-        get(key: string): unknown
-        getId(): string
-        serialize(): object
-        set(key: string, val: any): void
+        constructor (roomId: string, data?: object);
+        deserialize(data: object): void;
+        get(key: string): unknown;
+        getId(): string;
+        serialize(): object;
+        set(key: string, val: any): void;
     }
 
     export class MatrixUser {
@@ -167,17 +175,19 @@ declare module 'matrix-appservice-bridge' {
         setPresence(presence: string): Promise<void>;
         sendMessage(roomId: string, content: any): Promise<void>;
         sendStateEvent(roomId: string, type: string, stateKey: string, content: any): Promise<void>;
+        join(roomId: string): Promise<void>;
         kick(roomId: string, userId: string, reason: string): Promise<void>;
+        setRoomTopic(roomId: string, topic: string): Promise<void>;
         readonly client: JsClient;
         getClient(): JsClient;
+        setDisplayName(displayname: string): Promise<void>;
     }
 
-    export class AgeCounter {
-        bump (ageInSec: number): void;
-    }
 
     export class Request {
+        outcomeFrom(the: Promise<unknown>): void;
         getData(): any;
+        getDuration(): number;
         getPromise(): Promise<any>;
         getId(): string;
         resolve(item: unknown): void;
@@ -185,7 +195,17 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class JsClient {
-        deleteAlias(alias: string): Promise<void>
+        credentials: {
+            userId: string;
+        };
+        deleteAlias(alias: string): Promise<void>;
+        roomState(roomId: string): Promise<any[]>;
+        uploadContent(opts: {
+            stream: Buffer
+            name: string,
+            type: string,
+            rawResponse: boolean,
+        }): Promise<void>;
     }
 
     export class Bridge {
@@ -201,15 +221,20 @@ declare module 'matrix-appservice-bridge' {
         getRequestFactory(): RequestFactory;
         getPrometheusMetrics(): PrometheusMetrics;
         getIntent(userId?: string): Intent;
+        getIntentFromLocalpart(localpart: string): Intent;
         run(port: number): void;
+        registerBridgeGauges(cb: () => void): void;
     }
 
     export class RequestFactory {
-        newRequest(opts?: {data: {}}): Request
+        newRequest(opts?: {data: {}}): Request;
+        addDefaultResolveCallback(cb: (req: Request, result: string) => void): void;
+        addDefaultRejectCallback(cb: (req: Request) => void): void;
+        addDefaultTimeoutCallback(cb: (req: Request) => void, timeout: number): void;
     }
 
     export class AppServiceRegistration {
-        static generateToken(): string
+        static generateToken(): string;
         setSenderLocalpart(localpart: string): void;
         getSenderLocalpart(): string;
         setId(id: string): void;
@@ -219,5 +244,9 @@ declare module 'matrix-appservice-bridge' {
         setRateLimited(limited: boolean): void;
         setProtocols(protocols: string[]): void;
         addRegexPattern(type: "rooms"|"aliases"|"users", regex: string, exclusive: boolean): void;
+    }
+
+    export class Logging {
+        static configure(opts: {console: string}): void;
     }
 }

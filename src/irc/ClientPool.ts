@@ -21,7 +21,7 @@ import Bluebird from "bluebird";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer } from "../irc/IrcServer";
-import { AgeCounter, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
+import { AgeCounters, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
 import { BridgedClient } from "./BridgedClient";
 import { IrcBridge } from "../bridge/IrcBridge";
 const log = getLogger("ClientPool");
@@ -128,7 +128,7 @@ export class ClientPool {
         return this.botClients[server.domain];
     }
 
-    public createIrcClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean = false) {
+    public createIrcClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean) {
         const bridgedClient = this.ircBridge.createBridgedClient(
             ircClientConfig, matrixUser, isBot
         );
@@ -310,7 +310,7 @@ export class ClientPool {
         return 0;
     }
 
-    public updateActiveConnectionMetrics(serverDomain: string, ageCounter: AgeCounter): void {
+    public updateActiveConnectionMetrics(serverDomain: string, ageCounter: AgeCounters): void {
         if (this.virtualClients[serverDomain] === undefined) {
             return;
         }
