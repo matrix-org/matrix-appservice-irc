@@ -197,6 +197,7 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class JsClient {
+        setRoomDirectoryVisibilityAppService(networkId: string, roomId: string, state: string): Promise<void>
         sendStateEvent(roomId: string, type: string, content: any, key: string): Promise<void>;
         credentials: {
             userId: string;

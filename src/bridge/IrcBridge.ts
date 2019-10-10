@@ -21,7 +21,7 @@ import { getLogger, logErr } from "../logging";
 import { DebugApi } from "../DebugApi";
 import { MatrixActivityTracker } from "matrix-lastactive";
 import Provisioner from "../provisioning/Provisioner.js";
-import PublicitySyncer from "./PublicitySyncer";
+import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
 
 import {
@@ -49,7 +49,6 @@ const DEAD_TIME_MS = 5 * 60 * 1000;
 type MatrixHandler = any;
 type MemberListSyncer = any;
 type IrcHandler = any;
-type PublicitySyncer = any;
 type Provisioner = any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
