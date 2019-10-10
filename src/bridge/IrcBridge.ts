@@ -484,7 +484,7 @@ export class IrcBridge {
 
         promiseutil.allSettled(this.ircServers.map((server) => {
             // Call MODE on all known channels to get modes of all channels
-            return this.publicitySyncer.initModes(server);
+            return Bluebird.cast(this.publicitySyncer.initModes(server));
         })).catch((err) => {
             log.error('Could not init modes for publicity syncer');
             log.error(err.stack);

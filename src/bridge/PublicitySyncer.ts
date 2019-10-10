@@ -38,7 +38,12 @@ export class PublicitySyncer {
         roomVisibilities: {
             [roomId: string]: "private"|"public";
         };
-    } = {};
+    } = {
+        mappings: {},
+        networkToRooms: {},
+        channelIsSecret: {},
+        roomVisibilities: {},
+    };
     constructor (private ircBridge: IrcBridge) { }
 
     public initModeForChannel(server: IrcServer, chan: string) {

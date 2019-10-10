@@ -164,6 +164,8 @@ export function logErr(logger: LoggerInstance, e: Error) {
 
 export const getLogger = get;
 
+export default getLogger;
+
 /**
  * Configure how loggers should be created.
  */
