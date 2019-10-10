@@ -10,7 +10,7 @@ const { MatrixAction } = require("../models/MatrixAction");
 const { Queue } = require("../util/Queue.js");
 const { QueuePool } = require("../util/QueuePool.js");
 const { QuitDebouncer } = require("./QuitDebouncer.js");
-const RoomAccessSyncer = require("./RoomAccessSyncer.js");
+const { RoomAccessSyncer } = require("./RoomAccessSyncer.js");
 
 const JOIN_DELAY_MS = 250;
 const JOIN_DELAY_CAP_MS = 30 * 60 * 1000; // 30 mins

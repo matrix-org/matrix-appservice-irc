@@ -171,6 +171,8 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class Intent {
+        setPowerLevel(roomId: string, userId: string, level: number | undefined): Promise<void>;
+        getStateEvent(roomId: string, type: string): Promise<any>;
         getProfileInfo(userId: string, type?: "displayname"|"avatar_url", useCache?: boolean): Promise<{displayname: string|null, avatar_url: string|null}>;
         setPresence(presence: string): Promise<void>;
         sendMessage(roomId: string, content: any): Promise<void>;
@@ -195,6 +197,7 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class JsClient {
+        sendStateEvent(roomId: string, type: string, content: any, key: string): Promise<void>;
         credentials: {
             userId: string;
         };

@@ -72,7 +72,7 @@ export class IrcBridge {
     private ipv6Generator: Ipv6Generator|null = null;
     private startedUp = false;
     private debugApi: DebugApi|null;
-    private publicitySyncer: PublicitySyncer;
+    public readonly publicitySyncer: PublicitySyncer;
     private provisioner: Provisioner|null = null;
     private bridge: Bridge;
     private timers: {

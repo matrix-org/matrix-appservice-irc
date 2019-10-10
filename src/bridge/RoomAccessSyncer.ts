@@ -1,4 +1,9 @@
-const log = require("../logging").get("RoomAccessSyncer");
+import { getLogger } from "../logging";
+import { IrcBridge } from "./IrcBridge";
+import { BridgeRequest } from "../models/BridgeRequest";
+import { IrcServer } from "../irc/IrcServer";
+import { MatrixRoom } from "matrix-appservice-bridge";
+const log = getLogger("RoomAccessSyncer");
 
 const MODES_TO_WATCH = [
     "m", // This channel is "moderated" - only voiced users can speak.
@@ -12,30 +17,27 @@ const PRIVATE_MODES = [
     "k",
     "i",
     "s",
-]
+];
 
 /**
  * This class is supplimentary to the IrcHandler class. This
  * class handles incoming mode changes as well as computing the new
  * power level state.
  */
-class RoomAccessSyncer {
-
-    constructor(ircBridge) {
-        this._ircBridge = ircBridge;
-        // Warning: This cache is currently unbounded.
-        this._powerLevelsForRoom = {
-            // roomId:PowerLevelObject
-        };
-    }
+export class RoomAccessSyncer {
+    // Warning: This cache is currently unbounded.
+    private powerLevelsForRoom: {
+        [roomId: string]: unknown;
+    } = {};
+    constructor(private ircBridge: IrcBridge) { }
 
     /**
      * Called when a m.room.power_levels is forwarded to the bridge. This should
      * happen when a Matrix user or the bridge changes the power levels for a room.
      * @param {MatrixEvent} event The matrix event.
      */
-    onMatrixPowerlevelEvent(event) {
-        this._powerLevelsForRoom[event.room_id] = event.content;
+    public onMatrixPowerlevelEvent(event: {room_id: string; content: unknown}) {
+        this.powerLevelsForRoom[event.room_id] = event.content;
     }
 
     /**
@@ -43,17 +45,17 @@ class RoomAccessSyncer {
      * cached value or fetch from the homeserver.
      * @param {string} roomId The room to fetch the state from.
      */
-    async _getCurrentPowerlevels(roomId) {
+    private async getCurrentPowerlevels(roomId: string) {
         if (typeof(roomId) !== "string") {
             throw Error("RoomId must be a string");
         }
-        if (this._powerLevelsForRoom[roomId]) {
-            return this._powerLevelsForRoom[roomId];
+        if (this.powerLevelsForRoom[roomId]) {
+            return this.powerLevelsForRoom[roomId];
         }
-        const intent = this._ircBridge.getAppServiceBridge().getIntent();
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
         try {
             const state = await intent.getStateEvent(roomId, "m.room.power_levels");
-            this._powerLevelsForRoom[roomId] = state;
+            this.powerLevelsForRoom[roomId] = state;
             return state;
         }
         catch (ex) {
@@ -72,14 +74,15 @@ class RoomAccessSyncer {
      * @param {boolean} enabled Whether the mode was enabled or disabled.
      * @param {string|null} arg This is usually the affected user, if applicable.
      */
-    async onMode(req, server, channel, by, mode, enabled, arg) {
+    public async onMode(req: BridgeRequest, server: IrcServer, channel: string, by: string,
+        mode: string, enabled: boolean, arg: string|null) {
         if (PRIVATE_MODES.includes(mode)) {
-            await this._onPrivateMode(req, server, channel, mode, enabled);
+            await this.onPrivateMode(req, server, channel, mode, enabled);
             return;
         }
 
         if (mode === "m") {
-            await this._onModeratedChannelToggle(req, server, channel, enabled);
+            await this.onModeratedChannelToggle(req, server, channel, enabled);
             return;
         }
 
@@ -91,7 +94,7 @@ class RoomAccessSyncer {
         }
 
         const nick = arg;
-        const matrixRooms = await this._ircBridge.getStore().getMatrixRoomsForChannel(
+        const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
             server, channel
         );
         if (matrixRooms.length === 0) {
@@ -104,13 +107,12 @@ class RoomAccessSyncer {
         if (modeToPower[mode]) { // only give this power if it's +, not -
             userPowers.push(modeToPower[mode]);
         }
-
         // Try to also add in other modes for this client connection
-        const bridgedClient = this._ircBridge.getClientPool().getBridgedClientByNick(
+        const bridgedClient = nick ? this.ircBridge.getClientPool().getBridgedClientByNick(
             server, nick
-        );
+        ): undefined;
         let userId = null;
-        if (bridgedClient) {
+        if (nick !== null && bridgedClient) {
             userId = bridgedClient.userId;
             if (!bridgedClient.unsafeClient) {
                 req.log.info(`Bridged client for ${nick} has no IRC client.`);
@@ -121,7 +123,7 @@ class RoomAccessSyncer {
                 req.log.error(`No channel data for ${channel}`);
                 return;
             }
-            const userPrefixes = chanData.users[nick];
+            const userPrefixes = chanData.users[nick] as string;
 
             userPrefixes.split('').forEach(
                 prefix => {
@@ -132,7 +134,7 @@ class RoomAccessSyncer {
                 }
             );
         }
-        else {
+        else if (nick) {
             // real IRC user, work out their user ID
             userId = server.getUserIdFromNick(nick);
         }
@@ -144,7 +146,7 @@ class RoomAccessSyncer {
 
         // By default, unset the user's power level. This will be treated
         // as the users_default defined in the power levels (or 0 otherwise).
-        let level;
+        let level: number|undefined = undefined;
         // Sort the userPowers for this user in descending order
         // and grab the highest value at the start of the array.
         if (userPowers.length > 0) {
@@ -155,11 +157,11 @@ class RoomAccessSyncer {
             `onMode: Mode ${mode} received for ${nick}, granting level of ` +
             `${enabled ? level : 0} to ${userId}`
         );
-        const intent = this._ircBridge.getAppServiceBridge().getIntent();
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
 
         for (const room of matrixRooms) {
-            const powerLevelMap = await (this._getCurrentPowerlevels(room.getId())) || {};
-            const users = powerLevelMap.users || {};
+            const powerLevelMap = await (this.getCurrentPowerlevels(room.getId())) || {};
+            const users: {[userId: string]: number} = powerLevelMap.users || {};
             // If the user's present PL is equal to the level,
             // or is 0|undefined and the mode is disabled.
             if ((users[userId] === level && enabled) || !enabled && !users[userId]) {
@@ -168,7 +170,7 @@ class RoomAccessSyncer {
             }
             // If we have a PL for the user, and the PL is higher than
             // the level we want to give the user.
-            if (users[userId] !== undefined && users[userId] > level) {
+            if (users[userId] !== undefined && users[userId] > (level || 0)) {
                 req.log.debug("Not granting PLs, user has a higher existing PL");
                 continue;
             }
@@ -190,25 +192,25 @@ class RoomAccessSyncer {
     }
     /**
      * Called when an IRC server responds to a mode request.
-     * @param {BridgeReqeust} req The request tracking the operation.
+     * @param {BridgeRequest} req The request tracking the operation.
      * @param {IrcServer} server The server the channel and users are part of
      * @param {string} channel Which channel was the mode(s) set in.
      * @param {string} mode The mode string, which may contain many modes.
      */
-    async onModeIs(req, server, channel, mode) {
+    public async onModeIs(req: BridgeRequest, server: IrcServer, channel: string, mode: string) {
         // Delegate to this.onMode
-        let promises = mode.split('').map(
+        const promises = mode.split('').map(
             (modeChar) => {
                 if (modeChar === '+') {
                     return Promise.resolve();
                 }
-                return this.onMode(req, server, channel, 'onModeIs function', modeChar, true);
+                return this.onMode(req, server, channel, 'onModeIs function', modeChar, true, null);
             }
         );
 
         // We cache modes per room, so extract the set of modes for all these rooms.
-        const roomModeMap = await this._ircBridge.getStore().getModesForChannel(server, channel);
-        const oldModes = new Set();
+        const roomModeMap = await this.ircBridge.getStore().getModesForChannel(server, channel);
+        const oldModes = new Set<string>();
         Object.values(roomModeMap).forEach((roomMode) => {
             roomMode.forEach((m) => {oldModes.add(m)});
         });
@@ -224,7 +226,7 @@ class RoomAccessSyncer {
             );
             if (!mode.includes(oldModeChar)) { // If the mode is no longer here.
                 req.log.debug(`${oldModeChar} has been unset, disabling.`);
-                return this.onMode(req, server, channel, 'onModeIs function', oldModeChar, false);
+                return this.onMode(req, server, channel, 'onModeIs function', oldModeChar, false, null);
             }
             return Promise.resolve();
         }));
@@ -238,12 +240,12 @@ class RoomAccessSyncer {
      * @param {string} roomId A roomId
      * @param {string[]} users A set of userIds
      */
-    async removePowerLevels(roomId, users) {
+    public async removePowerLevels(roomId: string, users: string[]) {
         if (users.length === 0) {
             return;
         }
         log.info(`Removing power levels for ${users.length} user(s) from ${roomId}`);
-        const plContent = await this._getCurrentPowerlevels(roomId);
+        const plContent = await this.getCurrentPowerlevels(roomId);
         if (!plContent) {
             log.warn(`Could not remove power levels for ${roomId} Could not fetch power levels.`);
             return;
@@ -259,7 +261,7 @@ class RoomAccessSyncer {
             // We didn't actually change anything, so don't send anything.
             return;
         }
-        const botClient = this._ircBridge.getAppServiceBridge().getIntent().getClient();
+        const botClient = this.ircBridge.getAppServiceBridge().getIntent().getClient();
         await botClient.sendStateEvent(roomId, "m.room.power_levels", plContent, "");
     }
 
@@ -272,7 +274,8 @@ class RoomAccessSyncer {
      * @param {string} mode The mode string.
      * @param {boolean} enabled Was the mode enabled or disabled.
      */
-    async _onPrivateMode(req, server, channel, mode, enabled) {
+    private async onPrivateMode(req: BridgeRequest, server: IrcServer, channel: string,
+                                mode: string, enabled: boolean) {
         // 'k' = Channel requires 'keyword' to join.
         // 'i' = Channel is invite-only.
         // 's' = Channel is secret
@@ -286,7 +289,7 @@ class RoomAccessSyncer {
 
         // TODO: Add support for specifying the correct 'keyword' and
         // support for sending INVITEs for virtual IRC users.
-        let matrixRooms = await this._ircBridge.getStore().getMatrixRoomsForChannel(
+        const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
             server, channel
         );
         if (matrixRooms.length === 0) {
@@ -299,21 +302,21 @@ class RoomAccessSyncer {
                 req.log.info("Not syncing publicity: shouldPublishRooms is false");
                 return;
             }
-            const key = this._ircBridge.publicitySyncer.getIRCVisMapKey(
+            const key = this.ircBridge.publicitySyncer.getIRCVisMapKey(
                 server.getNetworkId(), channel
             );
 
             matrixRooms.map((room) => {
-                this._ircBridge.getStore().setModeForRoom(room.getId(), "s", enabled);
+                this.ircBridge.getStore().setModeForRoom(room.getId(), "s", enabled);
             });
             // Update the visibility for all rooms connected to this channel
-            await this._ircBridge.publicitySyncer.updateVisibilityMap(
+            await this.ircBridge.publicitySyncer.updateVisibilityMap(
                 true, key, enabled
             );
         }
         // "k" and "i"
         await Promise.all(matrixRooms.map((room) =>
-            this._ircBridge.getStore().setModeForRoom(room.getId(), mode, enabled)
+            this.ircBridge.getStore().setModeForRoom(room.getId(), mode, enabled)
         ));
 
         const promises = matrixRooms.map((room) => {
@@ -325,12 +328,12 @@ class RoomAccessSyncer {
                         room.getId()
                     );
                     if (enabled) {
-                        return this._setMatrixRoomAsInviteOnly(room, true);
+                        return this.setMatrixRoomAsInviteOnly(room, true);
                     }
                     // don't "unlock"; the room may have been invite
                     // only from the beginning.
                     enabled = server.getJoinRule() === "invite";
-                    return this._setMatrixRoomAsInviteOnly(room, enabled);
+                    return this.setMatrixRoomAsInviteOnly(room, enabled);
                 default:
                     // Not reachable, but warn anyway in case of future additions
                     req.log.warn(`onMode: Unhandled channel mode ${mode}`);
@@ -349,19 +352,19 @@ class RoomAccessSyncer {
      * @param {string} channel Which channel was the mode(s) set in.
      * @param {boolean} enabled Has moderation been turned on or off.
      */
-    async _onModeratedChannelToggle(req, server, channel, enabled) {
-        const ircStore = this._ircBridge.getStore();
+    private async onModeratedChannelToggle(req: BridgeRequest, server: IrcServer, channel: string, enabled: boolean) {
+        const ircStore = this.ircBridge.getStore();
         const matrixRooms = await ircStore.getMatrixRoomsForChannel(server, channel);
         // modify power levels for all mapped rooms to set events_default
         // to something >0 so by default people CANNOT speak into it (unless they
         // are a mod or have voice, both of which need to be configured correctly in
         // the config file).
-        const botClient = this._ircBridge.getAppServiceBridge().getIntent().getClient();
+        const botClient = this.ircBridge.getAppServiceBridge().getIntent().getClient();
         for (const room of matrixRooms) {
             req.log.info(`Checking moderated status for ${channel}`);
             const roomId = room.getId();
             try {
-                const plContent = await this._getCurrentPowerlevels(roomId);
+                const plContent = await this.getCurrentPowerlevels(roomId);
                 const eventsDefault = enabled ? 1 : 0;
                 if (plContent.events_default === eventsDefault) {
                     req.log.debug(`${channel} already has events_default set to ${eventsDefault}`);
@@ -387,8 +390,8 @@ class RoomAccessSyncer {
      * @param {boolean} isInviteOnly Set to true to make invite only, set to false to
      *                               make the room public
      */
-    async _setMatrixRoomAsInviteOnly(room, isInviteOnly) {
-        const client = this._ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
+    private async setMatrixRoomAsInviteOnly(room: MatrixRoom, isInviteOnly: boolean) {
+        const client = this.ircBridge.getAppServiceBridge().getIntent().getClient();
         return client.sendStateEvent(
             room.getId(),
             "m.room.join_rules", {
@@ -398,5 +401,3 @@ class RoomAccessSyncer {
         );
     }
 }
-
-module.exports = RoomAccessSyncer;
