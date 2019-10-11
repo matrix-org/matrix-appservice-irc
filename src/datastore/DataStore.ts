@@ -28,7 +28,7 @@ export interface ChannelMappings {
 }
 
 export interface UserFeatures {
-    [name: string]: boolean;
+    [name: string]: boolean|undefined;
 }
 
 export interface DataStore {

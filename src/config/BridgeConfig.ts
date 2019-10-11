@@ -14,6 +14,7 @@ export interface BridgeConfig {
     };
     homeserver: {
         url: string;
+        media_url?: string;
         domain: string;
         enablePresence?: boolean;
         dropMatrixMessagesAfterSecs?: number;

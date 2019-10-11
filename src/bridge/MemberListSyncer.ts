@@ -32,7 +32,7 @@ interface RoomInfo {
 }
 
 type InjectJoinFn = (roomId: string, joiningUserId: string,
-                     displayName: string, isFrontier: boolean) => Bluebird<unknown>;
+                     displayName: string, isFrontier: boolean) => PromiseLike<unknown>;
 
 export class MemberListSyncer {
     private syncableRoomsPromise: Promise<RoomInfo[]>|null = null;
@@ -317,7 +317,7 @@ export class MemberListSyncer {
                 entry.userId, entry.roomId, entries.length, entry.frontier
             );
             this.usersToJoin--;
-            injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier).timeout(
+            Bluebird.cast(injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier)).timeout(
                 server.getMemberListFloodDelayMs()
             ).then(() => {
                 joinNextUser();

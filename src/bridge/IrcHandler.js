@@ -95,7 +95,7 @@ IrcHandler.prototype.onMatrixMemberEvent = function(event) {
         // tracking we hit room state explicitly).
         return;
     }
-    if (priv.user_id !== event.state_key) {
+    if (priv.sender !== event.state_key) {
         return; // don't care about member changes for other users
     }
 

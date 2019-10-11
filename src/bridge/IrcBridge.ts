@@ -2,7 +2,7 @@ import Bluebird from "bluebird";
 import extend from "extend";
 import * as promiseutil from "../promiseutil";
 import IrcHandler from "./IrcHandler";
-import MatrixHandler from "./MatrixHandler";
+import { MatrixHandler } from "./MatrixHandler";
 import { MemberListSyncer } from "./MemberListSyncer";
 import { IdentGenerator } from "../irc/IdentGenerator";
 import { Ipv6Generator } from "../irc/Ipv6Generator";
@@ -32,7 +32,7 @@ import {
     AppServiceRegistration,
     Entry,
     Request,
-    AgeCounters,
+    PrometheusMetrics,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -46,7 +46,6 @@ const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type MatrixHandler = any;
 type IrcHandler = any;
 type Provisioner = any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -60,7 +59,6 @@ export class IrcBridge {
     public readonly publicitySyncer: PublicitySyncer;
     private clientPool: ClientPool;
     private ircServers: IrcServer[] = [];
-    private domain: string|null = null;
     private appServiceUserId: string|null = null;
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
@@ -193,12 +191,12 @@ export class IrcBridge {
     }
 
     private initialiseMetrics() {
-        const zeroAge = new AgeCounters();
+        const zeroAge = new PrometheusMetrics.AgeCounters();
 
         const metrics = this.bridge.getPrometheusMetrics();
 
         this.bridge.registerBridgeGauges(() => {
-            const remoteUsersByAge = new AgeCounters(
+            const remoteUsersByAge = new PrometheusMetrics.AgeCounters(
                 this.config.ircService.metrics.remoteUserAgeBuckets || ["1h", "1d", "1w"]
             );
 
@@ -320,6 +318,10 @@ export class IrcBridge {
         return this.provisioner;
     }
 
+    public get domain() {
+        return this.config.homeserver.domain;
+    }
+
     public createBridgedClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean) {
         const server = this.ircServers.filter((s) => {
             return s.domain === ircClientConfig.getDomain();
@@ -419,7 +421,6 @@ export class IrcBridge {
                 "FATAL: Registration file is missing a sender_localpart and/or AS token."
             );
         }
-        this.domain = this.config.homeserver.domain;
         this.appServiceUserId = `@${this.registration.getSenderLocalpart()}:${this.domain}`;
 
         log.info("Fetching Matrix rooms that are already joined to...");
@@ -456,12 +457,8 @@ export class IrcBridge {
                     // inject a fake join event which will do M->I connections and
                     // therefore sync the member list
                     return this.matrixHandler.onJoin(req, {
-                        event_id: "$fake:membershiplist",
                         room_id: roomId,
-                        state_key: joiningUserId,
-                        user_id: joiningUserId,
                         content: {
-                            membership: "join",
                             displayname: displayName,
                         },
                         _injected: true,
@@ -594,7 +591,7 @@ export class IrcBridge {
         await promiseutil.allSettled(promises);
     }
 
-    public sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction) {
+    public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction) {
         const intent = this.bridge.getIntent(from.userId);
         if (action.msgType) {
             if (action.htmlText) {
@@ -612,10 +609,10 @@ export class IrcBridge {
                 body: action.text
             });
         }
-        else if (action.type === "topic") {
+        else if (action.type === "topic" && action.text) {
             return intent.setRoomTopic(room.getId(), action.text);
         }
-        return Bluebird.reject(new Error("Unknown action: " + action.type));
+        new Error("Unknown action: " + action.type);
     }
 
     public uploadTextFile(fileName: string, plaintext: string) {
@@ -623,7 +620,8 @@ export class IrcBridge {
             stream: new Buffer(plaintext),
             name: fileName,
             type: "text/plain; charset=utf-8",
-            rawResponse: true,
+            rawResponse: false,
+            onlyContentUri: true,
         });
     }
 
@@ -683,7 +681,7 @@ export class IrcBridge {
             }
             this.ircHandler.onMatrixMemberEvent(event);
             const target = new MatrixUser(event.state_key);
-            const sender = new MatrixUser(event.user_id);
+            const sender = new MatrixUser(event.sender);
             if (event.content.membership === "invite") {
                 await this.matrixHandler.onInvite(request, event, sender, target);
             }
@@ -888,7 +886,7 @@ export class IrcBridge {
         return new IrcUser(ircInfo.server, ircInfo.nick, true);
     }
 
-    public async trackChannel(server: IrcServer, channel: string, key: string): Promise<IrcRoom> {
+    public async trackChannel(server: IrcServer, channel: string, key?: string): Promise<IrcRoom> {
         if (!server.isBotEnabled()) {
             log.info("trackChannel: Bot is disabled.");
             return new IrcRoom(server, channel);
@@ -991,7 +989,7 @@ export class IrcBridge {
         await client.leaveChannel(ircRoom.channel);
     }
 
-    public async getBridgedClient(server: IrcServer, userId: string, displayName: string) {
+    public async getBridgedClient(server: IrcServer, userId: string, displayName?: string) {
         let bridgedClient = this.getIrcUserFromCache(server, userId);
         if (bridgedClient) {
             log.debug("Returning cached bridged client %s", userId);
@@ -999,7 +997,9 @@ export class IrcBridge {
         }
 
         const mxUser = new MatrixUser(userId);
-        mxUser.setDisplayName(displayName);
+        if (displayName) {
+            mxUser.setDisplayName(displayName);
+        }
 
         // check the database for stored config information for this irc client
         // including username, custom nick, nickserv password, etc.

@@ -45,15 +45,23 @@ const MSGTYPE_TO_TYPE: {[mxKey: string]: string} = {
 const PILL_MIN_LENGTH_TO_MATCH = 4;
 const MAX_MATCHES = 5;
 
-interface MatrixEvent {
+export interface MatrixMessageEvent {
     type: string;
+    sender: string;
+    room_id: string;
+    event_id: string;
     content: {
-        body: string;
-        topic: string;
-        format: string;
-        formatted_body: string;
+        "m.relates_to"?: {
+            "m.in_reply_to"?: {
+                event_id: string;
+            }
+        }
+        body?: string;
+        topic?: string;
+        format?: string;
+        formatted_body?: string;
         msgtype: string;
-        url: string;
+        url?: string;
         info?: {
             size: number;
         };
@@ -73,7 +81,7 @@ export class MatrixAction {
 
     constructor(
         public readonly type: string,
-        public text: string,
+        public text: string|null = null,
         public htmlText: string|null = null,
         public readonly ts: number = 0
         ) {
@@ -87,6 +95,9 @@ export class MatrixAction {
     }
 
     public async formatMentions(nickUserIdMap: {[nick: string]: string}, intent: Intent) {
+        if (!this.text) {
+            return;
+        }
         const regexString = `(${Object.keys(nickUserIdMap).map((value) => escapeStringRegexp(value)).join("|")})`;
         const usersRegex = MentionRegex(regexString);
         const matched = new Set(); // lowercased nicknames we have matched already.
@@ -144,7 +155,7 @@ export class MatrixAction {
         }
     }
 
-    public static fromEvent(event: MatrixEvent, mediaUrl: string) {
+    public static fromEvent(event: MatrixMessageEvent, mediaUrl: string) {
         event.content = event.content || {};
         let type = EVENT_TO_TYPE[event.type] || "message"; // mx event type to action type
         let text = event.content.body;
@@ -160,7 +171,7 @@ export class MatrixAction {
             if (MSGTYPE_TO_TYPE[event.content.msgtype]) {
                 type = MSGTYPE_TO_TYPE[event.content.msgtype];
             }
-            if (["m.image", "m.file", "m.video", "m.audio"].indexOf(event.content.msgtype) !== -1) {
+            if (["m.image", "m.file", "m.video", "m.audio"].indexOf(event.content.msgtype) !== -1 && event.content.url) {
                 let fileSize = "";
                 if (event.content.info && event.content.info.size &&
                         typeof event.content.info.size === "number") {

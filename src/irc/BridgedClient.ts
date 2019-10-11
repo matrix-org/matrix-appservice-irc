@@ -416,6 +416,9 @@ export class BridgedClient extends EventEmitter {
         if (action.ts && this.server.getExpiryTimeSeconds()) {
             expiryTs = action.ts + (this.server.getExpiryTimeSeconds() * 1000);
         }
+        if (action.text === null) {
+            return Promise.reject(new Error("action.text was null"));
+        }
         switch (action.type) {
             case "message":
                 return this.sendMessage(room, "message", action.text, expiryTs);

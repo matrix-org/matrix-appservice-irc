@@ -170,7 +170,7 @@ export class DebugApi {
                 promise = Promise.reject(err);
             }
 
-            promise.then((r: string) => {
+            promise.then((r) => {
                 response.writeHead(200, {"Content-Type": "text/plain"});
                 response.write(r + "\n");
                 response.end();
@@ -461,5 +461,3 @@ export class DebugApi {
         response.end();
     }
 }
-
-module.exports = DebugApi;

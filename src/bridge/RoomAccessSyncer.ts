@@ -310,7 +310,7 @@ export class RoomAccessSyncer {
                 this.ircBridge.getStore().setModeForRoom(room.getId(), "s", enabled);
             });
             // Update the visibility for all rooms connected to this channel
-            await this.ircBridge.publicitySyncer.updateVisibilityMap(
+            this.ircBridge.publicitySyncer.updateVisibilityMap(
                 true, key, enabled
             );
         }

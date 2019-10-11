@@ -21,7 +21,7 @@ import Bluebird from "bluebird";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer } from "../irc/IrcServer";
-import { AgeCounters, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
+import { PrometheusMetrics, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
 import { BridgedClient } from "./BridgedClient";
 import { IrcBridge } from "../bridge/IrcBridge";
 const log = getLogger("ClientPool");
@@ -310,7 +310,7 @@ export class ClientPool {
         return 0;
     }
 
-    public updateActiveConnectionMetrics(serverDomain: string, ageCounter: AgeCounters): void {
+    public updateActiveConnectionMetrics(serverDomain: string, ageCounter: PrometheusMetrics.AgeCounters): void {
         if (this.virtualClients[serverDomain] === undefined) {
             return;
         }
@@ -391,7 +391,7 @@ export class ClientPool {
             delete this.virtualClients[bridgedClient.server.domain].pending[bridgedClient.nick];
         }
 
-        if (bridgedClient.disconnectReason === "banned") {
+        if (bridgedClient.disconnectReason === "banned" && bridgedClient.userId) {
             const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
             this.ircBridge.matrixHandler.quitUser(
                 req, bridgedClient.userId, [bridgedClient],
