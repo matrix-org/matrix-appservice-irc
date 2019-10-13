@@ -125,6 +125,8 @@ properties:
                             type: "boolean"
                         allowExpiredCerts:
                             type: "boolean"
+                        connectionOpts:
+                            type: "object"
                         password:
                             type: "string"
                         sendConnectionMessages:
