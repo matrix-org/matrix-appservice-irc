@@ -38,6 +38,9 @@ export class IrcAction {
             case "message":
             case "emote":
             case "notice":
+                if (matrixAction.text === null) {
+                    break;
+                }
                 if (matrixAction.htmlText) {
                     const text = ircFormatting.htmlToIrc(matrixAction.htmlText);
                     const ircText = text !== null ? text : matrixAction.text; // fallback if needed.
@@ -46,9 +49,8 @@ export class IrcAction {
                     }
                     // irc formatted text is the main text part
                     return new IrcAction(matrixAction.type, ircText, matrixAction.ts)
-                } else if (matrixAction.text) {
-                    return new IrcAction(matrixAction.type, matrixAction.text, matrixAction.ts);
                 }
+                return new IrcAction(matrixAction.type, matrixAction.text, matrixAction.ts);
             case "image":
                 return new IrcAction(
                     "emote", "uploaded an image: " + matrixAction.text, matrixAction.ts
@@ -60,12 +62,13 @@ export class IrcAction {
             case "file":
                 return new IrcAction("emote", "posted a file: " + matrixAction.text, matrixAction.ts);
             case "topic":
-                if (matrixAction.text) {
-                    return new IrcAction(matrixAction.type, matrixAction.text, matrixAction.ts);
+                if (matrixAction.text === null) {
+                    break;
                 }
+                return new IrcAction(matrixAction.type, matrixAction.text, matrixAction.ts);
             default:
                 log.error("IrcAction.fromMatrixAction: Unknown action: %s", matrixAction.type);
-                return null;
         }
+        return null;
     }
 }

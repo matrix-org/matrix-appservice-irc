@@ -54,8 +54,8 @@ export interface MatrixMessageEvent {
         "m.relates_to"?: {
             "m.in_reply_to"?: {
                 event_id: string;
-            }
-        }
+            };
+        };
         body?: string;
         topic?: string;
         format?: string;
@@ -171,7 +171,8 @@ export class MatrixAction {
             if (MSGTYPE_TO_TYPE[event.content.msgtype]) {
                 type = MSGTYPE_TO_TYPE[event.content.msgtype];
             }
-            if (["m.image", "m.file", "m.video", "m.audio"].indexOf(event.content.msgtype) !== -1 && event.content.url) {
+            const isFile = ["m.image", "m.file", "m.video", "m.audio"].includes(event.content.msgtype);
+            if (isFile && event.content.url) {
                 let fileSize = "";
                 if (event.content.info && event.content.info.size &&
                         typeof event.content.info.size === "number") {

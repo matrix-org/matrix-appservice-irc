@@ -13,7 +13,7 @@ import { BridgedClient} from "../irc/BridgedClient";
 import { IrcUser } from "../models/IrcUser";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig } from "../models/IrcClientConfig";
-import { BridgeRequest } from "../models/BridgeRequest";
+import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
 import stats from "../config/stats";
 import { NeDBDataStore } from "../datastore/NedbDataStore";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
@@ -519,16 +519,17 @@ export class IrcBridge {
         }
 
         // SUCCESS
-        this.bridge.getRequestFactory().addDefaultResolveCallback((req, res: string) => {
-            if (res === BridgeRequest.ERR_VIRTUAL_USER) {
+        this.bridge.getRequestFactory().addDefaultResolveCallback((req, _res) => {
+            const res = _res as BridgeRequestErr|null;
+            if (res === BridgeRequestErr.ERR_VIRTUAL_USER) {
                 logMessage(req, "IGNORE virtual user");
                 return; // these aren't true successes so don't skew graphs
             }
-            else if (res === BridgeRequest.ERR_NOT_MAPPED) {
+            else if (res === BridgeRequestErr.ERR_NOT_MAPPED) {
                 logMessage(req, "IGNORE not mapped");
                 return; // these aren't true successes so don't skew graphs
             }
-            else if (res === BridgeRequest.ERR_DROPPED) {
+            else if (res === BridgeRequestErr.ERR_DROPPED) {
                 logMessage(req, "IGNORE dropped");
                 this.logMetric(req, "dropped");
                 return;
@@ -591,11 +592,11 @@ export class IrcBridge {
         await promiseutil.allSettled(promises);
     }
 
-    public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction) {
+    public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
         const intent = this.bridge.getIntent(from.userId);
         if (action.msgType) {
             if (action.htmlText) {
-                return intent.sendMessage(room.getId(), {
+                await intent.sendMessage(room.getId(), {
                     msgtype: action.msgType,
                     body: (
                         action.text || action.htmlText.replace(/(<([^>]+)>)/ig, "") // strip html tags
@@ -604,15 +605,19 @@ export class IrcBridge {
                     formatted_body: action.htmlText
                 });
             }
-            return intent.sendMessage(room.getId(), {
-                msgtype: action.msgType,
-                body: action.text
-            });
+            else {
+                await intent.sendMessage(room.getId(), {
+                    msgtype: action.msgType,
+                    body: action.text
+                });
+            }
+            return;
         }
         else if (action.type === "topic" && action.text) {
-            return intent.setRoomTopic(room.getId(), action.text);
+            await intent.setRoomTopic(room.getId(), action.text);
+            return;
         }
-        new Error("Unknown action: " + action.type);
+        throw Error("Unknown action: " + action.type);
     }
 
     public uploadTextFile(fileName: string, plaintext: string) {
@@ -652,7 +657,7 @@ export class IrcBridge {
         request.outcomeFrom(this._onEvent(request));
     }
 
-    private async _onEvent (baseRequest: Request): Promise<string|undefined> {
+    private async _onEvent (baseRequest: Request): Promise<BridgeRequestErr|undefined> {
         const event = baseRequest.getData();
         if (event.sender && this.activityTracker) {
             this.activityTracker.bumpLastActiveTime(event.sender);
@@ -667,7 +672,7 @@ export class IrcBridge {
                         "Dropping old m.room.message event %s timestamped %d",
                         event.event_id, event.origin_server_ts
                     );
-                    return BridgeRequest.ERR_DROPPED;
+                    return BridgeRequestErr.ERR_DROPPED;
                 }
             }
             await this.matrixHandler.onMessage(request, event);
@@ -677,7 +682,7 @@ export class IrcBridge {
         }
         else if (event.type === "m.room.member") {
             if (!event.content || !event.content.membership) {
-                return BridgeRequest.ERR_NOT_MAPPED;
+                return BridgeRequestErr.ERR_NOT_MAPPED;
             }
             this.ircHandler.onMatrixMemberEvent(event);
             const target = new MatrixUser(event.state_key);
@@ -697,7 +702,7 @@ export class IrcBridge {
                     await this.matrixHandler.onKick(request, event, sender, target);
                 }
                 else {
-                    await this.matrixHandler.onLeave(request, event, target, sender);
+                    await this.matrixHandler.onLeave(request, event, target);
                 }
             }
         }

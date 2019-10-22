@@ -260,7 +260,7 @@ declare module 'matrix-appservice-bridge' {
 
     export class RequestFactory {
         newRequest(opts?: {data: {}}): Request;
-        addDefaultResolveCallback(cb: (req: Request, result: string) => void): void;
+        addDefaultResolveCallback(cb: (req: Request, result: unknown) => void): void;
         addDefaultRejectCallback(cb: (req: Request) => void): void;
         addDefaultTimeoutCallback(cb: (req: Request) => void, timeout: number): void;
     }

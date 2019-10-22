@@ -160,7 +160,7 @@ export function logErr(logger: LoggerInstance, e: Error) {
     if (e.stack) {
         logger.error(e.stack);
     }
-};
+}
 
 export const getLogger = get;
 
@@ -214,7 +214,7 @@ export function newRequestLogger(baseLogger: LoggerInstance, requestId: string, 
         };
         fn.apply(baseLogger, newArgs as any);
     };
-    
+
     return {
         debug: (msg: string, ...meta: any[]) => { decorate(baseLogger.debug, [msg, ...meta]); },
         info: (msg: string, ...meta: any[]) => { decorate(baseLogger.info, [msg, ...meta]); },

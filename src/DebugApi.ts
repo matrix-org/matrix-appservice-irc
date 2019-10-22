@@ -404,11 +404,11 @@ export class DebugApi {
         try {
             const userClients = this.ircBridge.getBridgedClientsForRegex(regex);
             const clientsResponse: {[userId: string]: Array<{
-                channels: string[],
-                dead: boolean,
-                server: string,
-                nick: string
-            }|undefined>} = {};
+                channels: string[];
+                dead: boolean;
+                server: string;
+                nick: string;
+            }|undefined>;} = {};
             Object.keys(userClients).forEach((userId) => {
                 clientsResponse[userId] = userClients[userId].map((client: BridgedClient) => {
                     if (!client) {
