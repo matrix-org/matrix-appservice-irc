@@ -2,7 +2,7 @@
 
 const Promise = require("bluebird");
 const stats = require("../config/stats");
-const { BridgeRequest, BridgeRequestErr } = require("../models/BridgeRequest");
+const { BridgeRequestErr } = require("../models/BridgeRequest");
 const { IrcRoom } = require("../models/IrcRoom");
 const MatrixRoom = require("matrix-appservice-bridge").MatrixRoom;
 const MatrixUser = require("matrix-appservice-bridge").MatrixUser;

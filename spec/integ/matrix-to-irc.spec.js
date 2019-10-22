@@ -7,7 +7,7 @@ const mediaUrl = "http://some-media-repo.com";
 
 describe("Matrix-to-IRC message bridging", function() {
 
-    const {env, roomMapping, test} = envBundle();
+    const {env, config, roomMapping, test} = envBundle();
 
     const testUser = {
         id: "@flibble:wibble",
@@ -433,16 +433,21 @@ describe("Matrix-to-IRC message bridging", function() {
 
     it("should bridge matrix replies to ghosts with their nick", async function() {
         // Trigger an original event
-        await env.mockAppService._trigger("type:m.room.message", {
+        const originalMessage = {
             content: {
                 body: "This is the real message",
                 msgtype: "m.text"
             },
-            user_id: testUser.id,
             room_id: roomMapping.roomId,
             sender: "@irc.example_WibbleWob:some.home.server",
-            event_id: "$original:bar.com",
+            event_id: "$original32:bar.com",
             type: "m.room.message"
+        };
+        let botSdk = env.clientMock._client(config._botUserId);
+        botSdk.fetchRoomEvent.and.callFake(async (roomId, eventId) => {
+            expect(roomId).toBe(roomMapping.roomId);
+            expect(eventId).toBe("$original32:bar.com");
+            return originalMessage;
         });
         const p = env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
             function(client, channel, text) {
@@ -465,7 +470,7 @@ describe("Matrix-to-IRC message bridging", function() {
                 msgtype: "m.text",
                 "m.relates_to": {
                     "m.in_reply_to": {
-                        "event_id": "$original:bar.com"
+                        "event_id": "$original32:bar.com"
                     }
                 },
             },
@@ -753,7 +758,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         // do the init
         yield test.initEnv(env);
         // Set the media URL
-        env.ircBridge.matrixHandler._mediaUrl = mediaUrl;
+        env.ircBridge.matrixHandler.mediaUrl = mediaUrl;
     }));
 
     afterEach(test.coroutine(function*() {
@@ -872,7 +877,6 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
             expect(channel).toEqual(roomMapping.channel);
             // don't be too brittle when checking this, but I expect to see the
             // filename (body) and the http url.
-            console.log(text);
             expect(text.indexOf(tBody)).not.toEqual(-1, "File name not present");
             expect(text.indexOf(tHsUrl)).toEqual(-1, "HS URL present instead of media URL");
             expect(text.indexOf(tMediaUrl)).not.toEqual(-1, "No media URL");

@@ -1246,7 +1246,6 @@ export class MatrixHandler {
             event.type, event.sender, event.room_id,
             (event.content.body ? event.content.body.substring(0, 20) : "")
         );
-
         const mxAction = MatrixAction.fromEvent(
             event, this.mediaUrl
         );
@@ -1296,7 +1295,7 @@ export class MatrixHandler {
             }
             // could be an Admin room, so check.
             const adminRoom = await this.ircBridge.getStore().getAdminRoomById(event.room_id);
-            if (!adminRoom || body !== undefined) {
+            if (!adminRoom) {
                 req.log.info("No mapped channels.");
                 return BridgeRequestErr.ERR_DROPPED;
             }
@@ -1344,27 +1343,21 @@ export class MatrixHandler {
             // this room.
             let bridgedClient = this.ircBridge.getIrcUserFromCache(ircRoom.server, event.sender);
             if (!bridgedClient) {
-                console.log("woof");
                 messageSendPromiseSet.push((async () => {
-                    console.log("woo2");
                     let displayName = undefined;
                     try {
                         const res = await this.ircBridge.getAppServiceBridge().getIntent().getStateEvent(
                             event.room_id, "m.room.member", event.sender
                         );
                         displayName = res.displayname;
-                        console.log("woof3");
                     }
                     catch (err) {
-                        console.log("woof4");
                         req.log.error("Failed to get display name: %s", err);
                         // this is non-fatal, continue.
                     }
-                    console.log("woof5");
                     bridgedClient = await this.ircBridge.getBridgedClient(
                         ircRoom.server, event.sender, displayName
                     );
-                    console.log("woof6");
                     await this.sendIrcAction(req, ircRoom, bridgedClient, ircAction, event);
                 })());
             }
@@ -1652,7 +1645,6 @@ export class MatrixHandler {
         let rplName: string;
         let rplSource: string;
         const rplText = match[3];
-        console.log(rplText, match, this.eventCache);
         const cachedEvent = this.eventCache.get(eventId);
         if (!cachedEvent) {
             // Fallback to fetching from the homeserver.
@@ -1674,7 +1666,6 @@ export class MatrixHandler {
                     rplSource = eventContent.content.body;
                 }
                 rplSource = rplSource.substr(0, REPLY_SOURCE_MAX_LENGTH);
-                console.log(eventId, {sender: rplName, body: rplSource});
                 this.eventCache.set(eventId, {sender: rplName, body: rplSource});
             }
             catch (err) {
@@ -1687,7 +1678,6 @@ export class MatrixHandler {
             }
         }
         else {
-            console.log("Using cache:", cachedEvent);
             rplName = cachedEvent.sender;
             rplSource = cachedEvent.body;
         }
@@ -1711,21 +1701,17 @@ export class MatrixHandler {
 
         // Fetch the sender's IRC nick.
         const sourceClient = this.ircBridge.getIrcUserFromCache(ircRoom.server, rplName);
-        console.log("src");
         if (sourceClient) {
-            console.log("nick:", sourceClient.nick);
             rplName = sourceClient.nick;
         }
         else {
             // If we couldn't find a client for them, they might be a ghost.
             const ghostName = ircRoom.getServer().getNickFromUserId(rplName);
-            console.log("ghost:", ghostName);
             // If we failed to get a name, just make a guess of it.
             rplName = ghostName !== null ? ghostName : rplName.substr(1,
                 Math.min(REPLY_NAME_MAX_LENGTH, rplName.indexOf(":") - 1)
             );
         }
-        console.log(rplName);
 
         return {
             formatted: `<${rplName}${rplSource}> ${rplText}`,
