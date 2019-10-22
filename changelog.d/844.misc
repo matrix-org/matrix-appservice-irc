@@ -1,0 +1,1 @@
+Do not call keepalive() callbacks if the user doesn't need to be kept alive.

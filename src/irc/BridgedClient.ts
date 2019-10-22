@@ -628,7 +628,7 @@ export class BridgedClient extends EventEmitter {
 
     private keepAlive() {
         this.lastActionTs = Date.now();
-        if (this.server.shouldSyncMembershipToIrc("initial") || 
+        if (this.server.shouldSyncMembershipToIrc("initial") ||
             this.isBot) {
                 // If we are mirroring matrix membership OR
                 // we are a bot, do not disconnect.
