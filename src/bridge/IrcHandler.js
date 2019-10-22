@@ -2,7 +2,7 @@
 
 const Promise = require("bluebird");
 const stats = require("../config/stats");
-const { BridgeRequest } = require("../models/BridgeRequest");
+const { BridgeRequest, BridgeRequestErr } = require("../models/BridgeRequest");
 const { IrcRoom } = require("../models/IrcRoom");
 const MatrixRoom = require("matrix-appservice-bridge").MatrixRoom;
 const MatrixUser = require("matrix-appservice-bridge").MatrixUser;
@@ -196,7 +196,7 @@ IrcHandler.prototype.onPrivateMessage = Promise.coroutine(function*(req, server,
                                                               toUser, action) {
     this.incrementMetric("pm");
     if (fromUser.isVirtual) {
-        return BridgeRequest.ERR_VIRTUAL_USER;
+        return BridgeRequestErr.ERR_VIRTUAL_USER;
     }
 
     if (!toUser.isVirtual) {
@@ -294,7 +294,7 @@ IrcHandler.prototype.onInvite = Promise.coroutine(function*(req, server, fromUse
                                                               toUser, channel) {
     this.incrementMetric("invite");
     if (fromUser.isVirtual) {
-        return BridgeRequest.ERR_VIRTUAL_USER;
+        return BridgeRequestErr.ERR_VIRTUAL_USER;
     }
 
     if (!toUser.isVirtual) {
@@ -502,7 +502,7 @@ IrcHandler.prototype.onMessage = Promise.coroutine(function*(req, server, fromUs
                                                     channel, action) {
     this.incrementMetric("message");
     if (fromUser.isVirtual) {
-        return BridgeRequest.ERR_VIRTUAL_USER;
+        return BridgeRequestErr.ERR_VIRTUAL_USER;
     }
 
     req.log.info("onMessage: %s from=%s to=%s action=%s",
@@ -608,13 +608,13 @@ IrcHandler.prototype.onJoin = Promise.coroutine(function*(req, server, joiningUs
     let syncType = kind === "names" ? "initial" : "incremental";
     if (!server.shouldSyncMembershipToMatrix(syncType, chan)) {
         req.log.info("IRC onJoin(%s) %s to %s - not syncing.", kind, nick, chan);
-        return BridgeRequest.ERR_NOT_MAPPED;
+        return BridgeRequestErr.ERR_NOT_MAPPED;
     }
 
     req.log.info("onJoin(%s) %s to %s", kind, nick, chan);
     // if the person joining is a virtual IRC user, do nothing.
     if (joiningUser.isVirtual) {
-        return BridgeRequest.ERR_VIRTUAL_USER;
+        return BridgeRequestErr.ERR_VIRTUAL_USER;
     }
 
     this.quitDebouncer.onJoin(nick, server);
@@ -781,7 +781,7 @@ IrcHandler.prototype.onPart = Promise.coroutine(function*(req, server, leavingUs
 
     // if the person leaving is a virtual IRC user, do nothing. Unless it's a part.
     if (leavingUser.isVirtual && kind !== "part") {
-        return BridgeRequest.ERR_VIRTUAL_USER;
+        return BridgeRequestErr.ERR_VIRTUAL_USER;
     }
 
     let matrixUser;
@@ -792,7 +792,7 @@ IrcHandler.prototype.onPart = Promise.coroutine(function*(req, server, leavingUs
         if (!bridgedClient.inChannel(chan)) {
             req.log.info("Not kicking user from room, user is not in channel");
             // We don't need to send a leave to a channel we were never in.
-            return BridgeRequest.ERR_DROPPED;
+            return BridgeRequestErr.ERR_DROPPED;
         }
         matrixUser = bridgedClient.userId;
     }
@@ -874,7 +874,7 @@ IrcHandler.prototype.onMetadata = Promise.coroutine(function*(req, client, msg, 
     req.log.info("%s : Sending metadata '%s'", client, msg);
     if (!this.ircBridge.isStartedUp && !force) {
         req.log.info("Suppressing metadata: not started up.");
-        return BridgeRequest.ERR_NOT_MAPPED;
+        return BridgeRequestErr.ERR_NOT_MAPPED;
     }
     let botUser = new MatrixUser(this.ircBridge.getAppServiceUserId());
 

@@ -19,6 +19,7 @@ import { Request } from "matrix-appservice-bridge";
 import { LoggerInstance } from "winston";
 const log = getLogger("req");
 
+
 export class BridgeRequest {
     log: RequestLogger;
     constructor(private req: Request) {
@@ -37,8 +38,10 @@ export class BridgeRequest {
     reject(err?: unknown) {
         this.req.reject(err);
     }
+}
 
-    public static ERR_VIRTUAL_USER = "virtual-user";
-    public static ERR_NOT_MAPPED = "virtual-user";
-    public static ERR_DROPPED = "virtual-user";
+export enum BridgeRequestErr {
+    ERR_VIRTUAL_USER,
+    ERR_NOT_MAPPED,
+    ERR_DROPPED,
 }
