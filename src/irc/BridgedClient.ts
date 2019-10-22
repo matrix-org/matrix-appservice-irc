@@ -628,6 +628,12 @@ export class BridgedClient extends EventEmitter {
 
     private keepAlive() {
         this.lastActionTs = Date.now();
+        if (this.server.shouldSyncMembershipToIrc("initial") || 
+            this.isBot) {
+                // If we are mirroring matrix membership OR
+                // we are a bot, do not disconnect.
+            return;
+        }
         const idleTimeout = this.server.getIdleTimeout();
         if (idleTimeout > 0) {
             if (this.idleTimeout) {
@@ -640,17 +646,6 @@ export class BridgedClient extends EventEmitter {
             // restart the timeout
             this.idleTimeout = setTimeout(() => {
                 this.log.info("Idle timeout has expired");
-                if (this.server.shouldSyncMembershipToIrc("initial")) {
-                    this.log.info(
-                        "Not disconnecting because %s is mirroring matrix membership lists",
-                        this.server.domain
-                    );
-                    return;
-                }
-                if (this.isBot) {
-                    this.log.info("Not disconnecting because this is the bot");
-                    return;
-                }
                 this.disconnect(
                     "idle", `Idle timeout reached: ${idleTimeout}s`
                 ).then(() => {
