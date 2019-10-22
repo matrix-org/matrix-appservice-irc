@@ -656,6 +656,7 @@ export class BridgedClient extends EventEmitter {
             }, (1000 * idleTimeout));
         }
     }
+
     private removeChannel(channel: string) {
         const i = this.chanList.indexOf(channel);
         if (i === -1) {
