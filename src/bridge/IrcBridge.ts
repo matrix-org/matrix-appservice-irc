@@ -1,7 +1,7 @@
 import Bluebird from "bluebird";
 import extend from "extend";
 import * as promiseutil from "../promiseutil";
-import IrcHandler from "./IrcHandler";
+import { IrcHandler } from "./IrcHandler";
 import { MatrixHandler } from "./MatrixHandler";
 import { MemberListSyncer } from "./MemberListSyncer";
 import { IdentGenerator } from "../irc/IdentGenerator";
@@ -46,7 +46,6 @@ const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type IrcHandler = any;
 type Provisioner = any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -291,9 +290,8 @@ export class IrcBridge {
             });
 
             const ircMetrics = this.ircHandler.getMetrics();
-            Object.keys(ircMetrics).forEach((method) => {
-                const value = ircMetrics[method];
-                ircHandlerCalls.inc({method}, value);
+            Object.entries(ircMetrics).forEach((kv) => {
+                ircHandlerCalls.inc({method: kv[0]}, kv[1]);
             });
         });
     }

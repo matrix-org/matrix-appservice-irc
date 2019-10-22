@@ -1,13 +1,12 @@
 import { IrcServerConfig } from "../irc/IrcServer";
 import { LoggerConfig } from "../logging";
+import { IrcHandlerConfig } from "../bridge/IrcHandler";
 
 export interface BridgeConfig {
     matrixHandler: {
 
     };
-    ircHandler: {
-
-    };
+    ircHandler: IrcHandlerConfig;
     database: {
         engine: string;
         connectionString: string;
