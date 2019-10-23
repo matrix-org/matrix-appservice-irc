@@ -1,9 +1,24 @@
+/*
+Copyright 2019 The Matrix.org Foundation C.I.C.
 
-import * as logging from "../logging";
-import * as BridgedClient from "./BridgedClient";
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+import { getLogger } from "../logging";
+import { illegalCharactersRegex} from "./BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 
-const log = logging.get("IrcServer");
+const log = getLogger("IrcServer");
 const GROUP_ID_REGEX = /^\+\S+:\S+$/
 
 type MembershipSyncKind = "incremental"|"initial";
@@ -14,6 +29,7 @@ type MembershipSyncKind = "incremental"|"initial";
 export class IrcServer {
     private addresses: string[];
     private groupIdValid: boolean;
+    private excludedUsers: { regex: RegExp; kickReason?: string }[];
     /**
      * Construct a new IRC Server.
      * @constructor
@@ -29,6 +45,12 @@ export class IrcServer {
                 private homeserverDomain: string, private expiryTimeSeconds: number = 0) {
         this.addresses = config.additionalAddresses || [];
         this.addresses.push(domain);
+        this.excludedUsers = config.excludedUsers.map((excluded) => {
+            return {
+                ...excluded,
+                regex: new RegExp(excluded.regex)
+            }
+        })
 
         if (this.config.dynamicChannels.groupId !== undefined &&
             this.config.dynamicChannels.groupId.trim() !== "") {
@@ -261,6 +283,12 @@ export class IrcServer {
         return this.config.dynamicChannels.exclude.indexOf(channel) !== -1;
     }
 
+    public isExcludedUser(userId: string) {
+        return this.excludedUsers.find((exclusion) => {
+            return exclusion.regex.exec(userId) !== null;
+        });
+    }
+
     public hasInviteRooms() {
         return (
             this.config.dynamicChannels.enabled && this.getJoinRule() === "invite"
@@ -287,7 +315,7 @@ export class IrcServer {
         return this.config.privateMessages.enabled;
     }
 
-    public shouldSyncMembershipToIrc(kind: MembershipSyncKind, roomId: string) {
+    public shouldSyncMembershipToIrc(kind: MembershipSyncKind, roomId?: string) {
         return this._shouldSyncMembership(kind, roomId, true);
     }
 
@@ -295,7 +323,7 @@ export class IrcServer {
         return this._shouldSyncMembership(kind, channel, false);
     }
 
-    public _shouldSyncMembership(kind: MembershipSyncKind, identifier: string, toIrc: boolean) {
+    public _shouldSyncMembership(kind: MembershipSyncKind, identifier: string|undefined, toIrc: boolean) {
         if (["incremental", "initial"].indexOf(kind) === -1) {
             throw new Error("Bad kind: " + kind);
         }
@@ -434,10 +462,9 @@ export class IrcServer {
     }
 
     public getNick(userId: string, displayName?: string) {
-        const illegalChars = BridgedClient.illegalCharactersRegex;
         let localpart = userId.substring(1).split(":")[0];
-        localpart = localpart.replace(illegalChars, "");
-        displayName = displayName ? displayName.replace(illegalChars, "") : undefined;
+        localpart = localpart.replace(illegalCharactersRegex, "");
+        displayName = displayName ? displayName.replace(illegalCharactersRegex, "") : undefined;
         const display = [displayName, localpart].find((n) => Boolean(n));
         if (!display) {
             throw new Error("Could not get nick for user, all characters were invalid");
@@ -507,6 +534,7 @@ export class IrcServer {
                 exclude: []
             },
             mappings: {},
+            excludedUsers: [],
             matrixClients: {
                 userTemplate: "@$SERVER_$NICK",
                 displayName: "$NICK (IRC)",
@@ -588,6 +616,7 @@ export interface IrcServerConfig {
     ssl?: boolean;
     sslselfsign?: boolean;
     sasl?: boolean;
+    password?: string;
     allowExpiredCerts?: boolean;
     additionalAddresses?: string[];
     dynamicChannels: {
@@ -641,6 +670,12 @@ export interface IrcServerConfig {
         lineLimit: number;
         userModes?: string;
     };
+    excludedUsers: Array<
+        {
+            regex: string;
+            kickReason?: string;
+        }
+    >;
     membershipLists: {
         enabled: boolean;
         floodDelayMs: number;

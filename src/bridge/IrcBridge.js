@@ -7,16 +7,16 @@ var promiseutil = require("../promiseutil");
 var IrcHandler = require("./IrcHandler.js");
 var MatrixHandler = require("./MatrixHandler.js");
 var MemberListSyncer = require("./MemberListSyncer.js");
-var IdentGenerator = require("../irc/IdentGenerator.js");
-var Ipv6Generator = require("../irc/Ipv6Generator.js");
+const { IdentGenerator } = require("../irc/IdentGenerator.js");
+const { Ipv6Generator } = require("../irc/Ipv6Generator.js");
 const { IrcServer } = require("../irc/IrcServer.js");
-var ClientPool = require("../irc/ClientPool");
-var IrcEventBroker = require("../irc/IrcEventBroker");
-var BridgedClient = require("../irc/BridgedClient");
-var IrcUser = require("../models/IrcUser");
+const { ClientPool } = require("../irc/ClientPool");
+const { IrcEventBroker } = require("../irc/IrcEventBroker");
+const { BridgedClient} = require("../irc/BridgedClient");
+const { IrcUser } = require("../models/IrcUser");
 const { IrcRoom } = require("../models/IrcRoom");
 const { IrcClientConfig } = require("../models/IrcClientConfig");
-var BridgeRequest = require("../models/BridgeRequest");
+const { BridgeRequest } = require("../models/BridgeRequest");
 var stats = require("../config/stats");
 const { NeDBDataStore } = require("../datastore/NedbDataStore");
 const { PgDataStore } = require("../datastore/postgres/PgDataStore");
@@ -317,6 +317,13 @@ IrcBridge.prototype.createBridgedClient = function(ircClientConfig, matrixUser, 
         );
     }
 
+    if (matrixUser) { // Don't bother with the bot user
+        const excluded = server.isExcludedUser(matrixUser.userId);
+        if (excluded) {
+            throw Error("Cannot create bridged client - user is excluded from bridging");
+        }
+    }
+
     return new BridgedClient(
         server, ircClientConfig, matrixUser, isBot,
         this._ircEventBroker, this._identGenerator, this._ipv6Generator
@@ -324,28 +331,30 @@ IrcBridge.prototype.createBridgedClient = function(ircClientConfig, matrixUser, 
 };
 
 IrcBridge.prototype.run = Promise.coroutine(function*(port) {
-    yield this._bridge.loadDatabases();
     const dbConfig = this.config.database;
+    const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
 
-    if (this._debugApi && dbConfig.engine === "nedb") {
-        // monkey patch inspect() values to avoid useless NeDB
-        // struct spam on the debug API.
-        this._bridge.getUserStore().inspect = function(depth) {
-            return "UserStore";
-        }
-        this._bridge.getRoomStore().inspect = function(depth) {
-            return "RoomStore";
-        }
+    if (this._debugApi) {
         this._debugApi.run();
     }
 
-    let pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
     if (dbConfig.engine === "postgres") {
         log.info("Using PgDataStore for Datastore");
         this._dataStore = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
         yield this._dataStore.ensureSchema();
     }
     else if (dbConfig.engine === "nedb") {
+        yield this._bridge.loadDatabases();
+        if (this._debugApi) {
+            // monkey patch inspect() values to avoid useless NeDB
+            // struct spam on the debug API.
+            this._bridge.getUserStore().inspect = function(depth) {
+                return "UserStore";
+            }
+            this._bridge.getRoomStore().inspect = function(depth) {
+                return "RoomStore";
+            }
+        }
         log.info("Using NeDBDataStore for Datastore");
         this._dataStore = new NeDBDataStore(
             this._bridge.getUserStore(),
@@ -1033,9 +1042,8 @@ IrcBridge.prototype.getBridgedClient = Promise.coroutine(function*(server, userI
         "Creating virtual irc user with nick %s for %s (display name %s)",
         ircClientConfig.getDesiredNick(), userId, displayName
     );
-    bridgedClient = this._clientPool.createIrcClient(ircClientConfig, mxUser, false);
-
     try {
+        bridgedClient = this._clientPool.createIrcClient(ircClientConfig, mxUser, false);
         yield bridgedClient.connect();
         if (!storedConfig) {
             yield this.getStore().storeIrcClientConfig(ircClientConfig);

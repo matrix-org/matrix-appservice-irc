@@ -203,6 +203,10 @@ ircService:
         # circumstances.
         # exclude: ["#foo", "#bar"]
 
+      # excludedUsers:
+      #   - regex: "@.*:evilcorp.com"
+      #     kickReason: "We don't like Evilcorp"
+
       # Configuration for controlling how Matrix and IRC membership lists are
       # synced.
       membershipLists:

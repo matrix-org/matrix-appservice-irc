@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {default as Bluebird} from "bluebird";
+import Bluebird from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
-import * as logging from "../logging";
+import { getLogger } from "../logging";
 
 import { MatrixRoom, MatrixUser, RemoteUser, RemoteRoom,
     UserBridgeStore, RoomBridgeStore, Entry } from "matrix-appservice-bridge";
@@ -25,7 +25,7 @@ import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "./DataStor
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
 import { StringCrypto } from "./StringCrypto";
 
-const log = logging.get("NeDBDataStore");
+const log = getLogger("NeDBDataStore");
 
 interface ClientConfigMap {
     [domain: string]: IrcClientConfigSeralized;

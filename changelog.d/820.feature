@@ -1,0 +1,1 @@
+Add config option `excludedUsers` to exclude users from bridging by regex.

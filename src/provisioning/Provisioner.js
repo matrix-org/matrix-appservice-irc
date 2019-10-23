@@ -2,11 +2,11 @@
 "use strict";
 const Promise = require("bluebird");
 const { IrcRoom } = require("../models/IrcRoom");
-const IrcAction = require("../models/IrcAction");
+const { IrcAction } = require("../models/IrcAction");
 const MatrixRoom = require("matrix-appservice-bridge").MatrixRoom;
 const ConfigValidator = require("matrix-appservice-bridge").ConfigValidator;
 const MatrixUser = require("matrix-appservice-bridge").MatrixUser;
-const BridgeRequest = require("../models/BridgeRequest");
+const { BridgeRequest } = require("../models/BridgeRequest");
 const ProvisionRequest = require("./ProvisionRequest");
 
 const log = require("../logging").get("Provisioner");

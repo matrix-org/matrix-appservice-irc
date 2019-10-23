@@ -5,11 +5,11 @@ const Promise = require("bluebird");
 const stats = require("../config/stats");
 const MatrixRoom = require("matrix-appservice-bridge").MatrixRoom;
 const { IrcRoom } = require("../models/IrcRoom");
-const MatrixAction = require("../models/MatrixAction");
-const IrcAction = require("../models/IrcAction");
+const { MatrixAction } = require("../models/MatrixAction");
+const { IrcAction } = require("../models/IrcAction");
 const { IrcClientConfig } = require("../models/IrcClientConfig");
 const MatrixUser = require("matrix-appservice-bridge").MatrixUser;
-const BridgeRequest = require("../models/BridgeRequest");
+const { BridgeRequest } = require("../models/BridgeRequest");
 const toIrcLowerCase = require("../irc/formatting").toIrcLowerCase;
 const StateLookup = require('matrix-appservice-bridge').StateLookup;
 
@@ -43,6 +43,8 @@ function MatrixHandler(ircBridge, config) {
     this.metrics = {
         //domain => {"metricname" => value}
     };
+    // The media URL to use to transform mxc:// URLs when handling m.room.[file|image]s
+    this._mediaUrl = ircBridge.config.homeserver.media_url || ircBridge.config.homeserver.url;
 }
 
 // ===== Matrix Invite Handling =====
@@ -958,9 +960,12 @@ MatrixHandler.prototype._onJoin = Promise.coroutine(function*(req, event, user) 
 
             while (kickIntent) {
                 try {
+                    // If they are known blacklisted, get a specific reason string.
+                    const excluded = server.isExcludedUser(user.getId());
                     yield kickIntent.kick(
                         event.room_id, user.getId(),
-                    `IRC connection failure.`
+                        excluded && excluded.kickReason ? excluded.kickReason
+                         : `IRC connection failure.`,
                     );
                     self._incrementMetric(room.server.domain, "connection_failure_kicks");
                     break;
@@ -1229,11 +1234,9 @@ MatrixHandler.prototype._onMessage = Promise.coroutine(function*(req, event) {
         return BridgeRequest.ERR_VIRTUAL_USER;
     }
 
-    // The media URL to use to transform mxc:// URLs when handling m.room.[file|image]s
-    let mediaUrl = this.ircBridge.config.homeserver.media_url;
 
     let mxAction = MatrixAction.fromEvent(
-        this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs(), event, mediaUrl
+        event, this._mediaUrl
     );
     let ircAction = IrcAction.fromMatrixAction(mxAction);
     let ircRooms = yield this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
@@ -1411,9 +1414,6 @@ MatrixHandler.prototype._sendIrcAction = Promise.coroutine(
         req.log.error("Failed to upload text file ", err);
     }
 
-    // The media URL to use to transform mxc:// URLs when handling m.room.[file|image]s
-    let mediaUrl = this.ircBridge.config.homeserver.media_url;
-
     // This is true if the upload was a success
     if (result.content_uri) {
         // Alter event object so that it is treated as if a file has been uploaded
@@ -1422,8 +1422,7 @@ MatrixHandler.prototype._sendIrcAction = Promise.coroutine(
         event.content.body = "sent a long message: ";
 
         // Create a file event to reflect the recent upload
-        let cli = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
-        let mAction = MatrixAction.fromEvent(cli, event, mediaUrl);
+        let mAction = MatrixAction.fromEvent(event, this._mediaUrl);
         let bigFileIrcAction = IrcAction.fromMatrixAction(mAction);
 
         // Replace "Posted a File with..."
@@ -1449,7 +1448,7 @@ MatrixHandler.prototype._sendIrcAction = Promise.coroutine(
             MatrixAction.fromEvent(
                 this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs(),
                 event,
-                mediaUrl
+                this._mediaUrl
             )
         );
 

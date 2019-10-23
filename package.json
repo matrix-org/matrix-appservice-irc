@@ -8,6 +8,7 @@
     "node": ">=6.9"
   },
   "scripts": {
+    "postinstall": "npm run build",
     "build": "tsc --project ./tsconfig.json",
     "test": "BLUEBIRD_DEBUG=1 node --max_old_space_size=3072 node_modules/jasmine/bin/jasmine.js --stop-on-failure=true",
     "lint:js": "eslint --max-warnings 0 src/**/*.js app.js spec",
@@ -29,7 +30,7 @@
   "dependencies": {
     "bluebird": "^3.1.1",
     "crc": "^3.2.1",
-    "escape-string-regexp": "^1.0.5",
+    "escape-string-regexp": "^2.0.0",
     "extend": "^2.0.0",
     "he": "^1.1.1",
     "iconv": "^2.3.4",
@@ -47,11 +48,14 @@
     "winston-daily-rotate-file": "^3.2.1"
   },
   "devDependencies": {
+    "@types/bluebird": "^3.5.27",
+    "@types/he": "^1.1.0",
+    "@types/nedb": "^1.8.9",
+    "@types/nopt": "^3.0.29",
+    "@types/pg": "^7.11.1",
+    "@types/sanitize-html": "^1.20.2",
     "@typescript-eslint/eslint-plugin": "^2.2.0",
     "@typescript-eslint/parser": "^2.2.0",
-    "@types/bluebird": "^3.5.27",
-    "@types/nedb": "^1.8.9",
-    "@types/pg": "^7.11.1",
     "eslint": "^5.16.0",
     "jasmine": "^3.1.0",
     "nyc": "^14.1.1",
