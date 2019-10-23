@@ -93,6 +93,11 @@ function IrcBridge(config, registration) {
             userStore: `${dirPath}/users.db`,
         };
     }
+    else {
+        bridgeStoreConfig = {
+            disableStores: true,
+        };
+    }
 
     this._bridge = new Bridge({
         registration: this.registration,
@@ -1113,6 +1118,7 @@ IrcBridge.prototype._roomUpgradeMigrateEntry = function(entry, newRoomId) {
 }
 
 IrcBridge.prototype._onRoomUpgrade = Promise.coroutine(function*(oldRoomId, newRoomId) {
+    yield this.getStore().roomUpgradeOnRoomMigrated(oldRoomId, newRoomId);
     log.info(`Room has been upgraded from ${oldRoomId} to ${newRoomId}, updating ghosts..`);
     // Get the channels for the room_id
     const rooms = yield this.getStore().getIrcChannelsForRoomId(newRoomId);
