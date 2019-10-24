@@ -158,5 +158,7 @@ export interface DataStore {
 
     getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined>;
 
+    roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string): Promise<void>;
+
     destroy(): Promise<void>;
 }
