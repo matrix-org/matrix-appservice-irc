@@ -58,6 +58,7 @@
     "jasmine": "^3.1.0",
     "nyc": "^14.1.1",
     "proxyquire": "^1.4.0",
-    "typescript": "^3.6.3"
+    "typescript": "^3.6.3",
+    "prom-client": "^11.5.3"
   }
 }
