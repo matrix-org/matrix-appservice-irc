@@ -34,6 +34,7 @@ describe("Creating admin rooms", function() {
         yield env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
+                is_direct: true,
             },
             state_key: botUserId,
             user_id: "@someone:somewhere",
@@ -41,6 +42,40 @@ describe("Creating admin rooms", function() {
             type: "m.room.member"
         });
         expect(botJoinedRoom).toBe(true);
+    }));
+
+    it("should not create a room for a non is_direct invite",
+    test.coroutine(function*() {
+        let botJoinedRoom = false;
+        let sdk = env.clientMock._client(botUserId);
+        sdk.joinRoom.and.callFake(function(roomId) {
+            expect(roomId).toEqual("!adminroomid:here");
+            botJoinedRoom = true;
+            return Promise.resolve({});
+        });
+
+        yield env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "invite",
+            },
+            state_key: botUserId,
+            user_id: "@someone:somewhere",
+            room_id: "!adminroomid:here",
+            type: "m.room.member"
+        });
+
+        yield env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "invite",
+                is_direct: false,
+            },
+            state_key: botUserId,
+            user_id: "@someone:somewhere",
+            room_id: "!adminroomid:here",
+            type: "m.room.member"
+        });
+
+        expect(botJoinedRoom).toBe(false);
     }));
 });
 
@@ -98,7 +133,8 @@ describe("Admin rooms", function() {
             // auto-setup an admin room
             return env.mockAppService._trigger("type:m.room.member", {
                 content: {
-                    membership: "invite"
+                    membership: "invite",
+                    is_direct: true
                 },
                 state_key: botUserId,
                 user_id: userId,

@@ -672,7 +672,8 @@ describe("Matrix-to-Matrix message bridging", function() {
         // Get nick serv into the 2 PM rooms
         yield env.mockAppService._trigger("type:m.room.member", {
             content: {
-                membership: "invite"
+                membership: "invite",
+                is_direct: true
             },
             state_key: nickServUserId,
             user_id: testUser.id,
@@ -681,7 +682,8 @@ describe("Matrix-to-Matrix message bridging", function() {
         });
         yield env.mockAppService._trigger("type:m.room.member", {
             content: {
-                membership: "invite"
+                membership: "invite",
+                is_direct: true
             },
             state_key: nickServUserId,
             user_id: anotherUserId,

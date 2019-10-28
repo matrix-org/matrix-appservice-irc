@@ -859,6 +859,7 @@ MatrixHandler.prototype._onInvite = Promise.coroutine(function*(req, event, invi
      * [3] MX  --invite--> BOT  (admin room; auth)
      * [4] bot --invite--> MX   (bot telling real mx user IRC conn state) - Ignore.
      * [5] irc --invite--> MX   (real irc user PMing a Matrix user) - Ignore.
+     * [6] MX  --invite--> BOT  (invite to private room to allow bot to bridge) - Ignore.
      */
     req.log.info("onInvite: %s", JSON.stringify(event));
     this._onMemberEvent(req, event);
@@ -871,12 +872,22 @@ MatrixHandler.prototype._onInvite = Promise.coroutine(function*(req, event, invi
         delete this._processingInvitesForRooms[event.room_id + event.state_key];
     });
 
+    // Check if this room is known to us.
+    const hasExistingRoom = (
+        yield this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id)
+    ).length > 0;
+
 
     // work out which flow we're dealing with and fork off asap
     // is the invitee the bot?
     if (this.ircBridge.getAppServiceUserId() === event.state_key) {
-        // case [3]
-        yield this._handleAdminRoomInvite(req, event, inviter, invitee);
+        if (event.content.is_direct && !hasExistingRoom) {
+            // case [3]
+            // This is a PM invite to the bot.
+            yield this._handleAdminRoomInvite(req, event, inviter, invitee);
+        }
+        // case[6]
+        // Drop through so the invite stays active, but do not join the room.
     }
     // else is the invitee a real matrix user? If they are, there will be no IRC server
     else if (!this.ircBridge.getServerForUserId(event.state_key)) {
@@ -890,9 +901,10 @@ MatrixHandler.prototype._onInvite = Promise.coroutine(function*(req, event, invi
         if (this.ircBridge.getAppServiceUserId() === event.user_id) {
             yield this._handleInviteFromBot(req, event, ircUser); // case [2]
         }
-        else {
+        else if (event.content.is_direct) {
             yield this._handleInviteFromUser(req, event, ircUser); // case [1]
         }
+        // Fall through here if the invite was directed at a IRC user, but was not a PM invite.
     }
 });
 
