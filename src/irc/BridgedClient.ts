@@ -48,14 +48,6 @@ interface GetNicksResponseOperators extends GetNicksResponse {
     operatorNicks: string[];
 }
 
-interface WhoisResponse {
-    user: string;
-    idle: number;
-    channels: string[];
-    host: string;
-    realname: string;
-}
-
 export const illegalCharactersRegex = /[^A-Za-z0-9\]\[\^\\\{\}\-`_\|]/g;
 
 export class BridgedClient extends EventEmitter {
@@ -64,7 +56,7 @@ export class BridgedClient extends EventEmitter {
     private _nick: string;
     private readonly id: string;
     private readonly password?: string;
-    private _unsafeClient: IrcClient|null = null;
+    private _unsafeClient: Client|null = null;
     private lastActionTs: number;
     private inst: ConnectionInstance|null = null;
     private instCreationFailed = false;
@@ -244,7 +236,7 @@ export class BridgedClient extends EventEmitter {
                 // These can fail, but the generic error listener will catch them and send them
                 // into the same room as the connect text, so it's probably good enough to not
                 // explicitly handle them.
-                this.unsafeClient.setUserMode("+" + userModes);
+                connInst.client.setUserMode("+" + userModes);
                 connectText += (
                     ` User modes +${userModes} have been set.`
                 );
@@ -321,6 +313,7 @@ export class BridgedClient extends EventEmitter {
         if (!this.unsafeClient) {
             return Promise.reject(new Error("You are not connected to the network."));
         }
+        const client = this.unsafeClient;
 
         return new Promise((resolve, reject) => {
             // These are nullified to prevent the linter from thinking these should be consts.
@@ -329,15 +322,19 @@ export class BridgedClient extends EventEmitter {
             const timeoutId = setTimeout(() => {
                 this.log.error("Timed out trying to change nick to %s", validNick);
                 // may have d/ced between sending nick change and now so recheck
-                if (this.unsafeClient) {
-                    this.unsafeClient.removeListener("nick", nickListener);
-                    this.unsafeClient.removeListener("error", nickErrListener);
+                if (nickListener) {
+                    client.removeListener("nick", nickListener);
+                }
+                if (nickErrListener) {
+                    client.removeListener("error", nickErrListener);
                 }
                 reject(new Error("Timed out waiting for a response to change nick."));
             }, NICK_DELAY_TIMER_MS);
             nickListener = (old, n) => {
                 clearTimeout(timeoutId);
-                this.unsafeClient.removeListener("error", nickErrListener);
+                if (nickErrListener) {
+                    client.removeListener("error", nickErrListener);
+                }
                 resolve("Nick changed from '" + old + "' to '" + n + "'.");
             }
             nickErrListener = (err) => {
@@ -350,19 +347,21 @@ export class BridgedClient extends EventEmitter {
                 if (failCodes.indexOf(err.command) !== -1) {
                     this.log.error("Nick change error : %s", err.command);
                     clearTimeout(timeoutId);
-                    this.unsafeClient.removeListener("nick", nickListener);
+                    if (nickListener) {
+                        client.removeListener("nick", nickListener);
+                    }
                     reject(new Error("Failed to change nick: " + err.command));
                 }
             }
-            this.unsafeClient.once("nick", nickListener);
-            this.unsafeClient.once("error", nickErrListener);
-            this.unsafeClient.send("NICK", validNick);
+            client.once("nick", nickListener);
+            client.once("error", nickErrListener);
+            client.send("NICK", validNick);
         });
     }
 
 
     public leaveChannel(channel: string, reason = "User left") {
-        if (!this.inst || this.inst.dead) {
+        if (!this.inst || this.inst.dead || !this.unsafeClient) {
             return Promise.resolve(); // we were never connected to the network.
         }
         if (channel.indexOf("#") !== 0) {
@@ -388,7 +387,7 @@ export class BridgedClient extends EventEmitter {
 
     public kick(nick: string, channel: string, reason: string) {
         reason = reason || "User kicked";
-        if (!this.inst || this.inst.dead) {
+        if (!this.inst || this.inst.dead || !this.unsafeClient) {
             return Promise.resolve(); // we were never connected to the network.
         }
         if (Object.keys(this.unsafeClient.chans).indexOf(channel) === -1) {
@@ -399,9 +398,11 @@ export class BridgedClient extends EventEmitter {
             return Promise.resolve(); // PM room
         }
 
+        const c = this.unsafeClient;
+
         return new Promise((resolve) => {
             this.log.debug("Kicking %s from channel %s", nick, channel);
-            this.unsafeClient.send("KICK", channel, nick, reason);
+            c.send("KICK", channel, nick, reason);
             resolve(); // wait for some response? Is there even one?
         });
     }
@@ -433,7 +434,11 @@ export class BridgedClient extends EventEmitter {
      */
     public whois(nick: string): Promise<{ server: IrcServer; nick: string; msg: string}> {
         return new Promise((resolve, reject) => {
-            this.unsafeClient.whois(nick, (whois: WhoisResponse) => {
+            if (!this.unsafeClient) {
+                reject(Error("unsafeClient not ready yet"));
+                return;
+            }
+            this.unsafeClient.whois(nick, (whois) => {
                 if (!whois.user) {
                     reject(new Error("Cannot find nick on whois."));
                     return;
@@ -546,7 +551,11 @@ export class BridgedClient extends EventEmitter {
      * @param {string} channel : The channel to call /names on
      */
     public getNicks(channel: string): Bluebird<GetNicksResponse> {
-        return new Bluebird((resolve) => {
+        return new Bluebird((resolve, reject) => {
+            if (!this.unsafeClient) {
+                reject(Error("unsafeClient not ready yet"));
+                return;
+            }
             this.unsafeClient.names(channel, (channelName: string, names: {[nick: string]: string}) => {
                 // names maps nicks to chan op status, where '@' indicates chan op
                 // names = {'nick1' : '', 'nick2' : '@', ...}
@@ -707,10 +716,13 @@ export class BridgedClient extends EventEmitter {
     }
 
     private async setTopic(room: IrcRoom, topic: string): Promise<void> {
+        if (!this.unsafeClient) {
+            throw Error("unsafeClient not ready yet");
+        }
         // join the room if we haven't already
         await this.joinChannel(room.channel)
         this.log.info("Setting topic to %s in channel %s", topic, room.channel);
-        this.unsafeClient.send("TOPIC", room.channel, topic);
+        return this.unsafeClient.send("TOPIC", room.channel, topic);
     }
 
     private async sendMessage(room: IrcRoom, msgType: string, text: string, expiryTs: number) {
@@ -726,15 +738,19 @@ export class BridgedClient extends EventEmitter {
                 defer.resolve();
                 return;
             }
+            
+            if (!this.unsafeClient) {
+                return;
+            }
 
             if (msgType == "action") {
-                this.unsafeClient.action(room.channel, text);
+                await this.unsafeClient.action(room.channel, text);
             }
             else if (msgType == "notice") {
-                this.unsafeClient.notice(room.channel, text);
+                await this.unsafeClient.notice(room.channel, text);
             }
             else if (msgType == "message") {
-                this.unsafeClient.say(room.channel, text);
+                await this.unsafeClient.say(room.channel, text);
             }
             defer.resolve();
         }

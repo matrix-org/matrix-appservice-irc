@@ -94,7 +94,7 @@ export class ConnectionInstance {
      * @param {string} domain The domain (for logging purposes)
      * @param {string} nick The nick (for logging purposes)
      */
-    constructor (public readonly client: IrcClient, private readonly domain: string, private nick: string) {
+    constructor (public readonly client: Client, private readonly domain: string, private nick: string) {
         this.listenForErrors();
         this.listenForPings();
         this.listenForCTCPVersions();
@@ -177,7 +177,7 @@ export class ConnectionInstance {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public addListener(eventName: string, fn: (...args: Array<any>) => void) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.client.addListener(eventName, (...args: Array<any>) => {
+        this.client.addListener(eventName, (...args: unknown[]) => {
             if (this.dead) {
                 log.error(
                     "%s@%s RECV a %s event for a dead connection",
@@ -302,10 +302,10 @@ export class ConnectionInstance {
         // decorate client.send to refresh the timer
         const realSend = this.client.send;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.client.send = (...args: unknown[]) => {
+        this.client.send = (...args: string[]) => {
             keepAlivePing();
             this.resetPingSendTimer(); // sending a message counts as a ping
-            realSend.apply(this.client, args);
+            return realSend.apply(this.client, args);
         };
     }
 
@@ -369,7 +369,7 @@ export class ConnectionInstance {
 
         // Returns: A promise which resolves to a ConnectionInstance
         const retryConnection = () => {
-            const nodeClient = new irc.Client(
+            const nodeClient = new Client(
                 server.randomDomain(), opts.nick, connectionOpts
             );
             const inst = new ConnectionInstance(
@@ -396,6 +396,7 @@ export class ConnectionInstance {
                 return await retryConnection();
             }
             catch (err) {
+                console.log(err);
                 connAttempts += 1;
                 log.error(
                     `ConnectionInstance.connect failed after ${connAttempts} attempts (${err.message})`
