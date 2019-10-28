@@ -738,7 +738,7 @@ export class BridgedClient extends EventEmitter {
                 defer.resolve();
                 return;
             }
-            
+
             if (!this.unsafeClient) {
                 return;
             }
