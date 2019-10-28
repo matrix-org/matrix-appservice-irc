@@ -43,7 +43,7 @@ export class ClientPool {
         pending: { [nick: string]: BridgedClient};
     };};
     private virtualClientCounts: { [serverDomain: string]: number };
-    private reconnectQueues: { [serverDomain: string]: QueuePool };
+    private reconnectQueues: { [serverDomain: string]: QueuePool<ReconnectionItem> };
     constructor(private ircBridge: IrcBridge) {
         // The list of bot clients on servers (not specific users)
         this.botClients = { };
@@ -112,7 +112,7 @@ export class ClientPool {
                 server.getConcurrentReconnectLimit(),
                 (item) => {
                     log.info(`Reconnecting client. ${q.waitingItems} left.`);
-                    return this.reconnectClient(item as ReconnectionItem);
+                    return this.reconnectClient(item);
                 }
             );
         }

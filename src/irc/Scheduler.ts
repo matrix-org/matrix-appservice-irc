@@ -27,18 +27,14 @@ interface QueueItem {
 }
 
 // Maps domain => Queue
-const queues: {[domain: string]: Queue} = {};
+const queues: {[domain: string]: Queue<QueueItem>} = {};
 
 function getQueue (server: IrcServer) {
     let q = queues[server.domain];
 
     if (!q) {
         q = new Queue((item) => {
-            const {
-                addedDelayMs,
-                fn
-            } = item as QueueItem;
-            return Bluebird.delay(addedDelayMs).then(fn);
+            return Bluebird.delay(item.addedDelayMs).then(item.fn);
         }, server.getReconnectIntervalMs());
         queues[server.domain] = q;
     }

@@ -23,14 +23,13 @@ const log = getLogger("Ipv6Generator");
 
 export class Ipv6Generator {
     private counter = -1;
-    private queue: Queue;
+    private queue: Queue<{prefix: string; ircClientConfig: IrcClientConfig}>;
     constructor (private readonly dataStore: DataStore) {
         // Queue of ipv6 generation requests.
         // We need to queue them because otherwise 2 clashing user_ids could be assigned
         // the same ipv6 value (won't be in the database yet)
         this.queue = new Queue((item) => {
-            const processItem = item as {prefix: string; ircClientConfig: IrcClientConfig};
-            return this.process(processItem.prefix, processItem.ircClientConfig);
+            return this.process(item.prefix, item.ircClientConfig);
         });
     }
 

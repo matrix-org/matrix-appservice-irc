@@ -31,6 +31,11 @@ interface RoomInfo {
     remoteJoinedUsers: string[];
 }
 
+interface LeaveQueueItem {
+    roomId: string;
+    userIds: string[];
+}
+
 type InjectJoinFn = (roomId: string, joiningUserId: string,
                      displayName: string, isFrontier: boolean) => PromiseLike<unknown>;
 
@@ -45,7 +50,7 @@ export class MemberListSyncer {
         irc: {},
         matrix: {},
     }
-    private leaveQueuePool: QueuePool;
+    private leaveQueuePool: QueuePool<LeaveQueueItem>;
     constructor(private ircBridge: IrcBridge, private appServiceBot: AppserviceBot, private server: IrcServer,
                 private appServiceUserId: string, private injectJoinFn: InjectJoinFn) {
         // A queue which controls the rate at which leaves are sent to Matrix. We need this queue
@@ -351,18 +356,14 @@ export class MemberListSyncer {
     // {
     //   roomId: "!foo:bar", userIds: [ "@alice:bar", "@bob:bar", ... ]
     // }
-    private async leaveUsersInRoom(_item: unknown) {
-        const item = _item as {
-            roomId: string;
-            userIds: string[];
-        };
+    private async leaveUsersInRoom(item: LeaveQueueItem) {
         // We need to queue these up in ANOTHER queue so as not to have
         // 2 in-flight requests at the same time. We return a promise which resolves
         // when this room is completely done.
-        const q = new Queue(async (userId) => {
+        const q = new Queue<string>(async (userId) => {
             // Do this here, we might not manage to leave but we won't retry.
             this.usersToLeave--;
-            await this.ircBridge.getAppServiceBridge().getIntent(userId as string).leave(item.roomId);
+            await this.ircBridge.getAppServiceBridge().getIntent(userId).leave(item.roomId);
             stats.membership(true, "part");
         });
 

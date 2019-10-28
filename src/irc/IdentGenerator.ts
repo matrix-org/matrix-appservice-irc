@@ -28,13 +28,13 @@ export class IdentGenerator {
     // The max length of <username> in USER commands
     private static readonly MAX_USER_NAME_LENGTH = 10;
 
-    private queue: Queue;
+    private queue: Queue<{ matrixUser: MatrixUser; ircClientConfig: IrcClientConfig}>;
     constructor (private readonly dataStore: DataStore) {
         // Queue of ident generation requests.
         // We need to queue them because otherwise 2 clashing user_ids could be assigned
         // the same ident value (won't be in the database yet)
-        this.queue = new Queue((item: unknown) => {
-            const {matrixUser, ircClientConfig} = item as { matrixUser: MatrixUser; ircClientConfig: IrcClientConfig};
+        this.queue = new Queue((item) => {
+            const {matrixUser, ircClientConfig} = item;
             return this.process(matrixUser, ircClientConfig);
         });
     }
