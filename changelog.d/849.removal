@@ -1,0 +1,1 @@
+Remove warnings/hacks around `config.appservice`. Users should have upgraded to the new format by now.
