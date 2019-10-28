@@ -188,7 +188,7 @@ declare module 'matrix-appservice-bridge' {
 
     export class Intent {
         getEvent(room_id: string, eventId: string): Promise<any>;
-        invite(room_id: string, sender: string): Promise<void>;
+        invite(room_id: string, recipient: string): Promise<void>;
         createRoom(opts: unknown): Promise<{room_id: string;}>;
         roomState(room_id: string): Promise<any[]>;
         leave(roomId: string): Promise<void>;
@@ -199,7 +199,7 @@ declare module 'matrix-appservice-bridge' {
         sendMessage(roomId: string, content: any): Promise<void>;
         sendStateEvent(roomId: string, type: string, stateKey: string, content: any): Promise<void>;
         join(roomId: string): Promise<void>;
-        kick(roomId: string, userId: string, reason: string): Promise<void>;
+        kick(roomId: string, userId: string, reason?: string): Promise<void>;
         setRoomTopic(roomId: string, topic: string): Promise<void>;
         readonly client: JsClient;
         getClient(): JsClient;
