@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import Promise from "bluebird";
-import { Queue, QueueProcessFn, QueueItem } from "./Queue";
+import { Queue, QueueProcessFn } from "./Queue";
 
 /**
  * A Queue Pool is a queue which is backed by a pool of queues which can be serviced
@@ -24,7 +24,7 @@ import { Queue, QueueProcessFn, QueueItem } from "./Queue";
 **/
 export class QueuePool<T> {
     private queues: Queue<T>[] = [];
-    private overflow: Queue<{id: string, item: T}>;
+    private overflow: Queue<{id: string; item: T}>;
 
     /**
      * Construct a new Queue Pool.
@@ -87,7 +87,7 @@ export class QueuePool<T> {
     }
 
     // This is called when a request is at the front of the overflow queue.
-    private onOverflow(req: {id: string, item: T}) {
+    private onOverflow(req: {id: string; item: T}) {
         const queue = this.freeQueue();
         if (queue) {
             // cannot return the raw promise else it will be waited on, whereas we want to return
