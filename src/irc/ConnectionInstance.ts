@@ -14,10 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// We have no types for IRC yet.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const irc = require("irc");
-
+import { Client } from "irc";
 import * as promiseutil from "../promiseutil";
 import Scheduler from "./Scheduler";
 import * as logging from "../logging";
@@ -33,9 +30,6 @@ export interface IrcMessage {
     rawCommand: string;
     prefix: string;
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type IrcClient = any;
 
 // The time we're willing to wait for a connect callback when connecting to IRC.
 const CONNECT_TIMEOUT_MS = 30 * 1000; // 30s

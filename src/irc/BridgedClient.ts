@@ -29,17 +29,13 @@ import { IrcAction } from "../models/IrcAction";
 import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
+import { Client } from "irc";
 
 const log = getLogger("BridgedClient");
 
 // The length of time to wait before trying to join the channel again
 const JOIN_TIMEOUT_MS = 15 * 1000; // 15s
 const NICK_DELAY_TIMER_MS = 10 * 1000; // 10s
-
-// All of these are not defined yet.
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type IrcClient = EventEmitter|any;
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 interface GetNicksResponse {
     server: IrcServer;
