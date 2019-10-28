@@ -18,17 +18,17 @@ import Bluebird from "bluebird";
 import * as promiseutil from "../promiseutil";
 import { Defer } from "../promiseutil";
 
-export interface QueueItem {
+export interface QueueItem<T> {
     id: string;
-    item: unknown;
+    item: T;
     defer: Defer<unknown>;
 }
 
-export type QueueProcessFn = (item: unknown) => Promise<unknown>|void;
+export type QueueProcessFn<T> = (item: T) => Promise<unknown>|void;
 
-export class Queue {
-    private queue: QueueItem[] = [];
-    private processing: QueueItem|null|undefined = null;
+export class Queue<T> {
+    private queue: QueueItem<T>[] = [];
+    private processing: QueueItem<T>|null|undefined = null;
     private onceFreeDefers: Defer<unknown>[] = [];
     private consume: () => Bluebird<unknown>;
 
@@ -42,7 +42,7 @@ export class Queue {
      * at an interval of intervalMs. Otherwise, items will be processed as soon as they become
      * the first item in the queue to be processed.
      */
-    constructor(private processFn: QueueProcessFn, private intervalMs?: number) {
+    constructor(private processFn: QueueProcessFn<T>, private intervalMs?: number) {
         if (intervalMs !== undefined && !(Number.isInteger(intervalMs) && intervalMs >= 0) ) {
             throw Error('intervalMs must be a positive integer');
         }
@@ -96,7 +96,7 @@ export class Queue {
      * @return {Promise} A promise which will be resolved/rejected when the queued item
      * has been processed.
      */
-    public enqueue(id: string, thing: unknown) {
+    public enqueue(id: string, thing: T) {
         for (let i = 0; i < this.queue.length; i++) {
             if (this.queue[i].id === id) {
                 return this.queue[i].defer.promise;

@@ -22,9 +22,9 @@ import { Queue, QueueProcessFn, QueueItem } from "./Queue";
  * of the queue. The QueuePool always operates in a FIFO manner, even when all queues
  * are occupied.
 **/
-export class QueuePool {
-    private queues: Queue[] = [];
-    private overflow: Queue;
+export class QueuePool<T> {
+    private queues: Queue<T>[] = [];
+    private overflow: Queue<{id: string, item: T}>;
 
     /**
      * Construct a new Queue Pool.
@@ -33,15 +33,15 @@ export class QueuePool {
      * be put in a FIFO overflow queue. You can also use an index when
      * enqueuing to override this behaviour.
     */
-    constructor(private size: number, fn: QueueProcessFn) {
+    constructor(private size: number, fn: QueueProcessFn<T>) {
         if (size < 1) {
             throw new Error("Pool size must be at least 1");
         }
         for (let i = 0; i < size; i++) {
             this.queues.push(new Queue(fn));
         }
-        this.overflow = new Queue((item: unknown) => {
-            return this.onOverflow(item as QueueItem);
+        this.overflow = new Queue((item) => {
+            return this.onOverflow(item);
         });
     }
 
@@ -59,7 +59,7 @@ export class QueuePool {
      * Returns: A promise which resolves when the item has been serviced, and
      *          the promise returned by the queue function has resolved.
     */
-    public enqueue(id: string, item: unknown, index?: number) {
+    public enqueue(id: string, item: T, index?: number) {
         if (index !== undefined) {
             if (index >= this.size || index < 0) {
                 throw new Error(`enqueue: index ${index} is out of bounds`);
@@ -79,15 +79,15 @@ export class QueuePool {
         // after the item has finished executing on the queue pool, hence
         // the promise chain here.
         return this.overflow.enqueue(id, {
-            id: id,
-            item: item,
+            id,
+            item,
         }).then((req) => {
             return (req as {p: Promise<unknown>}).p;
         });
     }
 
     // This is called when a request is at the front of the overflow queue.
-    private onOverflow(req: QueueItem) {
+    private onOverflow(req: {id: string, item: T}) {
         const queue = this.freeQueue();
         if (queue) {
             // cannot return the raw promise else it will be waited on, whereas we want to return
@@ -101,7 +101,7 @@ export class QueuePool {
             return q.onceFree().then(() => q);
         });
         return Promise.any(promises).then((q) => {
-            if ((q as Queue).size() !== 0) {
+            if ((q as Queue<T>).size() !== 0) {
                 throw new Error(`QueuePool overflow: starvation. No free queues.`);
             }
             return {

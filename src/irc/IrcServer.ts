@@ -21,7 +21,7 @@ import { IrcClientConfig } from "../models/IrcClientConfig";
 const log = getLogger("IrcServer");
 const GROUP_ID_REGEX = /^\+\S+:\S+$/
 
-type MembershipSyncKind = "incremental"|"initial";
+export type MembershipSyncKind = "incremental"|"initial";
 
 /*
  * Represents a single IRC server from config.yaml
