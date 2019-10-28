@@ -396,7 +396,6 @@ export class ConnectionInstance {
                 return await retryConnection();
             }
             catch (err) {
-                console.log(err);
                 connAttempts += 1;
                 log.error(
                     `ConnectionInstance.connect failed after ${connAttempts} attempts (${err.message})`
