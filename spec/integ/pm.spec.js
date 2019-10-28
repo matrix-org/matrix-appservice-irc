@@ -33,7 +33,8 @@ describe("Matrix-to-IRC PMing", function() {
         // get the ball rolling
         let requestPromise = env.mockAppService._trigger("type:m.room.member", {
             content: {
-                membership: "invite"
+                membership: "invite",
+                is_direct: true,
             },
             state_key: tIrcUserId,
             user_id: tUserId,
@@ -100,7 +101,8 @@ describe("Matrix-to-IRC PMing", function() {
         // get the ball rolling
         let requestPromise = env.mockAppService._trigger("type:m.room.member", {
             content: {
-                membership: "invite"
+                membership: "invite",
+                is_direct: true,
             },
             state_key: tIrcUserId,
             user_id: tUserId,
@@ -223,7 +225,8 @@ describe("Matrix-to-IRC PMing disabled", function() {
         // get the ball rolling
         let requestPromise = env.mockAppService._trigger("type:m.room.member", {
             content: {
-                membership: "invite"
+                membership: "invite",
+                is_direct: true,
             },
             state_key: tIrcUserId,
             user_id: tUserId,
@@ -552,7 +555,8 @@ describe("Matrix-to-IRC PMing over federation disabled", function() {
         // get the ball rolling
         let requestPromise = env.mockAppService._trigger("type:m.room.member", {
             content: {
-                membership: "invite"
+                membership: "invite",
+                is_direct: true,
             },
             state_key: tIrcUserId,
             user_id: tUserId,

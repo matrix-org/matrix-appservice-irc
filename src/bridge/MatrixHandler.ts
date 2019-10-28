@@ -1596,7 +1596,7 @@ export class MatrixHandler {
                     channelInfo.server, channelInfo.channel
                 );
             }
- catch (ex) {
+            catch (ex) {
                 log.error(
                     `Could not init mode for channel ${channelInfo.channel} on ` +
                     `${channelInfo.server.domain}`

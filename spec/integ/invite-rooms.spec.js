@@ -43,6 +43,7 @@ describe("Invite-only rooms", function() {
         env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
+                is_direct: true,
             },
             state_key: botUserId,
             user_id: testUser.id,
@@ -54,6 +55,7 @@ describe("Invite-only rooms", function() {
             return env.mockAppService._trigger("type:m.room.member", {
                 content: {
                     membership: "invite",
+                    is_direct: true,
                 },
                 state_key: botUserId,
                 user_id: testUser.id,
