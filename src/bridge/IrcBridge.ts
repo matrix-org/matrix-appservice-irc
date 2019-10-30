@@ -65,12 +65,14 @@ export class IrcBridge {
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
     private activityTracker: MatrixActivityTracker|null = null;
+    private ircHandler: IrcHandler;
     private ircEventBroker: IrcEventBroker;
     private dataStore!: DataStore;
     private identGenerator: IdentGenerator|null = null;
     private ipv6Generator: Ipv6Generator|null = null;
     private startedUp = false;
     private debugApi: DebugApi|null;
+    private publicitySyncer: PublicitySyncer;
     private provisioner: Provisioner|null = null;
     private bridge: Bridge;
     private timers: {

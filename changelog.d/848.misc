@@ -1,0 +1,1 @@
+Swap to using promises over timers for queuing messages on IRC connections.

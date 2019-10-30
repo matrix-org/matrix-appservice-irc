@@ -236,7 +236,8 @@ export class DebugApi {
                 "User " + user + " does not have a client on " + server.domain + "\n"
             );
         }
-        if (!client.unsafeClient) {
+        const connection = client.unsafeClient && client.unsafeClient.conn;
+        if (!client.unsafeClient || !connection) {
             return Bluebird.resolve(
                 "There is no underlying client instance.\n"
             );
@@ -254,7 +255,7 @@ export class DebugApi {
         body = body.replace("\r\n", "\n");
         body.split("\n").forEach((c: string) => {
             // IRC protocol require rn
-            client.unsafeClient.conn.write(c + "\r\n");
+            connection.write(c + "\r\n");
             buffer.push(c);
         });
 

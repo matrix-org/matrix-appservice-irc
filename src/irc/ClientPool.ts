@@ -367,6 +367,9 @@ export class ClientPool {
     private onClientConnected(bridgedClient: BridgedClient): void {
         const server = bridgedClient.server;
         const oldNick = bridgedClient.nick;
+        if (!bridgedClient.unsafeClient) {
+            return;
+        }
         const actualNick = bridgedClient.unsafeClient.nick;
 
         // remove the pending nick we had set for this user
