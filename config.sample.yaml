@@ -382,8 +382,6 @@ ircService:
     # to rotations.
     maxFiles: 5
 
-  # Optional. Enable Prometheus metrics. If this is enabled, you MUST install `prom-client`:
-  #   $ npm install prom-client@6.3.0
   # Metrics will then be available via GET /metrics on the bridge listening port (-p).
   metrics:
     # Whether to actually enable the metric endpoint. Default: false

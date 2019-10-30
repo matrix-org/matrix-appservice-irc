@@ -41,6 +41,9 @@ interface MatrixEventInvite {
     room_id: string;
     state_key: string;
     sender: string;
+    content: {
+        is_direct?: boolean;
+    }
 }
 
 interface MatrixEventKick {
@@ -899,6 +902,7 @@ export class MatrixHandler {
         * [3] MX  --invite--> BOT  (admin room; auth)
         * [4] bot --invite--> MX   (bot telling real mx user IRC conn state) - Ignore.
         * [5] irc --invite--> MX   (real irc user PMing a Matrix user) - Ignore.
+        * [6] MX  --invite--> BOT  (invite to private room to allow bot to bridge) - Ignore.
         */
         req.log.info("onInvite: %s", JSON.stringify(event));
         this._onMemberEvent(req, event);
@@ -911,19 +915,28 @@ export class MatrixHandler {
             delete this.processingInvitesForRooms[event.room_id + event.state_key];
         });
 
+        // Check if this room is known to us.
+        const hasExistingRoom = (
+            await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id)
+        ).length > 0;
 
         // work out which flow we're dealing with and fork off asap
         // is the invitee the bot?
         if (this.ircBridge.getAppServiceUserId() === event.state_key) {
-            // case [3]
-            await this.handleAdminRoomInvite(req, event, inviter);
+            if (event.content.is_direct && !hasExistingRoom) {
+                // case [3]
+                // This is a PM invite to the bot.
+                await this.handleAdminRoomInvite(req, event, inviter);
+            }
+            // case[6]
+            // Drop through so the invite stays active, but do not join the room.
         }
         // else is the invitee a real matrix user? If they are, there will be no IRC server
         else if (!this.ircBridge.getServerForUserId(event.state_key)) {
             // cases [4] and [5] : We cannot accept on behalf of real matrix users, so nop
             return BridgeRequestErr.ERR_NOT_MAPPED;
         }
-        else {
+        else if (event.content.is_direct) {
             // cases [1] and [2] : The invitee represents a real IRC user
             const ircUser = await this.ircBridge.matrixToIrcUser(invitee);
             // is the invite from the bot?

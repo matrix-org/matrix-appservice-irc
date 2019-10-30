@@ -505,6 +505,10 @@ export class PgDataStore implements DataStore {
         return new MatrixUser(res.rows[0].user_id, res.rows[0].data);
     }
 
+    public async roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string) {
+        await this.pgPool.query("UPDATE rooms SET room_id = $1 WHERE room_id = $2", [newRoomId, oldRoomId]);
+    }
+
     public async ensureSchema() {
         log.info("Starting postgres database engine");
         let currentVersion = await this.getSchemaVersion();
