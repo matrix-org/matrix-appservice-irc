@@ -255,7 +255,7 @@ export class IrcHandler {
             return undefined;
         }
 
-        if(!bridgedIrcClient.userId) {
+        if (!bridgedIrcClient.userId) {
             req.log.error("Cannot route PM to %s - no user id on client", toUser);
             return BridgeRequestErr.ERR_DROPPED;
         }
@@ -275,7 +275,7 @@ export class IrcHandler {
         const virtualMatrixUser = await this.ircBridge.getMatrixUser(fromUser);
         req.log.info("Mapped to %s", JSON.stringify(virtualMatrixUser));
         let pmRoom = await this.ircBridge.getStore().getMatrixPmRoom(
-            bridgedIrcClient.userId!, virtualMatrixUser.getId()
+            bridgedIrcClient.userId, virtualMatrixUser.getId()
         );
 
         if (!pmRoom) {
@@ -297,7 +297,7 @@ export class IrcHandler {
             if (!pmRoom) {
                 req.log.info("Creating a PM room with %s", bridgedIrcClient.userId);
                 this.pmRoomPromises[pmRoomPromiseId] = this.createPmRoom(
-                    bridgedIrcClient.userId!, virtualMatrixUser.getId(), fromUser.nick, server
+                    bridgedIrcClient.userId, virtualMatrixUser.getId(), fromUser.nick, server
                 );
                 pmRoom = await this.pmRoomPromises[pmRoomPromiseId];
             }
@@ -306,7 +306,7 @@ export class IrcHandler {
             // make sure that the matrix user is still in the room
             try {
                 await this.ensureMatrixUserJoined(
-                    pmRoom.getId(), bridgedIrcClient.userId!, virtualMatrixUser.getId(), req.log
+                    pmRoom.getId(), bridgedIrcClient.userId, virtualMatrixUser.getId(), req.log
                 );
             }
             catch (err) {
