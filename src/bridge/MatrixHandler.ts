@@ -936,14 +936,14 @@ export class MatrixHandler {
             // cases [4] and [5] : We cannot accept on behalf of real matrix users, so nop
             return BridgeRequestErr.ERR_NOT_MAPPED;
         }
-        else if (event.content.is_direct) {
+        else {
             // cases [1] and [2] : The invitee represents a real IRC user
             const ircUser = await this.ircBridge.matrixToIrcUser(invitee);
             // is the invite from the bot?
             if (this.ircBridge.getAppServiceUserId() === event.sender) {
                 await this.handleInviteFromBot(req, event, ircUser); // case [2]
             }
-            else {
+            else if (event.content.is_direct) {
                 await this.handleInviteFromUser(req, event, ircUser); // case [1]
             }
         }
