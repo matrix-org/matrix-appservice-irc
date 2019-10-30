@@ -43,7 +43,7 @@ interface MatrixEventInvite {
     sender: string;
     content: {
         is_direct?: boolean;
-    }
+    };
 }
 
 interface MatrixEventKick {
