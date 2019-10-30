@@ -3,7 +3,7 @@ import extend from "extend";
 import * as promiseutil from "../promiseutil";
 import IrcHandler from "./IrcHandler";
 import MatrixHandler from "./MatrixHandler";
-import MemberListSyncer from "./MemberListSyncer";
+import { MemberListSyncer } from "./MemberListSyncer";
 import { IdentGenerator } from "../irc/IdentGenerator";
 import { Ipv6Generator } from "../irc/Ipv6Generator";
 import { IrcServer } from "../irc/IrcServer";
@@ -21,7 +21,7 @@ import { getLogger, logErr } from "../logging";
 import { DebugApi } from "../DebugApi";
 import { MatrixActivityTracker } from "matrix-lastactive";
 import Provisioner from "../provisioning/Provisioner.js";
-import PublicitySyncer from "./PublicitySyncer";
+import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
 
 import {
@@ -47,9 +47,7 @@ const DEAD_TIME_MS = 5 * 60 * 1000;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type MatrixHandler = any;
-type MemberListSyncer = any;
 type IrcHandler = any;
-type PublicitySyncer = any;
 type Provisioner = any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -58,6 +56,8 @@ export class IrcBridge {
     public static readonly DEFAULT_LOCALPART = "appservice-irc";
     public onAliasQueried: (() => void)|null = null;
     public readonly matrixHandler: MatrixHandler;
+    public readonly ircHandler: IrcHandler;
+    public readonly publicitySyncer: PublicitySyncer;
     private clientPool: ClientPool;
     private ircServers: IrcServer[] = [];
     private domain: string|null = null;
@@ -65,14 +65,12 @@ export class IrcBridge {
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
     private activityTracker: MatrixActivityTracker|null = null;
-    private ircHandler: IrcHandler;
     private ircEventBroker: IrcEventBroker;
     private dataStore!: DataStore;
     private identGenerator: IdentGenerator|null = null;
     private ipv6Generator: Ipv6Generator|null = null;
     private startedUp = false;
     private debugApi: DebugApi|null;
-    private publicitySyncer: PublicitySyncer;
     private provisioner: Provisioner|null = null;
     private bridge: Bridge;
     private timers: {
@@ -449,7 +447,7 @@ export class IrcBridge {
             // TODO reduce deps required to make MemberListSyncers.
             // TODO Remove injectJoinFn bodge
             this.memberListSyncers[server.domain] = new MemberListSyncer(
-                this, this.bridge.getBot(), server, this.appServiceUserId,
+                this, this.bridge.getBot(), server, this.appServiceUserId as string,
                 (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
                     const req = new BridgeRequest(
                         this.bridge.getRequestFactory().newRequest()
@@ -485,7 +483,7 @@ export class IrcBridge {
 
         promiseutil.allSettled(this.ircServers.map((server) => {
             // Call MODE on all known channels to get modes of all channels
-            return this.publicitySyncer.initModes(server);
+            return Bluebird.cast(this.publicitySyncer.initModes(server));
         })).catch((err) => {
             log.error('Could not init modes for publicity syncer');
             log.error(err.stack);
@@ -1144,7 +1142,7 @@ export class IrcBridge {
                 this.memberListSyncers[room.getServer().domain].addToLeavePool(
                     roomInfo.remoteJoinedUsers,
                     oldRoomId,
-                    room
+                    room.channel,
                 );
             })
         }));

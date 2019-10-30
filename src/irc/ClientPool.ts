@@ -496,6 +496,6 @@ export class ClientPool {
         if (!mls) {
             return Bluebird.resolve();
         }
-        return mls.updateIrcMemberList(chan, names);
+        return Bluebird.cast(mls.updateIrcMemberList(chan, names));
     }
 }
