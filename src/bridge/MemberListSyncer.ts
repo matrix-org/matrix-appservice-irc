@@ -406,6 +406,7 @@ export class MemberListSyncer {
 
         // If a userId is in remoteJoinedUsers, but not ircUserIds, intend on leaving roomId
         const promises: Promise<unknown>[] = [];
+        let totalLeavingUsers = 0;
         roomsForChannel.forEach((matrixRoom) => {
             const roomId = matrixRoom.getId();
             const roomInfo = this.memberLists.matrix[roomId];
@@ -421,8 +422,10 @@ export class MemberListSyncer {
                     return !ircUserIds.includes(userId);
                 }
             );
-
-            this.usersToLeave += usersToLeave.length;
+            if (usersToLeave.length > 0) {
+                return;
+            }
+            totalLeavingUsers += usersToLeave.length;
             // ID is the complete mapping of roomID/channel which will be unique
             promises.push(this.leaveQueuePool.enqueue(roomId + " " + channel, {
                 roomId: roomId,
@@ -430,8 +433,9 @@ export class MemberListSyncer {
             }));
         });
         log.info(
-            `updateIrcMemberList: Leaving ${promises.length} users as they are not in ${channel}.`
+            `updateIrcMemberList: Leaving ${totalLeavingUsers} users as they are not in ${channel}.`
         );
+        this.usersToLeave += totalLeavingUsers;
         await Promise.all(promises);
     }
 
