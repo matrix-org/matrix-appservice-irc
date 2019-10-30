@@ -19,6 +19,21 @@ limitations under the License.
  * under the Apache2 licence.
  */
 declare module 'matrix-appservice-bridge' {
+
+    namespace PrometheusMetrics {
+        class AgeCounters {
+            constructor(buckets?: string[]);
+            bump (ageInSec: number): void;
+        }
+    }
+
+    export class PrometheusMetrics {
+        addCollector(cb: () => void): void;
+        addCounter(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Counter
+        addTimer(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Histogram;
+        addGauge(arg0: { name: string; help: string; labels: string[]; }): import("prom-client").Gauge;
+    }
+
     interface RoomMemberDict {
         [id: string]: {
             display_name: string;
@@ -60,20 +75,6 @@ declare module 'matrix-appservice-bridge' {
         data?: null|any; // <nullable> Information about this mapping, which may be an empty.
     }
 
-    namespace PrometheusMetrics {
-        class AgeCounters {
-            constructor(buckets?: string[]);
-            bump (ageInSec: number): void;
-        }
-    }
-
-    export class PrometheusMetrics {
-        addCollector(cb: () => void): void;
-        addCounter(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Counter
-        addTimer(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Histogram;
-        addGauge(arg0: { name: string; help: string; labels: string[]; }): import("prom-client").Gauge;
-    }
-
     export class AppserviceBot {
         getJoinedMembers(roomId: string): {[userId: string]: {display_name: string|null}}
         isRemoteUser(userId: string): boolean;
@@ -86,7 +87,6 @@ declare module 'matrix-appservice-bridge' {
         public name: string;
         public topic: string;
         public _extras : any;
-
         constructor (roomId: string, data?: object);
         deserialize(data: object): void;
         get(key: string): unknown;

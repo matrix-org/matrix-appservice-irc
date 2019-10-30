@@ -14,10 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// We have no types for IRC yet.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const irc = require("irc");
-
+import { Client } from "irc";
 import * as promiseutil from "../promiseutil";
 import Scheduler from "./Scheduler";
 import * as logging from "../logging";
@@ -33,9 +30,6 @@ export interface IrcMessage {
     rawCommand: string;
     prefix: string;
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type IrcClient = any;
 
 // The time we're willing to wait for a connect callback when connecting to IRC.
 const CONNECT_TIMEOUT_MS = 30 * 1000; // 30s
@@ -100,7 +94,7 @@ export class ConnectionInstance {
      * @param {string} domain The domain (for logging purposes)
      * @param {string} nick The nick (for logging purposes)
      */
-    constructor (public readonly client: IrcClient, private readonly domain: string, private nick: string) {
+    constructor (public readonly client: Client, private readonly domain: string, private nick: string) {
         this.listenForErrors();
         this.listenForPings();
         this.listenForCTCPVersions();
@@ -183,7 +177,7 @@ export class ConnectionInstance {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public addListener(eventName: string, fn: (...args: Array<any>) => void) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.client.addListener(eventName, (...args: Array<any>) => {
+        this.client.addListener(eventName, (...args: unknown[]) => {
             if (this.dead) {
                 log.error(
                     "%s@%s RECV a %s event for a dead connection",
@@ -308,10 +302,10 @@ export class ConnectionInstance {
         // decorate client.send to refresh the timer
         const realSend = this.client.send;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.client.send = (...args: unknown[]) => {
+        this.client.send = (...args: string[]) => {
             keepAlivePing();
             this.resetPingSendTimer(); // sending a message counts as a ping
-            realSend.apply(this.client, args);
+            return realSend.apply(this.client, args);
         };
     }
 
@@ -375,7 +369,7 @@ export class ConnectionInstance {
 
         // Returns: A promise which resolves to a ConnectionInstance
         const retryConnection = () => {
-            const nodeClient = new irc.Client(
+            const nodeClient = new Client(
                 server.randomDomain(), opts.nick, connectionOpts
             );
             const inst = new ConnectionInstance(

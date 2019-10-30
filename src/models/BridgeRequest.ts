@@ -19,7 +19,6 @@ import { Request } from "matrix-appservice-bridge";
 import { LoggerInstance } from "winston";
 const log = getLogger("req");
 
-
 export class BridgeRequest {
     log: RequestLogger;
     constructor(private req: Request) {
