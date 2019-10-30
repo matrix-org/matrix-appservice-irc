@@ -19,6 +19,19 @@ limitations under the License.
  * under the Apache2 licence.
  */
 declare module 'matrix-appservice-bridge' {
+
+    export class PrometheusMetrics {
+        addCollector(cb: () => void): void;
+        addCounter(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Counter
+        addTimer(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Histogram;
+        addGauge(arg0: { name: string; help: string; labels: string[]; }): import("prom-client").Gauge;
+    }
+
+    class AgeCounters {
+        constructor(buckets?: string[]);
+        bump (ageInSec: number): void;
+    }
+
     interface RoomMemberDict {
         [id: string]: {
             display_name: string;
@@ -53,13 +66,6 @@ declare module 'matrix-appservice-bridge' {
         isRemoteUser(userId: string): boolean;
         getJoinedRooms(): Promise<string[]>;
         getClient(): JsClient;
-    }
-
-    export class MatrixRoom {
-        protected roomId: string;
-        public name: string;
-        public topic: string;
-        public _extras : any;
     }
 
     export class MatrixRoom {

@@ -50,7 +50,7 @@ export class PublicitySyncer {
         return this.ircBridge.getBotClient(server).then(
             (client) => {
                 if (!client.unsafeClient) {
-                    log.error(`Can't request modes, bot client not connected`);
+                    throw Error("Can't request modes, bot client not connected")
                 }
                 log.info(`Bot requesting mode for ${chan} on ${server.domain}`);
                 client.unsafeClient.mode(chan);
