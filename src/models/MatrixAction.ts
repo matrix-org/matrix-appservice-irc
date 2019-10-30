@@ -26,6 +26,13 @@ const EVENT_TO_TYPE: {[mxKey: string]: string} = {
     "m.room.message": "message",
     "m.room.topic": "topic"
 };
+
+const ACTION_TYPE_TO_MSGTYPE = {
+    message: "m.text",
+    emote: "m.emote",
+    notice: "m.notice"
+};
+
 const MSGTYPE_TO_TYPE: {[mxKey: string]: string} = {
     "m.emote": "emote",
     "m.notice": "notice",
@@ -73,6 +80,10 @@ export class MatrixAction {
         if (ACTION_TYPES.indexOf(type) === -1) {
             throw new Error("Unknown MatrixAction type: " + type);
         }
+    }
+
+    public get msgType() {
+        return (ACTION_TYPE_TO_MSGTYPE as {[key: string]: string|undefined})[this.type];
     }
 
     public async formatMentions(nickUserIdMap: {[nick: string]: string}, intent: Intent) {

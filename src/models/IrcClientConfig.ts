@@ -102,7 +102,7 @@ export class IrcClientConfig {
     }
 
     public static newConfig(matrixUser: MatrixUser|null, domain: string,
-                            nick: string, username: string, password?: string) {
+                            nick?: string, username?: string, password?: string) {
         return new IrcClientConfig(matrixUser ? matrixUser.getId() : null, domain, {
             nick: nick,
             username: username,

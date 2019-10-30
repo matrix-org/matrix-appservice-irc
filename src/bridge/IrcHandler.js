@@ -872,7 +872,7 @@ IrcHandler.prototype.onModeIs = Promise.coroutine(function*(req, server, channel
  */
 IrcHandler.prototype.onMetadata = Promise.coroutine(function*(req, client, msg, force) {
     req.log.info("%s : Sending metadata '%s'", client, msg);
-    if (!this.ircBridge.isStartedUp() && !force) {
+    if (!this.ircBridge.isStartedUp && !force) {
         req.log.info("Suppressing metadata: not started up.");
         return BridgeRequest.ERR_NOT_MAPPED;
     }

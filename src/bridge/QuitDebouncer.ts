@@ -2,10 +2,7 @@ import Bluebird from "bluebird";
 import { IrcServer } from "../irc/IrcServer";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { MatrixUser } from "matrix-appservice-bridge";
-
-// We have no type for this yet.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type IrcBridge = any;
+import { IrcBridge } from "../bridge/IrcBridge";
 
 const QUIT_WAIT_DELAY_MS = 100;
 const QUIT_WINDOW_MS = 1000;

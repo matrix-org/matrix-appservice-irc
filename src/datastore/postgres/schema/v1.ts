@@ -1,6 +1,5 @@
 import { PoolClient } from "pg";
 
-// tslint:disable-next-line: no-any
 export async function runSchema(connection: PoolClient) {
     // Create schema
     await connection.query(`

@@ -151,7 +151,7 @@ export class IrcServer {
     }
 
     public getHardCodedRoomIds() {
-        const roomIds = new Set();
+        const roomIds = new Set<string>();
         const channels = Object.keys(this.config.mappings);
         channels.forEach((chan) => {
             this.config.mappings[chan].forEach((roomId) => {
@@ -611,6 +611,7 @@ export interface IrcServerConfig {
     // by the existence of the keys in IrcServer.DEFAULT_CONFIG.
     name?: string;
     port?: number;
+    icon?: string;
     ca?: string;
     networkId?: string;
     ssl?: boolean;

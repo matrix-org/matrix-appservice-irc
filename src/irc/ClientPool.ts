@@ -21,13 +21,10 @@ import Bluebird from "bluebird";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer } from "../irc/IrcServer";
-import { AgeCounter, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
+import { AgeCounters, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
 import { BridgedClient } from "./BridgedClient";
+import { IrcBridge } from "../bridge/IrcBridge";
 const log = getLogger("ClientPool");
-
-// We do not have these yet
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type IrcBridge = any;
 
 interface ReconnectionItem {
     cli: BridgedClient;
@@ -131,7 +128,7 @@ export class ClientPool {
         return this.botClients[server.domain];
     }
 
-    public createIrcClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser, isBot: boolean) {
+    public createIrcClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean) {
         const bridgedClient = this.ircBridge.createBridgedClient(
             ircClientConfig, matrixUser, isBot
         );
@@ -155,7 +152,7 @@ export class ClientPool {
         // should catch most cases. Knowing the nick is important, because
         // slow clients may not send a 'client-connected' signal before a join is
         // emitted, which means ghost users may join with their nickname into matrix.
-        this.virtualClients[server.domain].pending[bridgedClient.nick] = bridgedClient.userId;
+        this.virtualClients[server.domain].pending[bridgedClient.nick] = bridgedClient;
 
         // add event listeners
         bridgedClient.on("client-connected", this.onClientConnected.bind(this));
@@ -167,7 +164,7 @@ export class ClientPool {
         // store the bridged client immediately in the pool even though it isn't
         // connected yet, else we could spawn 2 clients for a single user if this
         // function is called quickly.
-        this.virtualClients[server.domain].userIds[bridgedClient.userId] = bridgedClient;
+        this.virtualClients[server.domain].userIds[bridgedClient.userId as string] = bridgedClient;
         this.virtualClientCounts[server.domain] = this.virtualClientCounts[server.domain] + 1;
 
         // Does this server have a max clients limit? If so, check if the limit is
@@ -298,7 +295,9 @@ export class ClientPool {
 
         Object.keys(this.virtualClients).forEach((domain) => {
             const server = this.ircBridge.getServer(domain);
-            count += this.getNumberOfConnections(server);
+            if (server) {
+                count += this.getNumberOfConnections(server);
+            }
         });
 
         return count;
@@ -311,7 +310,7 @@ export class ClientPool {
         return 0;
     }
 
-    public updateActiveConnectionMetrics(serverDomain: string, ageCounter: AgeCounter): void {
+    public updateActiveConnectionMetrics(serverDomain: string, ageCounter: AgeCounters): void {
         if (this.virtualClients[serverDomain] === undefined) {
             return;
         }
@@ -396,7 +395,7 @@ export class ClientPool {
         }
 
         if (bridgedClient.disconnectReason === "banned") {
-            const req = new BridgeRequest(this.ircBridge._bridge.getRequestFactory().newRequest());
+            const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
             this.ircBridge.matrixHandler.quitUser(
                 req, bridgedClient.userId, [bridgedClient],
                 null, "User was banned from the network"
@@ -429,7 +428,7 @@ export class ClientPool {
         (bridgedClient as unknown) = undefined;
 
         if (chanList.length === 0) {
-            log.info(`Dropping ${cli._id} ${cli.nick} because they are not joined to any channels`);
+            log.info(`Dropping ${cli.id} ${cli.nick} because they are not joined to any channels`);
             return;
         }
         const queue = this.getOrCreateReconnectQueue(cli.server);
@@ -440,7 +439,7 @@ export class ClientPool {
             });
             return;
         }
-        queue.enqueue(cli._id, {
+        queue.enqueue(cli.id, {
             cli: cli,
             chanList: chanList,
         });
@@ -474,25 +473,26 @@ export class ClientPool {
         if (!errorsThatShouldKick.includes(err)) {
             return;
         }
-        if (!bridgedClient.userId || bridgedClient.isBot) {
+        const userId = bridgedClient.userId;
+        if (!userId || bridgedClient.isBot) {
             return; // the bot itself can get these join errors
         }
         // TODO: this is a bit evil, no one in their right mind would expect
         // the client pool to be kicking matrix users from a room :(
-        log.info(`Kicking ${bridgedClient.userId} from room due to ${err}`);
+        log.info(`Kicking ${userId} from room due to ${err}`);
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
             bridgedClient.server, chan
         );
         const promises = matrixRooms.map((room: MatrixRoom) => {
             return this.ircBridge.getAppServiceBridge().getIntent().kick(
-                room.getId(), bridgedClient.userId, `IRC error on ${chan}: ${err}`
+                room.getId(), userId, `IRC error on ${chan}: ${err}`
             );
         });
         await Promise.all(promises);
     }
 
     private onNames(bridgedClient: BridgedClient, chan: string, names: {[key: string]: string}): Bluebird<void> {
-        const mls = this.ircBridge.memberListSyncers[bridgedClient.server.domain];
+        const mls = this.ircBridge.getMemberListSyncer(bridgedClient.server);
         if (!mls) {
             return Bluebird.resolve();
         }

@@ -54,7 +54,7 @@ export class BridgedClient extends EventEmitter {
     public readonly userId: string|null;
     public readonly displayName: string|null;
     private _nick: string;
-    private readonly id: string;
+    public readonly id: string;
     private readonly password?: string;
     private _unsafeClient: Client|null = null;
     private lastActionTs: number;
@@ -761,7 +761,7 @@ export class BridgedClient extends EventEmitter {
         await defer.promise;
     }
 
-    private joinChannel(channel: string, key?: string, attemptCount = 1): Bluebird<IrcRoom> {
+    public joinChannel(channel: string, key?: string, attemptCount = 1): Bluebird<IrcRoom> {
         if (!this.unsafeClient) {
             // we may be trying to join before we've connected, so check and wait
             if (this.connectDefer && this.connectDefer.promise.isPending()) {

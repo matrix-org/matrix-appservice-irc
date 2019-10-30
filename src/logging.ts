@@ -26,7 +26,7 @@ interface FormatterFnOpts {
     message: string;
 }
 
-interface LoggerConfig {
+export interface LoggerConfig {
     level: "debug"|"info"|"warn"|"error";
     logfile?: string; // path to file
     errfile?: string; // path to file
@@ -152,17 +152,15 @@ export function get(nameOfLogger: string) {
     }
     const logger = createLogger(nameOfLogger);
     loggers[nameOfLogger] = logger;
-    const ircLogger = {
-        logErr: (e: Error) => {
-            logger.error("Error: %s", JSON.stringify(e));
-            if (e.stack) {
-                logger.error(e.stack);
-            }
-        },
-        ...logger,
-    }
-    return ircLogger;
+    return logger;
 }
+
+export function logErr(logger: LoggerInstance, e: Error) {
+    logger.error("Error: %s", JSON.stringify(e));
+    if (e.stack) {
+        logger.error(e.stack);
+    }
+};
 
 export const getLogger = get;
 
