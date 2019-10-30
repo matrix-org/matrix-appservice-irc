@@ -39,7 +39,6 @@ interface TopicQueueItem {
     req: BridgeRequest;
     topic: string;
     matrixRooms: MatrixRoom[];
-
 }
 
 interface LeaveQueueItem {
@@ -52,13 +51,13 @@ interface LeaveQueueItem {
     req: BridgeRequest;
     rooms: MatrixRoom[];
     attempts?: number;
-
 }
 
 export interface IrcHandlerConfig {
     mapIrcMentionsToMatrix?: "on"|"off"|"force-off";
     leaveConcurrency?: number;
 }
+
 type MetricNames = "join.names"|"join"|"part"|"pm"|"invite"|"topic"|"message"|"kick"|"mode";
 
 export class IrcHandler {
@@ -99,7 +98,7 @@ export class IrcHandler {
         [key in MetricNames]: number;
     };
     private registeredNicks: {[userId: string]: boolean} = {};
-    constructor (private readonly ircBridge: IrcBridge, config: IrcHandlerConfig) {
+    constructor (private readonly ircBridge: IrcBridge, config: IrcHandlerConfig = {}) {
         this.quitDebouncer = new QuitDebouncer(ircBridge);
         this.roomAccessSyncer = new RoomAccessSyncer(ircBridge);
 
@@ -237,7 +236,7 @@ export class IrcHandler {
         const bridgedIrcClient = this.ircBridge.getClientPool().getBridgedClientByNick(
             toUser.server, toUser.nick
         );
-        if (!bridgedIrcClient || !bridgedIrcClient.userId) {
+        if (!bridgedIrcClient) {
             req.log.error("Cannot route PM to %s - no client", toUser);
             return BridgeRequestErr.ERR_DROPPED;
         }
@@ -256,6 +255,10 @@ export class IrcHandler {
             return undefined;
         }
 
+        if(!bridgedIrcClient.userId) {
+            req.log.error("Cannot route PM to %s - no user id on client", toUser);
+            return BridgeRequestErr.ERR_DROPPED;
+        }
 
         if (!server.allowsPms()) {
             req.log.error("Server %s disallows PMs.", server.domain);
@@ -272,7 +275,7 @@ export class IrcHandler {
         const virtualMatrixUser = await this.ircBridge.getMatrixUser(fromUser);
         req.log.info("Mapped to %s", JSON.stringify(virtualMatrixUser));
         let pmRoom = await this.ircBridge.getStore().getMatrixPmRoom(
-            bridgedIrcClient.userId, virtualMatrixUser.getId()
+            bridgedIrcClient.userId!, virtualMatrixUser.getId()
         );
 
         if (!pmRoom) {
@@ -283,7 +286,7 @@ export class IrcHandler {
                 try {
                     pmRoom = await p;
                 }
- catch (ex) {
+                catch (ex) {
                     // it failed, so try to create a new one.
                     req.log.warn("Previous attempt to create room failed: %s", ex);
                     pmRoom = null;
@@ -294,7 +297,7 @@ export class IrcHandler {
             if (!pmRoom) {
                 req.log.info("Creating a PM room with %s", bridgedIrcClient.userId);
                 this.pmRoomPromises[pmRoomPromiseId] = this.createPmRoom(
-                    bridgedIrcClient.userId, virtualMatrixUser.getId(), fromUser.nick, server
+                    bridgedIrcClient.userId!, virtualMatrixUser.getId(), fromUser.nick, server
                 );
                 pmRoom = await this.pmRoomPromises[pmRoomPromiseId];
             }
@@ -303,7 +306,7 @@ export class IrcHandler {
             // make sure that the matrix user is still in the room
             try {
                 await this.ensureMatrixUserJoined(
-                    pmRoom.getId(), bridgedIrcClient.userId, virtualMatrixUser.getId(), req.log
+                    pmRoom.getId(), bridgedIrcClient.userId!, virtualMatrixUser.getId(), req.log
                 );
             }
             catch (err) {
