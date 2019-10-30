@@ -5,7 +5,7 @@
 const Promise = require("bluebird");
 const util = require("util");
 const EventEmitter = require('events').EventEmitter;
-
+const defer = require("../../lib/promiseutil").defer;
 let instanceEmitter, clientEmitter;
 const DELIM = "_DELIM_";
 const instances = {
@@ -171,6 +171,7 @@ module.exports._findClientAsync = function(addr, nick) {
  * AS invoked the original function with.
  */
 module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
+    const d = defer();
     console.log("TEST: Test listening for %s to call function '%s'", (addr + "_" + nick), fnName);
     clientEmitter.on((addr + "_" + nick), function(invokedFnName, client) {
         if (invokedFnName !== fnName) {
@@ -194,8 +195,24 @@ module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
             (addr + "_" + nick), invokedFnName, JSON.stringify(args).substring(0, 40)
         );
 
-        invokeFn.apply(client, args);
+        try {
+            const p = invokeFn.apply(client, args);
+            if (p && p.then) {
+                p.then((r) => {
+                    d.resolve(r);
+                });
+                p.catch((e) => {
+                    d.reject(e);
+                });
+                return;
+            }
+            d.resolve();
+        }
+        catch (ex) {
+            d.reject(ex);
+        }
     });
+    return d.promise;
 };
 
 /**

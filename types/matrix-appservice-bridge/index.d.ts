@@ -20,16 +20,18 @@ limitations under the License.
  */
 declare module 'matrix-appservice-bridge' {
 
+    namespace PrometheusMetrics {
+        class AgeCounters {
+            constructor(buckets?: string[]);
+            bump (ageInSec: number): void;
+        }
+    }
+
     export class PrometheusMetrics {
         addCollector(cb: () => void): void;
         addCounter(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Counter
         addTimer(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Histogram;
         addGauge(arg0: { name: string; help: string; labels: string[]; }): import("prom-client").Gauge;
-    }
-
-    class AgeCounters {
-        constructor(buckets?: string[]);
-        bump (ageInSec: number): void;
     }
 
     interface RoomMemberDict {
@@ -42,7 +44,19 @@ declare module 'matrix-appservice-bridge' {
         [id: string]: RemoteRoom[];
     }
     interface EntryDict {
-        [id: string]: Array<Entry> ;
+        [id: string]: Array<Entry>;
+    }
+
+    interface RoomCreationOpts {
+        room_alias_name: string; // localpart
+        name: string;
+        visibility: "public"|"private";
+        preset: "public_chat";
+        creation_content?: {
+            "m.federate"?: boolean;
+        };
+        initial_state: any[];
+        room_version?: string;
     }
 
     export interface Entry {
@@ -173,9 +187,13 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class Intent {
+        getEvent(room_id: string, eventId: string): Promise<any>;
+        invite(room_id: string, sender: string): Promise<void>;
+        createRoom(opts: unknown): Promise<{room_id: string;}>;
+        roomState(room_id: string): Promise<any[]>;
         leave(roomId: string): Promise<void>;
         setPowerLevel(roomId: string, userId: string, level: number | undefined): Promise<void>;
-        getStateEvent(roomId: string, type: string): Promise<any>;
+        getStateEvent(roomId: string, type: string, key?: string): Promise<any>;
         getProfileInfo(userId: string, type?: "displayname"|"avatar_url", useCache?: boolean): Promise<{displayname: string|null, avatar_url: string|null}>;
         setPresence(presence: string): Promise<void>;
         sendMessage(roomId: string, content: any): Promise<void>;
@@ -200,6 +218,7 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class JsClient {
+        createAlias(roomAlias: string, roomId: string): Promise<void>;
         setRoomDirectoryVisibilityAppService(networkId: string, roomId: string, state: string): Promise<void>
         sendStateEvent(roomId: string, type: string, content: any, key: string): Promise<void>;
         credentials: {
@@ -211,8 +230,9 @@ declare module 'matrix-appservice-bridge' {
             stream: Buffer
             name: string,
             type: string,
-            rawResponse: boolean,
-        }): Promise<void>;
+            rawResponse: false,
+            onlyContentUri: true,
+        }): Promise<string>;
     }
 
     export class Bridge {
@@ -231,11 +251,16 @@ declare module 'matrix-appservice-bridge' {
         getIntentFromLocalpart(localpart: string): Intent;
         run(port: number): void;
         registerBridgeGauges(cb: () => void): void;
+        getClientFactory(): ClientFactory;
+    }
+
+    export class ClientFactory {
+        getClientAs(): JsClient;
     }
 
     export class RequestFactory {
         newRequest(opts?: {data: {}}): Request;
-        addDefaultResolveCallback(cb: (req: Request, result: string) => void): void;
+        addDefaultResolveCallback(cb: (req: Request, result: unknown) => void): void;
         addDefaultRejectCallback(cb: (req: Request) => void): void;
         addDefaultTimeoutCallback(cb: (req: Request) => void, timeout: number): void;
     }
@@ -255,5 +280,12 @@ declare module 'matrix-appservice-bridge' {
 
     export class Logging {
         static configure(opts: {console: string}): void;
+    }
+
+    export class StateLookup {
+            constructor(opts: {})
+            onEvent(event: unknown): void;
+            trackRoom(roomId: string): Promise<void>;
+            getState(roomId: string, type: string): any[];
     }
 }

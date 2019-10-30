@@ -26,7 +26,7 @@ type IrcActionType = "message"|"emote"|"topic"|"notice";
 export class IrcAction {
     constructor (
         public readonly type: IrcActionType,
-        public readonly text: string,
+        public text: string,
         public readonly ts: number = 0 ) {
         if (ACTION_TYPES.indexOf(type) === -1) {
             throw new Error("Unknown IrcAction type: " + type);
@@ -38,10 +38,14 @@ export class IrcAction {
             case "message":
             case "emote":
             case "notice":
+                if (matrixAction.text === null) {
+                    break;
+                }
                 if (matrixAction.htmlText) {
-                    let ircText = ircFormatting.htmlToIrc(matrixAction.htmlText);
+                    const text = ircFormatting.htmlToIrc(matrixAction.htmlText);
+                    const ircText = text !== null ? text : matrixAction.text; // fallback if needed.
                     if (ircText === null) {
-                        ircText = matrixAction.text; // fallback
+                        throw Error("ircText is null");
                     }
                     // irc formatted text is the main text part
                     return new IrcAction(matrixAction.type, ircText, matrixAction.ts)
@@ -58,10 +62,13 @@ export class IrcAction {
             case "file":
                 return new IrcAction("emote", "posted a file: " + matrixAction.text, matrixAction.ts);
             case "topic":
+                if (matrixAction.text === null) {
+                    break;
+                }
                 return new IrcAction(matrixAction.type, matrixAction.text, matrixAction.ts);
             default:
                 log.error("IrcAction.fromMatrixAction: Unknown action: %s", matrixAction.type);
-                return null;
         }
+        return null;
     }
 }

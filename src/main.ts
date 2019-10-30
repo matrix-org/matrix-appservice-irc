@@ -20,7 +20,7 @@ http.globalAgent.maxSockets = 1000;
 https.globalAgent.maxSockets = 1000;
 
 process.on("unhandledRejection", (reason?: Error) => {
-    log.error((reason ? reason.stack : undefined) ||  "No reason given");
+    log.error((reason ? reason.stack : undefined) || "No reason given");
 });
 
 const _toServer = (domain: string, serverConfig: any, homeserverDomain: string) => {
@@ -57,7 +57,7 @@ export async function generateRegistration(reg: AppServiceRegistration, config: 
 
     const serverDomains = Object.keys(config.ircService.servers);
     serverDomains.sort().forEach(function(domain) {
-        let server = _toServer(domain, config.ircService.servers[domain], config.homeserver.domain);
+        const server = _toServer(domain, config.ircService.servers[domain], config.homeserver.domain);
         server.getHardCodedRoomIds().sort().forEach(function(roomId) {
             reg.addRegexPattern("rooms", roomId, false);
         });
@@ -71,7 +71,7 @@ export async function generateRegistration(reg: AppServiceRegistration, config: 
     return reg;
 }
 
-export async function runBridge(port: number, config: BridgeConfig, reg: AppServiceRegistration, isDBInMemory: boolean = false) {
+export async function runBridge(port: number, config: BridgeConfig, reg: AppServiceRegistration, isDBInMemory = false) {
     // configure global stuff for the process
     if (config.ircService.logging) {
         logging.configure(config.ircService.logging);

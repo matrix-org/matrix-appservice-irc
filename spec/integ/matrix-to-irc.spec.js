@@ -7,23 +7,31 @@ const mediaUrl = "http://some-media-repo.com";
 
 describe("Matrix-to-IRC message bridging", function() {
 
-    const {env, roomMapping, test} = envBundle();
+    const {env, config, roomMapping, test} = envBundle();
 
-    let testUser = {
+    const testUser = {
         id: "@flibble:wibble",
         nick: "M-flibble"
+    };
+
+    const repliesUser = {
+        id: "@friend:bar.com",
+        nick: "M-friend",
     };
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
 
         // accept connection requests
-        env.ircMock._autoConnectNetworks(
-            roomMapping.server, testUser.nick, roomMapping.server
-        );
-        env.ircMock._autoJoinChannels(
-            roomMapping.server, testUser.nick, roomMapping.channel
-        );
+        [testUser, repliesUser].forEach((u) => {
+            env.ircMock._autoConnectNetworks(
+                roomMapping.server, u.nick, roomMapping.server
+            );
+            env.ircMock._autoJoinChannels(
+                roomMapping.server, u.nick, roomMapping.channel
+            );
+        });
+
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
@@ -230,104 +238,101 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
-    it("should bridge matrix replies as roughly formatted text", function(done) {
+    it("should bridge matrix replies as roughly formatted text", async function() {
         // Trigger an original event
-        env.mockAppService._trigger("type:m.room.message", {
+        await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "This is the real message",
                 msgtype: "m.text"
             },
-            user_id: testUser.id,
             room_id: roomMapping.roomId,
-            sender: "@friend:bar.com",
+            sender: repliesUser.id,
             event_id: "$original:bar.com",
             type: "m.room.message"
-        }).then(() => {
-            env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
-            function(client, channel, text) {
+        });
+        const p = env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+            (client, channel, text) => {
                 expect(client.nick).toEqual(testUser.nick);
                 expect(client.addr).toEqual(roomMapping.server);
                 expect(channel).toEqual(roomMapping.channel);
-                expect(text).toEqual('<friend "This is the real message"> Reply Text');
-                done();
-            });
-            const formatted_body = constructHTMLReply(
-                "This is the fake message",
-                "@somedude:bar.com",
-                "Reply text"
-            );
-            env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "> <@somedude:bar.com> This is the fake message\n\nReply Text",
-                    formatted_body,
-                    format: "org.matrix.custom.html",
-                    msgtype: "m.text",
-                    "m.relates_to": {
-                        "m.in_reply_to": {
-                          "event_id": "$original:bar.com"
-                        }
-                    },
+                expect(text).toEqual(`<${repliesUser.nick} "This is the real message"> Reply Text`);
+            }
+        );
+        const formatted_body = constructHTMLReply(
+            "This is the fake message",
+            "@somedude:bar.com",
+            "Reply text"
+        );
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "> <@somedude:bar.com> This is the fake message\n\nReply Text",
+                formatted_body,
+                format: "org.matrix.custom.html",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "$original:bar.com"
+                    }
                 },
-                user_id: testUser.id,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
+            },
+            sender: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
         });
+        await p;
     });
 
-    it("should bridge matrix replies as roughly formatted text, newline edition", function(done) {
+    it("should bridge matrix replies as roughly formatted text, newline edition", async function() {
        // Trigger an original event
-       env.mockAppService._trigger("type:m.room.message", {
+       await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "\nThis\n is the real message",
                 msgtype: "m.text"
             },
-            user_id: testUser.id,
             room_id: roomMapping.roomId,
-            sender: "@friend:bar.com",
+            sender: repliesUser.id,
             event_id: "$original:bar.com",
             type: "m.room.message"
-        }).then(() => {
-            env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
-            function(client, channel, text) {
+        });
+        const p = env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+            (client, channel, text) => {
                 expect(client.nick).toEqual(testUser.nick);
                 expect(client.addr).toEqual(roomMapping.server);
                 expect(channel).toEqual(roomMapping.channel);
-                expect(text).toEqual('<friend "This"> Reply Text');
-                done();
-            });
-            const formatted_body = constructHTMLReply(
-                "This is the fake message",
-                "@somedude:bar.com",
-                "Reply text"
-            );
-            env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "> <@somedude:bar.com> This is the fake message\n\nReply Text",
-                    formatted_body,
-                    format: "org.matrix.custom.html",
-                    msgtype: "m.text",
-                    "m.relates_to": {
-                        "m.in_reply_to": {
-                            "event_id": "$original:bar.com"
-                        }
-                    },
+                expect(text).toEqual(`<${repliesUser.nick} "This"> Reply Text`);
+            }
+        );
+        const formatted_body = constructHTMLReply(
+            "This is the fake message",
+            "@somedude:bar.com",
+            "Reply text"
+        );
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "> <@somedude:bar.com> This is the fake message\n\nReply Text",
+                formatted_body,
+                format: "org.matrix.custom.html",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "$original:bar.com"
+                    }
                 },
-                user_id: testUser.id,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
+            },
+            sender: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
         });
+        await p;
     });
 
-    it("should bridge matrix replies as reply only, if source not found", function(done) {
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+    it("should bridge matrix replies as reply only, if source not found", async function() {
+        const p = env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
         function(client, channel, text) {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
             expect(channel).toEqual(roomMapping.channel);
             expect(text).toEqual('Reply Text');
-            done();
         });
         const formatted_body = constructHTMLReply(
             "This message is possibly fake",
@@ -335,7 +340,7 @@ describe("Matrix-to-IRC message bridging", function() {
             "Reply Text"
         );
 
-        env.mockAppService._trigger("type:m.room.message", {
+        await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "> <@somedude:bar.com> This message is possibly fake\n\nReply Text",
                 msgtype: "m.text",
@@ -352,121 +357,128 @@ describe("Matrix-to-IRC message bridging", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
+        await p;
     });
 
-    it("should bridge matrix replies to replies without the original source", function(done) {
-        let formatted_body;
-        env.mockAppService._trigger("type:m.room.message", {
+    it("should bridge matrix replies to replies without the original source", async function() {
+        let formatted_body = constructHTMLReply(
+            "Message #1",
+            "@somedude:bar.com",
+            "Message #2"
+        );
+
+        await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "Message #1",
                 msgtype: "m.text"
             },
-            user_id: testUser.id,
             room_id: roomMapping.roomId,
-            sender: "@friend:bar.com",
+            sender: repliesUser.id,
             event_id: "$first:bar.com",
             type: "m.room.message"
-        }).then(() => {
-            formatted_body = constructHTMLReply(
-                "Message #1",
-                "@somedude:bar.com",
-                "Message #2"
-            );
-            return env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "> <@friend:bar.com> Message#1\n\nMessage #2",
-                    formatted_body,
-                    format: "org.matrix.custom.html",
-                    msgtype: "m.text",
-                    "m.relates_to": {
-                        "m.in_reply_to": {
-                            "event_id": "$first:bar.com"
-                        }
-                    },
+        })
+
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "> <@friend:bar.com> Message#1\n\nMessage #2",
+                formatted_body,
+                format: "org.matrix.custom.html",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "$first:bar.com"
+                    }
                 },
-                user_id: testUser.id,
-                room_id: roomMapping.roomId,
-                sender: "@friend:bar.com",
-                event_id: "$second:bar.com",
-                type: "m.room.message"
-            });
-        }).then(() => {
-            formatted_body = constructHTMLReply(
-                "Message #2",
-                "@somedude:bar.com",
-                "Message #3"
-            );
-            env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+            },
+            room_id: roomMapping.roomId,
+            sender: repliesUser.id,
+            event_id: "$second:bar.com",
+            type: "m.room.message"
+        });
+
+        formatted_body = constructHTMLReply(
+            "Message #2",
+            "@somedude:bar.com",
+            "Message #3"
+        );
+
+        const p = env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
             function(client, channel, text) {
                 expect(client.nick).toEqual(testUser.nick);
                 expect(client.addr).toEqual(roomMapping.server);
                 expect(channel).toEqual(roomMapping.channel);
-                expect(text).toEqual('<friend "Message #2"> Message #3');
-                done();
-            });
+                expect(text).toEqual('<M-friend "Message #2"> Message #3');
+            }
+        );
 
-            env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "> <@friend:bar.com> Message#2\n\nMessage #3",
-                    formatted_body,
-                    format: "org.matrix.custom.html",
-                    msgtype: "m.text",
-                    "m.relates_to": {
-                        "m.in_reply_to": {
-                            "event_id": "$second:bar.com"
-                        }
-                    },
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "> <@friend:bar.com> Message#2\n\nMessage #3",
+                formatted_body,
+                format: "org.matrix.custom.html",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "$second:bar.com"
+                    }
                 },
-                user_id: testUser.id,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
+            },
+            sender: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
         });
+
+        await p;
     });
 
-    it("should bridge matrix replies to ghosts with their nick", function(done) {
+    it("should bridge matrix replies to ghosts with their nick", async function() {
         // Trigger an original event
-        env.mockAppService._trigger("type:m.room.message", {
+        const originalMessage = {
             content: {
                 body: "This is the real message",
                 msgtype: "m.text"
             },
-            user_id: testUser.id,
             room_id: roomMapping.roomId,
             sender: "@irc.example_WibbleWob:some.home.server",
-            event_id: "$original:bar.com",
+            event_id: "$original32:bar.com",
             type: "m.room.message"
-        }).then(() => {
-            env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+        };
+        let botSdk = env.clientMock._client(config._botUserId);
+        botSdk.fetchRoomEvent.and.callFake(async (roomId, eventId) => {
+            expect(roomId).toBe(roomMapping.roomId);
+            expect(eventId).toBe("$original32:bar.com");
+            return originalMessage;
+        });
+        const p = env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
             function(client, channel, text) {
                 expect(client.nick).toEqual(testUser.nick);
                 expect(client.addr).toEqual(roomMapping.server);
                 expect(channel).toEqual(roomMapping.channel);
                 expect(text).toEqual('<WibbleWob "This is the real message"> Reply Text');
-                done();
-            });
-            const formatted_body = constructHTMLReply(
-                "This is the fake message",
-                "@somedude:bar.com",
-                "Reply text"
-            );
-            env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "> <@somedude:bar.com> This is the fake message\n\nReply Text",
-                    formatted_body,
-                    format: "org.matrix.custom.html",
-                    msgtype: "m.text",
-                    "m.relates_to": {
-                        "m.in_reply_to": {
-                          "event_id": "$original:bar.com"
-                        }
-                    },
+            }
+        );
+        const formatted_body = constructHTMLReply(
+            "This is the fake message",
+            "@somedude:bar.com",
+            "Reply text"
+        );
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "> <@somedude:bar.com> This is the fake message\n\nReply Text",
+                formatted_body,
+                format: "org.matrix.custom.html",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "$original32:bar.com"
+                    }
                 },
-                user_id: testUser.id,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
+            },
+            sender: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
         });
+        await p;
     });
 
     it("should bridge matrix images as IRC action with a URL", function(done) {
@@ -748,7 +760,7 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         // do the init
         yield test.initEnv(env);
         // Set the media URL
-        env.ircBridge.matrixHandler._mediaUrl = mediaUrl;
+        env.ircBridge.matrixHandler.mediaUrl = mediaUrl;
     }));
 
     afterEach(test.coroutine(function*() {

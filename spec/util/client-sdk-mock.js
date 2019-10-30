@@ -35,6 +35,7 @@ function MockClient(config) {
     this.setPresence = jasmine.createSpy("sdk.setPresence()");
     this.getJoinedRooms = jasmine.createSpy("sdk.getJoinedRooms()");
     this.getJoinedRoomMembers = jasmine.createSpy("sdk.getJoinedRoomMembers()");
+    this.fetchRoomEvent = jasmine.createSpy("sdk.fetchRoomEvent()");
 
     this.setPresence.and.returnValue(Promise.resolve({}));
     // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms
@@ -55,6 +56,10 @@ function MockClient(config) {
 
     // mock up sendEvent
     this.sendEvent.and.callFake(function() {
+        return Promise.resolve({});
+    });
+
+    this.fetchRoomEvent.and.callFake(() => {
         return Promise.resolve({});
     });
 
