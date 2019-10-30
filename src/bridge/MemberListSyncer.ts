@@ -422,7 +422,7 @@ export class MemberListSyncer {
                     return !ircUserIds.includes(userId);
                 }
             );
-            if (usersToLeave.length > 0) {
+            if (usersToLeave.length < 1) {
                 return;
             }
             totalLeavingUsers += usersToLeave.length;
