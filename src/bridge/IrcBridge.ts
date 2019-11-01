@@ -400,7 +400,7 @@ export class IrcBridge {
             const completeConfig = extend(
                 true, {}, IrcServer.DEFAULT_CONFIG, this.config.ircService.servers[domain]
             );
-            const server = new IrcServer(
+            const appServiceserver = new IrcServer(
                 domain, completeConfig, this.config.homeserver.domain,
                 this.config.homeserver.dropMatrixMessagesAfterSecs
             );
