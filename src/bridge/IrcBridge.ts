@@ -354,6 +354,7 @@ export class IrcBridge {
 
     public async run(port: number) {
         const dbConfig = this.config.database;
+        port = this.config.homeserver.bindPort || port;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
 
         if (this.debugApi) {
@@ -411,7 +412,7 @@ export class IrcBridge {
         }
 
         // run the bridge (needs to be done prior to configure IRC side)
-        await this.bridge.run(port);
+        await this.bridge.run(port, undefined, undefined, this.config.homeserver.bindHostname);
         this.addRequestCallbacks();
         if (!this.registration.getSenderLocalpart() ||
                 !this.registration.getAppServiceToken()) {

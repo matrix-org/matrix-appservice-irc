@@ -28,6 +28,10 @@ properties:
                 type: "integer"
             enablePresence:
                 type: "boolean"
+            bindHostname:
+                type: "string"
+            bindPort:
+                type: "integer"
         required: ["url", "domain"]
     ircService:
         type: "object"

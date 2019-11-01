@@ -17,6 +17,8 @@ export interface BridgeConfig {
         domain: string;
         enablePresence?: boolean;
         dropMatrixMessagesAfterSecs?: number;
+        bindHostname: string|undefined;
+        bindPort: number|undefined;
     };
     ircService: {
         servers: {[domain: string]: IrcServerConfig};

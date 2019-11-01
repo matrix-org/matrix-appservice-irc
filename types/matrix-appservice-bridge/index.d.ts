@@ -249,7 +249,9 @@ declare module 'matrix-appservice-bridge' {
         getPrometheusMetrics(): PrometheusMetrics;
         getIntent(userId?: string): Intent;
         getIntentFromLocalpart(localpart: string): Intent;
-        run(port: number): void;
+
+        // N.B config isn't used by this func, and appservice isn't used by this bridge.
+        run(port: number, config: undefined, appservice: undefined, hostname: string|undefined): void;
         registerBridgeGauges(cb: () => void): void;
         getClientFactory(): ClientFactory;
     }
