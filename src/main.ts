@@ -26,13 +26,6 @@ process.on("unhandledRejection", (reason?: Error) => {
 
 const _toServer = (domain: string, serverConfig: any, homeserverDomain: string) => {
     // set server config defaults
-    if (serverConfig.dynamicChannels.visibility) {
-        throw new Error(
-            `[DEPRECATED] Use of the config field dynamicChannels.visibility
-            is deprecated. Use dynamicChannels.published, dynamicChannels.joinRule
-            and dynamicChannels.createAlias instead.`
-        );
-    }
     return new IrcServer(
         domain, extend(true, IrcServer.DEFAULT_CONFIG, serverConfig), homeserverDomain
     );
