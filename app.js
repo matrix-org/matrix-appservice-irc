@@ -5,11 +5,11 @@ const main = require("./lib/main");
 const path = require("path");
 
 const REG_PATH = "appservice-registration-irc.yaml";
-
 new Cli({
     registrationPath: REG_PATH,
     enableRegistration: true,
     enableLocalpart: true,
+    port: -1, // Set this here so we know if the port is a default
     bridgeConfig: {
         affectsRegistration: true,
         schema: path.join(__dirname, "config.schema.yml"),
@@ -42,6 +42,9 @@ new Cli({
         });
     },
     run: function(port, config, reg) {
+        if (port === -1) {
+            port = null;
+        }
         main.runBridge(port, config, reg).catch(function(err) {
             log.error("Failed to run bridge.");
             throw err;

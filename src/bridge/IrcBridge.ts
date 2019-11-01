@@ -23,13 +23,13 @@ import { MatrixActivityTracker } from "matrix-lastactive";
 import Provisioner from "../provisioning/Provisioner.js";
 import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
+import { AppServiceRegistration } from "matrix-appservice";
 
 import {
     Bridge,
     MatrixUser,
     MatrixRoom,
     Logging,
-    AppServiceRegistration,
     Entry,
     Request,
     PrometheusMetrics,
@@ -41,6 +41,7 @@ import { BridgeConfig } from "../config/BridgeConfig";
 
 
 const log = getLogger("IrcBridge");
+const DEFAULT_PORT = 8090;
 const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
@@ -80,7 +81,7 @@ export class IrcBridge {
         if (config.ircService.debugApi && config.ircService.debugApi.enabled) {
             this.activityTracker = new MatrixActivityTracker(
                 this.config.homeserver.url,
-                registration.getAppServiceToken(),
+                registration.getAppServiceToken() as string,
                 this.config.homeserver.domain,
                 this.config.homeserver.enablePresence,
                 getLogger("MxActivityTracker"),
@@ -183,7 +184,7 @@ export class IrcBridge {
                 config.ircService.debugApi.port,
                 this.ircServers,
                 this.clientPool,
-                registration.getAppServiceToken()
+                registration.getAppServiceToken() as string
             ) : null
         );
         this.publicitySyncer = new PublicitySyncer(this);
@@ -352,8 +353,10 @@ export class IrcBridge {
         );
     }
 
-    public async run(port: number) {
+    public async run(port: number|null) {
         const dbConfig = this.config.database;
+        // cli port, then config port, then default port
+        port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
 
         if (this.debugApi) {
@@ -411,7 +414,7 @@ export class IrcBridge {
         }
 
         // run the bridge (needs to be done prior to configure IRC side)
-        await this.bridge.run(port);
+        await this.bridge.run(port, undefined, undefined, this.config.homeserver.bindHostname);
         this.addRequestCallbacks();
         if (!this.registration.getSenderLocalpart() ||
                 !this.registration.getAppServiceToken()) {

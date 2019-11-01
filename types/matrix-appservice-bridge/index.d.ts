@@ -18,6 +18,7 @@ limitations under the License.
  * This has been borrowed from https://github.com/huan/matrix-appservice-wechaty/blob/master/src/typings/matrix-appservice-bridge.d.ts
  * under the Apache2 licence.
  */
+
 declare module 'matrix-appservice-bridge' {
 
     namespace PrometheusMetrics {
@@ -249,7 +250,9 @@ declare module 'matrix-appservice-bridge' {
         getPrometheusMetrics(): PrometheusMetrics;
         getIntent(userId?: string): Intent;
         getIntentFromLocalpart(localpart: string): Intent;
-        run(port: number): void;
+
+        // N.B config isn't used by this func, and appservice isn't used by this bridge.
+        run(port: number, config: undefined, appservice: undefined, hostname: string|undefined): void;
         registerBridgeGauges(cb: () => void): void;
         getClientFactory(): ClientFactory;
     }
@@ -263,19 +266,6 @@ declare module 'matrix-appservice-bridge' {
         addDefaultResolveCallback(cb: (req: Request, result: unknown) => void): void;
         addDefaultRejectCallback(cb: (req: Request) => void): void;
         addDefaultTimeoutCallback(cb: (req: Request) => void, timeout: number): void;
-    }
-
-    export class AppServiceRegistration {
-        static generateToken(): string;
-        setSenderLocalpart(localpart: string): void;
-        getSenderLocalpart(): string;
-        setId(id: string): void;
-        setHomeserverToken(token: string): void;
-        setAppServiceToken(token: string): void;
-        getAppServiceToken(): string;
-        setRateLimited(limited: boolean): void;
-        setProtocols(protocols: string[]): void;
-        addRegexPattern(type: "rooms"|"aliases"|"users", regex: string, exclusive: boolean): void;
     }
 
     export class Logging {
