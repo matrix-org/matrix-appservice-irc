@@ -41,6 +41,7 @@ import { BridgeConfig } from "../config/BridgeConfig";
 
 
 const log = getLogger("IrcBridge");
+const DEFAULT_PORT = 8090;
 const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
@@ -352,9 +353,10 @@ export class IrcBridge {
         );
     }
 
-    public async run(port: number) {
+    public async run(port: number|null) {
         const dbConfig = this.config.database;
-        port = this.config.homeserver.bindPort || port;
+        // cli port, then config port, then default port
+        port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
 
         if (this.debugApi) {
