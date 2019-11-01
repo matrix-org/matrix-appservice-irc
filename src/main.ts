@@ -3,7 +3,7 @@ import Datastore from "nedb";
 import extend from "extend";
 import http from "http";
 import https from "https";
-import { AppServiceRegistration, RoomBridgeStore, UserBridgeStore } from "matrix-appservice-bridge";
+import { RoomBridgeStore, UserBridgeStore } from "matrix-appservice-bridge";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { IrcServer } from "./irc/IrcServer";
 import stats from "./config/stats";
@@ -11,6 +11,7 @@ import ident from "./irc/Ident";
 import * as logging from "./logging";
 import { LoggerInstance } from "winston";
 import { BridgeConfig } from "./config/BridgeConfig";
+import { AppServiceRegistration } from "matrix-appservice";
 
 const log = logging.get("main");
 
@@ -39,6 +40,7 @@ const _toServer = (domain: string, serverConfig: any, homeserverDomain: string) 
 
 export async function generateRegistration(reg: AppServiceRegistration, config: BridgeConfig) {
     let asToken;
+
 
     if (!reg.getSenderLocalpart()) {
         reg.setSenderLocalpart(IrcBridge.DEFAULT_LOCALPART);

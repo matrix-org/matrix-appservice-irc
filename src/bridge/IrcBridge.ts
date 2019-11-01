@@ -23,13 +23,13 @@ import { MatrixActivityTracker } from "matrix-lastactive";
 import Provisioner from "../provisioning/Provisioner.js";
 import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
+import { AppServiceRegistration } from "matrix-appservice";
 
 import {
     Bridge,
     MatrixUser,
     MatrixRoom,
     Logging,
-    AppServiceRegistration,
     Entry,
     Request,
     PrometheusMetrics,
@@ -80,7 +80,7 @@ export class IrcBridge {
         if (config.ircService.debugApi && config.ircService.debugApi.enabled) {
             this.activityTracker = new MatrixActivityTracker(
                 this.config.homeserver.url,
-                registration.getAppServiceToken(),
+                registration.getAppServiceToken() as string,
                 this.config.homeserver.domain,
                 this.config.homeserver.enablePresence,
                 getLogger("MxActivityTracker"),
@@ -183,7 +183,7 @@ export class IrcBridge {
                 config.ircService.debugApi.port,
                 this.ircServers,
                 this.clientPool,
-                registration.getAppServiceToken()
+                registration.getAppServiceToken() as string
             ) : null
         );
         this.publicitySyncer = new PublicitySyncer(this);
