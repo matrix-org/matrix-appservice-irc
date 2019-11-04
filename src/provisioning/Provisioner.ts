@@ -45,7 +45,7 @@ const validationProperties = {
 interface PendingRequest {
     userId: string;
     defer: Defer<unknown>;
-    log: RequestLogger,
+    log: RequestLogger;
 }
 
 export class Provisioner {
@@ -54,7 +54,7 @@ export class Provisioner {
     private pendingRequests: {
         [domain: string]: {
             [nick: string]: PendingRequest;
-        }
+        };
     } = {};
     private linkValidator: ConfigValidator;
     private queryLinkValidator: ConfigValidator;
@@ -105,6 +105,8 @@ export class Provisioner {
         }
 
         const appservice = this.ircBridge.getAppServiceBridge().appService;
+        // TODO: Make app public
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const app = ((appservice as any).app as express.Router);
 
         if (enabled && !(app.use && app.get && app.post)) {
@@ -193,8 +195,9 @@ export class Provisioner {
                 req.url.match(/^\/_matrix\/provision\/listlinks/)
     }
 
-    private async updateBridgingState (roomId: string, userId: string, status: "pending"|"success"|"failure", skey: string) {
-        let intent = this.ircBridge.getAppServiceBridge().getIntent();
+    private async updateBridgingState (roomId: string, userId: string,
+        status: "pending"|"success"|"failure", skey: string) {
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
         try {
             await intent.client.sendStateEvent(roomId, 'm.room.bridging', {
                 user_id: userId,
@@ -218,15 +221,15 @@ export class Provisioner {
      *
      *  If the number of attempts is reached, an error is thrown.
     */
-    private async _retry<V>(
-        req: ProvisionRequest, attempts: number, retryDelayMS: number, obj: any, fn: (args: any) => V, ...args: any) {
+    private async _retry<V>(req: ProvisionRequest, attempts: number, retryDelayMS: number, obj: unknown,
+        fn: (args: string) => V, args: string) {
         for (;attempts > 0; attempts--) {
             try {
-                let val = await fn.apply(obj, args);
+                const val = await fn.apply(obj, [args]);
                 return val;
             }
             catch (err) {
-                let msg = err.data && err.data.error ? err.data.error : err.message;
+                const msg = err.data && err.data.error ? err.data.error : err.message;
                 req.log.error(`Error doing rate limited action (${msg})`);
 
                 let waitTimeMs = retryDelayMS;
@@ -241,13 +244,14 @@ export class Provisioner {
         throw new Error(`Too many attempts to do rate limited action`);
     }
 
-    private retry<V>(req: ProvisionRequest, attempts: number, retryDelayMS: number, obj: any, fn: (args: any) => V, ...args: any) {
+    private retry<V>(req: ProvisionRequest, attempts: number, retryDelayMS: number, obj: unknown,
+        fn: (args: string) => V, args: string) {
         return Bluebird.cast(this._retry(req, attempts, retryDelayMS, obj, fn, args));
     }
 
     private async userHasProvisioningPower(req: ProvisionRequest, userId: string, roomId: string) {
         req.log.info(`Check power level of ${userId} in room ${roomId}`);
-        let matrixClient = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
+        const matrixClient = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
 
         let powerState = null;
 
@@ -307,18 +311,19 @@ export class Provisioner {
      *    room-channel pair
      *  - (Matrix) update room state m.room.brdiging
     */
-    private async authoriseProvisioning(req: ProvisionRequest, server: IrcServer, userId: string, ircChannel: string, roomId: string, opNick: string, key?: string) {
-        let ircDomain = server.domain;
+    private async authoriseProvisioning(req: ProvisionRequest, server: IrcServer, userId: string,
+        ircChannel: string, roomId: string, opNick: string, key?: string) {
+        const ircDomain = server.domain;
 
-        let existing = this.getRequest(server, opNick);
+        const existing = this.getRequest(server, opNick);
         if (existing) {
-            let from = existing.userId;
+            const from = existing.userId;
             throw new Error(`Bridging request already sent to `+
                             `${opNick} on ${server.domain} from ${from}`);
         }
 
         // (Matrix) Check power level of user
-        let hasPower = await this.userHasProvisioningPower(req, userId, roomId);
+        const hasPower = await this.userHasProvisioningPower(req, userId, roomId);
         if (!hasPower) {
             throw new Error('User does not possess high enough power level');
         }
@@ -326,9 +331,9 @@ export class Provisioner {
         // (IRC) Check that op's nick is actually op
         req.log.info(`Check that op's nick is actually op`);
 
-        let botClient = await this.ircBridge.getBotClient(server);
+        const botClient = await this.ircBridge.getBotClient(server);
 
-        let info = await botClient.getOperators(ircChannel, {key : key});
+        const info = await botClient.getOperators(ircChannel, {key : key});
 
         if (info.nicks.indexOf(opNick) === -1) {
             throw new Error(`Provided user is not in channel ${ircChannel}.`);
@@ -339,14 +344,14 @@ export class Provisioner {
         }
 
         // State key for m.room.bridging
-        let skey = `irc://${ircDomain}/${ircChannel}`;
+        const skey = `irc://${ircDomain}/${ircChannel}`;
 
-        let matrixClient = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
+        const matrixClient = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
         let wholeBridgingState = null;
 
         // (Matrix) check room state to prevent route looping
         try {
-            let roomState = await matrixClient.roomState(roomId);
+            const roomState = await matrixClient.roomState(roomId);
             wholeBridgingState = roomState.find(
                 (e) => {
                     return e.type === 'm.room.bridging' && e.state_key === skey
@@ -370,7 +375,7 @@ export class Provisioner {
 
         // Bridging state exists and is either success or pending (ignore failures)
         if (wholeBridgingState && wholeBridgingState.content) {
-            let bridgingState = wholeBridgingState.content;
+            const bridgingState = wholeBridgingState.content;
 
             if (bridgingState.status !== 'failure') {
                 // If bridging state sender is this bot
@@ -449,7 +454,7 @@ export class Provisioner {
 
         // (IRC) Ask operator for authorisation
         // Time that operator has to respond before giving up
-        let timeoutSeconds = this.requestTimeoutSeconds;
+        const timeoutSeconds = this.requestTimeoutSeconds;
 
         // Deliberately not awaiting on this so that 200 OK is returned
         req.log.info(`Contacting operator`);
@@ -472,12 +477,12 @@ export class Provisioner {
     private async createAuthorisedLink(
         req: ProvisionRequest, server: IrcServer, opNick: string, ircChannel: string, key: string|undefined,
         roomId: string, userId: string, skey: string, timeoutSeconds: number) {
-        let d = promiseutil.defer();
+        const d = promiseutil.defer();
 
         this.setRequest(server, opNick, {userId: userId, defer: d, log: req.log});
 
         // Get room name
-        let matrixClient = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
+        const matrixClient = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
 
         let nameState = null;
         try {
@@ -541,8 +546,8 @@ export class Provisioner {
             `disallow. You have ${timeoutSeconds} seconds from when this message was sent.`);
 
         try {
-            await d.promise.timeout(timeoutSeconds * 1000);`
-            this.removeRequest(server, opNick);`
+            await d.promise.timeout(timeoutSeconds * 1000);
+            this.removeRequest(server, opNick);
         }
         catch (err) {
             req.log.info(`Operator ${opNick} did not respond (${err.message})`);
@@ -602,7 +607,7 @@ export class Provisioner {
             );
             return;
         }
-        let request = this.getRequest(server, fromUser.nick);
+        const request = this.getRequest(server, fromUser.nick);
         if (request) {
             request.log.info(`${fromUser.nick} has authorised a new provisioning`);
             request.defer.resolve();
@@ -627,12 +632,12 @@ export class Provisioner {
     //   operators: ['operator1', 'operator2',...] // an array of IRC chan op nicks
     //  }
     public async queryLink(req: ProvisionRequest) {
-        let options = req.body;
-        let ircDomain = options.remote_room_server;
+        const options = req.body;
+        const ircDomain = options.remote_room_server;
         let ircChannel = options.remote_room_channel;
-        let key = options.key || undefined; // Optional key
+        const key = options.key || undefined; // Optional key
 
-        let queryInfo: {operators: string[]} = {
+        const queryInfo: {operators: string[]} = {
             // Array of operator nicks
             operators: []
         };
@@ -642,7 +647,7 @@ export class Provisioner {
         }
         catch (err) {
             if (err._validationErrors) {
-                let s = err._validationErrors.map((e: {field: string})=>{
+                const s = err._validationErrors.map((e: {field: string})=>{
                     return `${e.field} is malformed`;
                 }).join(', ');
                 throw new Error(s);
@@ -656,13 +661,13 @@ export class Provisioner {
 
         // Try to find the domain requested for linking
         //TODO: ircDomain might include protocol, i.e. irc://irc.freenode.net
-        let server = this.ircBridge.getServer(ircDomain);
+        const server = this.ircBridge.getServer(ircDomain);
 
         if (!server) {
             throw new Error(`Server not found ${ircDomain}`);
         }
 
-        let botClient = await this.ircBridge.getBotClient(server);
+        const botClient = await this.ircBridge.getBotClient(server);
 
         ircChannel = Provisioner.caseFold(botClient, ircChannel);
 
@@ -699,7 +704,7 @@ export class Provisioner {
 
 // Get the list of currently network instances
     public async queryNetworks() {
-        let thirdParty = await this.ircBridge.getThirdPartyProtocol();
+        const thirdParty = await this.ircBridge.getThirdPartyProtocol();
 
         return {
             servers: thirdParty.instances
@@ -708,13 +713,13 @@ export class Provisioner {
 
     // Link an IRC channel to a matrix room ID
     public async requestLink(req: ProvisionRequest) {
-        let options = req.body;
+        const options = req.body;
         try {
             this.linkValidator.validate(options);
         }
         catch (err) {
             if (err._validationErrors) {
-                let s = err._validationErrors.map((e: {field: string})=>{
+                const s = err._validationErrors.map((e: {field: string})=>{
                     return `${e.field} is malformed`;
                 }).join(', ');
                 throw new Error(s);
@@ -726,23 +731,23 @@ export class Provisioner {
             }
         }
 
-        let ircDomain = options.remote_room_server;
+        const ircDomain = options.remote_room_server;
         let ircChannel = options.remote_room_channel;
-        let roomId = options.matrix_room_id;
-        let opNick = options.op_nick;
-        let key = options.key || undefined; // Optional key
-        let userId = options.user_id;
-        let mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
+        const roomId = options.matrix_room_id;
+        const opNick = options.op_nick;
+        const key = options.key || undefined; // Optional key
+        const userId = options.user_id;
+        const mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
 
         // Try to find the domain requested for linking
         //TODO: ircDomain might include protocol, i.e. irc://irc.freenode.net
-        let server = this.ircBridge.getServer(ircDomain);
+        const server = this.ircBridge.getServer(ircDomain);
 
         if (!server) {
             throw new Error(`Server requested for linking not found ('${ircDomain}')`);
         }
 
-        let botClient = await this.ircBridge.getBotClient(server);
+        const botClient = await this.ircBridge.getBotClient(server);
 
         ircChannel = Provisioner.caseFold(botClient, ircChannel);
 
@@ -750,7 +755,7 @@ export class Provisioner {
             throw new Error(`Server is configured to exclude given channel ('${ircChannel}')`);
         }
 
-        let entry = await this.ircBridge.getStore().getRoom(roomId, ircDomain, ircChannel);
+        const entry = await this.ircBridge.getStore().getRoom(roomId, ircDomain, ircChannel);
         if (!entry) {
             // Ask OP for provisioning authentication
             await this.authoriseProvisioning(req, server, userId, ircChannel, roomId, opNick, key);
@@ -761,16 +766,17 @@ export class Provisioner {
         }
     }
 
-    private async doLink(req: ProvisionRequest, server: IrcServer, ircChannel: string, key: string|undefined, roomId: string, userId: string) {
-        let ircDomain = server.domain;
-        let mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
+    private async doLink(req: ProvisionRequest, server: IrcServer, ircChannel: string,
+        key: string|undefined, roomId: string, userId: string) {
+        const ircDomain = server.domain;
+        const mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
         req.log.info(`Provisioning link for room ${mappingLogId}`);
 
         // Create rooms for the link
-        let ircRoom = new IrcRoom(server, ircChannel);
-        let mxRoom = new MatrixRoom(roomId);
+        const ircRoom = new IrcRoom(server, ircChannel);
+        const mxRoom = new MatrixRoom(roomId);
 
-        let entry = await this.ircBridge.getStore().getRoom(roomId, ircDomain, ircChannel);
+        const entry = await this.ircBridge.getStore().getRoom(roomId, ircDomain, ircChannel);
         if (entry) {
             throw new Error(`Room mapping already exists (${mappingLogId},` +
                             `origin = ${entry.data.origin})`);
@@ -779,7 +785,7 @@ export class Provisioner {
         // Cause the bot to join the new plumbed channel if it is enabled
         // TODO: key not persisted on restart
         if (server.isBotEnabled()) {
-            let botClient = await this.ircBridge.getBotClient(server);
+            const botClient = await this.ircBridge.getBotClient(server);
             await botClient.joinChannel(ircChannel, key);
         }
 
@@ -787,10 +793,10 @@ export class Provisioner {
 
         try {
             // Cause the provisioner to join the IRC channel
-            var bridgeReq = new BridgeRequest(
+            const bridgeReq = new BridgeRequest(
                 this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest()
             );
-            var target = new MatrixUser(userId);
+            const target = new MatrixUser(userId);
             // inject a fake join event which will do M->I connections and
             // therefore sync the member list
             await this.ircBridge.matrixHandler.onJoin(bridgeReq, {
@@ -807,13 +813,13 @@ export class Provisioner {
 
     // Unlink an IRC channel from a matrix room ID
     public async unlink(req: ProvisionRequest) {
-        let options = req.body;
+        const options = req.body;
         try {
             this.unlinkValidator.validate(options);
         }
         catch (err) {
             if (err._validationErrors) {
-                let s = err._validationErrors.map((e: {instanceContext: string})=>{
+                const s = err._validationErrors.map((e: {instanceContext: string})=>{
                     return `${e.instanceContext} is malformed`;
                 }).join(', ');
                 throw new Error(s);
@@ -825,23 +831,23 @@ export class Provisioner {
             }
         }
 
-        let ircDomain = options.remote_room_server;
-        let ircChannel = options.remote_room_channel;
-        let roomId = options.matrix_room_id;
-        let mappingLogId = `${roomId} <-/-> ${ircDomain}/${ircChannel}`;
+        const ircDomain = options.remote_room_server;
+        const ircChannel = options.remote_room_channel;
+        const roomId = options.matrix_room_id;
+        const mappingLogId = `${roomId} <-/-> ${ircDomain}/${ircChannel}`;
 
         req.log.info(`Provisioning unlink for room ${mappingLogId}`);
 
         // Try to find the domain requested for unlinking
-        let server = this.ircBridge.getServer(ircDomain);
+        const server = this.ircBridge.getServer(ircDomain);
 
         if (!server) {
             throw new Error("Server requested for linking not found");
         }
 
         // Make sure the requester is a mod in the room
-        let botCli = this.ircBridge.getAppServiceBridge().getBot().getClient();
-        let stateEvents = await botCli.roomState(roomId);
+        const botCli = this.ircBridge.getAppServiceBridge().getBot().getClient();
+        const stateEvents = await botCli.roomState(roomId);
         // user_id must be JOINED and must have permission to modify power levels
         let isJoined = false;
         let hasPower = false;
@@ -870,7 +876,7 @@ export class Provisioner {
 
 
         // Delete the room link
-        let entry = await this.ircBridge.getStore()
+        const entry = await this.ircBridge.getStore()
             .getRoom(roomId, ircDomain, ircChannel, 'provision');
 
         if (!entry) {
@@ -903,9 +909,9 @@ export class Provisioner {
 
         // Cause the bot to part the channel if there are no other rooms being mapped to this
         // channel
-        let mxRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, ircChannel);
+        const mxRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, ircChannel);
         if (mxRooms.length === 0) {
-            let botClient = await this.ircBridge.getBotClient(server);
+            const botClient = await this.ircBridge.getBotClient(server);
             req.log.info(`Leaving channel ${ircChannel} as there are no more provisioned mappings`);
             await botClient.leaveChannel(ircChannel);
         }
@@ -917,7 +923,7 @@ export class Provisioner {
     // unlinked.
     private async partUnlinkedIrcClients(req: ProvisionRequest, roomId: string, server: IrcServer, ircChannel: string) {
         // Get the full set of room IDs linked to this #channel
-        let matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
+        const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
             server, ircChannel
         );
         // make sure the unlinked room exists as we may have just removed it
@@ -936,7 +942,7 @@ export class Provisioner {
         // For each room, get the list of real matrix users and tally up how many times each one
         // appears as joined
         const joinedUserCounts: {[userId: string]: number} = {}; // user_id => Number
-        let unlinkedUserIds: string[] = [];
+        const unlinkedUserIds: string[] = [];
         const asBot = this.ircBridge.getAppServiceBridge().getBot();
         for (let i = 0; i < matrixRooms.length; i++) {
             let stateEvents = [];
@@ -954,9 +960,9 @@ export class Provisioner {
                     events: stateEvents
                 }
             }
-            let roomInfo = asBot._getRoomInfo(matrixRooms[i].getId(), joinedRoom);
+            const roomInfo = asBot._getRoomInfo(matrixRooms[i].getId(), joinedRoom);
             for (let j = 0; j < roomInfo.realJoinedUsers.length; j++) {
-                let userId: string = roomInfo.realJoinedUsers[j];
+                const userId: string = roomInfo.realJoinedUsers[j];
                 if (!joinedUserCounts[userId]) {
                     joinedUserCounts[userId] = 0;
                 }
@@ -973,12 +979,12 @@ export class Provisioner {
         unlinkedUserIds.forEach((userId) => {
             joinedUserCounts[userId] -= 1;
         });
-        let partUserIds = Object.keys(joinedUserCounts).filter((userId) => {
+        const partUserIds = Object.keys(joinedUserCounts).filter((userId) => {
             return joinedUserCounts[userId] === 0;
         });
         partUserIds.forEach((userId) => {
             req.log.info(`Parting user ${userId} from ${ircChannel} as mapping unlinked.`);
-            let cli = this.ircBridge.getIrcUserFromCache(server, userId);
+            const cli = this.ircBridge.getIrcUserFromCache(server, userId);
             if (!cli) {
                 return; // client is disconnected
             }
@@ -1015,9 +1021,9 @@ export class Provisioner {
     // Cause the bot to leave the matrix room if there are no other channels being mapped to
     // this room
     private async leaveMatrixRoomIfUnprovisioned(req: ProvisionRequest, roomId: string) {
-        let ircChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(roomId);
+        const ircChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(roomId);
         if (ircChannels.length === 0) {
-            let matrixClient = this.ircBridge.getAppServiceBridge()
+            const matrixClient = this.ircBridge.getAppServiceBridge()
                                             .getClientFactory().getClientAs();
             req.log.info(`Leaving room ${roomId} as there are no more provisioned mappings`);
             await matrixClient.leave(roomId);
@@ -1026,13 +1032,13 @@ export class Provisioner {
 
     // List all mappings currently provisioned with the given matrix_room_id
     public listings(req: ProvisionRequest) {
-        let roomId = req.params.roomId;
+        const roomId = req.params.roomId;
         try {
             this.roomIdValidator.validate({"matrix_room_id": roomId});
         }
         catch (err) {
             if (err._validationErrors) {
-                let s = err._validationErrors.map((e: {instanceContext: string})=>{
+                const s = err._validationErrors.map((e: {instanceContext: string})=>{
                     return `${e.instanceContext} is malformed`;
                 }).join(', ');
                 throw new Error(s);
@@ -1048,14 +1054,14 @@ export class Provisioner {
             .getProvisionedMappings(roomId)
             .map((entry) => {
                 if (!entry.matrix || !entry.remote) {
-                    return;
+                    return false;
                 }
                 return {
                     matrix_room_id : entry.matrix.getId(),
                     remote_room_channel : entry.remote.get("channel"),
                     remote_room_server : entry.remote.get("domain"),
                 }
-            }).filter((e) => !!e);
+            }).filter((e) => e !== false);
     }
 
     // Using ISUPPORT rules supported by MatrixBridge bot, case map ircChannel
