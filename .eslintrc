@@ -1,21 +1,22 @@
 {
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
   "parserOptions": {
     "ecmaVersion": 9,
     "ecmaFeatures": {
-      "jsx": true
+      "jsx": false
     }
   },
   "env": {
     "node": true,
     "jasmine": true
   },
+  "extends": ["plugin:@typescript-eslint/recommended"],
   "rules": {
-    "strict": 0,
     "consistent-return": 2,
     "curly": 1,
     "default-case": 2,
     "guard-for-in": 2,
-
     "no-alert": 2,
     "no-caller": 2,
     "no-cond-assign": 2,
@@ -53,11 +54,9 @@
     "no-unreachable": 2,
     "no-unexpected-multiline": 2,
     "no-unused-expressions": 2,
-    "no-unused-vars": [2, {"vars": "all", "args": "none"}],
     "no-use-before-define": [1, "nofunc"],
     "use-isnan": 2,
     "valid-typeof": 2,
-
     "array-bracket-spacing": [1, "never"],
     "max-len": [1, 120],
     "brace-style": [1, "stroustrup", { "allowSingleLine": true }],
@@ -73,6 +72,12 @@
     "no-spaced-func": 1,
     "no-trailing-spaces": 1,
     "keyword-spacing": [1, {"before": true, "after": true}],
-    "space-before-blocks": [1, "always"]
+    "space-before-blocks": [1, "always"],
+    "@typescript-eslint/explicit-function-return-type": 0,
+    "@typescript-eslint/camelcase": ["error", { "properties": "never" }],
+    "@typescript-eslint/ban-ts-ignore": 0,
+    "no-unused-vars": 0, // covered by @typescript-eslint/no-unused-vars
+    "strict": ["error", "never" ],
+    "no-var": 2
   }
 }
