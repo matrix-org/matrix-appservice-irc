@@ -45,6 +45,7 @@
     "winston-daily-rotate-file": "^3.2.1"
   },
   "devDependencies": {
+    "@types/express": "^4.17.2",
     "@types/extend": "^3.0.1",
     "@types/bluebird": "^3.5.27",
     "@types/he": "^1.1.0",

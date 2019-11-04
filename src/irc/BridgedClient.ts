@@ -37,14 +37,14 @@ const log = getLogger("BridgedClient");
 const JOIN_TIMEOUT_MS = 15 * 1000; // 15s
 const NICK_DELAY_TIMER_MS = 10 * 1000; // 10s
 
-interface GetNicksResponse {
+export interface GetNicksResponse {
     server: IrcServer;
     channel: string;
     nicks: string[];
     names: {[nick: string]: string};
 }
 
-interface GetNicksResponseOperators extends GetNicksResponse {
+export interface GetNicksResponseOperators extends GetNicksResponse {
     operatorNicks: string[];
 }
 

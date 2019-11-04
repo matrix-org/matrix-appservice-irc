@@ -64,8 +64,8 @@ interface MatrixEventJoin {
     _frontier: boolean;
     _injected: boolean;
     room_id: string;
-    content: {
-        displayname: string;
+    content?: {
+        displayname?: string;
     };
 }
 
@@ -1038,7 +1038,7 @@ export class MatrixHandler {
                 }
 
                 // Check for a displayname change and update nick accordingly.
-                if (event.content.displayname !== bridgedClient.displayName) {
+                if (event.content && event.content.displayname !== bridgedClient.displayName) {
                     // Changing the nick requires that:
                     // - the server allows nick changes
                     // - the nick is not custom
