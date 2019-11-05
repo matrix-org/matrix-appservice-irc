@@ -15,11 +15,7 @@ WORKDIR /build
 
 RUN apt-get update && apt-get install -y git python3 libicu-dev build-essential
 
-COPY ./package.json /build/package.json
-COPY ./package-lock.json /build/package-lock.json
-COPY ./src /build/src
-COPY ./tsconfig.json /build/tsconfig.json
-COPY ./types /build/types
+COPY . /build/
 
 RUN npm ci
 RUN npm run build
