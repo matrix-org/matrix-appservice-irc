@@ -1,0 +1,12 @@
+.* # Dot files
+config*
+*.md
+*.log*
+node_modules/
+bin/
+changelog.d/
+.buildkite/
+hooks/
+spec/
+lib/
+scripts/
