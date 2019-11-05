@@ -118,6 +118,9 @@ export class AdminRoomHandler {
             case "!nick":
                 await this.handleNick(req, args, ircServer, clientList, adminRoom, event.sender);
                 break;
+            case "!feature":
+                await this.handleFeature(args, adminRoom, event.sender);
+                break;
             case "!help":
             default:
                 await this.showHelp(adminRoom);
@@ -500,6 +503,56 @@ export class AdminRoomHandler {
             const noticeErr = new MatrixAction("notice", err.message);
             await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeErr);
         }
+    }
+
+    private async handleFeature(args: string[], adminRoom: MatrixRoom, sender: string) {
+        if (args.length === 0 || !USER_FEATURES.includes(args[0].toLowerCase())) {
+            const notice = new MatrixAction("notice",
+                "Missing or unknown feature flag. Must be one of: " + USER_FEATURES.join(", ")
+            );
+            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+            return;
+        }
+        const featureFlag = args[0];
+        const features = await this.ircBridge.getStore().getUserFeatures(sender);
+        if (!args[1]) {
+            const val = features[featureFlag];
+            let msg = `'${featureFlag}' is `;
+            if (val === true) {
+                msg += "enabled.";
+            }
+            else if (val === false) {
+                msg += "disabled.";
+            }
+            else {
+                msg += "set to the default value.";
+            }
+            const notice = new MatrixAction("notice", msg);
+            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+            return;
+        }
+        if (!["true", "false", "default"].includes(args[1].toLowerCase())) {
+            const notice = new MatrixAction("notice",
+                "Parameter must be either true, false or default."
+            );
+            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+            return;
+        }
+        features[featureFlag] = args[1] === "default" ? undefined :
+            args[1].toLowerCase() === "true";
+
+        await this.ircBridge.getStore().storeUserFeatures(sender, features);
+        let note = "";
+        if (featureFlag === "mentions") {
+            // We should invalidate caching for this user's channels.
+            if (!this.ircBridge.ircHandler.invalidateCachingForUserId(sender)) {
+                note = " This bridge has disabled mentions, so this flag will do nothing.";
+            }
+        }
+        const notice = new MatrixAction("notice",
+            `Set ${featureFlag} to ${features[featureFlag]}.${note}`
+        );
+        await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
     }
     }
 
