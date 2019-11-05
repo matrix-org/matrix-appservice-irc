@@ -1,36 +1,40 @@
-# Builder
-FROM node:10-slim as builder
+# Freebind build
+# node:12-slim uses debian:stretch-slim as a base, so it's safe to build on here.
+FROM debian:stretch-slim as freebind 
 
 RUN apt-get update \
- && apt-get install -y git python build-essential libicu-dev
+ && apt-get install -y git build-essential
 
-RUN git clone https://github.com/matrix-org/freebindfree.git \
- && cd freebindfree \
- && make
+RUN git clone https://github.com/matrix-org/freebindfree.git
+RUN cd freebindfree && make
 
-COPY ./package.json ./package.json
-RUN npm install
+# Typescript build
+FROM node:12-slim as builder
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y git python3 libicu-dev build-essential
+
+COPY . /build/
+
+RUN npm ci
+RUN npm run build
 
 # App
-FROM node:10-slim
+FROM node:12-slim
 
-RUN apt-get update \
- && apt-get install -y sipcalc iproute2 openssl --no-install-recommends \
- && rm -rf /var/lib/apt/lists/* \
- && mkdir app
+RUN apt-get update && apt-get install -y sipcalc iproute2 openssl --no-install-recommends
+RUN rm -rf /var/lib/apt/lists/*
+RUN mkdir app
 
 WORKDIR /app
 RUN mkdir ./data
-RUN openssl genpkey -out ./data/passkey.pem -outform PEM -algorithm RSA -pkeyopt rsa_keygen_bits:2048
 
-COPY --from=builder /node_modules /app/node_modules
-COPY --from=builder /freebindfree/libfreebindfree.so /app/libfreebindfree.so
+COPY --from=freebind /freebindfree/libfreebindfree.so /app/libfreebindfree.so
+COPY --from=builder /build/node_modules /app/node_modules
+COPY --from=builder /build/lib /app/lib
 
-COPY config.yaml /app/config.yaml
-COPY passkey.pem /app/passkey.pem
-COPY appservice-registration-irc.yaml /app/appservice-registration-irc.yaml
 COPY app.js /app/
-COPY lib /app/lib
 COPY docker /app/docker
 
 ENV LD_PRELOAD /app/libfreebindfree.so
