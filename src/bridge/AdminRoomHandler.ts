@@ -112,6 +112,9 @@ export class AdminRoomHandler {
             case "!removepass":
                 await this.handleRemovePass(ircServer, adminRoom, event.sender);
                 break;
+            case "!quit":
+                await this.handleQuit(req, event.sender, ircServer, adminRoom, clientList);
+                break;
             case "!help":
             default:
                 await this.showHelp(adminRoom);
@@ -413,6 +416,16 @@ export class AdminRoomHandler {
         }
 
         await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+    }
+
+    private async handleQuit(req: BridgeRequest, sender: string, ircServer: IrcServer, adminRoom: MatrixRoom, clientList: BridgedClient[]) {
+        const msgText = await this.matrixHandler.quitUser(
+            req, sender, clientList, ircServer, "issued !quit command"
+        );
+        if (msgText) {
+            const notice = new MatrixAction("notice", msgText);
+            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+        }
     }
     }
 
