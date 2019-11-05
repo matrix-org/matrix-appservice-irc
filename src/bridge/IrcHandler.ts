@@ -543,6 +543,7 @@ export class IrcHandler {
             server.domain + " " + channel + " " + topic,
             {req: req, matrixRooms, topic: topic, matrixUser}
         );
+        return undefined;
     }
 
     /**
