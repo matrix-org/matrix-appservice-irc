@@ -100,6 +100,9 @@ export class AdminRoomHandler {
             case "!join":
                 await this.handleJoin(req, args, ircServer, adminRoom, event.sender);
                 break;
+            case "!cmd":
+                await this.handleCmd(req, args, ircServer, adminRoom, event.sender);
+                break;
             case "!help":
             default:
                 await this.showHelp(adminRoom);
@@ -244,6 +247,54 @@ export class AdminRoomHandler {
         }
 
         await Promise.all(invitePromises);
+    }
+
+    private async handleCmd(req: BridgeRequest, args: string[], ircServer: IrcServer, adminRoom: MatrixRoom, sender: string) {
+        req.log.info(`No valid (old form) admin command, will try new format`);
+
+        // Assumes commands have the form
+        // !cmd [irc.server] COMMAND [arg0 [arg1 [...]]]
+
+        const currentServer = ircServer;
+        const blacklist = ['PROTOCTL'];
+
+        try {
+            const keyword = args[0];
+
+            // keyword could be a failed server or a malformed command
+            if (!keyword.match(/^[A-Z]+$/)) {
+                // if not a domain OR is only word (which implies command)
+                if (!keyword.match(/^[a-z0-9:\.-]+$/) || args.length == 1) {
+                    throw new Error(`Malformed command: ${keyword}`);
+                }
+                else {
+                    throw new Error(`Domain not accepted: ${keyword}`);
+                }
+            }
+
+            if (blacklist.indexOf(keyword) != -1) {
+                throw new Error(`Command blacklisted: ${keyword}`);
+            }
+
+            // If no args after COMMAND, this will be []
+            const sendArgs = args.splice(1);
+            sendArgs.unshift(keyword);
+
+            const bridgedClient = await this.ircBridge.getBridgedClient(
+                currentServer, sender
+            );
+
+            if (!bridgedClient.unsafeClient) {
+                throw new Error('Possibly disconnected');
+            }
+
+            bridgedClient.unsafeClient.send(...sendArgs);
+        }
+        catch (err) {
+            const notice = new MatrixAction("notice", `${err}\n` );
+            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+            return;
+        }
     }
     }
 
