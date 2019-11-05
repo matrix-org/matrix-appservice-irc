@@ -1,5 +1,6 @@
 # Freebind build
-FROM node:12-slim as freebind
+# node:12-slim uses debian:stretch-slim as a base, so it's safe to build on here.
+FROM debian:stretch-slim as freebind 
 
 RUN apt-get update \
  && apt-get install -y git build-essential
