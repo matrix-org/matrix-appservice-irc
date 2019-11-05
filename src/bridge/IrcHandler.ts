@@ -155,14 +155,7 @@ export class IrcHandler {
             // query room state to see if the user is actually joined.
             log.info("Querying PM room state (%s) between %s and %s",
                 roomId, userId, virtUserId);
-            const stateEvents = await intent.roomState(roomId);
-            for (let i = 0; i < stateEvents.length; i++) {
-                if (stateEvents[i].type === "m.room.member" &&
-                        stateEvents[i].state_key === userId) {
-                    priv.membership = stateEvents[i].content.membership;
-                    break;
-                }
-            }
+            priv = (await intent.getStateEvent(roomId, "m.room.member", userId));
         }
 
         // we should have the latest membership state now for this user (either we just
