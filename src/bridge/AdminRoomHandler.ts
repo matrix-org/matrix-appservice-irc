@@ -1,5 +1,5 @@
 import { BridgeRequest } from "../models/BridgeRequest";
-import { MatrixRoom, MatrixUser, Bridge } from "matrix-appservice-bridge";
+import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import { IrcBridge } from "./IrcBridge";
 import { MatrixAction } from "../models/MatrixAction";
 import { IrcServer } from "../irc/IrcServer";
@@ -110,8 +110,8 @@ export class AdminRoomHandler {
                 return;
             }
         }
-        
-        switch(cmd) {
+
+        switch (cmd) {
             case "!join":
                 await this.handleJoin(req, args, ircServer, adminRoom, event.sender);
                 break;
@@ -150,7 +150,7 @@ export class AdminRoomHandler {
         }
     }
 
-    private async handleJoin(req: BridgeRequest, args: string[], ircServer: IrcServer, adminRoom: MatrixRoom, sender: string) {
+    private async handleJoin(req: BridgeRequest, args: string[], server: IrcServer, room: MatrixRoom, sender: string) {
         // TODO: Code dupe from !nick
         // Format is: "!join irc.example.com #channel [key]"
 
@@ -161,17 +161,17 @@ export class AdminRoomHandler {
         if (!ircChannel || ircChannel.indexOf("#") !== 0) {
             errText = "Format: '!join irc.example.com #channel [key]'";
         }
-        else if (ircServer.hasInviteRooms() && !ircServer.isInWhitelist(sender)) {
+        else if (server.hasInviteRooms() && !server.isInWhitelist(sender)) {
             errText = "You are not authorised to join channels on this server.";
         }
 
         if (errText) {
             await this.ircBridge.sendMatrixAction(
-                adminRoom, this.botUser, new MatrixAction("notice", errText)
+                room, this.botUser, new MatrixAction("notice", errText)
             );
             return;
         }
-        req.log.info("%s wants to join the channel %s on %s", sender, ircChannel, ircServer.domain);
+        req.log.info("%s wants to join the channel %s on %s", sender, ircChannel, server.domain);
 
         // There are 2 main flows here:
         //   - The !join is instigated to make the BOT join a new channel.
@@ -188,7 +188,7 @@ export class AdminRoomHandler {
 
         // track the channel if we aren't already
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
-            ircServer, ircChannel
+            server, ircChannel
         );
 
         if (matrixRooms.length === 0) {
@@ -199,7 +199,7 @@ export class AdminRoomHandler {
                     type: "m.room.join_rules",
                     state_key: "",
                     content: {
-                        join_rule: ircServer.getJoinRule()
+                        join_rule: server.getJoinRule()
                     }
                 },
                 {
@@ -210,16 +210,16 @@ export class AdminRoomHandler {
                     }
                 }
             ];
-            if (ircServer.areGroupsEnabled()) {
+            if (server.areGroupsEnabled()) {
                 initialState.push({
                     type: "m.room.related_groups",
                     state_key: "",
                     content: {
-                        groups: [ircServer.getGroupId() as string]
+                        groups: [server.getGroupId() as string]
                     }
                 });
             }
-            const ircRoom = await this.ircBridge.trackChannel(ircServer, ircChannel, key);
+            const ircRoom = await this.ircBridge.trackChannel(server, ircChannel, key);
             const response = await this.ircBridge.getAppServiceBridge().getIntent(
                 sender,
             ).createRoom({
@@ -228,7 +228,7 @@ export class AdminRoomHandler {
                     visibility: "private",
                     preset: "public_chat",
                     creation_content: {
-                        "m.federate": ircServer.shouldFederate()
+                        "m.federate": server.shouldFederate()
                     },
                     initial_state: initialState,
                 }
@@ -237,37 +237,36 @@ export class AdminRoomHandler {
             await this.ircBridge.getStore().storeRoom(ircRoom, mxRoom, 'join');
             // /mode the channel AFTER we have created the mapping so we process
             // +s and +i correctly.
-            const domain = ircServer.domain;
-            this.ircBridge.publicitySyncer.initModeForChannel(ircServer, ircChannel).catch(() => {
+            this.ircBridge.publicitySyncer.initModeForChannel(server, ircChannel).catch(() => {
                 log.error(
-                    `Could not init mode for channel ${ircChannel} on ${domain}`
+                    `Could not init mode for channel ${ircChannel} on ${server.domain}`
                 );
             });
             req.log.info(
                 "Created a room to track %s on %s and invited %s",
-                ircRoom.channel, ircServer.domain, sender
+                ircRoom.channel, server.domain, sender
             );
             matrixRooms.push(mxRoom);
         }
 
         // already tracking channel, so just invite them.
-        const invitePromises = matrixRooms.map((room) => {
+        const invitePromises = matrixRooms.map((r) => {
             req.log.info(
-                "Inviting %s to room %s", sender, room.getId()
+                "Inviting %s to room %s", sender, r.getId()
             );
             return this.ircBridge.getAppServiceBridge().getIntent().invite(
                 room.getId(), sender
             );
         });
-        for (const room of matrixRooms) {
+        for (const r of matrixRooms) {
             const userMustJoin = (
-                key || ircServer.shouldSyncMembershipToIrc("incremental", room.getId())
+                key || server.shouldSyncMembershipToIrc("incremental", r.getId())
             );
             if (!userMustJoin) {
                 continue;
             }
             const bc = await this.ircBridge.getBridgedClient(
-                ircServer, sender
+                server, sender
             );
             await bc.joinChannel(ircChannel, key);
             break;
@@ -276,13 +275,13 @@ export class AdminRoomHandler {
         for (let i = 0; i < matrixRooms.length; i++) {
             const m = matrixRooms[i];
             const userMustJoin = (
-                key || ircServer.shouldSyncMembershipToIrc("incremental", m.getId())
+                key || server.shouldSyncMembershipToIrc("incremental", m.getId())
             );
             if (userMustJoin) {
                 // force join then break out (we only ever join once no matter how many
                 // rooms the channel is bridged to)
                 const bc = await this.ircBridge.getBridgedClient(
-                    ircServer, sender
+                    server, sender
                 );
                 await bc.joinChannel(ircChannel, key);
                 break;
@@ -292,13 +291,12 @@ export class AdminRoomHandler {
         await Promise.all(invitePromises);
     }
 
-    private async handleCmd(req: BridgeRequest, args: string[], ircServer: IrcServer, adminRoom: MatrixRoom, sender: string) {
+    private async handleCmd(req: BridgeRequest, args: string[], server: IrcServer, room: MatrixRoom, sender: string) {
         req.log.info(`No valid (old form) admin command, will try new format`);
 
         // Assumes commands have the form
         // !cmd [irc.server] COMMAND [arg0 [arg1 [...]]]
 
-        const currentServer = ircServer;
         const blacklist = ['PROTOCTL'];
 
         try {
@@ -324,7 +322,7 @@ export class AdminRoomHandler {
             sendArgs.unshift(keyword);
 
             const bridgedClient = await this.ircBridge.getBridgedClient(
-                currentServer, sender
+                server, sender
             );
 
             if (!bridgedClient.unsafeClient) {
@@ -335,18 +333,18 @@ export class AdminRoomHandler {
         }
         catch (err) {
             const notice = new MatrixAction("notice", `${err}\n` );
-            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+            await this.ircBridge.sendMatrixAction(room, this.botUser, notice);
             return;
         }
     }
 
-    private async handleWhois(req: BridgeRequest, args: string[], ircServer: IrcServer, adminRoom: MatrixRoom, sender: string) {
+    private async handleWhois(req: BridgeRequest, args: string[], server: IrcServer, room: MatrixRoom, sender: string) {
         // Format is: "!whois <nick>"
 
         const whoisNick = args.length === 1 ? args[0] : null; // ensure 1 arg
         if (!whoisNick) {
             await this.ircBridge.sendMatrixAction(
-                adminRoom, this.botUser,
+                room, this.botUser,
                 new MatrixAction("notice", "Format: '!whois nick|mxid'")
             );
             return;
@@ -355,44 +353,45 @@ export class AdminRoomHandler {
         if (whoisNick[0] === "@") {
             // querying a Matrix user - whoisNick is the matrix user ID
             req.log.info("%s wants whois info on %s", sender, whoisNick);
-            const whoisClient = this.ircBridge.getIrcUserFromCache(ircServer, whoisNick);
+            const whoisClient = this.ircBridge.getIrcUserFromCache(server, whoisNick);
             try {
                 const noticeRes = new MatrixAction(
                     "notice",
                     whoisClient ?
-                    `${whoisNick} is connected to ${ircServer.domain} as '${whoisClient.nick}'.` :
+                    `${whoisNick} is connected to ${server.domain} as '${whoisClient.nick}'.` :
                     `${whoisNick} has no IRC connection via this bridge.`);
-                await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeRes);
+                await this.ircBridge.sendMatrixAction(room, this.botUser, noticeRes);
             }
             catch (err) {
                 if (err.stack) {
                     req.log.error(err);
                 }
                 const noticeErr = new MatrixAction("notice", "Failed to perform whois query.");
-                await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeErr);
+                await this.ircBridge.sendMatrixAction(room, this.botUser, noticeErr);
             }
             return;
         }
 
         req.log.info("%s wants whois info on %s on %s", sender,
-            whoisNick, ircServer.domain);
-        const bridgedClient = await this.ircBridge.getBridgedClient(ircServer, sender);
+            whoisNick, server.domain);
+        const bridgedClient = await this.ircBridge.getBridgedClient(server, sender);
         try {
             const response = await bridgedClient.whois(whoisNick);
             const noticeRes = new MatrixAction("notice", response.msg);
-            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeRes);
+            await this.ircBridge.sendMatrixAction(room, this.botUser, noticeRes);
         }
         catch (err) {
             if (err.stack) {
                 req.log.error(err);
             }
             const noticeErr = new MatrixAction("notice", err.message);
-            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeErr);
+            await this.ircBridge.sendMatrixAction(room, this.botUser, noticeErr);
         }
     }
 
-    private async handleStorePass(req: BridgeRequest, args: string[], ircServer: IrcServer, adminRoom: MatrixRoom, userId: string) {
-        const domain = ircServer.domain;
+    private async handleStorePass(req: BridgeRequest, args: string[], server: IrcServer,
+        room: MatrixRoom, userId: string) {
+        const domain = server.domain;
         let notice;
 
         try {
@@ -427,7 +426,7 @@ export class AdminRoomHandler {
             req.log.error(err.stack);
         }
 
-        await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+        await this.ircBridge.sendMatrixAction(room, this.botUser, notice);
     }
 
     private async handleRemovePass(ircServer: IrcServer, adminRoom: MatrixRoom, userId: string) {
@@ -449,13 +448,14 @@ export class AdminRoomHandler {
         await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
     }
 
-    private async handleQuit(req: BridgeRequest, sender: string, ircServer: IrcServer, adminRoom: MatrixRoom, clientList: BridgedClient[]) {
+    private async handleQuit(req: BridgeRequest, sender: string, server: IrcServer,
+        room: MatrixRoom, clients: BridgedClient[]) {
         const msgText = await this.matrixHandler.quitUser(
-            req, sender, clientList, ircServer, "issued !quit command"
+            req, sender, clients, server, "issued !quit command"
         );
         if (msgText) {
             const notice = new MatrixAction("notice", msgText);
-            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+            await this.ircBridge.sendMatrixAction(room, this.botUser, notice);
         }
     }
 

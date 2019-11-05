@@ -4,7 +4,6 @@ import { MatrixUser, MatrixRoom, StateLookup, RoomCreationOpts } from "matrix-ap
 import { IrcUser } from "../models/IrcUser";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { IrcRoom } from "../models/IrcRoom";
-import { IrcClientConfig } from "../models/IrcClientConfig";
 import logging from "../logging";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcServer } from "../irc/IrcServer";
