@@ -97,11 +97,154 @@ export class AdminRoomHandler {
         }
         
         switch(cmd) {
+            case "!join":
+                await this.handleJoin(req, args, ircServer, adminRoom, event.sender);
+                break;
             case "!help":
             default:
                 await this.showHelp(adminRoom);
                 break;
+    private async handleJoin(req: BridgeRequest, args: string[], ircServer: IrcServer, adminRoom: MatrixRoom, sender: string) {
+        // TODO: Code dupe from !nick
+        // Format is: "!join irc.example.com #channel [key]"
+
+        // check that the server exists and that the user_id is on the whitelist
+        const ircChannel = args[0];
+        const key = args[1]; // keys can't have spaces in them, so we can just do this.
+        let errText = null;
+        if (!ircChannel || ircChannel.indexOf("#") !== 0) {
+            errText = "Format: '!join irc.example.com #channel [key]'";
         }
+        else if (ircServer.hasInviteRooms() && !ircServer.isInWhitelist(sender)) {
+            errText = "You are not authorised to join channels on this server.";
+        }
+
+        if (errText) {
+            await this.ircBridge.sendMatrixAction(
+                adminRoom, this.botUser, new MatrixAction("notice", errText)
+            );
+            return;
+        }
+        req.log.info("%s wants to join the channel %s on %s", sender, ircChannel, ircServer.domain);
+
+        // There are 2 main flows here:
+        //   - The !join is instigated to make the BOT join a new channel.
+        //        * Bot MUST join and invite user
+        //   - The !join is instigated to make the USER join a new channel.
+        //        * IRC User MAY have to join (if bridging incr joins or using a chan key)
+        //        * Bot MAY invite user
+        //
+        // This means that in both cases:
+        //  1) Bot joins IRC side (NOP if bot is disabled)
+        //  2) Bot sends Matrix invite to bridged room. (ignore failures if already in room)
+        // And *sometimes* we will:
+        //  3) Force join the IRC user (if given key / bridging joins)
+
+        // track the channel if we aren't already
+        const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
+            ircServer, ircChannel
+        );
+
+        if (matrixRooms.length === 0) {
+            // track the channel then invite them.
+            // TODO: Dupes onAliasQuery a lot
+            const initialState: unknown[] = [
+                {
+                    type: "m.room.join_rules",
+                    state_key: "",
+                    content: {
+                        join_rule: ircServer.getJoinRule()
+                    }
+                },
+                {
+                    type: "m.room.history_visibility",
+                    state_key: "",
+                    content: {
+                        history_visibility: "joined"
+                    }
+                }
+            ];
+            if (ircServer.areGroupsEnabled()) {
+                initialState.push({
+                    type: "m.room.related_groups",
+                    state_key: "",
+                    content: {
+                        groups: [ircServer.getGroupId() as string]
+                    }
+                });
+            }
+            const ircRoom = await this.ircBridge.trackChannel(ircServer, ircChannel, key);
+            const response = await this.ircBridge.getAppServiceBridge().getIntent(
+                sender,
+            ).createRoom({
+                options: {
+                    name: ircChannel,
+                    visibility: "private",
+                    preset: "public_chat",
+                    creation_content: {
+                        "m.federate": ircServer.shouldFederate()
+                    },
+                    initial_state: initialState,
+                }
+            });
+            const mxRoom = new MatrixRoom(response.room_id);
+            await this.ircBridge.getStore().storeRoom(ircRoom, mxRoom, 'join');
+            // /mode the channel AFTER we have created the mapping so we process
+            // +s and +i correctly.
+            const domain = ircServer.domain;
+            this.ircBridge.publicitySyncer.initModeForChannel(ircServer, ircChannel).catch(() => {
+                log.error(
+                    `Could not init mode for channel ${ircChannel} on ${domain}`
+                );
+            });
+            req.log.info(
+                "Created a room to track %s on %s and invited %s",
+                ircRoom.channel, ircServer.domain, sender
+            );
+            matrixRooms.push(mxRoom);
+        }
+
+        // already tracking channel, so just invite them.
+        const invitePromises = matrixRooms.map((room) => {
+            req.log.info(
+                "Inviting %s to room %s", sender, room.getId()
+            );
+            return this.ircBridge.getAppServiceBridge().getIntent().invite(
+                room.getId(), sender
+            );
+        });
+        for (const room of matrixRooms) {
+            const userMustJoin = (
+                key || ircServer.shouldSyncMembershipToIrc("incremental", room.getId())
+            );
+            if (!userMustJoin) {
+                continue;
+            }
+            const bc = await this.ircBridge.getBridgedClient(
+                ircServer, sender
+            );
+            await bc.joinChannel(ircChannel, key);
+            break;
+        }
+        // check whether we should be force joining the IRC user
+        for (let i = 0; i < matrixRooms.length; i++) {
+            const m = matrixRooms[i];
+            const userMustJoin = (
+                key || ircServer.shouldSyncMembershipToIrc("incremental", m.getId())
+            );
+            if (userMustJoin) {
+                // force join then break out (we only ever join once no matter how many
+                // rooms the channel is bridged to)
+                const bc = await this.ircBridge.getBridgedClient(
+                    ircServer, sender
+                );
+                await bc.joinChannel(ircChannel, key);
+                break;
+            }
+        }
+
+        await Promise.all(invitePromises);
+    }
     }
 
     private async showHelp(adminRoom: MatrixRoom) {
