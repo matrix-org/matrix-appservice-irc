@@ -103,6 +103,9 @@ export class AdminRoomHandler {
             case "!cmd":
                 await this.handleCmd(req, args, ircServer, adminRoom, event.sender);
                 break;
+            case "!whois":
+                await this.handleWhois(req, args, ircServer, adminRoom, event.sender);
+                break;
             case "!help":
             default:
                 await this.showHelp(adminRoom);
@@ -294,6 +297,57 @@ export class AdminRoomHandler {
             const notice = new MatrixAction("notice", `${err}\n` );
             await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
             return;
+        }
+    }
+
+    private async handleWhois(req: BridgeRequest, args: string[], ircServer: IrcServer, adminRoom: MatrixRoom, sender: string) {
+        // Format is: "!whois <nick>"
+
+        const whoisNick = args.length === 1 ? args[0] : null; // ensure 1 arg
+        if (!whoisNick) {
+            await this.ircBridge.sendMatrixAction(
+                adminRoom, this.botUser,
+                new MatrixAction("notice", "Format: '!whois nick|mxid'")
+            );
+            return;
+        }
+
+        if (whoisNick[0] === "@") {
+            // querying a Matrix user - whoisNick is the matrix user ID
+            req.log.info("%s wants whois info on %s", sender, whoisNick);
+            const whoisClient = this.ircBridge.getIrcUserFromCache(ircServer, whoisNick);
+            try {
+                const noticeRes = new MatrixAction(
+                    "notice",
+                    whoisClient ?
+                    `${whoisNick} is connected to ${ircServer.domain} as '${whoisClient.nick}'.` :
+                    `${whoisNick} has no IRC connection via this bridge.`);
+                await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeRes);
+            }
+            catch (err) {
+                if (err.stack) {
+                    req.log.error(err);
+                }
+                const noticeErr = new MatrixAction("notice", "Failed to perform whois query.");
+                await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeErr);
+            }
+            return;
+        }
+
+        req.log.info("%s wants whois info on %s on %s", sender,
+            whoisNick, ircServer.domain);
+        const bridgedClient = await this.ircBridge.getBridgedClient(ircServer, sender);
+        try {
+            const response = await bridgedClient.whois(whoisNick);
+            const noticeRes = new MatrixAction("notice", response.msg);
+            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeRes);
+        }
+        catch (err) {
+            if (err.stack) {
+                req.log.error(err);
+            }
+            const noticeErr = new MatrixAction("notice", err.message);
+            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeErr);
         }
     }
     }
