@@ -1,20 +1,33 @@
 import { BridgeRequest } from "../models/BridgeRequest";
-import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
+import { MatrixRoom, MatrixUser, Bridge } from "matrix-appservice-bridge";
 import { IrcBridge } from "./IrcBridge";
 import { MatrixAction } from "../models/MatrixAction";
 import { IrcServer } from "../irc/IrcServer";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
+import { MatrixHandler } from "./MatrixHandler";
+import logging from "../logging";
+
+const log = logging("AdminRoomHandler");
+
+let BridgeVersion = "unknown";
+
+try {
+    BridgeVersion = require("../../package.json").version;
+}
+catch (err) {
+    log.error("Couldn't get `version` from package.json");
+}
 
 const COMMANDS = {
     "!join": {
         example: `!join [irc.example.net] #channel [key]`,
         summary: `Join a channel (with optional channel key)`,
     },
-    "!nick": {
-        example: `!nick [irc.example.net] DesiredNick`,
-        summary: "Change your nick. If no arguments are supplied, " +
-                "your current nick is shown.",
+    "!cmd": {
+        example: `!cmd [irc.example.net] COMMAND [arg0 [arg1 [...]]]`,
+        summary: "Issue a raw IRC command. These will not produce a reply." +
+                "(Note that the command must be all uppercase.)",
     },
     "!whois": {
         example: `!whois [irc.example.net] NickName|@alice:matrix.org`,
@@ -29,26 +42,28 @@ const COMMANDS = {
         example: `!removepass [irc.example.net]`,
         summary: `Remove a previously stored NickServ password`,
     },
-    "!feature": {
-        example: `!feature feature-name [true/false/default]`,
-        summary: `Enable, disable or default a feature's status for your account.` +
-                `Will display the current feature status if true/false/default not given.`,
-    },
     "!quit": {
         example: `!quit`,
         summary: "Leave all bridged channels, on all networks, and remove your " +
                 "connections to all networks.",
     },
-    "!cmd": {
-        example: `!cmd [irc.example.net] COMMAND [arg0 [arg1 [...]]]`,
-        summary: "Issue a raw IRC command. These will not produce a reply." +
-                "(Note that the command must be all uppercase.)",
+    "!nick": {
+        example: `!nick [irc.example.net] DesiredNick`,
+        summary: "Change your nick. If no arguments are supplied, " +
+                "your current nick is shown.",
+    },
+    "!feature": {
+        example: `!feature feature-name [true/false/default]`,
+        summary: `Enable, disable or default a feature's status for your account.` +
+                `Will display the current feature status if true/false/default not given.`,
     },
     "!bridgeversion": {
         example: `!bridgeversion`,
         summary: "Return the version from matrix-appservice-irc bridge.",
     }
 };
+
+const USER_FEATURES = ["mentions"];
 
 interface MatrixSimpleMessage {
     sender: string;
@@ -59,7 +74,7 @@ interface MatrixSimpleMessage {
 
 export class AdminRoomHandler {
     private readonly botUser: MatrixUser;
-    constructor(private ircBridge: IrcBridge, botUserId: string) {
+    constructor(private ircBridge: IrcBridge, private matrixHandler: MatrixHandler, botUserId: string) {
         this.botUser = new MatrixUser(botUserId, undefined, false);
 
     }
@@ -121,10 +136,20 @@ export class AdminRoomHandler {
             case "!feature":
                 await this.handleFeature(args, adminRoom, event.sender);
                 break;
+            case "!bridgeversion":
+                await this.showBridgeVersion(adminRoom);
+                break;
             case "!help":
-            default:
                 await this.showHelp(adminRoom);
                 break;
+            default:
+                const notice = new MatrixAction("notice",
+                "The command was not recognised. Available commands are listed by !help");
+                await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+                break;
+        }
+    }
+
     private async handleJoin(req: BridgeRequest, args: string[], ircServer: IrcServer, adminRoom: MatrixRoom, sender: string) {
         // TODO: Code dupe from !nick
         // Format is: "!join irc.example.com #channel [key]"
@@ -554,6 +579,13 @@ export class AdminRoomHandler {
         );
         await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
     }
+
+    private async showBridgeVersion(adminRoom: MatrixRoom) {
+        await this.ircBridge.sendMatrixAction(
+            adminRoom,
+            this.botUser,
+            new MatrixAction("notice", `BridgeVersion: ${BridgeVersion}`)
+        );
     }
 
     private async showHelp(adminRoom: MatrixRoom) {
@@ -567,6 +599,5 @@ export class AdminRoomHandler {
             `</ul>`,
         );
         await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
-        return;
     }
 }
