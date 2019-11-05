@@ -115,6 +115,9 @@ export class AdminRoomHandler {
             case "!quit":
                 await this.handleQuit(req, event.sender, ircServer, adminRoom, clientList);
                 break;
+            case "!nick":
+                await this.handleNick(req, args, ircServer, clientList, adminRoom, event.sender);
+                break;
             case "!help":
             default:
                 await this.showHelp(adminRoom);
@@ -425,6 +428,77 @@ export class AdminRoomHandler {
         if (msgText) {
             const notice = new MatrixAction("notice", msgText);
             await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+        }
+    }
+
+    private async handleNick(req: BridgeRequest, args: string[], ircServer: IrcServer, clientList: BridgedClient[],
+        adminRoom: MatrixRoom, sender: string) {
+        // Format is: "!nick irc.example.com NewNick"
+        if (!ircServer.allowsNickChanges()) {
+            const notice = new MatrixAction("notice",
+                "Server " + ircServer.domain + " does not allow nick changes."
+            );
+            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+            return;
+        }
+
+        const nick = args.length === 1 ? args[0] : null; // make sure they only gave 1 arg
+        if (!ircServer || !nick) {
+            let connectedNetworksStr = "";
+            if (clientList.length === 0) {
+                connectedNetworksStr = (
+                    "You are not currently connected to any " +
+                    "IRC networks which have nick changes enabled."
+                );
+            }
+            else {
+                connectedNetworksStr = "Currently connected to IRC networks:\n";
+                for (let i = 0; i < clientList.length; i++) {
+                    connectedNetworksStr += clientList[i].server.domain +
+                        " as " + clientList[i].nick + "\n";
+                }
+            }
+            const notice = new MatrixAction("notice",
+                "Format: '!nick DesiredNick' or '!nick irc.server.name DesiredNick'\n" +
+                connectedNetworksStr
+            );
+            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+            return;
+        }
+        req.log.info("%s wants to change their nick on %s to %s",
+            sender, ircServer.domain, nick);
+
+        if (ircServer.claimsUserId(sender)) {
+            req.log.error("%s is a virtual user!", sender);
+            return;
+        }
+
+        // change the nick
+        const bridgedClient = await this.ircBridge.getBridgedClient(ircServer, sender);
+        try {
+            if (bridgedClient) {
+                const response = await bridgedClient.changeNick(nick, true);
+                const noticeRes = new MatrixAction("notice", response);
+                await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeRes);
+            }
+            // persist this desired nick
+            let config = await this.ircBridge.getStore().getIrcClientConfig(
+                sender, ircServer.domain
+            );
+            if (!config) {
+                config = IrcClientConfig.newConfig(
+                    new MatrixUser(sender), ircServer.domain, nick
+                );
+            }
+            config.setDesiredNick(nick);
+            await this.ircBridge.getStore().storeIrcClientConfig(config);
+        }
+        catch (err) {
+            if (err.stack) {
+                req.log.error(err);
+            }
+            const noticeErr = new MatrixAction("notice", err.message);
+            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeErr);
         }
     }
     }
