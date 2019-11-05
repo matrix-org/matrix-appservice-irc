@@ -106,6 +106,12 @@ export class AdminRoomHandler {
             case "!whois":
                 await this.handleWhois(req, args, ircServer, adminRoom, event.sender);
                 break;
+            case "!storepass":
+                await this.handleStorePass(req, args, ircServer, adminRoom, event.sender);
+                break;
+            case "!removepass":
+                await this.handleRemovePass(ircServer, adminRoom, event.sender);
+                break;
             case "!help":
             default:
                 await this.showHelp(adminRoom);
@@ -349,6 +355,64 @@ export class AdminRoomHandler {
             const noticeErr = new MatrixAction("notice", err.message);
             await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, noticeErr);
         }
+    }
+
+    private async handleStorePass(req: BridgeRequest, args: string[], ircServer: IrcServer, adminRoom: MatrixRoom, userId: string) {
+        const domain = ircServer.domain;
+        let notice;
+
+        try {
+            // Allow passwords with spaces
+            const pass = args.join(' ');
+            const explanation = `When you next reconnect to ${domain}, this password ` +
+                `will be automatically sent in a PASS command which most ` +
+                `IRC networks will use as your NickServ password. This ` +
+                `means you will not need to talk to NickServ. This does ` +
+                `NOT apply to your currently active connection: you still ` +
+                `need to talk to NickServ one last time to authenticate ` +
+                `your current connection if you haven't already.`;
+
+            if (pass.length === 0) {
+                notice = new MatrixAction(
+                    "notice",
+                    "Format: '!storepass password' " +
+                    "or '!storepass irc.server.name password'\n" + explanation
+                );
+            }
+            else {
+                await this.ircBridge.getStore().storePass(userId, domain, pass);
+                notice = new MatrixAction(
+                    "notice", `Successfully stored password for ${domain}. ` + explanation
+                );
+            }
+        }
+        catch (err) {
+            notice = new MatrixAction(
+                "notice", `Failed to store password: ${err.message}`
+            );
+            req.log.error(err.stack);
+        }
+
+        await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+    }
+
+    private async handleRemovePass(ircServer: IrcServer, adminRoom: MatrixRoom, userId: string) {
+        const domain = ircServer.domain;
+        let notice;
+
+        try {
+            await this.ircBridge.getStore().removePass(userId, domain);
+            notice = new MatrixAction(
+                "notice", `Successfully removed password.`
+            );
+        }
+        catch (err) {
+            notice = new MatrixAction(
+                "notice", `Failed to remove password: ${err.message}`
+            );
+        }
+
+        await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
     }
     }
 
