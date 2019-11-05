@@ -147,8 +147,7 @@ export class MatrixHandler {
         await this.ircBridge.getAppServiceBridge().getIntent(mxUser.getId()).join(event.room_id);
     }
 
-    private async handleInviteFromUser(req: BridgeRequest, event: {room_id: string; sender: string; state_key: string},
-        invited: IrcUser) {
+    private async handleInviteFromUser(req: BridgeRequest, event: MatrixEventInvite, invited: IrcUser) {
         req.log.info("Handling invite from user directed at %s on %s",
         invited.server.domain, invited.nick);
         const invitedUser = await this.ircBridge.getMatrixUser(invited);
@@ -193,13 +192,15 @@ export class MatrixHandler {
         req.log.info("Joined %s to room %s", invitedUser.getId(), event.room_id);
 
         // check if this room is a PM room or not.
-        const roomState = await intent.roomState(event.room_id);
-        const joinedMembers = roomState.filter((ev) =>
-            ev.type === "m.room.member" && ev.content.membership === "join"
-        ).map((ev) => ev.state_key);
-        const isPmRoom = (
-            joinedMembers.length === 2 && joinedMembers.includes(event.sender)
-        );
+
+        let isPmRoom = event.content.is_direct === true;
+        if (isPmRoom !== true) {
+            // Legacy check
+            const joinedMembers = Object.keys(
+                await this.ircBridge.getAppServiceBridge().getBot().getJoinedMembers(event.room_id)
+            );
+            isPmRoom = joinedMembers.length === 2 && joinedMembers.includes(event.sender);
+        }
 
         if (isPmRoom) {
             // nick is the channel
