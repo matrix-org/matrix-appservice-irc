@@ -338,7 +338,7 @@ export class ClientPool {
             nickUserIdMap[cliSet[userId]!.nick] = userId;
         });
         // Correctly map the bot too.
-        nickUserIdMap[server.getBotNickname()] = this.ircBridge.getAppServiceUserId();
+        nickUserIdMap[server.getBotNickname()] = this.ircBridge.appServiceUserId;
         return nickUserIdMap;
     }
 

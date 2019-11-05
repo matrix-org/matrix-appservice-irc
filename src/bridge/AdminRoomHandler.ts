@@ -74,8 +74,8 @@ interface MatrixSimpleMessage {
 
 export class AdminRoomHandler {
     private readonly botUser: MatrixUser;
-    constructor(private ircBridge: IrcBridge, private matrixHandler: MatrixHandler, botUserId: string) {
-        this.botUser = new MatrixUser(botUserId, undefined, false);
+    constructor(private ircBridge: IrcBridge, private matrixHandler: MatrixHandler) {
+        this.botUser = new MatrixUser(ircBridge.appServiceUserId, undefined, false);
 
     }
 

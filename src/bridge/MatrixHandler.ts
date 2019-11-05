@@ -94,7 +94,7 @@ export class MatrixHandler {
             DEFAULT_EVENT_CACHE_SIZE : config.eventCacheSize;
         // The media URL to use to transform mxc:// URLs when handling m.room.[file|image]s
         this.mediaUrl = ircBridge.config.homeserver.media_url || ircBridge.config.homeserver.url;
-        this.adminHandler = new AdminRoomHandler(ircBridge, this, ircBridge.getAppServiceUserId());
+        this.adminHandler = new AdminRoomHandler(ircBridge, this);
     }
 
     // ===== Matrix Invite Handling =====
@@ -228,7 +228,7 @@ export class MatrixHandler {
         adminRoom: MatrixRoom): Promise<void> {
         req.log.info("Received admin message from %s", event.sender);
 
-        const botUser = new MatrixUser(this.ircBridge.getAppServiceUserId(), undefined, false);
+        const botUser = new MatrixUser(this.ircBridge.appServiceUserId, undefined, false);
 
         // If an admin room has more than 2 people in it, kick the bot out
         let members = [];
@@ -384,7 +384,7 @@ export class MatrixHandler {
 
         // work out which flow we're dealing with and fork off asap
         // is the invitee the bot?
-        if (this.ircBridge.getAppServiceUserId() === event.state_key) {
+        if (this.ircBridge.appServiceUserId === event.state_key) {
             if (event.content.is_direct && !hasExistingRoom) {
                 // case [3]
                 // This is a PM invite to the bot.
@@ -402,7 +402,7 @@ export class MatrixHandler {
             // cases [1] and [2] : The invitee represents a real IRC user
             const ircUser = await this.ircBridge.matrixToIrcUser(invitee);
             // is the invite from the bot?
-            if (this.ircBridge.getAppServiceUserId() === event.sender) {
+            if (this.ircBridge.appServiceUserId === event.sender) {
                 await this.handleInviteFromBot(req, event, ircUser); // case [2]
             }
             else if (event.content.is_direct) {
@@ -421,7 +421,7 @@ export class MatrixHandler {
         const syncKind = event._injected ? "initial" : "incremental";
         const promises: Promise<unknown>[] = []; // one for each join request
 
-        if (this.ircBridge.getAppServiceUserId() === user.getId()) {
+        if (this.ircBridge.appServiceUserId === user.getId()) {
             // ignore messages from the bot
             return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
@@ -642,7 +642,7 @@ export class MatrixHandler {
         // lists. We know if this event is injected because this flag is set.
         const syncKind = event._injected ? "initial" : "incremental";
 
-        if (this.ircBridge.getAppServiceUserId() === user.getId()) {
+        if (this.ircBridge.appServiceUserId === user.getId()) {
             // ignore messages from the bot
             return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
@@ -753,7 +753,7 @@ export class MatrixHandler {
             );
         }
 
-        if (this.ircBridge.getAppServiceUserId() === event.sender) {
+        if (this.ircBridge.appServiceUserId === event.sender) {
             // ignore messages from the bot
             return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
@@ -1095,7 +1095,7 @@ export class MatrixHandler {
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     private async _onUserQuery(req: BridgeRequest, userId: string) {
-        if (this.ircBridge.getAppServiceUserId() === userId) {
+        if (this.ircBridge.appServiceUserId === userId) {
             return;
         }
         req.log.info("onUserQuery: %s", userId);

@@ -932,7 +932,7 @@ export class IrcHandler {
             req.log.info("Suppressing metadata: not started up.");
             return BridgeRequestErr.ERR_NOT_MAPPED;
         }
-        const botUser = new MatrixUser(this.ircBridge.getAppServiceUserId());
+        const botUser = new MatrixUser(this.ircBridge.appServiceUserId);
 
         if (!client.userId) {
             // Probably the bot
