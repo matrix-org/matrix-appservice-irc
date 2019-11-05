@@ -211,17 +211,7 @@ export class MatrixHandler {
             return;
         }
         req.log.error("This room isn't a 1:1 chat!");
-        // whine that you don't do group chats and leave.
-        const notice = new MatrixAction("notice",
-            "Group chat not supported."
-        );
-        try {
-            await this.ircBridge.sendMatrixAction(mxRoom, invitedUser, notice);
-        }
-        catch (err) {
-            // ignore, we want to leave the room regardless.
-        }
-        await intent.leave(event.room_id);
+        await intent.kick(event.room_id, invitedUser.getId(), "Group chat not supported.");
     }
 
     // === Admin room handling ===
@@ -944,7 +934,7 @@ export class MatrixHandler {
             if (this.ircBridge.getAppServiceUserId() === event.sender) {
                 await this.handleInviteFromBot(req, event, ircUser); // case [2]
             }
-            else if (event.content.is_direct) {
+            else { // We check if this is an invite inside the func.
                 await this.handleInviteFromUser(req, event, ircUser); // case [1]
             }
         }
