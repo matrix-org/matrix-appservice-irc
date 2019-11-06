@@ -38,6 +38,7 @@ This project follows "git flow" semantics. In practice, this means:
    `npm run check`.
  - Create a pull request. If this PR fixes an issue, link to it by referring to its number.
  - PRs from community members must be signed off as per Synapse's [Attribution section](https://github.com/matrix-org/synapse/blob/master/CONTRIBUTING.rst#attribution)
+ - Make a [newsfile for the pull request](https://github.com/matrix-org/synapse/blob/v1.4.0/CONTRIBUTING.rst#changelog)
 
 ## Coding notes
 The IRC bridge is compatible on Node.js v10+. Buildkite is used to ensure that tests will run on
