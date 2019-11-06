@@ -504,6 +504,11 @@ export class IrcHandler {
             server.domain, fromUser, channel, JSON.stringify(action).substring(0, 80)
         );
 
+        if (fromUser.isVirtual) {
+            // Don't echo our topics back.
+            return BridgeRequestErr.ERR_VIRTUAL_USER;
+        }
+
         const ALLOWED_ORIGINS: RoomOrigin[] = ["join", "alias"];
         const topic = action.text;
 
@@ -518,7 +523,7 @@ export class IrcHandler {
                 channel,
                 ALLOWED_ORIGINS
             );
-            return;
+            return BridgeRequestErr.ERR_NOT_MAPPED;
         }
 
         req.log.info(
@@ -538,6 +543,7 @@ export class IrcHandler {
             server.domain + " " + channel + " " + topic,
             {req: req, matrixRooms, topic: topic, matrixUser}
         );
+        return undefined;
     }
 
     /**
