@@ -403,6 +403,7 @@ export class ClientPool {
         }
 
         if (bridgedClient.explicitDisconnect) {
+            log.info(`Dropping ${bridgedClient.id} (${bridgedClient.nick}) because explicitDisconnect is true`);
             // don't reconnect users which explicitly disconnected e.g. client
             // cycling, idle timeouts, leaving rooms, etc.
             return;
@@ -414,21 +415,16 @@ export class ClientPool {
         const cliConfig = bridgedClient.getClientConfig();
         cliConfig.setDesiredNick(bridgedClient.nick);
 
-        if (!bridgedClient.matrixUser) {
-            // no associated matrix user, run away!
-            return;
-        }
-
         const cli = this.createIrcClient(
-            cliConfig, bridgedClient.matrixUser, bridgedClient.isBot
+            cliConfig, bridgedClient.matrixUser || null, bridgedClient.isBot
         );
         const chanList = bridgedClient.chanList;
         // remove ref to the disconnected client so it can be GC'd. If we don't do this,
         // the timeout below holds it in a closure, preventing it from being GC'd.
         (bridgedClient as unknown) = undefined;
 
-        if (chanList.length === 0) {
-            log.info(`Dropping ${cli.id} ${cli.nick} because they are not joined to any channels`);
+        if (chanList.length === 0 && !bridgedClient.isBot) { // Never drop the bot.
+            log.info(`Dropping ${cli.id} (${cli.nick}) because they are not joined to any channels`);
             return;
         }
         const queue = this.getOrCreateReconnectQueue(cli.server);
