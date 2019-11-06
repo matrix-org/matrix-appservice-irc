@@ -59,7 +59,6 @@ export class IrcBridge {
     public readonly publicitySyncer: PublicitySyncer;
     private clientPool: ClientPool;
     private ircServers: IrcServer[] = [];
-    private appServiceUserId: string|null = null;
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
     private activityTracker: MatrixActivityTracker|null = null;
@@ -297,8 +296,8 @@ export class IrcBridge {
         });
     }
 
-    public getAppServiceUserId() {
-        return this.appServiceUserId as string;
+    public get appServiceUserId() {
+        return `@${this.registration.getSenderLocalpart()}:${this.domain}`;
     }
 
     public getStore() {
@@ -422,7 +421,6 @@ export class IrcBridge {
                 "FATAL: Registration file is missing a sender_localpart and/or AS token."
             );
         }
-        this.appServiceUserId = `@${this.registration.getSenderLocalpart()}:${this.domain}`;
 
         log.info("Fetching Matrix rooms that are already joined to...");
         await this.fetchJoinedRooms();
@@ -449,7 +447,7 @@ export class IrcBridge {
             // TODO reduce deps required to make MemberListSyncers.
             // TODO Remove injectJoinFn bodge
             this.memberListSyncers[server.domain] = new MemberListSyncer(
-                this, this.bridge.getBot(), server, this.appServiceUserId as string,
+                this, this.bridge.getBot(), server, this.appServiceUserId,
                 (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
                     const req = new BridgeRequest(
                         this.bridge.getRequestFactory().newRequest()
@@ -763,7 +761,7 @@ export class IrcBridge {
             instances: servers.map((server: IrcServer) => {
                 return {
                     network_id: server.getNetworkId(),
-                    bot_user_id: this.getAppServiceUserId(),
+                    bot_user_id: this.appServiceUserId,
                     desc: server.config.name || server.domain,
                     icon: server.config.icon,
                     fields: {
