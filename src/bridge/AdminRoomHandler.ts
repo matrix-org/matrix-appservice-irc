@@ -138,7 +138,7 @@ export class AdminRoomHandler {
                 await this.handleWhois(req, args, ircServer, adminRoom, event.sender);
                 break;
             case "!storepass":
-                await this.handleStorePass(req, args, ircServer, adminRoom, event.sender);
+                await this.handleStorePass(req, args, ircServer, adminRoom, event.sender, clientList[0]);
                 break;
             case "!removepass":
                 await this.handleRemovePass(ircServer, adminRoom, event.sender);
@@ -406,33 +406,28 @@ export class AdminRoomHandler {
     }
 
     private async handleStorePass(req: BridgeRequest, args: string[], server: IrcServer,
-        room: MatrixRoom, userId: string) {
+        room: MatrixRoom, userId: string, client: BridgedClient) {
         const domain = server.domain;
         let notice;
 
         try {
             // Allow passwords with spaces
             const pass = args.join(' ');
-            const explanation = `When you next reconnect to ${domain}, this password ` +
-                `will be automatically sent in a PASS command which most ` +
-                `IRC networks will use as your NickServ password. This ` +
-                `means you will not need to talk to NickServ. This does ` +
-                `NOT apply to your currently active connection: you still ` +
-                `need to talk to NickServ one last time to authenticate ` +
-                `your current connection if you haven't already.`;
-
             if (pass.length === 0) {
                 notice = new MatrixAction(
                     "notice",
                     "Format: '!storepass password' " +
-                    "or '!storepass irc.server.name password'\n" + explanation
+                    "or '!storepass irc.server.name password'\n"
                 );
             }
             else {
                 await this.ircBridge.getStore().storePass(userId, domain, pass);
                 notice = new MatrixAction(
-                    "notice", `Successfully stored password for ${domain}. ` + explanation
+                    "notice", `Successfully stored password for ${domain}. You will now be reconnected to IRC.`
                 );
+            }
+            if (client) {
+                await client.disconnect("iwantoreconnect", "authenticating", false);
             }
         }
         catch (err) {
