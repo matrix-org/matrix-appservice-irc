@@ -1,3 +1,8 @@
+Changes in 0.13.1 (2019-11-07)
+==============================
+
+* Pin `node-irc` dependency to avoid new changes bleeding into old releases.
+
 Changes in 0.13.0 (2019-09-25)
 ==============================
 
