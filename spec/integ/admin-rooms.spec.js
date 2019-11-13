@@ -1101,7 +1101,7 @@ describe("Admin rooms", function() {
 
         const disconnectPromise = env.ircMock._whenClient(roomMapping.server, userIdNick, "disconnect",
             async (client, reason) => {
-                expect(reason).toEqual("killed");
+                expect(reason).toEqual("authenticating");
         });
 
         await env.mockAppService._trigger("type:m.room.message", {
