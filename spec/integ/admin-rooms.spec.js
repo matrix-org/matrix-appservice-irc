@@ -1093,7 +1093,9 @@ describe("Admin rooms", function() {
         const sendPromise = sdk.sendEvent.and.callFake(async (roomId, _, content) => {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
-            expect(content.body).toEqual("Successfully stored password for irc.example. You will now be reconnected to IRC.");
+            expect(content.body).toEqual(
+                "Successfully stored password for irc.example. You will now be reconnected to IRC."
+            );
             return {};
         });
 
@@ -1121,7 +1123,9 @@ describe("Admin rooms", function() {
         let sendPromise = sdk.sendEvent.and.callFake(async (roomId, _, content) => {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
-            expect(content.body).toEqual("Successfully stored password for irc.example. You will now be reconnected to IRC.");
+            expect(content.body).toEqual(
+                "Successfully stored password for irc.example. You will now be reconnected to IRC."
+            );
             return {};
         });
 
