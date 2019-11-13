@@ -1099,11 +1099,8 @@ describe("Admin rooms", function() {
             return {};
         });
 
-        const disconnectPromise = env.ircMock._whenClient(roomMapping.server, userIdNick, "disconnect",
-            async (client, reason) => {
-                expect(reason).toEqual("authenticating");
-        });
-
+        const disconnectPromise = env.ircMock._whenClient(roomMapping.server, userIdNick, "disconnect", () => { });
+        const connectPromise = env.ircMock._whenClient(roomMapping.server, userIdNick, "connect", () => { });
         await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "!storepass foobar",
@@ -1114,7 +1111,9 @@ describe("Admin rooms", function() {
             type: "m.room.message"
         });
         await sendPromise;
+        // Ensure that the user reconnects
         await disconnectPromise;
+        await connectPromise;
     });
 
     it("should be able to remove a password with !removepass", async function() {
