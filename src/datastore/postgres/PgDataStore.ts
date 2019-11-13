@@ -487,7 +487,7 @@ export class PgDataStore implements DataStore {
     }
 
     public async removePass(userId: string, domain: string): Promise<void> {
-        await this.pgPool.query("UPDATE client_config SET user_password = NULL WHERE user_id = $1 AND domain = $2",
+        await this.pgPool.query("UPDATE client_config SET password = NULL WHERE user_id = $1 AND domain = $2",
         [userId, domain]);
     }
 
