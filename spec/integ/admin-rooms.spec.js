@@ -1087,5 +1087,70 @@ describe("Admin rooms", function() {
         });
     });
 
-    // Bad format unknown set value
+    it("should be able to store a password with !storepass", async function() {
+        const sdk = env.clientMock._client(botUserId);
+
+        const sendPromise = sdk.sendEvent.and.callFake(async (roomId, _, content) => {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).toEqual("Successfully stored password for irc.example. You will now be reconnected to IRC.");
+            return {};
+        });
+
+        const disconnectPromise = env.ircMock._whenClient(roomMapping.server, userIdNick, "disconnect",
+            async (client, reason) => {
+                expect(reason).toEqual("killed");
+        });
+
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!storepass foobar",
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+        await sendPromise;
+        await disconnectPromise;
+    });
+
+    it("should be able to remove a password with !removepass", async function() {
+        const sdk = env.clientMock._client(botUserId);
+
+        let sendPromise = sdk.sendEvent.and.callFake(async (roomId, _, content) => {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).toEqual("Successfully stored password for irc.example. You will now be reconnected to IRC.");
+            return {};
+        });
+
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!storepass foobar",
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        sendPromise = sdk.sendEvent.and.callFake(async (roomId, _, content) => {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).toEqual("Successfully removed password.");
+            return {};
+        });
+
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!removepass",
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+        await sendPromise;
+    });
 });

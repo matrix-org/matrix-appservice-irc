@@ -105,6 +105,7 @@
         "provisioning": {
             "enabled": true,
             "requestTimeoutSeconds": 1
-        }
+        },
+        "passwordEncryptionKeyPath": "./spec/support/passkey.pem"
     }
 }
