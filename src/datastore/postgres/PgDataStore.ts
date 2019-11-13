@@ -487,7 +487,8 @@ export class PgDataStore implements DataStore {
     }
 
     public async removePass(userId: string, domain: string): Promise<void> {
-        await this.pgPool.query("DELETE FROM user_password WHERE user_id = ${user_id} AND domain = ${domain}");
+        await this.pgPool.query("UPDATE client_config SET password = NULL WHERE user_id = $1 AND domain = $2",
+        [userId, domain]);
     }
 
     public async getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined> {
