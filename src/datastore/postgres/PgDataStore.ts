@@ -349,8 +349,8 @@ export class PgDataStore implements DataStore {
     }
 
     public async getIpv6Counter(): Promise<number> {
-        const res = await this.pgPool.query("SELECT counter FROM ipv6_counter");
-        return res ? res.rows[0].counter : 0;
+        const res = await this.pgPool.query("SELECT count FROM ipv6_counter");
+        return res ? res.rows[0].count : 0;
     }
 
     public async setIpv6Counter(counter: number): Promise<void> {
