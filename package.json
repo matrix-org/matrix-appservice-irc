@@ -36,7 +36,7 @@
     "irc": "matrix-org/node-irc#matrix-irc-bridge",
     "js-yaml": "^3.2.7",
     "matrix-appservice-bridge": "^1.11.1",
-    "matrix-lastactive": "^0.0.8",
+    "matrix-lastactive": "^0.1.2",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
     "pg": "^7.12.1",

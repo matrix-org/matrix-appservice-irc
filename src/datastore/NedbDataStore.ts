@@ -598,6 +598,26 @@ export class NeDBDataStore implements DataStore {
         return matrixUsers[0];
     }
 
+    public async updateLastSeenTimeForUser(userId: string) {
+        let user = await this.userStore.getMatrixUser(userId);
+        if (!user) {
+            user = new MatrixUser(userId);
+        }
+        user.set("last_seen_ts", Date.now());
+        await this.userStore.setMatrixUser(user);
+    }
+
+    public async getLastSeenTimeForUsers() {
+        const docs = await this.userStore.select({
+            type: "matrix",
+            "data.last_seen_ts": {$exists: true},
+        });
+        return docs.map((doc: {id: string; data: { last_seen_ts: number }}) => ({
+          user_id: doc.id,
+          ts: doc.data.last_seen_ts,
+        }));
+    }
+
     public async roomUpgradeOnRoomMigrated() {
         // this can no-op, because the matrix-appservice-bridge library will take care of it.
     }
