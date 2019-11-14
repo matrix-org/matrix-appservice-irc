@@ -609,8 +609,8 @@ export class NeDBDataStore implements DataStore {
 
     public async getLastSeenTimeForUsers() {
         const docs = await this.userStore.select({
-            "type": "matrix",
-            "data.last_seen_ts": "$exists",
+            type: "matrix",
+            "data.last_seen_ts": {$exists: true},
         });
         return docs.map((doc: any) => ({
           user_id: doc.id,

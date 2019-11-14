@@ -667,10 +667,9 @@ export class IrcBridge {
 
     private async _onEvent (baseRequest: Request): Promise<BridgeRequestErr|undefined> {
         const event = baseRequest.getData();
+        let updatePromise: Promise<void>|null = null;
         if (event.sender && this.activityTracker) {
-            this.dataStore.updateLastSeenTimeForUser(event.sender).catch((ex) => {
-                log.debug("Could not update last seen time for user: %s", ex);
-            });
+            updatePromise = this.dataStore.updateLastSeenTimeForUser(event.sender);
             this.activityTracker.bumpLastActiveTime(event.sender);
         }
         const request = new BridgeRequest(baseRequest);
@@ -719,6 +718,13 @@ export class IrcBridge {
         }
         else if (event.type === "m.room.power_levels" && event.state_key === "") {
             this.ircHandler.roomAccessSyncer.onMatrixPowerlevelEvent(event);
+        }
+        try {
+            // Await this *after* handling the event.
+            await updatePromise;
+        }
+        catch (ex) {
+            log.debug("Could not update last seen time for user: %s", ex);
         }
         return undefined;
     }
