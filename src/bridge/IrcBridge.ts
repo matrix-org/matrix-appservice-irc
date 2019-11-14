@@ -78,13 +78,14 @@ export class IrcBridge {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
         if (config.ircService.debugApi && config.ircService.debugApi.enabled) {
-            this.activityTracker = new MatrixActivityTracker(
-                this.config.homeserver.url,
-                registration.getAppServiceToken() as string,
-                this.config.homeserver.domain,
-                this.config.homeserver.enablePresence,
-                getLogger("MxActivityTracker"),
-            );
+            this.activityTracker = new MatrixActivityTracker({
+                homeserverUrl: this.config.homeserver.url,
+                accessToken: registration.getAppServiceToken() as string,
+                usePresence: this.config.homeserver.enablePresence,
+                serverName: this.config.homeserver.domain,
+                logger: getLogger("MxActivityTracker"),
+                defaultOnline: true,
+            });
         }
         // Dependency graph
         this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler);
@@ -389,6 +390,14 @@ export class IrcBridge {
         }
 
         await this.dataStore.removeConfigMappings();
+        if (this.activityTracker) {
+            log.info("Restoring last active times from DB");
+            const users = await this.dataStore.getLastSeenTimeForUsers();
+            for (const user of users) {
+                this.activityTracker.setLastActiveTime(user.user_id, user.ts);
+            }
+            log.info(`Restored ${users.length} last active times from DB`);
+        }
         this.identGenerator = new IdentGenerator(this.dataStore);
         this.ipv6Generator = new Ipv6Generator(this.dataStore);
 
@@ -660,7 +669,7 @@ export class IrcBridge {
         const event = baseRequest.getData();
         if (event.sender && this.activityTracker) {
             this.dataStore.updateLastSeenTimeForUser(event.sender).catch((ex) => {
-                log.debug("Could not update last seen time for user:", ex);
+                log.debug("Could not update last seen time for user: %s", ex);
             });
             this.activityTracker.bumpLastActiveTime(event.sender);
         }

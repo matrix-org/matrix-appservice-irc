@@ -517,6 +517,11 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query(statement, [userId, Date.now()]);
     }
 
+    public async getLastSeenTimeForUsers(): Promise<{ user_id: string, ts: number }[]> {
+        const res = await this.pgPool.query(`SELECT * FROM last_seen`);
+        return res.rows;
+    }
+
     public async ensureSchema() {
         log.info("Starting postgres database engine");
         let currentVersion = await this.getSchemaVersion();
