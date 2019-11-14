@@ -659,6 +659,9 @@ export class IrcBridge {
     private async _onEvent (baseRequest: Request): Promise<BridgeRequestErr|undefined> {
         const event = baseRequest.getData();
         if (event.sender && this.activityTracker) {
+            this.dataStore.updateLastSeenTimeForUser(event.sender).catch((ex) => {
+                log.debug("Could not update last seen time for user:", ex);
+            });
             this.activityTracker.bumpLastActiveTime(event.sender);
         }
         const request = new BridgeRequest(baseRequest);

@@ -34,7 +34,7 @@ const log = getLogger("PgDatastore");
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 1;
+    public static readonly LATEST_SCHEMA = 2;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -499,7 +499,7 @@ export class PgDataStore implements DataStore {
         if (res.rowCount === 0) {
             return;
         }
- else if (res.rowCount > 1) {
+        else if (res.rowCount > 1) {
             log.error("getMatrixUserByUsername returned %s results for %s on %s", res.rowCount, username, domain);
         }
         return new MatrixUser(res.rows[0].user_id, res.rows[0].data);
@@ -507,6 +507,14 @@ export class PgDataStore implements DataStore {
 
     public async roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string) {
         await this.pgPool.query("UPDATE rooms SET room_id = $1 WHERE room_id = $2", [newRoomId, oldRoomId]);
+    }
+
+    public async updateLastSeenTimeForUser(userId: string) {
+        const statement = PgDataStore.BuildUpsertStatement("last_seen", "(user_id)", [
+            "user_id",
+            "ts",
+        ]);
+        await this.pgPool.query(statement, [userId, Date.now()]);
     }
 
     public async ensureSchema() {
