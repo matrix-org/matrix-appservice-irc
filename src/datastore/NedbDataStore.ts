@@ -612,9 +612,9 @@ export class NeDBDataStore implements DataStore {
             type: "matrix",
             "data.last_seen_ts": {$exists: true},
         });
-        return docs.map((doc: any) => ({
+        return docs.map((doc: {id: string; data: { last_seen_ts: number }}) => ({
           user_id: doc.id,
-          ts: doc.data.last_seen_ts,  
+          ts: doc.data.last_seen_ts,
         }));
     }
 

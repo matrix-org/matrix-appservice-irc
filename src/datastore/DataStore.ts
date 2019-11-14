@@ -162,7 +162,7 @@ export interface DataStore {
 
     updateLastSeenTimeForUser(userId: string): Promise<void>;
 
-    getLastSeenTimeForUsers(): Promise<{ user_id: string; ts: number }[]>
+    getLastSeenTimeForUsers(): Promise<{ user_id: string; ts: number }[]>;
 
     destroy(): Promise<void>;
 }
