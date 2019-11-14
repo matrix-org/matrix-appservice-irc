@@ -36,10 +36,15 @@ new Cli({
             }
         }
     },
-    generateRegistration: function(reg, callback) {
-        main.generateRegistration(reg, this.getConfig()).done(function(completeRegistration) {
-            callback(completeRegistration);
-        });
+    generateRegistration: async function(reg, callback) {
+        try {
+            const completeReg = await main.generateRegistration(reg, this.getConfig());
+            callback(completeReg);
+        }
+        catch (ex) {
+            log.error("Failed to generate registration:", ex);
+            process.exit(1);
+        }
     },
     run: function(port, config, reg) {
         if (port === -1) {
