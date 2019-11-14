@@ -63,7 +63,7 @@ describe("Connection reaping", function() {
         expect(res.inactiveMs).toBeLessThanOrEqual(50);
     });
 
-    it("users should appear online if they have sent a message", async () => {
+    it("users last active status should be stored in the database", async () => {
         const ts = Date.now();
         await env.mockAppService._trigger("type:foo.notamessage", {
             content: {
