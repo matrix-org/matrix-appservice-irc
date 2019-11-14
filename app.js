@@ -36,9 +36,9 @@ new Cli({
             }
         }
     },
-    generateRegistration: async function(reg, callback) {
+    generateRegistration: function(reg, callback) {
         try {
-            const completeReg = await main.generateRegistration(reg, this.getConfig());
+            const completeReg = main.generateRegistration(reg, this.getConfig());
             callback(completeReg);
         }
         catch (ex) {
