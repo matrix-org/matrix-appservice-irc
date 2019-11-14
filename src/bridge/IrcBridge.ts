@@ -13,7 +13,7 @@ import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
 import stats from "../config/stats";
 import { NeDBDataStore } from "../datastore/NedbDataStore";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
-import { getLogger, logErr } from "../logging";
+import { getLogger } from "../logging";
 import { DebugApi } from "../DebugApi";
 import { MatrixActivityTracker } from "matrix-lastactive";
 import Provisioner from "../provisioning/Provisioner.js";
