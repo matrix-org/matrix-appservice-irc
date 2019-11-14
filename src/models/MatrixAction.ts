@@ -20,6 +20,7 @@ import ircFormatting = require("../irc/formatting");
 const log = require("../logging").get("MatrixAction");
 import { ContentRepo, Intent } from "matrix-appservice-bridge";
 import escapeStringRegexp from "escape-string-regexp";
+import { MatrixClient } from "matrix-bot-sdk";
 
 const ACTION_TYPES = ["message", "emote", "topic", "notice", "file", "image", "video", "audio"];
 const EVENT_TO_TYPE: {[mxKey: string]: string} = {
@@ -94,7 +95,7 @@ export class MatrixAction {
         return (ACTION_TYPE_TO_MSGTYPE as {[key: string]: string|undefined})[this.type];
     }
 
-    public async formatMentions(nickUserIdMap: {[nick: string]: string}, intent: Intent) {
+    public async formatMentions(nickUserIdMap: {[nick: string]: string}, client: MatrixClient) {
         if (!this.text) {
             return;
         }
@@ -133,7 +134,7 @@ export class MatrixAction {
             we need the plain text to match something.*/
             let identifier;
             try {
-                identifier = (await intent.getProfileInfo(userId, 'displayname', true)).displayname || undefined;
+                identifier = ((await client.getUserProfile(userId)) || {}).displayname || undefined;
             }
             catch (e) {
                 // This shouldn't happen, but let's not fail to match if so.

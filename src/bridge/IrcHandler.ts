@@ -141,7 +141,7 @@ export class IrcHandler {
     }
 
     private async ensureMatrixUserJoined(roomId: string, userId: string, virtUserId: string, log: RequestLogger) {
-        const intent = this.ircBridge.getAppServiceBridge().getIntent(virtUserId);
+        const intent = this.ircBridge.getBotSdk().getIntentForUserId(virtUserId).underlyingClient;
         let priv = this.roomIdToPrivateMember[roomId];
         if (!priv) {
             // create a brand new entry for this user. Set them to not joined initially
@@ -155,7 +155,7 @@ export class IrcHandler {
             // query room state to see if the user is actually joined.
             log.info("Querying PM room state (%s) between %s and %s",
                 roomId, userId, virtUserId);
-            priv = (await intent.getStateEvent(roomId, "m.room.member", userId));
+            priv = (await intent.getRoomStateEvent(roomId, "m.room.member", userId));
         }
 
         // we should have the latest membership state now for this user (either we just
@@ -164,7 +164,7 @@ export class IrcHandler {
         if (priv.membership !== "join" && priv.membership !== "invite") { // fix it!
             log.info("Inviting %s to the existing PM room with %s (current membership=%s)",
                 userId, virtUserId, priv.membership);
-            await intent.invite(roomId, userId);
+            await intent.inviteUser(userId, roomId);
             // this should also be echoed back to us via onMatrixMemberEvent but hey,
             // let's do this now as well.
             priv.membership = "invite";
@@ -181,22 +181,17 @@ export class IrcHandler {
      * @return {Promise} which is resolved when the PM room has been created.
      */
     private async createPmRoom (toUserId: string, fromUserId: string, fromUserNick: string, server: IrcServer) {
-        const response = await this.ircBridge.getAppServiceBridge().getIntent(
-            fromUserId
-        ).createRoom({
-            createAsClient: true,
-            options: {
-                name: (fromUserNick + " (PM on " + server.domain + ")"),
-                visibility: "private",
-                preset: "trusted_private_chat",
-                invite: [toUserId],
-                creation_content: {
-                    "m.federate": server.shouldFederatePMs()
-                },
-                is_direct: true,
-            }
+        const roomId = await this.ircBridge.getBotSdk().getIntentForUserId(fromUserId).underlyingClient.createRoom({
+            name: (fromUserNick + " (PM on " + server.domain + ")"),
+            visibility: "private",
+            preset: "trusted_private_chat",
+            invite: [toUserId],
+            creation_content: {
+                "m.federate": server.shouldFederatePMs()
+            },
+            is_direct: true,
         });
-        const pmRoom = new MatrixRoom(response.room_id);
+        const pmRoom = new MatrixRoom(roomId);
         const ircRoom = new IrcRoom(server, fromUserNick);
 
         await this.ircBridge.getStore().setPmRoom(
@@ -383,23 +378,20 @@ export class IrcHandler {
                 });
             }
             const ircRoom = await this.ircBridge.trackChannel(server, channel);
-            const response = await this.ircBridge.getAppServiceBridge().getIntent(
-                virtualMatrixUser.getId()
-            ).createRoom({
-                options: {
-                    room_alias_name: roomAlias.split(":")[0].substring(1), // localpart
-                    name: channel,
-                    visibility: "private",
-                    preset: "public_chat",
-                    creation_content: {
-                        "m.federate": server.shouldFederate()
-                    },
-                    initial_state: initialState,
-                }
+            const roomId = await this.ircBridge.getBotSdk().botClient.createRoom({
+                room_alias_name: roomAlias.split(":")[0].substring(1), // localpart
+                name: channel,
+                visibility: "private",
+                preset: "public_chat",
+                creation_content: {
+                    "m.federate": server.shouldFederate()
+                },
+                initial_state: initialState,
+                invite: [virtualMatrixUser.getId()],
             });
 
             // store the mapping
-            const mxRoom = new MatrixRoom(response.room_id);
+            const mxRoom = new MatrixRoom(roomId);
             await this.ircBridge.getStore().storeRoom(
                 ircRoom, mxRoom, 'join'
             );
@@ -431,10 +423,10 @@ export class IrcHandler {
             req.log.info(
                 "Inviting %s to room %s", ircClient.userId, room.getId()
             );
-            return this.ircBridge.getAppServiceBridge().getIntent(
+            return this.ircBridge.getBotSdk().getIntentForUserId(
                 virtualMatrixUser.getId()
-            ).invite(
-                room.getId(), invitee
+            ).underlyingClient.inviteUser(
+                invitee, room.getId(),
             );
         });
         await Promise.all(invitePromises);
@@ -598,7 +590,7 @@ export class IrcHandler {
         if (mapping) {
             await mxAction.formatMentions(
                 mapping,
-                this.ircBridge.getAppServiceBridge().getIntent()
+                this.ircBridge.getBotSdk().botClient,
             );
         }
 
@@ -670,7 +662,7 @@ export class IrcHandler {
         // get virtual matrix user
         const matrixUser = await this.ircBridge.getMatrixUser(joiningUser);
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, chan);
-        const intent = this.ircBridge.getAppServiceBridge().getIntent(
+        const intent = this.ircBridge.getBotSdk().getIntentForUserId(
             matrixUser.getId()
         );
         const MAX_JOIN_ATTEMPTS = server.getJoinAttempts();
@@ -687,9 +679,9 @@ export class IrcHandler {
                 return [] as Promise<void>[];
             }
             req.log.info("Joining room %s and setting presence to online", room.getId());
-            const joinRetry: (attempts: number) => Promise<void> = (attempts: number) => {
+            const joinRetry: (attempts: number) => Promise<string> = (attempts: number) => {
                 req.log.debug(`Joining room (attempts:${attempts})`);
-                return intent.join(room.getId()).catch((err) => {
+                return intent.joinRoom(room.getId()).catch((err) => {
                     // -1 to never retry, 0 to never give up
                     if (MAX_JOIN_ATTEMPTS !== 0 &&
                         (attempts > MAX_JOIN_ATTEMPTS) ) {
@@ -710,7 +702,7 @@ export class IrcHandler {
             };
             return Promise.all([
                 joinRetry(0),
-                intent.setPresence("online")
+                intent.underlyingClient.setPresenceStatus("online")
             ]).then(() => undefined);
         });
         if (matrixRooms.length === 0) {
@@ -941,19 +933,16 @@ export class IrcHandler {
         const fetchedAdminRoom = await this.ircBridge.getStore().getAdminRoomByUserId(client.userId);
         if (!fetchedAdminRoom) {
             req.log.info("Creating an admin room with %s", client.userId);
-            const response = await this.ircBridge.getAppServiceBridge().getIntent().createRoom({
-                createAsClient: false,
-                options: {
-                    name: `${client.server.getReadableName()} IRC Bridge status`,
-                    topic:  `This room shows any errors or status messages from ` +
-                            `${client.server.domain}, as well as letting you control ` +
-                            "the connection. ",
-                    preset: "trusted_private_chat",
-                    visibility: "private",
-                    invite: [client.userId]
-                }
+            const roomId = await this.ircBridge.getBotSdk().botClient.createRoom({
+                name: `${client.server.getReadableName()} IRC Bridge status`,
+                topic:  `This room shows any errors or status messages from ` +
+                        `${client.server.domain}, as well as letting you control ` +
+                        "the connection. ",
+                preset: "trusted_private_chat",
+                visibility: "private",
+                invite: [client.userId]
             });
-            adminRoom = new MatrixRoom(response.room_id);
+            adminRoom = new MatrixRoom(roomId);
             await this.ircBridge.getStore().storeAdminRoom(adminRoom, client.userId);
             const newRoomMsg = `You've joined a Matrix room which is bridged to the IRC network ` +
                             `'${client.server.domain}', where you ` +
@@ -991,9 +980,9 @@ export class IrcHandler {
     }
 
     private async handleLeaveQueue(item: LeaveQueueItem) {
-        const bridge = this.ircBridge.getAppServiceBridge();
         const retryRooms = [];
         item.attempts = item.attempts || 0;
+        const botClient = this.ircBridge.getBotSdk().botClient;
         for (const room of item.rooms) {
             const roomId = room.getId();
             item.req.log.info(
@@ -1001,14 +990,14 @@ export class IrcHandler {
             );
             try {
                 if (item.shouldKick) {
-                    await bridge.getIntent().kick(
-                        roomId,
+                    await botClient.kickUser(
                         item.userId,
+                        roomId,
                         item.kickReason,
                     );
                 }
                 else {
-                    await bridge.getIntent(item.userId).leave(roomId);
+                    await this.ircBridge.getBotSdk().getIntentForUserId(item.userId).leaveRoom(roomId);
                 }
                 if (item.deop) {
                     try {

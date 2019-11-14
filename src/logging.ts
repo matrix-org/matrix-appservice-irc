@@ -17,6 +17,7 @@ limitations under the License.
 import winston, { TransportInstance, LeveledLogMethod, LoggerInstance } from "winston";
 import "winston-daily-rotate-file";
 import { WriteStream } from "fs";
+import { LogService } from "matrix-bot-sdk";
 
 
 interface FormatterFnOpts {
@@ -162,6 +163,17 @@ export function logErr(logger: LoggerInstance, e: Error) {
     }
 }
 
+function configureBotSdk() {
+    const msgFunc = (msg: any|any[]) => (Array.isArray(msg) ? msg : [msg]).map((m) => m.toString()).join(" ");
+
+    LogService.setLogger({
+        error: (module: string, msg: any[]) => { get(`bot-sdk-${module}`).error(msgFunc(msg)); },
+        warn: (module: string, msg: any[]) => { get(`bot-sdk-${module}`).warn(msgFunc(msg)); },
+        info: (module: string, msg: any[]) => { get(`bot-sdk-${module}`).info(msgFunc(msg)); },
+        debug: (module: string, msg: any[]) => { get(`bot-sdk-${module}`).verbose(msgFunc(msg)); },
+    });
+}
+
 export const getLogger = get;
 
 export default getLogger;
@@ -273,3 +285,5 @@ export function setUncaughtExceptionLogger(exceptionLogger: LoggerInstance) {
         });
     });
 }
+
+configureBotSdk();

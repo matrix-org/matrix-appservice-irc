@@ -38,7 +38,7 @@ import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
 import { MatrixAction } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
-
+import { Appservice } from "matrix-bot-sdk";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -74,6 +74,7 @@ export class IrcBridge {
         matrix_request_seconds: Histogram;
         remote_request_seconds: Histogram;
     }|null = null;
+    private botSdk: Appservice;
     constructor(public readonly config: BridgeConfig, private registration: AppServiceRegistration) {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
@@ -187,6 +188,25 @@ export class IrcBridge {
             ) : null
         );
         this.publicitySyncer = new PublicitySyncer(this);
+
+        this.botSdk = new Appservice({
+            homeserverName: config.homeserver.domain,
+            homeserverUrl: config.homeserver.url,
+            registration: {
+                id: "foo",
+                as_token: registration.getAppServiceToken() as string,
+                hs_token: "foo",
+                sender_localpart: registration.getSenderLocalpart() as string,
+                namespaces: {
+                    users: (registration as any).namespaces.users,
+                    rooms: [],
+                    aliases: [],
+                }
+            },
+            // Unused
+            port: -1,
+            bindAddress: "",
+        })
     }
 
     private initialiseMetrics() {
@@ -306,6 +326,10 @@ export class IrcBridge {
 
     public getAppServiceBridge() {
         return this.bridge;
+    }
+
+    public getBotSdk() {
+        return this.botSdk;
     }
 
     public getClientPool() {
@@ -592,10 +616,10 @@ export class IrcBridge {
     }
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
-        const intent = this.bridge.getIntent(from.userId);
+        const intent = this.botSdk.getIntentForUserId(from.userId);
         if (action.msgType) {
             if (action.htmlText) {
-                await intent.sendMessage(room.getId(), {
+                await intent.sendEvent(room.getId(), {
                     msgtype: action.msgType,
                     body: (
                         action.text || action.htmlText.replace(/(<([^>]+)>)/ig, "") // strip html tags
@@ -605,7 +629,8 @@ export class IrcBridge {
                 });
             }
             else {
-                await intent.sendMessage(room.getId(), {
+                
+                await intent.sendEvent(room.getId(), {
                     msgtype: action.msgType,
                     body: action.text
                 });
@@ -613,20 +638,21 @@ export class IrcBridge {
             return;
         }
         else if (action.type === "topic" && action.text) {
-            await intent.setRoomTopic(room.getId(), action.text);
+            const fallbackIntent = this.bridge.getIntent(from.userId);
+            await fallbackIntent.setRoomTopic(room.getId(), action.text);
             return;
         }
         throw Error("Unknown action: " + action.type);
     }
 
-    public uploadTextFile(fileName: string, plaintext: string) {
-        return this.bridge.getIntent().getClient().uploadContent({
-            stream: new Buffer(plaintext),
-            name: fileName,
-            type: "text/plain; charset=utf-8",
-            rawResponse: false,
-            onlyContentUri: true,
-        });
+    public async uploadTextFile(fileName: string, plaintext: string) {
+        const uri = this.botSdk.botClient.uploadContent(
+            new Buffer(plaintext),
+            "text/plain; charset=utf-8",
+            fileName,
+        );
+        if (!uri) { throw Error("uploadContent returned undefined"); }
+        return uri;
     }
 
     public async getMatrixUser(ircUser: IrcUser) {
@@ -1071,7 +1097,7 @@ export class IrcBridge {
         let gotRooms = false;
         while (!gotRooms) {
             try {
-                const roomIds = await bot.getJoinedRooms();
+                const roomIds = await this.botSdk.botClient.getJoinedRooms();
                 gotRooms = true;
                 this.joinedRoomList = roomIds;
                 log.info(`ASBot is in ${roomIds.length} rooms!`);
