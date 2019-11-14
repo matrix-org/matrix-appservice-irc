@@ -24,6 +24,10 @@ import { IrcServer } from "../irc/IrcServer";
 import { PrometheusMetrics, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
 import { BridgedClient } from "./BridgedClient";
 import { IrcBridge } from "../bridge/IrcBridge";
+import { IdentGenerator } from "./IdentGenerator";
+import { Ipv6Generator } from "./Ipv6Generator";
+import { IrcEventBroker } from "./IrcEventBroker";
+import { DataStore } from "../datastore/DataStore";
 const log = getLogger("ClientPool");
 
 interface ReconnectionItem {
@@ -44,7 +48,10 @@ export class ClientPool {
     };};
     private virtualClientCounts: { [serverDomain: string]: number };
     private reconnectQueues: { [serverDomain: string]: QueuePool<ReconnectionItem> };
-    constructor(private ircBridge: IrcBridge) {
+    private identGenerator: IdentGenerator;
+    private ipv6Generator: Ipv6Generator;
+    private ircEventBroker: IrcEventBroker;
+    constructor(private ircBridge: IrcBridge, private store: DataStore) {
         // The list of bot clients on servers (not specific users)
         this.botClients = { };
 
@@ -58,6 +65,14 @@ export class ClientPool {
         this.virtualClientCounts = { };
 
         this.reconnectQueues = { };
+
+        this.identGenerator = new IdentGenerator(store);
+        this.ipv6Generator = new Ipv6Generator(store);
+        this.ircEventBroker = new IrcEventBroker(
+            this.ircBridge.getAppServiceBridge(),
+            this,
+            this.ircBridge.ircHandler,
+        );
     }
 
     public nickIsVirtual(server: IrcServer, nick: string): boolean {
@@ -119,7 +134,6 @@ export class ClientPool {
         return q;
     }
 
-
     public setBot(server: IrcServer, client: BridgedClient) {
         this.botClients[server.domain] = client;
     }
@@ -128,8 +142,148 @@ export class ClientPool {
         return this.botClients[server.domain];
     }
 
+    public async loginToServer(server: IrcServer): Promise<BridgedClient> {
+        const uname = "matrixirc";
+        let bridgedClient = this.getBridgedClientByNick(server, uname);
+        if (!bridgedClient) {
+            const botIrcConfig = server.createBotIrcClientConfig(uname);
+            bridgedClient = this.createIrcClient(botIrcConfig, null, true);
+            log.debug(
+                "Created new bot client for %s : %s (bot enabled=%s)",
+                server.domain, bridgedClient.id, server.isBotEnabled()
+            );
+        }
+        let chansToJoin: string[] = [];
+        if (server.isBotEnabled()) {
+            if (server.shouldJoinChannelsIfNoUsers()) {
+                chansToJoin = await this.store.getTrackedChannelsForServer(server.domain);
+            }
+            else {
+                chansToJoin = await this.ircBridge.getMemberListSyncer(server).getChannelsToJoin();
+            }
+        }
+        log.info("Bot connecting to %s (%s channels) => %s",
+            server.domain, chansToJoin.length, JSON.stringify(chansToJoin)
+        );
+        try {
+            await bridgedClient.connect();
+        }
+        catch (err) {
+            log.error("Bot failed to connect to %s : %s - Retrying....",
+                server.domain, JSON.stringify(err));
+            return this.loginToServer(server);
+        }
+        this.setBot(server, bridgedClient);
+        let num = 1;
+        chansToJoin.forEach((c: string) => {
+            // join a channel every 500ms. We stagger them like this to
+            // avoid thundering herds
+            setTimeout(() => {
+                if (!bridgedClient) { // For types.
+                    return;
+                }
+                // catch this as if this rejects it will hard-crash
+                // since this is a new stack frame which will bubble
+                // up as an uncaught exception.
+                bridgedClient.joinChannel(c).catch((e) => {
+                    log.error("Failed to join channel:: %s", c);
+                    log.error(e);
+                });
+            }, 500 * num);
+            num += 1;
+        });
+        return bridgedClient;
+    }
+
+    /**
+     * Get a {@link BridgedClient} instance. This will either return a cached instance
+     * for the user, or create a new one.
+     * @param server The IRC server for the IRC client.
+     * @param userId The user_id associated with the connection.
+     * @param displayName Displayname to set on the client.
+     */
+    public async getBridgedClient(server: IrcServer, userId: string, displayName?: string) {
+        let bridgedClient = this.getBridgedClientByUserId(server, userId);
+        if (bridgedClient) {
+            log.debug("Returning cached bridged client %s", userId);
+            return bridgedClient;
+        }
+
+        const mxUser = new MatrixUser(userId);
+        if (displayName) {
+            mxUser.setDisplayName(displayName);
+        }
+
+        // check the database for stored config information for this irc client
+        // including username, custom nick, nickserv password, etc.
+        let ircClientConfig = IrcClientConfig.newConfig(
+            mxUser, server.domain
+        );
+        const storedConfig = await this.store.getIrcClientConfig(userId, server.domain);
+        if (storedConfig) {
+            log.debug("Configuring IRC user from store => " + storedConfig);
+            ircClientConfig = storedConfig;
+        }
+
+        // recheck the cache: We just await'ed to check the client config. We may
+        // be racing with another request to getBridgedClient.
+        bridgedClient = this.getBridgedClientByUserId(server, userId);
+        if (bridgedClient) {
+            log.debug("Returning cached bridged client %s", userId);
+            return bridgedClient;
+        }
+
+        log.debug(
+            "Creating virtual irc user with nick %s for %s (display name %s)",
+            ircClientConfig.getDesiredNick(), userId, displayName
+        );
+        try {
+            bridgedClient = this.createIrcClient(ircClientConfig, mxUser, false);
+            await bridgedClient.connect();
+            if (!storedConfig) {
+                await this.store.storeIrcClientConfig(ircClientConfig);
+            }
+            return bridgedClient;
+        }
+        catch (err) {
+            log.error("Couldn't connect virtual user %s to %s : %s",
+                    ircClientConfig.getDesiredNick(), server.domain, JSON.stringify(err));
+            throw err;
+        }
+    }
+
+    private createBridgedClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean) {
+        const server = this.ircBridge.getServer(ircClientConfig.getDomain());
+        if (server === null) {
+            throw Error(
+                "Cannot create bridged client for unknown server " +
+                ircClientConfig.getDomain()
+            );
+        }
+
+        if (matrixUser) { // Don't bother with the bot user
+            const excluded = server.isExcludedUser(matrixUser.userId);
+            if (excluded) {
+                throw Error("Cannot create bridged client - user is excluded from bridging");
+            }
+        }
+
+        if (!this.identGenerator) {
+            throw Error("No ident generator configured");
+        }
+
+        if (!this.ipv6Generator) {
+            throw Error("No ipv6 generator configured");
+        }
+
+        return new BridgedClient(
+            server, ircClientConfig, matrixUser || undefined, isBot,
+            this.ircEventBroker, this.identGenerator, this.ipv6Generator
+        );
+    }
+
     public createIrcClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean) {
-        const bridgedClient = this.ircBridge.createBridgedClient(
+        const bridgedClient = this.createBridgedClient(
             ircClientConfig, matrixUser, isBot
         );
         const server = bridgedClient.server;
