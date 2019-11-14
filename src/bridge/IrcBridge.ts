@@ -34,6 +34,7 @@ import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
 import { MatrixAction } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
+import { ConnectionWorker, ConnectionWorkerRPC } from "../worker/connWorker";
 
 
 const log = getLogger("IrcBridge");
@@ -67,6 +68,7 @@ export class IrcBridge {
         matrix_request_seconds: Histogram;
         remote_request_seconds: Histogram;
     }|null = null;
+    private connWorker: ConnectionWorker;
     constructor(public readonly config: BridgeConfig, private registration: AppServiceRegistration) {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
@@ -166,6 +168,10 @@ export class IrcBridge {
             this.initialiseMetrics();
         }
         this.publicitySyncer = new PublicitySyncer(this);
+        this.connWorker = new ConnectionWorker();
+        this.connWorker.spawnWorker({
+            config: config,
+        });
     }
 
     private initialiseMetrics() {
@@ -299,41 +305,36 @@ export class IrcBridge {
         return this.config.homeserver.domain;
     }
 
-    public async run(port: number|null) {
-        const dbConfig = this.config.database;
+    public static async createDatastore(config: BridgeConfig, bridge?: Bridge): Promise<DataStore> {
+        const dbConfig = config.database;
         // cli port, then config port, then default port
-        port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
-        const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
-
-        if (this.debugApi) {
-            this.debugApi.run();
-        }
+        const pkeyPath = config.ircService.passwordEncryptionKeyPath;
 
         if (dbConfig.engine === "postgres") {
             log.info("Using PgDataStore for Datastore");
-            const pgDs = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
+            const pgDs = new PgDataStore(config.homeserver.domain, dbConfig.connectionString, pkeyPath);
             await pgDs.ensureSchema();
-            this.dataStore = pgDs;
+            return pgDs;
         }
-        else if (dbConfig.engine === "nedb") {
-            await this.bridge.loadDatabases();
-            if (this.debugApi) {
-                // monkey patch inspect() values to avoid useless NeDB
-                // struct spam on the debug API.
-                this.bridge.getUserStore().inspect = () => "UserStore";
-                this.bridge.getRoomStore().inspect = () => "RoomStore";
-            }
+        else if (dbConfig.engine === "nedb" && bridge) {
+            await bridge.loadDatabases();
             log.info("Using NeDBDataStore for Datastore");
-            this.dataStore = new NeDBDataStore(
-                this.bridge.getUserStore(),
-                this.bridge.getRoomStore(),
-                this.config.homeserver.domain,
+            return new NeDBDataStore(
+                bridge.getUserStore(),
+                bridge.getRoomStore(),
+                config.homeserver.domain,
                 pkeyPath,
             );
         }
         else {
             throw Error("Incorrect database config");
         }
+    }
+
+    public async run(port: number|null) {
+        port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
+
+        this.dataStore = await IrcBridge.createDatastore(this.config);
 
         await this.dataStore.removeConfigMappings();
 
@@ -347,6 +348,13 @@ export class IrcBridge {
                 this.clientPool,
                 this.registration.getAppServiceToken() as string
             );
+            this.debugApi.run();
+            if (this.dataStore instanceof NeDBDataStore) {
+                // monkey patch inspect() values to avoid useless NeDB
+                // struct spam on the debug API.
+                this.bridge.getUserStore().inspect = () => "UserStore";
+                this.bridge.getRoomStore().inspect = () => "RoomStore";
+            }
         }
 
         // maintain a list of IRC servers in-use
