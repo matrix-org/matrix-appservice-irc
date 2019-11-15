@@ -34,7 +34,7 @@ const log = getLogger("PgDatastore");
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 2;
+    public static readonly LATEST_SCHEMA = 3;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -526,6 +526,19 @@ export class PgDataStore implements DataStore {
     public async getAllUserIds() {
         const res = await this.pgPool.query(`SELECT user_id FROM matrix_users`);
         return res.rows.map((u) => u.user_id);
+    }
+
+    public async getRoomVisibility(roomId: string) {
+        const res = await this.pgPool.query(`SELECT visibility FROM room_visibility WHERE room_id = $1`, [roomId]);
+        return (res.rows[0] || {}).visibility ? "public" : "private";
+    }
+
+    public async setRoomVisibility(roomId: string, visibility: "public"|"private") {
+        const statement = PgDataStore.BuildUpsertStatement("room_visibility", "(room_id)", [
+            "room_id",
+            "visibility",
+        ]);
+        await this.pgPool.query(statement, [roomId, visibility === "public"]);
     }
 
     public async ensureSchema() {
