@@ -216,7 +216,8 @@ export class PublicitySyncer {
                     await this.ircBridge.getStore().setRoomVisibility(roomId, correctState);
                     // Update cache
                     this.visibilityMap.roomVisibilities[roomId] = correctState;
-                } catch (ex) {
+                }
+                catch (ex) {
                     log.error(`Failed to setRoomDirectoryVisibility (${ex.message})`);
                 }
             }
