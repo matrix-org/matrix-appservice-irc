@@ -202,8 +202,8 @@ export class PublicitySyncer {
         const cli = this.ircBridge.getAppServiceBridge().getBot().getClient();
 
         // Update rooms to correct visibilities
-        const promises = roomIds.map((roomId) => {
-            const currentState = this.visibilityMap.roomVisibilities[roomId];
+        const promises = roomIds.map(async (roomId) => {
+            const currentState = await this.ircBridge.getStore().getRoomVisibility(roomId);
             const correctState: "private"|"public" = shouldBePrivate(roomId, []) ? 'private' : 'public';
 
             // Use the server network ID of the first mapping
@@ -211,16 +211,15 @@ export class PublicitySyncer {
             const networkId = this.visibilityMap.mappings[roomId][0].split(' ')[0];
 
             if (currentState !== correctState) {
-                return cli.setRoomDirectoryVisibilityAppService(networkId, roomId, correctState).then(
-                    () => {
-                        // Update cache
-                        this.visibilityMap.roomVisibilities[roomId] = correctState;
-                    }
-                ).catch((e: Error) => {
-                    log.error(`Failed to setRoomDirectoryVisibility (${e.message})`);
-                });
+                try {
+                    await cli.setRoomDirectoryVisibilityAppService(networkId, roomId, correctState);
+                    await this.ircBridge.getStore().setRoomVisibility(roomId, correctState);
+                    // Update cache
+                    this.visibilityMap.roomVisibilities[roomId] = correctState;
+                } catch (ex) {
+                    log.error(`Failed to setRoomDirectoryVisibility (${ex.message})`);
+                }
             }
-            return undefined;
         });
 
         return Promise.all(promises);
