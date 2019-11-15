@@ -619,7 +619,8 @@ export class NeDBDataStore implements DataStore {
     }
 
     public async getAllUserIds() {
-        return this.userStore.select({ type: "matrix"}, (e) => e.id);
+        const docs = await this.userStore.select({ type: "matrix" });
+        return docs.map((e: {id: string}) => e.id);
     }
 
     public async roomUpgradeOnRoomMigrated() {
