@@ -1172,7 +1172,7 @@ export class IrcBridge {
     }
 
     public async connectionReap(logCb: (line: string) => void, serverName: string,
-                                maxIdleHours: number, reason = "User is inactive") {
+                                maxIdleHours: number, reason = "User is inactive", dry: boolean = false) {
         if (!this.activityTracker) {
             throw Error("activityTracker is not enabled");
         }
@@ -1181,6 +1181,7 @@ export class IrcBridge {
         }
         const maxIdleTime = maxIdleHours * 60 * 60 * 1000;
         serverName = serverName ? serverName : Object.keys(this.memberListSyncers)[0];
+        log.warn(`Running connection reaper for ${serverName} dryrun=${dry}`);
         const server = this.memberListSyncers[serverName];
         if (!server) {
             throw Error("Server not found");
@@ -1200,20 +1201,23 @@ export class IrcBridge {
         let offlineCount = 0;
         for (const userId of users) {
             const status = await this.activityTracker.isUserOnline(userId, maxIdleTime);
-            if (!status.online) {
-                const clients = this.clientPool.getBridgedClientsForUserId(userId);
-                const quitRes = await this.matrixHandler.quitUser(req, userId, clients, null, reason);
-                if (!quitRes) {
-                    logCb(`Quit ${userId}`);
-                    // To avoid us catching them again for maxIdleHours
-                    this.activityTracker.bumpLastActiveTime(userId);
-                    offlineCount++;
-                }
-                else {
-                    logCb(`Didn't quit ${userId}: ${quitRes}`);
-                }
+            if (status.online) {
+                continue;
             }
+            const clients = this.clientPool.getBridgedClientsForUserId(userId);
+            if (clients.length === 0) {
+                logCb(`${userId} has no active clients`);
+                continue;
+            }
+            const quitRes = dry ? "dry-run" : await this.matrixHandler.quitUser(req, userId, clients, null, reason);
+            if (quitRes !== null) {
+                logCb(`Didn't quit ${userId}: ${quitRes}`);
+                continue;
+            }
+            logCb(`Quit ${userId}`);
+            // To avoid us catching them again for maxIdleHours
+            offlineCount++;
         }
-        logCb(`Quit ${offlineCount} *offline* real users for ${serverName}.`);
+        logCb(`Quit ${offlineCount}/${users.length}`);
     }
 }

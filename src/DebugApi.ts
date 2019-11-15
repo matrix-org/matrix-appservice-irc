@@ -193,8 +193,9 @@ export class DebugApi {
         const server = query["server"] as string;
         const since = parseInt(query["since"] as string);
         const reason = query["reason"] as string;
+        const dry = query["dryrun"] !== undefined && query["dryrun"] !== "false";
         this.ircBridge.connectionReap(
-            msgCb, server, since, reason
+            msgCb, server, since, reason, dry
         ).catch((err: Error) => {
             log.error(err.stack!);
             if (!response.headersSent) {
