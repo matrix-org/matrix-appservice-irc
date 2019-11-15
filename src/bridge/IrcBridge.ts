@@ -1172,7 +1172,7 @@ export class IrcBridge {
     }
 
     public async connectionReap(logCb: (line: string) => void, serverName: string,
-                                maxIdleHours: number, reason = "User is inactive", dry: boolean = false) {
+                                maxIdleHours: number, reason = "User is inactive", dry = false) {
         if (!this.activityTracker) {
             throw Error("activityTracker is not enabled");
         }
