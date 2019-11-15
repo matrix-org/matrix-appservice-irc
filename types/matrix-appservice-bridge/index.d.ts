@@ -133,7 +133,7 @@ declare module 'matrix-appservice-bridge' {
         db: Nedb
         delete (query: any): Promise<void>
         insert (query: any): Promise<void>
-        select (query: any, transformFn?: (item: Entry) => Entry): Promise<any>
+        select (query: any, transformFn?: (item: Entry) => any): Promise<any>
         inspect: () => string;
     }
 
@@ -273,9 +273,14 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class StateLookup {
-            constructor(opts: {})
-            onEvent(event: unknown): void;
-            trackRoom(roomId: string): Promise<void>;
-            getState(roomId: string, type: string): any[];
+        constructor(opts: {})
+        onEvent(event: unknown): void;
+        trackRoom(roomId: string): Promise<void>;
+        getState(roomId: string, type: string): any[];
+    }
+
+    export class MembershipCache {
+        constructor();
+        setMemberEntry(roomId: string, userId: string, membership: "join"): void;
     }
 }

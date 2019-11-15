@@ -618,6 +618,10 @@ export class NeDBDataStore implements DataStore {
         }));
     }
 
+    public async getAllUserIds() {
+        return this.userStore.select({ type: "matrix"}, (e) => e.id);
+    }
+
     public async roomUpgradeOnRoomMigrated() {
         // this can no-op, because the matrix-appservice-bridge library will take care of it.
     }
