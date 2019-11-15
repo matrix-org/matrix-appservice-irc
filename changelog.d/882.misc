@@ -1,0 +1,1 @@
+Store room visibility in the datastore to avoid making wasted HTTP calls
