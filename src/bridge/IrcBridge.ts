@@ -426,7 +426,7 @@ export class IrcBridge {
 
         // run the bridge (needs to be done prior to configure IRC side)
         await this.bridge.run(port, undefined, undefined, this.config.homeserver.bindHostname);
-        
+
         this.addRequestCallbacks();
         if (!this.registration.getSenderLocalpart() ||
                 !this.registration.getAppServiceToken()) {
