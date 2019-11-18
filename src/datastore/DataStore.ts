@@ -160,5 +160,9 @@ export interface DataStore {
 
     roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string): Promise<void>;
 
+    updateLastSeenTimeForUser(userId: string): Promise<void>;
+
+    getLastSeenTimeForUsers(): Promise<{ user_id: string; ts: number }[]>;
+
     destroy(): Promise<void>;
 }

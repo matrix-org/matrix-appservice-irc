@@ -71,13 +71,14 @@ export class IrcBridge {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
         if (config.ircService.debugApi && config.ircService.debugApi.enabled) {
-            this.activityTracker = new MatrixActivityTracker(
-                this.config.homeserver.url,
-                registration.getAppServiceToken() as string,
-                this.config.homeserver.domain,
-                this.config.homeserver.enablePresence,
-                getLogger("MxActivityTracker"),
-            );
+            this.activityTracker = new MatrixActivityTracker({
+                homeserverUrl: this.config.homeserver.url,
+                accessToken: registration.getAppServiceToken() as string,
+                usePresence: this.config.homeserver.enablePresence,
+                serverName: this.config.homeserver.domain,
+                logger: getLogger("MxActivityTracker"),
+                defaultOnline: true,
+            });
         }
         // Dependency graph
         this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler);
@@ -349,6 +350,15 @@ export class IrcBridge {
             );
         }
 
+        if (this.activityTracker) {
+            log.info("Restoring last active times from DB");
+            const users = await this.dataStore.getLastSeenTimeForUsers();
+            for (const user of users) {
+                this.activityTracker.setLastActiveTime(user.user_id, user.ts);
+            }
+            log.info(`Restored ${users.length} last active times from DB`);
+        }
+
         // maintain a list of IRC servers in-use
         const serverDomains = Object.keys(this.config.ircService.servers);
         for (let i = 0; i < serverDomains.length; i++) {
@@ -615,7 +625,9 @@ export class IrcBridge {
 
     private async _onEvent (baseRequest: Request): Promise<BridgeRequestErr|undefined> {
         const event = baseRequest.getData();
+        let updatePromise: Promise<void>|null = null;
         if (event.sender && this.activityTracker) {
+            updatePromise = this.dataStore.updateLastSeenTimeForUser(event.sender);
             this.activityTracker.bumpLastActiveTime(event.sender);
         }
         const request = new BridgeRequest(baseRequest);
@@ -664,6 +676,13 @@ export class IrcBridge {
         }
         else if (event.type === "m.room.power_levels" && event.state_key === "") {
             this.ircHandler.roomAccessSyncer.onMatrixPowerlevelEvent(event);
+        }
+        try {
+            // Await this *after* handling the event.
+            await updatePromise;
+        }
+        catch (ex) {
+            log.debug("Could not update last seen time for user: %s", ex);
         }
         return undefined;
     }
@@ -1010,7 +1029,7 @@ export class IrcBridge {
     }
 
     public async connectionReap(logCb: (line: string) => void, serverName: string,
-                                maxIdleHours: number, reason = "User is inactive") {
+                                maxIdleHours: number, reason = "User is inactive", dry = false) {
         if (!this.activityTracker) {
             throw Error("activityTracker is not enabled");
         }
@@ -1019,6 +1038,7 @@ export class IrcBridge {
         }
         const maxIdleTime = maxIdleHours * 60 * 60 * 1000;
         serverName = serverName ? serverName : Object.keys(this.memberListSyncers)[0];
+        log.warn(`Running connection reaper for ${serverName} dryrun=${dry}`);
         const server = this.memberListSyncers[serverName];
         if (!server) {
             throw Error("Server not found");
@@ -1038,20 +1058,23 @@ export class IrcBridge {
         let offlineCount = 0;
         for (const userId of users) {
             const status = await this.activityTracker.isUserOnline(userId, maxIdleTime);
-            if (!status.online) {
-                const clients = this.clientPool.getBridgedClientsForUserId(userId);
-                const quitRes = await this.matrixHandler.quitUser(req, userId, clients, null, reason);
-                if (!quitRes) {
-                    logCb(`Quit ${userId}`);
-                    // To avoid us catching them again for maxIdleHours
-                    this.activityTracker.bumpLastActiveTime(userId);
-                    offlineCount++;
-                }
-                else {
-                    logCb(`Didn't quit ${userId}: ${quitRes}`);
-                }
+            if (status.online) {
+                continue;
             }
+            const clients = this.clientPool.getBridgedClientsForUserId(userId);
+            if (clients.length === 0) {
+                logCb(`${userId} has no active clients`);
+                continue;
+            }
+            const quitRes = dry ? "dry-run" : await this.matrixHandler.quitUser(req, userId, clients, null, reason);
+            if (quitRes !== null) {
+                logCb(`Didn't quit ${userId}: ${quitRes}`);
+                continue;
+            }
+            logCb(`Quit ${userId}`);
+            // To avoid us catching them again for maxIdleHours
+            offlineCount++;
         }
-        logCb(`Quit ${offlineCount} *offline* real users for ${serverName}.`);
+        logCb(`Quit ${offlineCount}/${users.length}`);
     }
 }
