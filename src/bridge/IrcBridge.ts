@@ -53,7 +53,7 @@ export class IrcBridge {
     public readonly matrixHandler: MatrixHandler;
     public readonly ircHandler: IrcHandler;
     public readonly publicitySyncer: PublicitySyncer;
-    private clientPool!: ClientPool; // This gets defined in run
+    private clientPool!: ClientPool; // This gets defined in the `run` function
     private ircServers: IrcServer[] = [];
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
