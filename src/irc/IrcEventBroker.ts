@@ -83,7 +83,7 @@ limitations under the License.
  */
 import { IrcAction } from "../models/IrcAction";
 import { IrcUser } from "../models/IrcUser";
-import { BridgeRequest } from "../models/BridgeRequest";
+import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
 import { ProcessedDict } from "../util/ProcessedDict";
 import { getLogger } from "../logging";
 import { Bridge } from "matrix-appservice-bridge";
@@ -91,13 +91,11 @@ import { ClientPool } from "./ClientPool";
 import { LoggerInstance } from "winston";
 import { BridgedClient } from "./BridgedClient";
 import { IrcMessage, ConnectionInstance } from "./ConnectionInstance";
+import { IrcHandler } from "../bridge/IrcHandler";
 
 const log = getLogger("IrcEventBroker");
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type IrcHandler = any;
-
-function complete(req: BridgeRequest, promise: Promise<void>) {
+function complete(req: BridgeRequest, promise: Promise<BridgeRequestErr|void>) {
     return promise.then(function(res) {
         req.resolve(res);
     }, function(err) {
