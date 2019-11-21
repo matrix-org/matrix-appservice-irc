@@ -164,5 +164,7 @@ export interface DataStore {
 
     getLastSeenTimeForUsers(): Promise<{ user_id: string; ts: number }[]>;
 
+    getAllUserIds(): Promise<string[]>;
+
     destroy(): Promise<void>;
 }

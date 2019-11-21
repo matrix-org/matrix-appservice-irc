@@ -33,6 +33,7 @@ import {
     Entry,
     Request,
     PrometheusMetrics,
+    MembershipCache,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -74,6 +75,7 @@ export class IrcBridge {
         matrix_request_seconds: Histogram;
         remote_request_seconds: Histogram;
     }|null = null;
+    private membershipCache: MembershipCache;
     constructor(public readonly config: BridgeConfig, private registration: AppServiceRegistration) {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
@@ -118,7 +120,7 @@ export class IrcBridge {
                 userStore: `${dirPath}/users.db`,
             };
         }
-
+        this.membershipCache = new MembershipCache();
         this.bridge = new Bridge({
             registration: this.registration,
             homeserverUrl: this.config.homeserver.url,
@@ -165,7 +167,8 @@ export class IrcBridge {
                 migrateGhosts: false,
                 onRoomMigrated: this.onRoomUpgrade.bind(this),
                 migrateEntry: this.roomUpgradeMigrateEntry.bind(this),
-            }
+            },
+            membershipCache: this.membershipCache,
         });
 
         // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
@@ -423,6 +426,7 @@ export class IrcBridge {
 
         // run the bridge (needs to be done prior to configure IRC side)
         await this.bridge.run(port, undefined, undefined, this.config.homeserver.bindHostname);
+
         this.addRequestCallbacks();
         if (!this.registration.getSenderLocalpart() ||
                 !this.registration.getAppServiceToken()) {
@@ -431,10 +435,21 @@ export class IrcBridge {
             );
         }
 
+        // Storing all the users we know about to avoid calling /register on them.
+        const allUsers = await this.dataStore.getAllUserIds();
+        const bot = this.bridge.getBot();
+        allUsers.filter((u) => bot.isRemoteUser(u))
+            .forEach((u) => this.membershipCache.setMemberEntry("", u, "join"));
+
+
         log.info("Fetching Matrix rooms that are already joined to...");
         await this.fetchJoinedRooms();
 
-        // start things going
+        for (const roomId of this.joinedRoomList) {
+            console.log(roomId, this.appServiceUserId);
+            this.membershipCache.setMemberEntry(roomId, this.appServiceUserId, "join");
+        }
+
         log.info("Joining mapped Matrix rooms...");
         await this.joinMappedMatrixRooms();
         log.info("Syncing relevant membership lists...");

@@ -447,7 +447,7 @@ export class PgDataStore implements DataStore {
             return null;
         }
         const row = res.rows[0];
-        return new MatrixUser(row.user_id, row.data);
+        return new MatrixUser(row.user_id, JSON.parse(row.data));
     }
 
     public async getUserFeatures(userId: string): Promise<UserFeatures> {
@@ -521,6 +521,11 @@ export class PgDataStore implements DataStore {
     public async getLastSeenTimeForUsers(): Promise<{ user_id: string, ts: number }[]> {
         const res = await this.pgPool.query(`SELECT * FROM last_seen`);
         return res.rows;
+    }
+
+    public async getAllUserIds() {
+        const res = await this.pgPool.query(`SELECT user_id FROM matrix_users`);
+        return res.rows.map((u) => u.user_id);
     }
 
     public async ensureSchema() {
