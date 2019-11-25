@@ -602,13 +602,15 @@ export class IrcBridge {
     }
 
     public uploadTextFile(fileName: string, plaintext: string) {
-        return this.bridge.getIntent().getClient().uploadContent({
-            stream: new Buffer(plaintext),
-            name: fileName,
-            type: "text/plain; charset=utf-8",
-            rawResponse: false,
-            onlyContentUri: true,
-        });
+        return this.bridge.getIntent().getClient().uploadContent(
+            new Buffer(plaintext),
+            {
+                name: fileName,
+                type: "text/plain; charset=utf-8",
+                rawResponse: false,
+                onlyContentUri: true,
+            },
+        );
     }
 
     public async getMatrixUser(ircUser: IrcUser) {
