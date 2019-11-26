@@ -227,12 +227,11 @@ declare module 'matrix-appservice-bridge' {
         };
         deleteAlias(alias: string): Promise<void>;
         roomState(roomId: string): Promise<any[]>;
-        uploadContent(opts: {
-            stream: Buffer
+        uploadContent(file: Buffer, opts: {
             name: string,
             type: string,
-            rawResponse: false,
-            onlyContentUri: true,
+            rawResponse: boolean,
+            onlyContentUri: boolean,
         }): Promise<string>;
     }
 
