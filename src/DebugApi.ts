@@ -26,6 +26,7 @@ import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
 import { BridgedClient } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
+import { getBridgeVersion } from "./util/PackageInfo";
 
 const log = getLogger("DebugApi");
 
