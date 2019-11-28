@@ -61,7 +61,7 @@ new Cli({
                 await main.killBridge(await bridge);
             }
             catch (ex) {
-                log.info("Failed to killBridge, exiting anyway");
+                log.error("Failed to killBridge:", ex);
                 process.exit(1);
             }
             process.exit(0);
