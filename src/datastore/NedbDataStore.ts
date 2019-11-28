@@ -623,6 +623,31 @@ export class NeDBDataStore implements DataStore {
         return docs.map((e: {id: string}) => e.id);
     }
 
+    public async getRoomVisibility(roomId: string) {
+        const room = await this.roomStore.getMatrixRoom(roomId);
+        if (!room) {
+            return "private";
+        }
+        return room.get("visibility") as "public"|"private";
+    }
+
+    public async getRoomsVisibility(roomIds: string[]) {
+        const map: {[roomId: string]: "public"|"private"} = {};
+        for (const roomId of roomIds) {
+            map[roomId] = await this.getRoomVisibility(roomId);
+        }
+        return map;
+    }
+
+    public async setRoomVisibility(roomId: string, visibility: "public"|"private") {
+        let room = await this.roomStore.getMatrixRoom(roomId);
+        if (!room) {
+            room = new MatrixRoom(roomId);
+        }
+        room.set("visibility", visibility);
+        await this.roomStore.setMatrixRoom(room);
+    }
+
     public async roomUpgradeOnRoomMigrated() {
         // this can no-op, because the matrix-appservice-bridge library will take care of it.
     }
