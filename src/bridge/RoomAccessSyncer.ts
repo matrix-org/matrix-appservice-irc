@@ -334,6 +334,8 @@ export class RoomAccessSyncer {
                     // only from the beginning.
                     enabled = server.getJoinRule() === "invite";
                     return this.setMatrixRoomAsInviteOnly(room, enabled);
+                case "s":
+                    break; // Handled above.
                 default:
                     // Not reachable, but warn anyway in case of future additions
                     req.log.warn(`onMode: Unhandled channel mode ${mode}`);

@@ -630,6 +630,15 @@ export class NeDBDataStore implements DataStore {
         }
         return room.get("visibility") as "public"|"private";
     }
+
+    public async getRoomsVisibility(roomIds: string[]) {
+        const map: {[roomId: string]: "public"|"private"} = {};
+        for (const roomId of roomIds) {
+            map[roomId] = await this.getRoomVisibility(roomId);
+        }
+        return map;
+    }
+
     public async setRoomVisibility(roomId: string, visibility: "public"|"private") {
         let room = await this.roomStore.getMatrixRoom(roomId);
         if (!room) {

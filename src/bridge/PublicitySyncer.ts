@@ -200,10 +200,19 @@ export class PublicitySyncer {
         }
 
         const cli = this.ircBridge.getAppServiceBridge().getBot().getClient();
-
         // Update rooms to correct visibilities
+        let currentStates: {[roomId: string]: string} = {};
+
+        // Assume private by default
+        roomIds.forEach((r) => currentStates[r] = "private"); 
+
+        currentStates = {
+            ...currentStates,
+            ...await this.ircBridge.getStore().getRoomsVisibility(roomIds),
+        };
+         
         const promises = roomIds.map(async (roomId) => {
-            const currentState = await this.ircBridge.getStore().getRoomVisibility(roomId);
+            const currentState = currentStates[roomId];
             const correctState: "private"|"public" = shouldBePrivate(roomId, []) ? 'private' : 'public';
 
             // Use the server network ID of the first mapping

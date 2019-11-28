@@ -528,9 +528,14 @@ export class PgDataStore implements DataStore {
         return res.rows.map((u) => u.user_id);
     }
 
-    public async getRoomVisibility(roomId: string) {
-        const res = await this.pgPool.query(`SELECT visibility FROM room_visibility WHERE room_id = $1`, [roomId]);
-        return (res.rows[0] || {}).visibility ? "public" : "private";
+    public async getRoomsVisibility(roomIds: string[]) {
+        const map: {[roomId: string]: "public"|"private"} = {};
+        const list = `('${roomIds.join("','")}')`;
+        const res = await this.pgPool.query(`SELECT room_id, visibility FROM room_visibility WHERE room_id IN ${list}`);
+        for (const row of res.rows) {
+            map[row.room_id] = row.visibility ? "public" : "private";
+        }
+        return map;
     }
 
     public async setRoomVisibility(roomId: string, visibility: "public"|"private") {
@@ -539,6 +544,7 @@ export class PgDataStore implements DataStore {
             "visibility",
         ]);
         await this.pgPool.query(statement, [roomId, visibility === "public"]);
+        log.info(`setRoomVisibility ${roomId} => ${visibility}`);
     }
 
     public async ensureSchema() {
