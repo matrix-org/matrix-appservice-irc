@@ -625,6 +625,8 @@ export class IrcBridge {
             // user does not exist. Fall through.
         }
 
+        log.info(`${userLocalpart} does not exist in the store yet, setting a profile`);
+
         const userIntent = this.bridge.getIntentFromLocalpart(userLocalpart);
         await userIntent.setDisplayName(displayName); // will also register this user
         matrixUser = new MatrixUser(userIntent.getClient().credentials.userId);
