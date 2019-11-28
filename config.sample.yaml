@@ -484,7 +484,6 @@ sentry:
   # Optional. A tag to specify the server name. Not set by default
   # serverName: ""
 
-
 # Use an external database to store bridge state.
 database:
   # database engine (must be 'postgres' or 'nedb'). Default: nedb

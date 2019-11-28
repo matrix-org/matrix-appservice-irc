@@ -51,13 +51,13 @@ export class BridgeRequest {
                 if (reqData.room_id) {
                     scope.setTag("room_id", reqData.room_id);
                 }
-                
+
                 if (reqData.type) {
                     scope.setTag("type", reqData.type);
                 }
-                
+
                 if (reqData.isFromIrc !== undefined) {
-                    scope.setTag("room_id", reqData.isFromIrc ? "irc" : "matrix");
+                    scope.setTag("from", reqData.isFromIrc ? "irc" : "matrix");
                 }
 
                 scope.setTag("state", state);

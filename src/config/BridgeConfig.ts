@@ -55,7 +55,7 @@ export interface BridgeConfig {
         dsn: string;
         environment?: string;
         serverName?: string;
-    }
+    };
     advanced: {
         maxHttpSockets: number;
     };
