@@ -1,1 +1,1 @@
-Store room visibility in the datastore to avoid making wasted HTTP calls
+Room directory visibility state for bridged rooms is now cached in the database
