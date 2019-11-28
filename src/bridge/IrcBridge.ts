@@ -523,6 +523,7 @@ export class IrcBridge {
             logMessage(req, "FAILED");
             stats.request(isFromIrc, "fail", req.getDuration());
             this.logMetric(req, "fail");
+            BridgeRequest.HandleExceptionForSentry(req, "failed");
         });
         // DELAYED
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
@@ -536,6 +537,7 @@ export class IrcBridge {
             const isFromIrc = Boolean((req.getData() || {}).isFromIrc);
             stats.request(isFromIrc, "fail", req.getDuration());
             this.logMetric(req, "fail");
+            BridgeRequest.HandleExceptionForSentry(req, "dead");
         }, DEAD_TIME_MS);
     }
 

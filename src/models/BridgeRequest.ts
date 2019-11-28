@@ -17,6 +17,8 @@ limitations under the License.
 import { getLogger, newRequestLogger, RequestLogger } from "../logging";
 import { Request } from "matrix-appservice-bridge";
 import { LoggerInstance } from "winston";
+import * as Sentry from "@sentry/node";
+
 const log = getLogger("req");
 
 export class BridgeRequest {
@@ -36,6 +38,32 @@ export class BridgeRequest {
 
     reject(err?: unknown) {
         this.req.reject(err);
+    }
+
+    public static HandleExceptionForSentry(req: Request, state: "failed"|"dead") {
+        const reqData = req.getData() || {};
+        req.getPromise().catch((ex: Error) => {
+            Sentry.withScope((scope) => {
+                if (reqData.event_id) {
+                    scope.setExtra("event_id", reqData.event_id);
+                }
+
+                if (reqData.room_id) {
+                    scope.setTag("room_id", reqData.room_id);
+                }
+                
+                if (reqData.type) {
+                    scope.setTag("type", reqData.type);
+                }
+                
+                if (reqData.isFromIrc !== undefined) {
+                    scope.setTag("room_id", reqData.isFromIrc ? "irc" : "matrix");
+                }
+
+                scope.setTag("state", state);
+                Sentry.captureException(ex);
+            });
+        });
     }
 }
 
