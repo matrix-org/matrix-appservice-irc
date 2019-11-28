@@ -316,7 +316,7 @@ export class IrcBridge {
             this.dataStore = pgDs;
         }
         else if (dbConfig.engine === "nedb") {
-            await this.bridge.loadDatabases();   
+            await this.bridge.loadDatabases();
             log.info("Using NeDBDataStore for Datastore");
             this.dataStore = new NeDBDataStore(
                 this.bridge.getUserStore(),

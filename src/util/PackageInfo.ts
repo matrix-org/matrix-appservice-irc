@@ -1,8 +1,9 @@
+
 let BridgeVersion: string;
 
-const nodePackage = require("../../package.json");
-
 try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const nodePackage = require("../../package.json");
     BridgeVersion = nodePackage.version;
 }
 catch (err) { BridgeVersion = "unknown" }
