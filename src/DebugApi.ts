@@ -86,6 +86,11 @@ export class DebugApi {
         else if (req.method === "GET" && path === "/inspectUsers") {
             this.inspectUsers(query["regex"] as string, response);
             return;
+        } else if (req.method === "GET" && path === "/version") {
+            response.writeHead(200, {"Content-Type": "text/plain"});
+            response.write(getBridgeVersion());
+            response.end();
+            return;
         }
 
         // Looks like /irc/$domain/user/$user_id
