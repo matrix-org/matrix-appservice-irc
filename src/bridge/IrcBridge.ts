@@ -309,10 +309,6 @@ export class IrcBridge {
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
 
-        if (this.debugApi) {
-            this.debugApi.run();
-        }
-
         if (dbConfig.engine === "postgres") {
             log.info("Using PgDataStore for Datastore");
             const pgDs = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
@@ -321,12 +317,6 @@ export class IrcBridge {
         }
         else if (dbConfig.engine === "nedb") {
             await this.bridge.loadDatabases();
-            if (this.debugApi) {
-                // monkey patch inspect() values to avoid useless NeDB
-                // struct spam on the debug API.
-                this.bridge.getUserStore().inspect = () => "UserStore";
-                this.bridge.getRoomStore().inspect = () => "RoomStore";
-            }
             log.info("Using NeDBDataStore for Datastore");
             this.dataStore = new NeDBDataStore(
                 this.bridge.getUserStore(),
@@ -351,6 +341,13 @@ export class IrcBridge {
                 this.clientPool,
                 this.registration.getAppServiceToken() as string
             );
+            if (this.dataStore instanceof NeDBDataStore) {
+                // monkey patch inspect() values to avoid useless NeDB
+                // struct spam on the debug API.
+                this.bridge.getUserStore().inspect = () => "UserStore";
+                this.bridge.getRoomStore().inspect = () => "RoomStore";
+            }
+            this.debugApi.run();
         }
 
         if (this.activityTracker) {

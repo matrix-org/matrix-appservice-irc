@@ -26,6 +26,7 @@ import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
 import { BridgedClient } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
+import { getBridgeVersion } from "./util/PackageInfo";
 
 const log = getLogger("DebugApi");
 
@@ -84,6 +85,11 @@ export class DebugApi {
         }
         else if (req.method === "GET" && path === "/inspectUsers") {
             this.inspectUsers(query["regex"] as string, response);
+            return;
+        } else if (req.method === "GET" && path === "/version") {
+            response.writeHead(200, {"Content-Type": "text/plain"});
+            response.write(getBridgeVersion());
+            response.end();
             return;
         }
 

@@ -42,6 +42,7 @@
     "pg": "^7.12.1",
     "quick-lru": "^4.0.1",
     "request": "^2.54.0",
+    "request-promise-native": "^1.0.8",
     "sanitize-html": "^1.6.1",
     "winston": "^2.4.2",
     "winston-daily-rotate-file": "^3.2.1"
