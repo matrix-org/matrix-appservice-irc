@@ -52,7 +52,7 @@ new Cli({
         }
         main.runBridge(port, config, reg).catch(function(err) {
             log.error("Failed to run bridge.");
-            throw err;
+            process.exit(1);
         });
     }
 }).run();

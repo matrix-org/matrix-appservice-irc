@@ -76,6 +76,6 @@ describe("Connection reaping", function() {
         });
         const users = await env.ircBridge.getStore().getLastSeenTimeForUsers();
         expect(users[0].user_id).toBe("@flibble:wibble");
-        expect(users[0].ts).toBeGreaterThan(ts);
+        expect(users[0].ts).toBeGreaterThanOrEqual(ts);
     });
 });
