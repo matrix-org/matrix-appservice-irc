@@ -475,6 +475,16 @@ advanced:
   # enough for the vast majority of use cases.
   maxHttpSockets: 1000
 
+# Capture information to a sentry.io instance
+sentry:
+  enabled: false
+  dsn: "https://<key>@sentry.io/<project>"
+  # Optional. A tag to specify the production environment. Not set by default
+  # environment: ""
+  # Optional. A tag to specify the server name. Not set by default
+  # serverName: ""
+
+
 # Use an external database to store bridge state.
 database:
   # database engine (must be 'postgres' or 'nedb'). Default: nedb
