@@ -50,9 +50,21 @@ new Cli({
         if (port === -1) {
             port = null;
         }
-        main.runBridge(port, config, reg).catch(function(err) {
+        const bridge = main.runBridge(port, config, reg).catch(function(err) {
             log.error("Failed to run bridge.");
             process.exit(1);
+        });
+
+        process.on("SIGTERM", async () => {
+            log.info("SIGTERM recieved, killing bridge");
+            try {
+                await main.killBridge(await bridge);
+            }
+            catch (ex) {
+                log.error("Failed to killBridge:", ex);
+                process.exit(1);
+            }
+            process.exit(0);
         });
     }
 }).run();
