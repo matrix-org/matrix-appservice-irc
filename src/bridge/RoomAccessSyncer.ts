@@ -319,7 +319,7 @@ export class RoomAccessSyncer {
             this.ircBridge.getStore().setModeForRoom(room.getId(), mode, enabled)
         ));
 
-        const promises = matrixRooms.map((room) => {
+        const promises = matrixRooms.map(async (room) => {
             switch (mode) {
                 case "k":
                 case "i":
@@ -328,18 +328,20 @@ export class RoomAccessSyncer {
                         room.getId()
                     );
                     if (enabled) {
-                        return this.setMatrixRoomAsInviteOnly(room, true);
+                        await this.setMatrixRoomAsInviteOnly(room, true);
                     }
-                    // don't "unlock"; the room may have been invite
-                    // only from the beginning.
-                    enabled = server.getJoinRule() === "invite";
-                    return this.setMatrixRoomAsInviteOnly(room, enabled);
+                    else {
+                        // don't "unlock"; the room may have been invite
+                        // only from the beginning.
+                        enabled = server.getJoinRule() === "invite";
+                        await this.setMatrixRoomAsInviteOnly(room, enabled);
+                    }
+                    break;
                 case "s":
                     break; // Handled above.
                 default:
                     // Not reachable, but warn anyway in case of future additions
                     req.log.warn(`onMode: Unhandled channel mode ${mode}`);
-                    return Promise.resolve();
             }
         });
 

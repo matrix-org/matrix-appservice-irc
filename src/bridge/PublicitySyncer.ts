@@ -204,13 +204,13 @@ export class PublicitySyncer {
         let currentStates: {[roomId: string]: string} = {};
 
         // Assume private by default
-        roomIds.forEach((r) => currentStates[r] = "private"); 
+        roomIds.forEach((r) => { currentStates[r] = "private" });
 
         currentStates = {
             ...currentStates,
             ...await this.ircBridge.getStore().getRoomsVisibility(roomIds),
         };
-         
+
         const promises = roomIds.map(async (roomId) => {
             const currentState = currentStates[roomId];
             const correctState: "private"|"public" = shouldBePrivate(roomId, []) ? 'private' : 'public';
