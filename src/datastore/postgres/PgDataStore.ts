@@ -447,7 +447,7 @@ export class PgDataStore implements DataStore {
             return null;
         }
         const row = res.rows[0];
-        return new MatrixUser(row.user_id, JSON.parse(row.data));
+        return new MatrixUser(row.user_id, row.data);
     }
 
     public async getUserFeatures(userId: string): Promise<UserFeatures> {
