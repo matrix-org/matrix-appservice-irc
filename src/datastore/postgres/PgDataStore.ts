@@ -32,7 +32,7 @@ const log = getLogger("PgDatastore");
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 1;
+    public static readonly LATEST_SCHEMA = 3;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -347,8 +347,8 @@ export class PgDataStore implements DataStore {
     }
 
     public async getIpv6Counter(): Promise<number> {
-        const res = await this.pgPool.query("SELECT counter FROM ipv6_counter");
-        return res ? res.rows[0].counter : 0;
+        const res = await this.pgPool.query("SELECT count FROM ipv6_counter");
+        return res ? res.rows[0].count : 0;
     }
 
     public async setIpv6Counter(counter: number): Promise<void> {
@@ -485,7 +485,8 @@ export class PgDataStore implements DataStore {
     }
 
     public async removePass(userId: string, domain: string): Promise<void> {
-        await this.pgPool.query("DELETE FROM user_password WHERE user_id = ${user_id} AND domain = ${domain}");
+        await this.pgPool.query("UPDATE client_config SET password = NULL WHERE user_id = $1 AND domain = $2",
+        [userId, domain]);
     }
 
     public async getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined> {
@@ -497,7 +498,7 @@ export class PgDataStore implements DataStore {
         if (res.rowCount === 0) {
             return;
         }
- else if (res.rowCount > 1) {
+        else if (res.rowCount > 1) {
             log.error("getMatrixUserByUsername returned %s results for %s on %s", res.rowCount, username, domain);
         }
         return new MatrixUser(res.rows[0].user_id, res.rows[0].data);
@@ -505,6 +506,43 @@ export class PgDataStore implements DataStore {
 
     public async roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string) {
         await this.pgPool.query("UPDATE rooms SET room_id = $1 WHERE room_id = $2", [newRoomId, oldRoomId]);
+    }
+
+    public async updateLastSeenTimeForUser(userId: string) {
+        const statement = PgDataStore.BuildUpsertStatement("last_seen", "(user_id)", [
+            "user_id",
+            "ts",
+        ]);
+        await this.pgPool.query(statement, [userId, Date.now()]);
+    }
+
+    public async getLastSeenTimeForUsers(): Promise<{ user_id: string, ts: number }[]> {
+        const res = await this.pgPool.query(`SELECT * FROM last_seen`);
+        return res.rows;
+    }
+
+    public async getAllUserIds() {
+        const res = await this.pgPool.query(`SELECT user_id FROM matrix_users`);
+        return res.rows.map((u) => u.user_id);
+    }
+
+    public async getRoomsVisibility(roomIds: string[]) {
+        const map: {[roomId: string]: "public"|"private"} = {};
+        const list = `('${roomIds.join("','")}')`;
+        const res = await this.pgPool.query(`SELECT room_id, visibility FROM room_visibility WHERE room_id IN ${list}`);
+        for (const row of res.rows) {
+            map[row.room_id] = row.visibility ? "public" : "private";
+        }
+        return map;
+    }
+
+    public async setRoomVisibility(roomId: string, visibility: "public"|"private") {
+        const statement = PgDataStore.BuildUpsertStatement("room_visibility", "(room_id)", [
+            "room_id",
+            "visibility",
+        ]);
+        await this.pgPool.query(statement, [roomId, visibility === "public"]);
+        log.info(`setRoomVisibility ${roomId} => ${visibility}`);
     }
 
     public async ensureSchema() {

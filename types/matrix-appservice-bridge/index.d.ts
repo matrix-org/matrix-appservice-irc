@@ -135,7 +135,7 @@ declare module 'matrix-appservice-bridge' {
         db: Nedb
         delete (query: any): Promise<void>
         insert (query: any): Promise<void>
-        select (query: any, transformFn?: (item: Entry) => Entry): Promise<any>
+        select (query: any, transformFn?: (item: Entry) => any): Promise<any>
         inspect: () => string;
     }
 
@@ -230,12 +230,11 @@ declare module 'matrix-appservice-bridge' {
         };
         deleteAlias(alias: string): Promise<void>;
         roomState(roomId: string): Promise<any[]>;
-        uploadContent(opts: {
-            stream: Buffer
+        uploadContent(file: Buffer, opts: {
             name: string,
             type: string,
-            rawResponse: false,
-            onlyContentUri: true,
+            rawResponse: boolean,
+            onlyContentUri: boolean,
         }): Promise<string>;
         joinRoom(roomIdOrAlias: string): Promise<unknown>;
         leave(roomId: string): Promise<void>;
@@ -289,5 +288,10 @@ declare module 'matrix-appservice-bridge' {
         onEvent(event: unknown): void;
         trackRoom(roomId: string): Promise<void>;
         getState(roomId: string, type: string): any[];
+    }
+
+    export class MembershipCache {
+        constructor();
+        setMemberEntry(roomId: string, userId: string, membership: "join"): void;
     }
 }

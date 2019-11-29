@@ -155,14 +155,7 @@ export class IrcHandler {
             // query room state to see if the user is actually joined.
             log.info("Querying PM room state (%s) between %s and %s",
                 roomId, userId, virtUserId);
-            const stateEvents = await intent.roomState(roomId);
-            for (let i = 0; i < stateEvents.length; i++) {
-                if (stateEvents[i].type === "m.room.member" &&
-                        stateEvents[i].state_key === userId) {
-                    priv.membership = stateEvents[i].content.membership;
-                    break;
-                }
-            }
+            priv = (await intent.getStateEvent(roomId, "m.room.member", userId));
         }
 
         // we should have the latest membership state now for this user (either we just
@@ -504,6 +497,11 @@ export class IrcHandler {
             server.domain, fromUser, channel, JSON.stringify(action).substring(0, 80)
         );
 
+        if (fromUser.isVirtual) {
+            // Don't echo our topics back.
+            return BridgeRequestErr.ERR_VIRTUAL_USER;
+        }
+
         const ALLOWED_ORIGINS: RoomOrigin[] = ["join", "alias"];
         const topic = action.text;
 
@@ -518,7 +516,7 @@ export class IrcHandler {
                 channel,
                 ALLOWED_ORIGINS
             );
-            return;
+            return BridgeRequestErr.ERR_NOT_MAPPED;
         }
 
         req.log.info(
@@ -538,6 +536,7 @@ export class IrcHandler {
             server.domain + " " + channel + " " + topic,
             {req: req, matrixRooms, topic: topic, matrixUser}
         );
+        return undefined;
     }
 
     /**
@@ -932,7 +931,7 @@ export class IrcHandler {
             req.log.info("Suppressing metadata: not started up.");
             return BridgeRequestErr.ERR_NOT_MAPPED;
         }
-        const botUser = new MatrixUser(this.ircBridge.getAppServiceUserId());
+        const botUser = new MatrixUser(this.ircBridge.appServiceUserId);
 
         if (!client.userId) {
             // Probably the bot

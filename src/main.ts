@@ -31,9 +31,8 @@ const _toServer = (domain: string, serverConfig: any, homeserverDomain: string) 
     );
 };
 
-export async function generateRegistration(reg: AppServiceRegistration, config: BridgeConfig) {
+export function generateRegistration(reg: AppServiceRegistration, config: BridgeConfig) {
     let asToken;
-
 
     if (!reg.getSenderLocalpart()) {
         reg.setSenderLocalpart(IrcBridge.DEFAULT_LOCALPART);

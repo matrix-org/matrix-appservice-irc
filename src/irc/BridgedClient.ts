@@ -284,8 +284,8 @@ export class BridgedClient extends EventEmitter {
         this.log.info("Rejoined channels");
     }
 
-    public disconnect(reason: InstanceDisconnectReason, textReason?: string) {
-        this._explicitDisconnect = true;
+    public disconnect(reason: InstanceDisconnectReason, textReason?: string, explicit = true) {
+        this._explicitDisconnect = explicit;
         if (!this.inst || this.inst.dead) {
             return Promise.resolve();
         }

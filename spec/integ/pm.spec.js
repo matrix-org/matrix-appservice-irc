@@ -68,41 +68,17 @@ describe("Matrix-to-IRC PMing", function() {
             });
         });
 
-        let roomStatePromise = new Promise((resolve, reject) => {
-            sdk.roomState.and.callFake(function(roomId) {
-                expect(roomId).toEqual(roomMapping.roomId);
-                resolve();
-                return Promise.resolve([
-                    {
-                        content: {membership: "join"},
-                        user_id: tIrcUserId,
-                        state_key: tIrcUserId,
-                        room_id: roomMapping.roomId,
-                        type: "m.room.member"
-                    },
-                    {
-                        content: {membership: "join"},
-                        user_id: tUserId,
-                        state_key: tUserId,
-                        room_id: roomMapping.roomId,
-                        type: "m.room.member"
-                    }
-                ]);
-            });
-        });
-
         yield joinRoomPromise;
-        yield roomStatePromise;
         yield requestPromise;
     }));
 
     it("should join group chat rooms invited from matrix then leave them",
     test.coroutine(function*() {
+        const expectedReason = "Group chat not supported.";
         // get the ball rolling
-        let requestPromise = env.mockAppService._trigger("type:m.room.member", {
+        const requestPromise = env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
-                is_direct: true,
             },
             state_key: tIrcUserId,
             user_id: tUserId,
@@ -122,14 +98,14 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it tries to register, join the room and get state, accept them
-        let sdk = env.clientMock._client(tIrcUserId);
+        const sdk = env.clientMock._client(tIrcUserId);
         sdk._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId
         });
 
         // when it tries to join, accept it
-        let joinRoomPromise = new Promise((resolve, reject) => {
+        const joinRoomPromise = new Promise((resolve) => {
             sdk.joinRoom.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
@@ -137,61 +113,21 @@ describe("Matrix-to-IRC PMing", function() {
             });
         });
 
-        // see if it sends a message (to say it doesn't do group chat)
-        let sendMessagePromise = new Promise((resolve, reject) => {
-            sdk.sendEvent.and.callFake(function(roomId, type, content) {
-                expect(roomId).toEqual(roomMapping.roomId);
-                expect(type).toEqual("m.room.message");
-                resolve();
-                return Promise.resolve({});
-            });
-        });
-
         // when it tries to leave, accept it
-        let leaveRoomPromise = new Promise((resolve, reject) => {
-            sdk.leave.and.callFake(function(roomId) {
+        const kickPromise = new Promise((resolve) => {
+            sdk.kick.and.callFake(function(roomId, userId, reason) {
                 expect(roomId).toEqual(roomMapping.roomId);
+                expect(userId).toEqual(tIrcUserId);
+                expect(reason).toEqual(expectedReason);
                 resolve();
                 return Promise.resolve({});
             });
         });
 
-        let roomStatePromise = new Promise((resolve, reject) => {
-            sdk.roomState.and.callFake(function(roomId) {
-                expect(roomId).toEqual(roomMapping.roomId);
-                resolve();
-                return Promise.resolve([
-                {
-                    content: {membership: "join"},
-                    user_id: tIrcUserId,
-                    state_key: tIrcUserId,
-                    room_id: roomMapping.roomId,
-                    type: "m.room.member"
-                },
-                {
-                    content: {membership: "join"},
-                    user_id: tUserId,
-                    state_key: tUserId,
-                    room_id: roomMapping.roomId,
-                    type: "m.room.member"
-                },
-                // Group chat, so >2 users!
-                {
-                    content: {membership: "join"},
-                    user_id: "@someone:else",
-                    state_key: "@someone:else",
-                    room_id: roomMapping.roomId,
-                    type: "m.room.member"
-                }
-                ]);
-            });
-        });
 
         // wait on things to happen
         yield joinRoomPromise;
-        yield roomStatePromise;
-        yield sendMessagePromise;
-        yield leaveRoomPromise;
+        yield kickPromise;
         yield requestPromise;
     }));
 });
