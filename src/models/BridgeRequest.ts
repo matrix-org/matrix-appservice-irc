@@ -40,7 +40,7 @@ export class BridgeRequest {
         this.req.reject(err);
     }
 
-    public static HandleExceptionForSentry(req: Request, state: "failed"|"dead") {
+    public static HandleExceptionForSentry(req: Request, state: "fail"|"dead") {
         const reqData = req.getData() || {};
         req.getPromise().catch((ex: Error) => {
             Sentry.withScope((scope) => {
