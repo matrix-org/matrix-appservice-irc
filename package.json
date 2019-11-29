@@ -43,7 +43,8 @@
     "request-promise-native": "^1.0.8",
     "sanitize-html": "^1.6.1",
     "winston": "^2.4.2",
-    "winston-daily-rotate-file": "^3.2.1"
+    "winston-daily-rotate-file": "^3.2.1",
+    "@sentry/node": "^5.9.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.2",

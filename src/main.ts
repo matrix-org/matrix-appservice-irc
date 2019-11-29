@@ -12,6 +12,8 @@ import * as logging from "./logging";
 import { LoggerInstance } from "winston";
 import { BridgeConfig } from "./config/BridgeConfig";
 import { AppServiceRegistration } from "matrix-appservice";
+import * as Sentry from "@sentry/node";
+import { getBridgeVersion } from "./util/PackageInfo";
 
 const log = logging.get("main");
 
@@ -66,6 +68,19 @@ export function generateRegistration(reg: AppServiceRegistration, config: Bridge
 }
 
 export async function runBridge(port: number, config: BridgeConfig, reg: AppServiceRegistration, isDBInMemory = false) {
+    if (config.sentry && config.sentry.dsn) {
+        log.info("Sentry ENABLED");
+        Sentry.init({
+            dsn: config.sentry.dsn,
+            release: getBridgeVersion(),
+            environment: config.sentry.environment,
+            serverName: config.sentry.serverName,
+        });
+        Sentry.configureScope((scope) => {
+            const firstNetwork = Object.keys(config.ircService.servers)[0];
+            scope.setTag("irc_network", firstNetwork);
+        });
+    }
     // configure global stuff for the process
     if (config.ircService.logging) {
         logging.configure(config.ircService.logging);
@@ -106,6 +121,7 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
     }
 
     await ircBridge.run(port);
+    Sentry.captureMessage("Bridge has started", Sentry.Severity.Info);
     return ircBridge;
 }
 

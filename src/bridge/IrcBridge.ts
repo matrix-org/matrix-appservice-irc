@@ -396,7 +396,6 @@ export class IrcBridge {
         await this.fetchJoinedRooms();
 
         for (const roomId of this.joinedRoomList) {
-            console.log(roomId, this.appServiceUserId);
             this.membershipCache.setMemberEntry(roomId, this.appServiceUserId, "join");
         }
 
@@ -479,7 +478,7 @@ export class IrcBridge {
             isFromIrc ? "remote_request_seconds" : "matrix_request_seconds"
         ];
         if (timer) {
-            timer.observe({outcome: outcome}, req.getDuration() / 1000);
+            timer.observe({outcome}, req.getDuration() / 1000);
         }
     }
 
@@ -518,6 +517,7 @@ export class IrcBridge {
             logMessage(req, "FAILED");
             stats.request(isFromIrc, "fail", req.getDuration());
             this.logMetric(req, "fail");
+            BridgeRequest.HandleExceptionForSentry(req, "fail");
         });
         // DELAYED
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
@@ -529,8 +529,9 @@ export class IrcBridge {
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
             logMessage(req, "DEAD");
             const isFromIrc = Boolean((req.getData() || {}).isFromIrc);
-            stats.request(isFromIrc, "fail", req.getDuration());
-            this.logMetric(req, "fail");
+            stats.request(isFromIrc, "dead", req.getDuration());
+            this.logMetric(req, "dead");
+            BridgeRequest.HandleExceptionForSentry(req, "dead");
         }, DEAD_TIME_MS);
     }
 
