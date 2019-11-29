@@ -539,7 +539,7 @@ export class ClientPool {
         }
     }
 
-    private onClientDisconnected(bridgedClient: BridgedClient): void {
+    private async onClientDisconnected(bridgedClient: BridgedClient) {
         this.removeBridgedClient(bridgedClient);
         this.sendConnectionMetric(bridgedClient.server);
 
@@ -566,7 +566,15 @@ export class ClientPool {
         // change the client config to use the current nick rather than the desired nick. This
         // makes sure that the client attempts to reconnect with the *SAME* nick, and also draws
         // from the latest !nick change, as the client config here may be very very old.
-        const cliConfig = bridgedClient.getClientConfig();
+        let cliConfig = bridgedClient.getClientConfig();
+        if (bridgedClient.userId) {
+            // We may have changed something between connections, so use the new config.
+            let newConfig = await this.store.getIrcClientConfig(bridgedClient.userId, bridgedClient.server.domain);
+            if (newConfig) {
+                cliConfig = newConfig;
+            }
+        }
+
         cliConfig.setDesiredNick(bridgedClient.nick);
 
         const cli = this.createIrcClient(
