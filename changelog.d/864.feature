@@ -1,1 +1,0 @@
-When !storepass is called, reconnect the user to ensure the password is set.
