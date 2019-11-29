@@ -569,7 +569,7 @@ export class ClientPool {
         let cliConfig = bridgedClient.getClientConfig();
         if (bridgedClient.userId) {
             // We may have changed something between connections, so use the new config.
-            let newConfig = await this.store.getIrcClientConfig(bridgedClient.userId, bridgedClient.server.domain);
+            const newConfig = await this.store.getIrcClientConfig(bridgedClient.userId, bridgedClient.server.domain);
             if (newConfig) {
                 cliConfig = newConfig;
             }
