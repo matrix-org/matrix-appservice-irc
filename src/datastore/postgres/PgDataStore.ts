@@ -16,8 +16,6 @@ limitations under the License.
 
 import { Pool } from "pg";
 
-// eslint-disable-next-line @typescript-eslint/no-duplicate-imports
-
 import { MatrixUser, MatrixRoom, RemoteRoom, Entry } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
 import { IrcRoom } from "../../models/IrcRoom";
