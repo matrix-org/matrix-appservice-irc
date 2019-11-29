@@ -16,7 +16,7 @@ import { PgDataStore } from "../datastore/postgres/PgDataStore";
 import { getLogger } from "../logging";
 import { DebugApi } from "../DebugApi";
 import { MatrixActivityTracker } from "matrix-lastactive";
-import Provisioner from "../provisioning/Provisioner.js";
+import { Provisioner } from "../provisioning/Provisioner.js";
 import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
 import { AppServiceRegistration } from "matrix-appservice";
@@ -42,11 +42,6 @@ const DEFAULT_PORT = 8090;
 const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type Provisioner = any;
-/* eslint-enable @typescript-eslint/no-explicit-any */
-
 
 export class IrcBridge {
     public static readonly DEFAULT_LOCALPART = "appservice-irc";
@@ -295,8 +290,8 @@ export class IrcBridge {
         return this.clientPool;
     }
 
-    public getProvisioner() {
-        return this.provisioner;
+    public getProvisioner(): Provisioner {
+        return this.provisioner as Provisioner;
     }
 
     public get domain() {
@@ -1002,8 +997,7 @@ export class IrcBridge {
         const asBot = this.bridge.getBot();
         const stateEvents = await asBot.getClient().roomState(oldRoomId);
         //TODO:  _getRoomInfo is a private func and should be replaced.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const roomInfo = (asBot as any)._getRoomInfo(oldRoomId, {
+        const roomInfo = asBot._getRoomInfo(oldRoomId, {
             state: {
                 events: stateEvents
             }

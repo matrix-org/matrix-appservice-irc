@@ -26,6 +26,7 @@ import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
 import { BridgedClient } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
+import { ProvisionRequest } from "./provisioning/ProvisionRequest";
 import { getBridgeVersion } from "./util/PackageInfo";
 
 const log = getLogger("DebugApi");
@@ -384,8 +385,8 @@ export class DebugApi {
         // The provisioner will only drop clients who are not in other rooms.
         // It will also leave the MatrixBot.
         try {
-            await this.ircBridge.getProvisioner()._leaveIfUnprovisioned(
-                { log: log },
+            await this.ircBridge.getProvisioner().leaveIfUnprovisioned(
+                ProvisionRequest.createFake("killPortal", log),
                 roomId,
                 server,
                 channel
