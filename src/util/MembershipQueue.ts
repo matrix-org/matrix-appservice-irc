@@ -87,7 +87,7 @@ export class MembershipQueue {
         }
         catch (ex) {
             if (!this.shouldRetry(ex, attempts)) {
-                return;
+                throw ex;
             }
             const delay = Math.min(
                 (JOIN_DELAY_MS * attempts) + (Math.random() * 500),
@@ -100,9 +100,18 @@ export class MembershipQueue {
         }
     }
 
-    private shouldRetry(ex: {errcode: string; message: string}, attempts: number): boolean {
+    private shouldRetry(ex: {code: string; errcode: string, httpStatus: number}, attempts: number): boolean {
         if (attempts === ATTEMPTS_LIMIT) {
             return false;
+        }
+        if (ex.code === "ECONNREFUSED") {
+            return true;
+        }
+        if (ex.errcode === "M_FORBIDDEN" || ex.httpStatus === 403) {
+            return false;
+        }
+        if (ex.errcode === "M_LIMIT_EXCEEDED" || ex.errcode === "M_UNKNOWN") {
+            return true;
         }
         return true;
     }
