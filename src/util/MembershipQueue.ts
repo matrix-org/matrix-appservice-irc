@@ -82,7 +82,7 @@ export class MembershipQueue {
                 await intent.join(roomId);
             }
             else {
-                await intent.kick(roomId, userId, reason);
+                await intent[kickUser ? "kick" : "leave"](roomId, userId, reason);
             }
         }
         catch (ex) {
@@ -101,18 +101,10 @@ export class MembershipQueue {
     }
 
     private shouldRetry(ex: {code: string; errcode: string; httpStatus: number}, attempts: number): boolean {
-        if (attempts === ATTEMPTS_LIMIT) {
-            return false;
-        }
-        if (ex.code === "ECONNREFUSED") {
-            return true;
-        }
-        if (ex.errcode === "M_FORBIDDEN" || ex.httpStatus === 403) {
-            return false;
-        }
-        if (ex.errcode === "M_LIMIT_EXCEEDED" || ex.errcode === "M_UNKNOWN") {
-            return true;
-        }
-        return true;
+        return !(
+            attempts === ATTEMPTS_LIMIT ||
+            ex.errcode === "M_FORBIDDEN" ||
+            ex.httpStatus === 403
+        );
     }
 }
