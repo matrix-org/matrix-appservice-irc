@@ -6,9 +6,6 @@ import QuickLRU from "quick-lru";
 
 const log = getLogger("MembershipQueue");
 
-/**
- * This class processes membership changes in a queue.
- */
 
 const CONCURRENT_ROOM_LIMIT = 8;
 const ATTEMPTS_LIMIT = 10;
@@ -27,8 +24,10 @@ interface QueueUserItem {
     req: BridgeRequest;
 }
 
+/**
+ * This class processes membership changes for rooms in a linearized queue.
+ */
 export class MembershipQueue {
-    private roomIdIndexes: QuickLRU<string, number> = new QuickLRU({ maxSize: ROOM_QUEUE_CACHE_SIZE });
     private queuePool: QueuePool<QueueUserItem>;
 
     constructor(private bridge: Bridge) {
@@ -61,9 +60,7 @@ export class MembershipQueue {
     }
 
     public async queueMembership(item: QueueUserItem) {
-        const queueNumber = this.roomIdIndexes.get(item.roomId) || Math.ceil(Math.random() * CONCURRENT_ROOM_LIMIT -1);
-        this.roomIdIndexes.set(item.roomId, queueNumber);
-        log.debug(`${item.roomId} is assigned to ${queueNumber}`);
+        const queueNumber = this.hashRoomId(item.roomId);
         try {
             return await this.queuePool.enqueue("", item, queueNumber);
         }
@@ -71,6 +68,10 @@ export class MembershipQueue {
             log.error(`Failed to handle membership: ${ex}`);
             throw ex;
         }
+    }
+
+    private hashRoomId(roomId: string) {
+        return Array.from(roomId).map((s) => s.charCodeAt(0)).reduce((a, b) => a + b, 0) % CONCURRENT_ROOM_LIMIT;
     }
 
     private async serviceQueue(item: QueueUserItem): Promise<void> {
