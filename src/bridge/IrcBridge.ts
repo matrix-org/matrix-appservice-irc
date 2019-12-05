@@ -79,7 +79,6 @@ export class IrcBridge {
         }
         // Dependency graph
         this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler);
-        this.ircHandler = new IrcHandler(this, this.config.ircHandler);
         if (!this.config.database && this.config.ircService.databaseUri) {
             log.warn("ircService.databaseUri is a deprecated config option." +
                      "Please use the database configuration block");
@@ -157,6 +156,7 @@ export class IrcBridge {
             },
             membershipCache: this.membershipCache,
         });
+        this.ircHandler = new IrcHandler(this, this.config.ircHandler);
 
         // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
         MatrixUser.ESCAPE_DEFAULT = false;
