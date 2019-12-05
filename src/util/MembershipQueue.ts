@@ -100,7 +100,7 @@ export class MembershipQueue {
         }
     }
 
-    private shouldRetry(ex: {code: string; errcode: string, httpStatus: number}, attempts: number): boolean {
+    private shouldRetry(ex: {code: string; errcode: string; httpStatus: number}, attempts: number): boolean {
         if (attempts === ATTEMPTS_LIMIT) {
             return false;
         }
