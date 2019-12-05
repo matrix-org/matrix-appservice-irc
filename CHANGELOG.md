@@ -1,4 +1,13 @@
- 0.14.0-rc1 (2019-11-29)
+ 0.14.0-rc2 (2019-12-05)
+========================
+
+Internal Changes
+----------------
+
+- Ensure that joins and leaves are performed linearly per-room. ([\#905](https://github.com/matrix-org/matrix-appservice-irc/issues/905))
+
+
+0.14.0-rc1 (2019-11-29)
 ========================
 
 Features
