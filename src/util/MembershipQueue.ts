@@ -29,9 +29,11 @@ interface QueueUserItem {
 
 export class MembershipQueue {
     private roomIdIndexes: QuickLRU<string, number> = new QuickLRU({ maxSize: ROOM_QUEUE_CACHE_SIZE });
-    private queuePool: QueuePool<QueueUserItem> = new QueuePool(CONCURRENT_ROOM_LIMIT, this.serviceQueue.bind(this));
+    private queuePool: QueuePool<QueueUserItem>;
 
-    constructor(private bridge: Bridge) { }
+    constructor(private bridge: Bridge) {
+        this.queuePool = new QueuePool(CONCURRENT_ROOM_LIMIT, this.serviceQueue.bind(this));
+    }
 
     public async join(roomId: string, userId: string, req: BridgeRequest, retry = true) {
         return this.queueMembership({
@@ -44,7 +46,8 @@ export class MembershipQueue {
         });
     }
 
-    public async leave(roomId: string, userId: string, req: BridgeRequest, retry = true, reason?: string, kickUser?: string) {
+    public async leave(roomId: string, userId: string, req: BridgeRequest,
+                       retry = true, reason?: string, kickUser?: string) {
         return this.queueMembership({
             roomId,
             userId,
@@ -63,7 +66,8 @@ export class MembershipQueue {
         log.debug(`${item.roomId} is assigned to ${queueNumber}`);
         try {
             return await this.queuePool.enqueue("", item, queueNumber);
-        } catch (ex) {
+        }
+        catch (ex) {
             log.error(`Failed to handle membership: ${ex}`);
             throw ex;
         }
@@ -76,10 +80,12 @@ export class MembershipQueue {
         try {
             if (item.type === "join") {
                 await intent.join(roomId);
-            } else {
+            }
+            else {
                 await intent.kick(roomId, userId, reason);
             }
-        } catch (ex) {
+        }
+        catch (ex) {
             if (!this.shouldRetry(ex, attempts)) {
                 return;
             }
@@ -94,7 +100,7 @@ export class MembershipQueue {
         }
     }
 
-    private shouldRetry(ex: {errcode: string, message: string}, attempts: number): boolean {
+    private shouldRetry(ex: {errcode: string; message: string}, attempts: number): boolean {
         if (attempts === ATTEMPTS_LIMIT) {
             return false;
         }

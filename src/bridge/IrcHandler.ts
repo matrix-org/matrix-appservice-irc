@@ -2,7 +2,6 @@ import { IrcBridge } from "./IrcBridge";
 import { QuitDebouncer } from "./QuitDebouncer";
 import { Queue } from "../util/Queue";
 import { RoomAccessSyncer } from "./RoomAccessSyncer";
-import { QueuePool } from "../util/QueuePool";
 import { IrcServer, MembershipSyncKind } from "../irc/IrcServer";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
 import { BridgedClient } from "../irc/BridgedClient";
@@ -15,7 +14,6 @@ import { MatrixAction } from "../models/MatrixAction";
 import { RequestLogger } from "../logging";
 import { RoomOrigin } from "../datastore/DataStore";
 import QuickLRU from "quick-lru";
-import Bluebird from "bluebird";
 import { MembershipQueue } from "../util/MembershipQueue";
 
 const NICK_USERID_CACHE_MAX = 512;
@@ -662,6 +660,7 @@ export class IrcHandler {
             stats.membership(true, "join");
         }
         await Promise.all(promises);
+        return undefined;
     }
 
     public async onKick (req: BridgeRequest, server: IrcServer, kicker: IrcUser,
@@ -711,9 +710,10 @@ export class IrcHandler {
             if (!bridgedIrcClient || bridgedIrcClient.isBot || !bridgedIrcClient.userId) {
                 return; // unexpected given isVirtual == true, but meh, bail.
             }
-            await Promise.all(matrixRooms.map((room) => 
+            const userId = bridgedIrcClient.userId;
+            await Promise.all(matrixRooms.map((room) =>
                 this.membershipQueue.leave(
-                    room.getId(), bridgedIrcClient.userId!, req, true,
+                    room.getId(), userId, req, true,
                     `${kicker.nick} has kicked this user from ${chan} (${reason})`, this.ircBridge.appServiceUserId)
             ));
         }
@@ -809,7 +809,7 @@ export class IrcHandler {
         req.log.info("Mapped nick %s to %s", nick, userId);
         const promise = await Promise.all(matrixRooms.map(async (room) => {
             await this.membershipQueue.leave(
-                room.getId(), userId!, req, true, "Client PARTed from channel", 
+                room.getId(), userId, req, true, "Client PARTed from channel",
                 leavingUser.isVirtual ? this.ircBridge.appServiceUserId : undefined);
             try {
                 await this.roomAccessSyncer.removePowerLevels(room.getId(), [userId]);
