@@ -2,16 +2,12 @@ import { Bridge } from "matrix-appservice-bridge";
 import { BridgeRequest } from "../models/BridgeRequest";
 import getLogger from "../logging";
 import { QueuePool } from "./QueuePool";
-import QuickLRU from "quick-lru";
-
 const log = getLogger("MembershipQueue");
-
 
 const CONCURRENT_ROOM_LIMIT = 8;
 const ATTEMPTS_LIMIT = 10;
 const JOIN_DELAY_MS = 250;
 const JOIN_DELAY_CAP_MS = 30 * 60 * 1000; // 30 mins
-const ROOM_QUEUE_CACHE_SIZE = 500;
 
 interface QueueUserItem {
     type: "join"|"leave";
