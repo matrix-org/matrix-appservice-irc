@@ -56,9 +56,8 @@ export class MembershipQueue {
     }
 
     public async queueMembership(item: QueueUserItem) {
-        const queueNumber = this.hashRoomId(item.roomId);
         try {
-            return await this.queuePool.enqueue("", item, queueNumber);
+            return await this.queuePool.enqueue("", item, this.hashRoomId(item.roomId));
         }
         catch (ex) {
             log.error(`Failed to handle membership: ${ex}`);
