@@ -16,14 +16,9 @@ import { RequestLogger } from "../logging";
 import { RoomOrigin } from "../datastore/DataStore";
 import QuickLRU from "quick-lru";
 import Bluebird from "bluebird";
+import { MembershipQueue } from "../util/MembershipQueue";
 
-const JOIN_DELAY_MS = 250;
-const JOIN_DELAY_CAP_MS = 30 * 60 * 1000; // 30 mins
 const NICK_USERID_CACHE_MAX = 512;
-const LEAVE_CONCURRENCY = 10;
-const LEAVE_DELAY_MS = 3000;
-const LEAVE_DELAY_JITTER = 5000;
-const LEAVE_MAX_ATTEMPTS = 10;
 
 type MatrixMembership = "join"|"invite"|"leave"|"ban";
 
@@ -39,18 +34,6 @@ interface TopicQueueItem {
     req: BridgeRequest;
     topic: string;
     matrixRooms: MatrixRoom[];
-}
-
-interface LeaveQueueItem {
-    id: string;
-    retry: boolean;
-    deop?: boolean;
-    kickReason?: string;
-    shouldKick: boolean;
-    userId: string;
-    req: BridgeRequest;
-    rooms: MatrixRoom[];
-    attempts?: number;
 }
 
 export interface IrcHandlerConfig {
@@ -93,7 +76,8 @@ export class IrcHandler {
 
     public readonly roomAccessSyncer: RoomAccessSyncer;
 
-    private readonly leaveQueue: QueuePool<LeaveQueueItem>;
+    private readonly membershipQueue: MembershipQueue;
+
     private callCountMetrics?: {
         [key in MetricNames]: number;
     };
@@ -101,26 +85,8 @@ export class IrcHandler {
     constructor (private readonly ircBridge: IrcBridge, config: IrcHandlerConfig = {}) {
         this.quitDebouncer = new QuitDebouncer(ircBridge);
         this.roomAccessSyncer = new RoomAccessSyncer(ircBridge);
-
-        // QueuePool for leaving "concurrently" without slowing leaves to a crawl.
-        // Takes {
-        //    rooms: MatrixRoom[],
-        //    userId: string,
-        //    shouldKick: boolean,
-        //    kickReason: string,
-        //    retry: boolean,
-        //    req: Request,
-        //    deop: boolean,
-        //    attempts: number,
-        //}
-        this.leaveQueue = new QueuePool(
-            config.leaveConcurrency || LEAVE_CONCURRENCY,
-            this.handleLeaveQueue.bind(this),
-        );
-
+        this.membershipQueue = new MembershipQueue(ircBridge.getAppServiceBridge());
         this.mentionMode = config.mapIrcMentionsToMatrix || "on";
-
-
         this.getMetrics();
     }
 
@@ -673,8 +639,7 @@ export class IrcHandler {
         const intent = this.ircBridge.getAppServiceBridge().getIntent(
             matrixUser.getId()
         );
-        const MAX_JOIN_ATTEMPTS = server.getJoinAttempts();
-        const promises = matrixRooms.map((room) => {
+        const promises = matrixRooms.map(async (room) => {
             /** If this is a "NAMES" query, we can make use of the joinedMembers call we made
              * to check if the user already exists in the room. This should save oodles of time.
              */
@@ -684,34 +649,11 @@ export class IrcHandler {
                     matrixUser.getId()
                 )) {
                 req.log.debug("Not joining to %s, already joined.", room.getId());
-                return [] as Promise<void>[];
+                return;
             }
             req.log.info("Joining room %s and setting presence to online", room.getId());
-            const joinRetry: (attempts: number) => Promise<void> = (attempts: number) => {
-                req.log.debug(`Joining room (attempts:${attempts})`);
-                return intent.join(room.getId()).catch((err) => {
-                    // -1 to never retry, 0 to never give up
-                    if (MAX_JOIN_ATTEMPTS !== 0 &&
-                        (attempts > MAX_JOIN_ATTEMPTS) ) {
-                        req.log.error(`Not retrying join for ${room.getId()}.`);
-                        return Bluebird.reject(err);
-                    }
-                    attempts++;
-                    const delay = Math.min(
-                        (JOIN_DELAY_MS * attempts) + (Math.random() * 500),
-                        JOIN_DELAY_CAP_MS
-                    );
-                    req.log.warn(`Failed to join ${room.getId()}, delaying for ${delay}ms`);
-                    req.log.debug(`Failed with: ${err.errcode} ${err.message}`);
-                    return Bluebird.delay(delay).then(() => {
-                        return joinRetry(attempts);
-                    });
-                });
-            };
-            return Promise.all([
-                joinRetry(0),
-                intent.setPresence("online")
-            ]).then(() => undefined);
+            await this.membershipQueue.join(room.getId(), matrixUser.getId(), req);
+            intent.setPresence("online");
         });
         if (matrixRooms.length === 0) {
             req.log.info("No mapped matrix rooms for IRC channel %s", chan);
@@ -720,7 +662,6 @@ export class IrcHandler {
             stats.membership(true, "join");
         }
         await Promise.all(promises);
-        return undefined;
     }
 
     public async onKick (req: BridgeRequest, server: IrcServer, kicker: IrcUser,
@@ -770,16 +711,11 @@ export class IrcHandler {
             if (!bridgedIrcClient || bridgedIrcClient.isBot || !bridgedIrcClient.userId) {
                 return; // unexpected given isVirtual == true, but meh, bail.
             }
-            const id = chan + bridgedIrcClient.userId;
-            await this.leaveQueue.enqueue(chan + bridgedIrcClient.userId, {
-                id,
-                rooms: matrixRooms,
-                userId: bridgedIrcClient.userId,
-                shouldKick: true,
-                kickReason: `${kicker.nick} has kicked this user from ${chan} (${reason})`,
-                retry: true, // We must retry a kick to avoid leaking history
-                req,
-            });
+            await Promise.all(matrixRooms.map((room) => 
+                this.membershipQueue.leave(
+                    room.getId(), bridgedIrcClient.userId!, req, true,
+                    `${kicker.nick} has kicked this user from ${chan} (${reason})`, this.ircBridge.appServiceUserId)
+            ));
         }
         else {
             // the kickee is just some random IRC user, but we still need to bridge this as IRC
@@ -793,16 +729,18 @@ export class IrcHandler {
                 req.log.info("No mapped matrix rooms for IRC channel %s", chan);
                 return;
             }
-            const id = chan + matrixUser.getId();
-            await this.leaveQueue.enqueue(id, {
-                id,
-                rooms: matrixRooms,
-                userId: matrixUser.getId(),
-                shouldKick: false,
-                retry: true,
-                req,
-                deop: true, // deop real irc users, like real irc.
-            });
+            await Promise.all(matrixRooms.map(async (room) => {
+                await this.membershipQueue.leave(
+                    room.getId(), matrixUser.getId(), req,
+                );
+                try {
+                    await this.roomAccessSyncer.removePowerLevels(room.getId(), [matrixUser.getId()]);
+                }
+                catch (ex) {
+                    // This is non-critical but annoying.
+                    req.log.warn("Failed to remove power levels for leaving user.");
+                }
+            }));
         }
     }
 
@@ -869,17 +807,18 @@ export class IrcHandler {
 
         // get virtual matrix user
         req.log.info("Mapped nick %s to %s", nick, userId);
-
-        const promise = this.leaveQueue.enqueue(chan+leavingUser.nick, {
-            id: chan+leavingUser.nick,
-            rooms: matrixRooms,
-            userId,
-            shouldKick: leavingUser.isVirtual, // kick if they are not ours
-            req,
-            kickReason: "Client PARTed from channel", // this will only be used if shouldKick is true
-            retry: true, // We must retry these so that membership isn't leaked.
-            deop: !leavingUser.isVirtual, // deop real irc users, like real irc.
-        });
+        const promise = await Promise.all(matrixRooms.map(async (room) => {
+            await this.membershipQueue.leave(
+                room.getId(), userId!, req, true, "Client PARTed from channel", 
+                leavingUser.isVirtual ? this.ircBridge.appServiceUserId : undefined);
+            try {
+                await this.roomAccessSyncer.removePowerLevels(room.getId(), [userId]);
+            }
+            catch (ex) {
+                // This is non-critical but annoying.
+                req.log.warn("Failed to remove power levels for leaving user.");
+            }
+        }));
         stats.membership(true, "part");
         await promise;
         return undefined;
@@ -988,63 +927,6 @@ export class IrcHandler {
 
     private invalidateNickUserIdMap(server: IrcServer, channel: string) {
         this.nickUserIdMapCache.delete(`${server.domain}:${channel}`);
-    }
-
-    private async handleLeaveQueue(item: LeaveQueueItem) {
-        const bridge = this.ircBridge.getAppServiceBridge();
-        const retryRooms = [];
-        item.attempts = item.attempts || 0;
-        for (const room of item.rooms) {
-            const roomId = room.getId();
-            item.req.log.info(
-                `Leaving room ${roomId} (${item.userId}) (attempt: ${item.attempts})`,
-            );
-            try {
-                if (item.shouldKick) {
-                    await bridge.getIntent().kick(
-                        roomId,
-                        item.userId,
-                        item.kickReason,
-                    );
-                }
-                else {
-                    await bridge.getIntent(item.userId).leave(roomId);
-                }
-                if (item.deop) {
-                    try {
-                        await this.roomAccessSyncer.removePowerLevels(roomId, [item.userId]);
-                    }
-                    catch (ex) {
-                        // This is non-critical but annoying.
-                        item.req.log.warn("Failed to remove power levels for leaving user.");
-                    }
-                }
-            }
-            catch (ex) {
-                item.req.log.warn(
-                `Failed to ${item.shouldKick ? "kick" : "leave"} ${item.userId} ${roomId}: ${ex}`,
-                );
-                const is400 = ex.httpStatus - 400 > 0 && ex.httpStatus - 400 < 100;
-                if (!item.retry || ex.errcode === "M_FORBIDDEN" || is400) {
-                    item.req.log.warn("Not retrying");
-                    continue;
-                }
-                retryRooms.push(room);
-            }
-            if (retryRooms.length < 0) {
-                return;
-            }
-            await Bluebird.delay(LEAVE_DELAY_MS + (Math.random() * LEAVE_DELAY_JITTER));
-            item.attempts++;
-            if (item.attempts >= LEAVE_MAX_ATTEMPTS) {
-                item.req.log.error("Couldn't leave: Hit attempt limit");
-                return;
-            }
-            this.leaveQueue.enqueue(item.id + item.attempts, {
-                ...item,
-                rooms: retryRooms,
-            });
-        }
     }
 
     public incrementMetric(metric: MetricNames) {
