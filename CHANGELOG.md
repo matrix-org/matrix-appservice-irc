@@ -1,4 +1,13 @@
- 0.14.0-rc2 (2019-12-05)
+ 0.14.0-rc3 (2019-12-06)
+========================
+
+Features
+--------
+
+- Maximum AS transaction size has been raised from 5MB to 10MB. You may also now specify this limit in the config. ([\#907](https://github.com/matrix-org/matrix-appservice-irc/issues/907))
+
+
+0.14.0-rc2 (2019-12-05)
 ========================
 
 Internal Changes
