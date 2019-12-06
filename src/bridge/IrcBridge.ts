@@ -167,6 +167,17 @@ export class IrcBridge {
             this.initialiseMetrics();
         }
         this.publicitySyncer = new PublicitySyncer(this);
+
+
+        const homeserverToken = this.registration.getHomeserverToken();
+        if (!homeserverToken) {
+            throw Error("No HS token defined");
+        }
+
+        this.appservice = new AppService({
+            homeserverToken,
+            httpMaxSizeBytes: this.config.advanced.maxTxnSize || TXN_SIZE_DEFAULT,
+        });
     }
 
     private initialiseMetrics() {
@@ -375,16 +386,6 @@ export class IrcBridge {
         if (this.ircServers.length === 0) {
             throw Error("No IRC servers specified.");
         }
-
-        const homeserverToken = this.registration.getHomeserverToken();
-        if (!homeserverToken) {
-            throw Error("No HS token defined");
-        }
-
-        this.appservice = new AppService({
-            homeserverToken,
-            httpMaxSizeBytes: this.config.advanced.maxTxnSize || TXN_SIZE_DEFAULT,
-        });
 
         // run the bridge (needs to be done prior to configure IRC side)
         await this.bridge.run(port, undefined, this.appservice, this.config.homeserver.bindHostname);
