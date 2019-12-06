@@ -261,8 +261,7 @@ declare module 'matrix-appservice-bridge' {
         getIntent(userId?: string): Intent;
         getIntentFromLocalpart(localpart: string): Intent;
 
-        // N.B config isn't used by this func, and appservice isn't used by this bridge.
-        run(port: number, config: undefined, appservice: undefined, hostname: string|undefined): void;
+        run(port: number, config: undefined, appservice?: import("matrix-appservice").AppService, hostname?: string): void;
         registerBridgeGauges(cb: () => void): void;
         getClientFactory(): ClientFactory;
         canProvisionRoom(roomId: string): Promise<boolean>;

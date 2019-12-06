@@ -58,5 +58,6 @@ export interface BridgeConfig {
     };
     advanced: {
         maxHttpSockets: number;
+        maxTxnSize?: number;
     };
 }

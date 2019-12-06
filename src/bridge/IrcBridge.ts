@@ -19,7 +19,7 @@ import { MatrixActivityTracker } from "matrix-lastactive";
 import { Provisioner } from "../provisioning/Provisioner.js";
 import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
-import { AppServiceRegistration } from "matrix-appservice";
+import { AppServiceRegistration, AppService } from "matrix-appservice";
 
 import {
     Bridge,
@@ -42,6 +42,7 @@ const DEFAULT_PORT = 8090;
 const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
+const TXN_SIZE_DEFAULT = 10000000 // 10MB
 
 export class IrcBridge {
     public static readonly DEFAULT_LOCALPART = "appservice-irc";
@@ -59,6 +60,7 @@ export class IrcBridge {
     private debugApi: DebugApi|null = null;
     private provisioner: Provisioner|null = null;
     private bridge: Bridge;
+    private appservice: AppService;
     private timers: {
         matrix_request_seconds: Histogram;
         remote_request_seconds: Histogram;
@@ -165,6 +167,17 @@ export class IrcBridge {
             this.initialiseMetrics();
         }
         this.publicitySyncer = new PublicitySyncer(this);
+
+
+        const homeserverToken = this.registration.getHomeserverToken();
+        if (!homeserverToken) {
+            throw Error("No HS token defined");
+        }
+
+        this.appservice = new AppService({
+            homeserverToken,
+            httpMaxSizeBytes: (this.config.advanced || { }).maxTxnSize || TXN_SIZE_DEFAULT,
+        });
     }
 
     private initialiseMetrics() {
@@ -375,7 +388,7 @@ export class IrcBridge {
         }
 
         // run the bridge (needs to be done prior to configure IRC side)
-        await this.bridge.run(port, undefined, undefined, this.config.homeserver.bindHostname);
+        await this.bridge.run(port, undefined, this.appservice, this.config.homeserver.bindHostname);
 
         this.addRequestCallbacks();
         if (!this.registration.getSenderLocalpart() ||

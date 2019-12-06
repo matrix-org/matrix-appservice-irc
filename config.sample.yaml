@@ -474,6 +474,8 @@ advanced:
   # accidentally overloading the homeserver. Defaults to 1000, which should be
   # enough for the vast majority of use cases.
   maxHttpSockets: 1000
+  # Max size of an appservice transaction payload, in bytes. Defaults to 10Mb
+  maxTxnSize: 10000000
 
 # Capture information to a sentry.io instance
 sentry:
