@@ -176,7 +176,7 @@ export class IrcBridge {
 
         this.appservice = new AppService({
             homeserverToken,
-            httpMaxSizeBytes: this.config.advanced.maxTxnSize || TXN_SIZE_DEFAULT,
+            httpMaxSizeBytes: (this.config.advanced || { }).maxTxnSize || TXN_SIZE_DEFAULT,
         });
     }
 
