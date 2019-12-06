@@ -1,0 +1,1 @@
+Maximum AS transaction size has been raised from 5MB to 10MB. You may also now specify this limit in the config.

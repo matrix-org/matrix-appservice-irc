@@ -6,6 +6,8 @@ properties:
         properties:
             maxHttpSockets:
                 type: "integer"
+            maxTxnSize:
+                type: "integer"
     sentry:
         type: "object"
         required: ["enabled"]
