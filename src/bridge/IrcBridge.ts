@@ -1061,11 +1061,11 @@ export class IrcBridge {
             throw Error("'since' must be greater than 0");
         }
         const maxIdleTime = maxIdleHours * 60 * 60 * 1000;
-        serverName = serverName ? this.getServer(serverName) : this.getServers()[0];
-        log.warn(`Running connection reaper for ${serverName} dryrun=${dry}`);
-        if (!server) {
+        const server = serverName ? this.getServer(serverName) : this.getServers()[0];
+        if (server === null) {
             throw Error("Server not found");
         }
+        log.warn(`Running connection reaper for ${serverName} dryrun=${dry}`);
         const req = new BridgeRequest(this.bridge.getRequestFactory().newRequest());
         logCb(`Connection reaping for ${serverName}`);
         const users: string[] = this.clientPool.getConnectedMatrixUsersForServer(server);
