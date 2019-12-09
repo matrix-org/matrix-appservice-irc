@@ -496,6 +496,14 @@ export class ClientPool {
         return nickUserIdMap;
     }
 
+    public getConnectedMatrixUsersForServer(server: IrcServer): string[] {
+        const users = this.virtualClients[server.domain];
+        if (!users) {
+            throw Error("Cannot get users for unknown server");
+        }
+        return Object.keys(users.userIds).filter((userId) => users.userIds[userId] !== null);
+    }
+
     private getNumberOfConnections(server: IrcServer): number {
         if (!server || !this.virtualClients[server.domain]) { return 0; }
         return this.virtualClientCounts[server.domain];
