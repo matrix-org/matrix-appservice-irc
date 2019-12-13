@@ -34,30 +34,43 @@ async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgS
     const migrateChannels = async () => {
         const channelEntries = await roomsFind({ "remote.type": "channel" });
         log.info(`Migrating ${channelEntries.length} channels`);
+
         for (const entry of channelEntries) {
-            await pgStore.upsertRoom(
-                entry.data.origin,
-                "channel",
-                entry.remote.domain,
-                entry.remote.channel,
-                entry.matrix_id,
-                JSON.stringify(entry.remote),
-                JSON.stringify(entry.matrix),
-            );
+            if (entry.id.startsWith("PM")) {
+                continue; // Some entries are mis-labeled as channels when they are PMs
+            }
+            try {
+                await pgStore.upsertRoom(
+                    entry.data.origin,
+                    "channel",
+                    entry.remote.domain,
+                    entry.remote.channel,
+                    entry.matrix_id,
+                    JSON.stringify(entry.remote),
+                    JSON.stringify(entry.matrix),
+                );
+                log.info(`Migrated channel ${entry.remote.channel}`);
+            } catch (ex) {
+                log.error(`Failed to migrate channel ${entry.remote.channel} ${ex.message}`);
+                log.error(JSON.stringify(entry));
+                throw ex;
+            }
         }
         log.info("Migrated channels");
     }
+
     const migrateCounter = async () => {
         log.info(`Migrating ipv6 counter`);
         const counterEntry = await usersFind({ "type": "remote", "id": "config" });
         if (counterEntry.length && counterEntry[0].data && counterEntry[0].data.ipv6_counter) {
             await pgStore.setIpv6Counter(counterEntry[0].data.ipv6_counter);
         }
- else {
+        else {
             log.info("No ipv6 counter found");
         }
         log.info("Migrated ipv6 counter");
     }
+
     const migrateAdminRooms = async () => {
         const entries = await roomsFind({ "matrix.extras.admin_id": { $exists: true } });
         log.info(`Migrating ${entries.length} admin rooms`);
@@ -118,18 +131,22 @@ async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgS
     const migratePMs = async () => {
         const entries = await roomsFind({ "remote.type": "pm" });
         log.info(`Migrating ${entries.length} PM rooms`);
-        for (const entry of entries) {
-            // We store these seperately.
-            await pgStore.setPmRoom(
-                // IrcRoom will only ever use the domain property
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                new IrcRoom({ domain: entry.remote.domain } as any, entry.remote.channel),
-                new MatrixRoom(entry.matrix_id),
-                entry.data.real_user_id,
-                entry.data.virtual_user_id,
-            );
+        for (const entry of entries.reverse()) {
+            // We previously allowed unlimited numbers of PM rooms, but the bridge now mandates
+            // that only one DM room may exist for a given mxid<->nick. Reverse the entries, and
+            // ignore any future collisions to ensure that we only use the latest.
+            try {
+	            await pgStore.setPmRoom(
+	                // IrcRoom will only ever use the domain property
+	                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+	                new IrcRoom({ domain: entry.remote.domain } as any, entry.remote.channel),
+	                new MatrixRoom(entry.matrix_id),
+	                entry.data.real_user_id,
+                	entry.data.virtual_user_id,
+           	);
+	    } catch (ex) { log.warn("Not migrating %s", entry.matrix_id);  }
         }
-        log.info("Migrated users");
+        log.info("Migrated PMs");
     }
 
     await migrateChannels();
