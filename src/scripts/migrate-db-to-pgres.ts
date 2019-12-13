@@ -30,7 +30,7 @@ const log = new Logger({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type promisfiedFind = (params: any) => Promise<any[]>;
 
-async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgStore: PgDataStore) {
+async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgStore: PgDataStore, typesToRun: string[]) {
     const migrateChannels = async () => {
         const channelEntries = await roomsFind({ "remote.type": "channel" });
         log.info(`Migrating ${channelEntries.length} channels`);
@@ -149,28 +149,46 @@ async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgS
         log.info("Migrated PMs");
     }
 
-    await migrateChannels();
-    await migrateCounter();
-    await migrateAdminRooms();
-    await migrateUserFeatures();
-    await migrateUserConfiguration();
-    await migrateUsers();
-    await migratePMs();
+    if (typesToRun.includes("channels")) {
+        await migrateChannels();
+    }
+    if (typesToRun.includes("counter")) {
+        await migrateCounter();
+    }
+    if (typesToRun.includes("adminrooms")) {
+        await migrateAdminRooms();
+    }
+    if (typesToRun.includes("features")) {
+        await migrateUserFeatures();
+    }
+    if (typesToRun.includes("config")) {
+        await migrateUserConfiguration();
+    }
+    if (typesToRun.includes("users")) {
+        await migrateUsers();
+    }
+    if (typesToRun.includes("pms")) {
+        await migratePMs();
+    }
 }
 
 async function main() {
     const opts = nopt({
-        "dbdir": path,
-        "connectionString": String,
-        "verbose": Boolean,
-        "privateKey": path
+        dbdir: path,
+        connectionString: String,
+        verbose: Boolean,
+        privateKey: path,
+        types: Array,
     },
     {
-        "f": "--dbdir",
-        "c": "--connectionString",
-        "p": "--privateKey",
-        "v": "--verbose"
+        f: "--dbdir",
+        c: "--connectionString",
+        p: "--privateKey",
+        v: "--verbose",
+        t: "--types",
     }, process.argv, 2);
+
+    const typesToRun = opts.types || ["channels", "counter", "adminrooms", "features", "config", "users", "pms"];
 
     if (opts.dbdir === undefined || opts.connectionString === undefined) {
         log.error("Missing --dbdir or --connectionString or --domain");
@@ -218,7 +236,7 @@ async function main() {
 
     const time = Date.now();
     log.info("Starting migration");
-    await migrate(roomsFind, usersFind, pgStore);
+    await migrate(roomsFind, usersFind, pgStore, typesToRun);
     log.info("Finished migration at %sms", Date.now() - time);
 }
 
