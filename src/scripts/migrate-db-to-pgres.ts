@@ -30,7 +30,8 @@ const log = new Logger({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type promisfiedFind = (params: any) => Promise<any[]>;
 
-async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgStore: PgDataStore, typesToRun: string[]) {
+async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgStore: PgDataStore,
+                       typesToRun: string[]) {
     const migrateChannels = async () => {
         const channelEntries = await roomsFind({ "remote.type": "channel" });
         log.info(`Migrating ${channelEntries.length} channels`);
@@ -50,7 +51,8 @@ async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgS
                     JSON.stringify(entry.matrix),
                 );
                 log.info(`Migrated channel ${entry.remote.channel}`);
-            } catch (ex) {
+            }
+            catch (ex) {
                 log.error(`Failed to migrate channel ${entry.remote.channel} ${ex.message}`);
                 log.error(JSON.stringify(entry));
                 throw ex;
@@ -136,15 +138,18 @@ async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgS
             // that only one DM room may exist for a given mxid<->nick. Reverse the entries, and
             // ignore any future collisions to ensure that we only use the latest.
             try {
-	            await pgStore.setPmRoom(
-	                // IrcRoom will only ever use the domain property
-	                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-	                new IrcRoom({ domain: entry.remote.domain } as any, entry.remote.channel),
-	                new MatrixRoom(entry.matrix_id),
-	                entry.data.real_user_id,
-                	entry.data.virtual_user_id,
-           	);
-	    } catch (ex) { log.warn("Not migrating %s", entry.matrix_id);  }
+                await pgStore.setPmRoom(
+                    // IrcRoom will only ever use the domain property
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    new IrcRoom({ domain: entry.remote.domain } as any, entry.remote.channel),
+                    new MatrixRoom(entry.matrix_id),
+                    entry.data.real_user_id,
+                    entry.data.virtual_user_id,
+               );
+            }
+            catch (ex) {
+                log.warn("Not migrating %s", entry.matrix_id);
+            }
         }
         log.info("Migrated PMs");
     }
