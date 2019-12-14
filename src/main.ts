@@ -68,7 +68,7 @@ export function generateRegistration(reg: AppServiceRegistration, config: Bridge
 }
 
 export async function runBridge(port: number, config: BridgeConfig, reg: AppServiceRegistration, isDBInMemory = false) {
-    if (config.sentry && config.sentry.dsn) {
+    if (config.sentry && config.sentry.enabled && config.sentry.dsn) {
         log.info("Sentry ENABLED");
         Sentry.init({
             dsn: config.sentry.dsn,
