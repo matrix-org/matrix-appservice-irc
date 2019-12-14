@@ -1,0 +1,1 @@
+Stop trying to use sentry when config.sentry.enabled is false
