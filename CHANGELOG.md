@@ -1,4 +1,15 @@
- 0.14.0-rc3 (2019-12-06)
+0.14.0-rc4 (2019-12-18)
+========================
+
+Bugfixes
+--------
+
+- Massively speed up connection reaper by not syncing all rooms ([\#914](https://github.com/matrix-org/matrix-appservice-irc/issues/914))
+- Tweak DB migration script to handle duplicate PMs and DB inconsistencies ([\#917](https://github.com/matrix-org/matrix-appservice-irc/issues/917))
+- Handle replies that contain a displayname rather than a userid. ([\#918](https://github.com/matrix-org/matrix-appservice-irc/issues/918))
+
+
+0.14.0-rc3 (2019-12-06)
 ========================
 
 Features
