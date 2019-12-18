@@ -5,6 +5,14 @@
 const envBundle = require("../util/env-bundle");
 const mediaUrl = "http://some-media-repo.com";
 
+
+function constructHTMLReply(sourceText, sourceUser, reply) {
+    // This is one hella ugly format.
+    return "<mx-reply><blockquote><a href=\"https://some.link\">In reply to</a>" +
+    `<a href=\"https://some.user">${sourceUser}</a><br`+
+    `><p>${sourceText}</p></blockquote></mx-reply>${reply}`;
+}
+
 describe("Matrix-to-IRC message bridging", function() {
 
     const {env, config, roomMapping, test} = envBundle();
@@ -266,6 +274,51 @@ describe("Matrix-to-IRC message bridging", function() {
         await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "> <@somedude:bar.com> This is the fake message\n\nReply Text",
+                formatted_body,
+                format: "org.matrix.custom.html",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "$original:bar.com"
+                    }
+                },
+            },
+            sender: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+        await p;
+    });
+
+    it("should bridge matrix replies which contain displaynames", async function() {
+        // Trigger an original event
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "This is the real message",
+                msgtype: "m.text"
+            },
+            room_id: roomMapping.roomId,
+            sender: repliesUser.id,
+            event_id: "$original:bar.com",
+            type: "m.room.message"
+        });
+        const p = env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+            (client, channel, text) => {
+                expect(client.nick).toEqual(testUser.nick);
+                expect(client.addr).toEqual(roomMapping.server);
+                expect(channel).toEqual(roomMapping.channel);
+                // We use the nick over the displayname
+                expect(text).toEqual(`<M-friend "This is the real message"> Reply Text`);
+            }
+        );
+        const formatted_body = constructHTMLReply(
+            "This is the fake message",
+            "SomeDude",
+            "Reply text"
+        );
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "> <SomeDude> This is the fake message\n\nReply Text",
                 formatted_body,
                 format: "org.matrix.custom.html",
                 msgtype: "m.text",
@@ -898,10 +951,3 @@ describe("Matrix-to-IRC message bridging with media URL and drop time", function
         });
     });
 });
-
-function constructHTMLReply(sourceText, sourceUser, reply) {
-    // This is one hella ugly format.
-    return "<mx-reply><blockquote><a href=\"https://some.link\">In reply to</a>" +
-    `<a href=\"https://some.user">${sourceUser}</a><br`+
-    `><p>${sourceText}</p></blockquote></mx-reply>${reply}`;
-}
