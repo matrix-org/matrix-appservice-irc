@@ -89,9 +89,7 @@ export class MatrixHandler {
         // maintain a list of room IDs which are being processed invite-wise. This is
         // required because invites are processed asyncly, so you could get invite->msg
         // and the message is processed before the room is created.
-        config = config || {}
-        this.eventCacheMaxSize = config.eventCacheSize === undefined ?
-            DEFAULT_EVENT_CACHE_SIZE : config.eventCacheSize;
+        this.eventCacheMaxSize = config.eventCacheSize ?? DEFAULT_EVENT_CACHE_SIZE;
         // The media URL to use to transform mxc:// URLs when handling m.room.[file|image]s
         this.mediaUrl = ircBridge.config.homeserver.media_url || ircBridge.config.homeserver.url;
         this.adminHandler = new AdminRoomHandler(ircBridge, this);
