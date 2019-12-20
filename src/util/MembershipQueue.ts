@@ -15,7 +15,7 @@ interface QueueUserItem {
     reason?: string;
     attempts: number;
     roomId: string;
-    userId: string;
+    userId?: string;
     retry: boolean;
     req: BridgeRequest;
 }
@@ -30,7 +30,7 @@ export class MembershipQueue {
         this.queuePool = new QueuePool(CONCURRENT_ROOM_LIMIT, this.serviceQueue.bind(this));
     }
 
-    public async join(roomId: string, userId: string, req: BridgeRequest, retry = true) {
+    public async join(roomId: string, userId: string|undefined, req: BridgeRequest, retry = true) {
         return this.queueMembership({
             roomId,
             userId,
@@ -78,7 +78,7 @@ export class MembershipQueue {
                 await intent.join(roomId);
             }
             else {
-                await intent[kickUser ? "kick" : "leave"](roomId, userId, reason);
+                await intent[kickUser ? "kick" : "leave"](roomId, userId || "", reason);
             }
         }
         catch (ex) {
