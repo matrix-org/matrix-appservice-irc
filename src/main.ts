@@ -113,7 +113,7 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
         ircBridge.getAppServiceBridge().opts.roomStore = undefined;
         ircBridge.getAppServiceBridge().opts.userStore = undefined;
     }
-    else if (engine !== "nedb") {
+    else if (engine === "nedb") {
         // do nothing.
     }
     else {
