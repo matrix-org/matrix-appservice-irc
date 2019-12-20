@@ -28,22 +28,69 @@ import { BridgedClient } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { ProvisionRequest } from "./provisioning/ProvisionRequest";
 import { getBridgeVersion } from "./util/PackageInfo";
-
+import { createServer, Socket, Server } from "net";
+import { createInterface } from "readline";
 const log = getLogger("DebugApi");
 
+export interface DebugApiConfig {
+    enabled: true;
+    port: number;
+    manholeEnabled: boolean;
+    manholePort: number;
+    manholeHost: string;
+}
+
 export class DebugApi {
+    private manholeServer?: Server;
     constructor(
         private ircBridge: IrcBridge,
-        private port: number,
+        private config: DebugApiConfig,
         private servers: IrcServer[],
         private pool: ClientPool,
         private token: string) {
 
     }
 
-    public run () {
-        log.info("DEBUG API LISTENING ON :%d", this.port);
+    public startManholeServer() {
+        this.manholeServer = createServer(this.newManhole.bind(this));
+        this.manholeServer.listen(this.config.manholePort, this.config.manholeHost);
+    }
 
+    private newManhole(socket: Socket) {
+        log.info(`New manhole connection from ${socket.remoteAddress}`);
+        const rl = createInterface({
+            input: socket,
+            output: socket,
+            prompt: 'irc-bridge>'
+        });
+        rl.prompt();
+        rl.on("line", (line) => {
+            const args = line.split(" ");
+            const cmd = args.splice(0,1)[0];
+            log.debug(`New manhole cmd: ${cmd} ${args}`);
+            console.log(Buffer.from(cmd, "utf-8"));
+            switch (cmd) {
+                case "reapusers":
+                    this.onReapUsers({
+
+                    }, socket);
+                case "quit":
+                case "exit":
+                    rl.close();
+                    socket.end("Bye\n");
+                    return;
+                default:
+                    socket.write("Command not understood\n");
+                    break;
+            }
+            rl.prompt();
+        });
+        rl.on("close", () => {
+            log.debug("Manhole closed");
+        });
+    }
+
+    public run () {
         http.createServer((req, res) => {
             try {
                 this.onRequest(req, res);
@@ -54,7 +101,11 @@ export class DebugApi {
                 }
                 log.error(err.stack);
             }
-        }).listen(this.port);
+        }).listen(this.config.port);
+        log.info("DEBUG API LISTENING ON :%d", this.config.port);
+        if (this.config.manholeEnabled) {
+            this.startManholeServer();
+        }
     }
 
     private onRequest(req: IncomingMessage, response: ServerResponse) {
@@ -190,9 +241,9 @@ export class DebugApi {
         });
     }
 
-    public onReapUsers(query: ParsedUrlQuery, response: ServerResponse) {
+    public onReapUsers(query: {[key: string]: string | string[]}, response: ServerResponse|Socket) {
         const msgCb = (msg: string) => {
-            if (!response.headersSent) {
+            if (response instanceof ServerResponse && !response.headersSent) {
                 response.writeHead(200, {"Content-Type": "text/plain"});
             }
             response.write(msg + "\n")
@@ -207,7 +258,7 @@ export class DebugApi {
             msgCb, server, since, reason, dry, defaultOnline, excludeRegex
         ).catch((err: Error) => {
             log.error(err.stack!);
-            if (!response.headersSent) {
+            if (response instanceof ServerResponse && !response.headersSent) {
                 response.writeHead(500, {"Content-Type": "text/plain"});
             }
             response.write(err + "\n");

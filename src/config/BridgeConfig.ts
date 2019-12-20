@@ -1,6 +1,7 @@
 import { IrcServerConfig } from "../irc/IrcServer";
 import { LoggerConfig } from "../logging";
 import { IrcHandlerConfig } from "../bridge/IrcHandler";
+import { DebugApiConfig } from "../DebugApi";
 
 export interface BridgeConfig {
     matrixHandler: {
@@ -29,10 +30,7 @@ export interface BridgeConfig {
             enableReload: boolean;
         };
         logging: LoggerConfig;
-        debugApi: {
-            enabled: boolean;
-            port: number;
-        };
+        debugApi: DebugApiConfig;
         /** @deprecated Use `BridgeConfig.database` */
         databaseUri?: string;
         metrics: {
