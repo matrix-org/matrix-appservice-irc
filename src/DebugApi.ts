@@ -201,8 +201,10 @@ export class DebugApi {
         const since = parseInt(query["since"] as string);
         const reason = query["reason"] as string;
         const dry = query["dryrun"] !== undefined && query["dryrun"] !== "false";
+        const defaultOnline = query["defaultOnline"] === undefined ? undefined : (new Boolean(query["defaultOnline"])) as boolean;
+        const excludeRegex = query["excludeRegex"] as string;
         this.ircBridge.connectionReap(
-            msgCb, server, since, reason, dry
+            msgCb, server, since, reason, dry, defaultOnline, excludeRegex
         ).catch((err: Error) => {
             log.error(err.stack!);
             if (!response.headersSent) {

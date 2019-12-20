@@ -1053,7 +1053,8 @@ export class IrcBridge {
     }
 
     public async connectionReap(logCb: (line: string) => void, serverName: string,
-                                maxIdleHours: number, reason = "User is inactive", dry = false) {
+                                maxIdleHours: number, reason = "User is inactive", dry = false,
+                                defaultOnline?: boolean, excludeRegex?: string) {
         if (!this.activityTracker) {
             throw Error("activityTracker is not enabled");
         }
@@ -1070,13 +1071,18 @@ export class IrcBridge {
         logCb(`Connection reaping for ${serverName}`);
         const users: string[] = this.clientPool.getConnectedMatrixUsersForServer(server);
         logCb(`Found ${users.length} real users for ${serverName}`);
+        const exclude = excludeRegex ? new RegExp(excludeRegex) : null;
         let offlineCount = 0;
         for (const userId of users) {
-            const status = await this.activityTracker.isUserOnline(userId, maxIdleTime);
+            const status = await this.activityTracker.isUserOnline(userId, maxIdleTime, defaultOnline);
             if (status.online) {
                 continue;
             }
             const clients = this.clientPool.getBridgedClientsForUserId(userId);
+            if (exclude && exclude.exec(userId)) {
+                logCb(`${userId} is excluded`);
+                continue;
+            }
             if (clients.length === 0) {
                 logCb(`${userId} has no active clients`);
                 continue;
