@@ -62,8 +62,8 @@ interface MatrixEventJoin {
     _frontier: boolean;
     _injected: boolean;
     room_id: string;
-    content: {
-        displayname: string;
+    content?: {
+        displayname?: string;
     };
 }
 
@@ -491,7 +491,7 @@ export class MatrixHandler {
                 }
 
                 // Check for a displayname change and update nick accordingly.
-                if (event.content.displayname !== bridgedClient.displayName) {
+                if (event.content && event.content.displayname !== bridgedClient.displayName) {
                     // Changing the nick requires that:
                     // - the server allows nick changes
                     // - the nick is not custom
@@ -1097,7 +1097,7 @@ export class MatrixHandler {
 
     private async textForReplyEvent(event: MatrixMessageEvent, replyEventId: string, ircRoom: IrcRoom):
     Promise<{formatted: string; reply: string}|null> {
-        const REPLY_REGEX = /> <(@.*:.*)>(.*)\n\n(.*)/;
+        const REPLY_REGEX = /> <(.*?)>(.*?)\n\n(.*)/;
         const REPLY_NAME_MAX_LENGTH = 12;
         const eventId = replyEventId;
         if (!event.content.body) {

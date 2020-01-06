@@ -81,6 +81,8 @@ declare module 'matrix-appservice-bridge' {
         isRemoteUser(userId: string): boolean;
         getJoinedRooms(): Promise<string[]>;
         getClient(): JsClient;
+        //TODO:  _getRoomInfo is a private func and should be replaced.
+        _getRoomInfo(roomId: string, data: any): any;
     }
 
     export class MatrixRoom {
@@ -133,7 +135,7 @@ declare module 'matrix-appservice-bridge' {
         db: Nedb
         delete (query: any): Promise<void>
         insert (query: any): Promise<void>
-        select (query: any, transformFn?: (item: Entry) => Entry): Promise<any>
+        select (query: any, transformFn?: (item: Entry) => any): Promise<any>
         inspect: () => string;
     }
 
@@ -219,6 +221,7 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class JsClient {
+        getStateEvent(roomId: string, type: string, skey?: string): Promise<any>;
         createAlias(roomAlias: string, roomId: string): Promise<void>;
         setRoomDirectoryVisibilityAppService(networkId: string, roomId: string, state: string): Promise<void>
         sendStateEvent(roomId: string, type: string, content: any, key: string): Promise<void>;
@@ -227,13 +230,19 @@ declare module 'matrix-appservice-bridge' {
         };
         deleteAlias(alias: string): Promise<void>;
         roomState(roomId: string): Promise<any[]>;
-        uploadContent(opts: {
-            stream: Buffer
+        uploadContent(file: Buffer, opts: {
             name: string,
             type: string,
-            rawResponse: false,
-            onlyContentUri: true,
+            rawResponse: boolean,
+            onlyContentUri: boolean,
         }): Promise<string>;
+        joinRoom(roomIdOrAlias: string): Promise<unknown>;
+        leave(roomId: string): Promise<void>;
+    }
+
+    export class ConfigValidator {
+        constructor(config: string|any);
+        validate<T>(config: T, defaultConfig?: any): T;
     }
 
     export class Bridge {
@@ -242,6 +251,7 @@ declare module 'matrix-appservice-bridge' {
             roomStore: RoomBridgeStore|undefined,
             userStore: UserBridgeStore|undefined,
         }
+        appService: import("matrix-appservice").AppService;
         getRoomStore(): RoomBridgeStore;
         getUserStore(): UserBridgeStore;
         getBot(): AppserviceBot;
@@ -251,10 +261,10 @@ declare module 'matrix-appservice-bridge' {
         getIntent(userId?: string): Intent;
         getIntentFromLocalpart(localpart: string): Intent;
 
-        // N.B config isn't used by this func, and appservice isn't used by this bridge.
-        run(port: number, config: undefined, appservice: undefined, hostname: string|undefined): void;
+        run(port: number, config: undefined, appservice?: import("matrix-appservice").AppService, hostname?: string): void;
         registerBridgeGauges(cb: () => void): void;
         getClientFactory(): ClientFactory;
+        canProvisionRoom(roomId: string): Promise<boolean>;
     }
 
     export class ClientFactory {
@@ -273,9 +283,14 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class StateLookup {
-            constructor(opts: {})
-            onEvent(event: unknown): void;
-            trackRoom(roomId: string): Promise<void>;
-            getState(roomId: string, type: string): any[];
+        constructor(opts: {})
+        onEvent(event: unknown): void;
+        trackRoom(roomId: string): Promise<void>;
+        getState(roomId: string, type: string): any[];
+    }
+
+    export class MembershipCache {
+        constructor();
+        setMemberEntry(roomId: string, userId: string, membership: "join"): void;
     }
 }

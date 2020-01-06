@@ -30,34 +30,49 @@ const log = new Logger({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type promisfiedFind = (params: any) => Promise<any[]>;
 
-async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgStore: PgDataStore) {
+async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgStore: PgDataStore,
+                       typesToRun: string[]) {
     const migrateChannels = async () => {
         const channelEntries = await roomsFind({ "remote.type": "channel" });
         log.info(`Migrating ${channelEntries.length} channels`);
+
         for (const entry of channelEntries) {
-            await pgStore.upsertRoom(
-                entry.data.origin,
-                "channel",
-                entry.remote.domain,
-                entry.remote.channel,
-                entry.matrix_id,
-                JSON.stringify(entry.remote),
-                JSON.stringify(entry.matrix),
-            );
+            if (entry.id.startsWith("PM")) {
+                continue; // Some entries are mis-labeled as channels when they are PMs
+            }
+            try {
+                await pgStore.upsertRoom(
+                    entry.data.origin,
+                    "channel",
+                    entry.remote.domain,
+                    entry.remote.channel,
+                    entry.matrix_id,
+                    JSON.stringify(entry.remote),
+                    JSON.stringify(entry.matrix),
+                );
+                log.info(`Migrated channel ${entry.remote.channel}`);
+            }
+            catch (ex) {
+                log.error(`Failed to migrate channel ${entry.remote.channel} ${ex.message}`);
+                log.error(JSON.stringify(entry));
+                throw ex;
+            }
         }
         log.info("Migrated channels");
     }
+
     const migrateCounter = async () => {
         log.info(`Migrating ipv6 counter`);
         const counterEntry = await usersFind({ "type": "remote", "id": "config" });
         if (counterEntry.length && counterEntry[0].data && counterEntry[0].data.ipv6_counter) {
             await pgStore.setIpv6Counter(counterEntry[0].data.ipv6_counter);
         }
- else {
+        else {
             log.info("No ipv6 counter found");
         }
         log.info("Migrated ipv6 counter");
     }
+
     const migrateAdminRooms = async () => {
         const entries = await roomsFind({ "matrix.extras.admin_id": { $exists: true } });
         log.info(`Migrating ${entries.length} admin rooms`);
@@ -118,42 +133,67 @@ async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgS
     const migratePMs = async () => {
         const entries = await roomsFind({ "remote.type": "pm" });
         log.info(`Migrating ${entries.length} PM rooms`);
-        for (const entry of entries) {
-            // We store these seperately.
-            await pgStore.setPmRoom(
-                // IrcRoom will only ever use the domain property
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                new IrcRoom({ domain: entry.remote.domain } as any, entry.remote.channel),
-                new MatrixRoom(entry.matrix_id),
-                entry.data.real_user_id,
-                entry.data.virtual_user_id,
-            );
+        for (const entry of entries.reverse()) {
+            // We previously allowed unlimited numbers of PM rooms, but the bridge now mandates
+            // that only one DM room may exist for a given mxid<->nick. Reverse the entries, and
+            // ignore any future collisions to ensure that we only use the latest.
+            try {
+                await pgStore.setPmRoom(
+                    // IrcRoom will only ever use the domain property
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    new IrcRoom({ domain: entry.remote.domain } as any, entry.remote.channel),
+                    new MatrixRoom(entry.matrix_id),
+                    entry.data.real_user_id,
+                    entry.data.virtual_user_id,
+               );
+            }
+            catch (ex) {
+                log.warn("Not migrating %s", entry.matrix_id);
+            }
         }
-        log.info("Migrated users");
+        log.info("Migrated PMs");
     }
 
-    await migrateChannels();
-    await migrateCounter();
-    await migrateAdminRooms();
-    await migrateUserFeatures();
-    await migrateUserConfiguration();
-    await migrateUsers();
-    await migratePMs();
+    if (typesToRun.includes("channels")) {
+        await migrateChannels();
+    }
+    if (typesToRun.includes("counter")) {
+        await migrateCounter();
+    }
+    if (typesToRun.includes("adminrooms")) {
+        await migrateAdminRooms();
+    }
+    if (typesToRun.includes("features")) {
+        await migrateUserFeatures();
+    }
+    if (typesToRun.includes("config")) {
+        await migrateUserConfiguration();
+    }
+    if (typesToRun.includes("users")) {
+        await migrateUsers();
+    }
+    if (typesToRun.includes("pms")) {
+        await migratePMs();
+    }
 }
 
 async function main() {
     const opts = nopt({
-        "dbdir": path,
-        "connectionString": String,
-        "verbose": Boolean,
-        "privateKey": path
+        dbdir: path,
+        connectionString: String,
+        verbose: Boolean,
+        privateKey: path,
+        types: Array,
     },
     {
-        "f": "--dbdir",
-        "c": "--connectionString",
-        "p": "--privateKey",
-        "v": "--verbose"
+        f: "--dbdir",
+        c: "--connectionString",
+        p: "--privateKey",
+        v: "--verbose",
+        t: "--types",
     }, process.argv, 2);
+
+    const typesToRun = opts.types || ["channels", "counter", "adminrooms", "features", "config", "users", "pms"];
 
     if (opts.dbdir === undefined || opts.connectionString === undefined) {
         log.error("Missing --dbdir or --connectionString or --domain");
@@ -201,7 +241,7 @@ async function main() {
 
     const time = Date.now();
     log.info("Starting migration");
-    await migrate(roomsFind, usersFind, pgStore);
+    await migrate(roomsFind, usersFind, pgStore, typesToRun);
     log.info("Finished migration at %sms", Date.now() - time);
 }
 

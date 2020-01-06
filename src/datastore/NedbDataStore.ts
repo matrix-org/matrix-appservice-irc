@@ -598,6 +598,56 @@ export class NeDBDataStore implements DataStore {
         return matrixUsers[0];
     }
 
+    public async updateLastSeenTimeForUser(userId: string) {
+        let user = await this.userStore.getMatrixUser(userId);
+        if (!user) {
+            user = new MatrixUser(userId);
+        }
+        user.set("last_seen_ts", Date.now());
+        await this.userStore.setMatrixUser(user);
+    }
+
+    public async getLastSeenTimeForUsers() {
+        const docs = await this.userStore.select({
+            type: "matrix",
+            "data.last_seen_ts": {$exists: true},
+        });
+        return docs.map((doc: {id: string; data: { last_seen_ts: number }}) => ({
+          user_id: doc.id,
+          ts: doc.data.last_seen_ts,
+        }));
+    }
+
+    public async getAllUserIds() {
+        const docs = await this.userStore.select({ type: "matrix" });
+        return docs.map((e: {id: string}) => e.id);
+    }
+
+    public async getRoomVisibility(roomId: string) {
+        const room = await this.roomStore.getMatrixRoom(roomId);
+        if (!room) {
+            return "private";
+        }
+        return room.get("visibility") as "public"|"private";
+    }
+
+    public async getRoomsVisibility(roomIds: string[]) {
+        const map: {[roomId: string]: "public"|"private"} = {};
+        for (const roomId of roomIds) {
+            map[roomId] = await this.getRoomVisibility(roomId);
+        }
+        return map;
+    }
+
+    public async setRoomVisibility(roomId: string, visibility: "public"|"private") {
+        let room = await this.roomStore.getMatrixRoom(roomId);
+        if (!room) {
+            room = new MatrixRoom(roomId);
+        }
+        room.set("visibility", visibility);
+        await this.roomStore.setMatrixRoom(room);
+    }
+
     public async roomUpgradeOnRoomMigrated() {
         // this can no-op, because the matrix-appservice-bridge library will take care of it.
     }

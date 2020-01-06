@@ -23,17 +23,9 @@ import { BridgedClient } from "../irc/BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { MatrixHandler } from "./MatrixHandler";
 import logging from "../logging";
+import { getBridgeVersion } from "../util/PackageInfo";
 
 const log = logging("AdminRoomHandler");
-
-let BridgeVersion = "unknown";
-
-try {
-    BridgeVersion = require("../../package.json").version;
-}
-catch (err) {
-    log.error("Couldn't get `version` from package.json");
-}
 
 const COMMANDS = {
     "!join": {
@@ -425,9 +417,9 @@ export class AdminRoomHandler {
                 notice = new MatrixAction(
                     "notice", `Successfully stored password for ${domain}. You will now be reconnected to IRC.`
                 );
-            }
-            if (client) {
-                await client.disconnect("iwantoreconnect", "authenticating", false);
+                if (client) {
+                    await client.disconnect("iwantoreconnect", "authenticating", false);
+                }
             }
         }
         catch (err) {
@@ -595,7 +587,7 @@ export class AdminRoomHandler {
         await this.ircBridge.sendMatrixAction(
             adminRoom,
             this.botUser,
-            new MatrixAction("notice", `BridgeVersion: ${BridgeVersion}`)
+            new MatrixAction("notice", `BridgeVersion: ${getBridgeVersion()}`)
         );
     }
 

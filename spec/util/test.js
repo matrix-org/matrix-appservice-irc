@@ -51,7 +51,6 @@ class TestEnv {
         this.ircBridge = null;
         this.ircMock = ircMock;
         this.clientMock = clientMock;
-
     }
 
     /**

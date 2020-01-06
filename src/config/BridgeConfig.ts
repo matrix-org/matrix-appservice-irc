@@ -50,7 +50,14 @@ export interface BridgeConfig {
             port: number;
         };
     };
+    sentry?: {
+        enabled: boolean;
+        dsn: string;
+        environment?: string;
+        serverName?: string;
+    };
     advanced: {
         maxHttpSockets: number;
+        maxTxnSize?: number;
     };
 }

@@ -308,6 +308,7 @@ export class MemberListSyncer {
         this.usersToJoin = entries.length;
         // take the first entry and inject a join event
         const joinNextUser = () => {
+            this.usersToJoin--;
             const entry = entries.shift();
             if (!entry) {
                 d.resolve();
@@ -321,7 +322,6 @@ export class MemberListSyncer {
                 "Injecting join event for %s in %s (%s left) is_frontier=%s",
                 entry.userId, entry.roomId, entries.length, entry.frontier
             );
-            this.usersToJoin--;
             Bluebird.cast(injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier)).timeout(
                 server.getMemberListFloodDelayMs()
             ).then(() => {

@@ -160,5 +160,15 @@ export interface DataStore {
 
     roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string): Promise<void>;
 
+    updateLastSeenTimeForUser(userId: string): Promise<void>;
+
+    getLastSeenTimeForUsers(): Promise<{ user_id: string; ts: number }[]>;
+
+    getAllUserIds(): Promise<string[]>;
+
+    getRoomsVisibility(roomIds: string[]): Promise<{[roomId: string]: "public"|"private"}>;
+
+    setRoomVisibility(roomId: string, vis: "public"|"private"): Promise<void>;
+
     destroy(): Promise<void>;
 }
