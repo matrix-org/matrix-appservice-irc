@@ -18,7 +18,7 @@ import Bluebird from "bluebird";
 import * as promiseutil from "../promiseutil";
 import { EventEmitter } from "events";
 import Ident from "./Ident"
-import { ConnectionInstance, InstanceDisconnectReason, IrcMessage } from "./ConnectionInstance";
+import { LocalConnectionInstance, IrcMessage } from "./LocalConnectionInstance";
 import { IrcRoom } from "../models/IrcRoom";
 import { getLogger } from "../logging";
 import { IrcServer } from "./IrcServer";
@@ -30,6 +30,7 @@ import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
 import { Client } from "irc";
+import { InstanceDisconnectReason as DisconnectReason, ConnectionInstance } from "./IConnectionInstance";
 
 const log = getLogger("BridgedClient");
 
@@ -183,9 +184,9 @@ export class BridgedClient extends EventEmitter {
     }
 
     /**
-     * @return {ConnectionInstance} A new connected connection instance.
+     * @return {LocalConnectionInstance} A new connected connection instance.
      */
-    public async connect(): Promise<ConnectionInstance> {
+    public async connect(): Promise<LocalConnectionInstance> {
         try {
             const nameInfo = await this.identGenerator.getIrcNames(
                 this.clientConfig, this.matrixUser
@@ -205,7 +206,7 @@ export class BridgedClient extends EventEmitter {
                 `Connecting to the IRC network '${this.server.domain}' as ${this.nick}...`
             );
 
-            const connInst = await ConnectionInstance.create(this.server, {
+            const connInst = await LocalConnectionInstance.create(this.server, {
                 nick: this.nick,
                 username: nameInfo.username,
                 realname: nameInfo.realname,
@@ -215,7 +216,7 @@ export class BridgedClient extends EventEmitter {
                 localAddress: (
                     this.server.getIpv6Prefix() ? this.clientConfig.getIpv6Address() : undefined
                 )
-            }, (inst: ConnectionInstance) => {
+            }, (inst: LocalConnectionInstance) => {
                 this.onConnectionCreated(inst, nameInfo);
             });
 
@@ -284,7 +285,7 @@ export class BridgedClient extends EventEmitter {
         this.log.info("Rejoined channels");
     }
 
-    public disconnect(reason: InstanceDisconnectReason, textReason?: string, explicit = true) {
+    public disconnect(reason: DisconnectReason, textReason?: string, explicit = true) {
         this._explicitDisconnect = explicit;
         if (!this.inst || this.inst.dead) {
             return Promise.resolve();
@@ -685,7 +686,7 @@ export class BridgedClient extends EventEmitter {
         return this.lastActionTs;
     }
 
-    private onConnectionCreated(connInst: ConnectionInstance, nameInfo: {username?: string}) {
+    private onConnectionCreated(connInst: LocalConnectionInstance, nameInfo: {username?: string}) {
         // listen for a connect event which is done when the TCP connection is
         // established and set ident info (this is different to the connect() callback
         // in node-irc which actually fires on a registered event..)

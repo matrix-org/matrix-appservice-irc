@@ -90,7 +90,7 @@ import { Bridge } from "matrix-appservice-bridge";
 import { ClientPool } from "./ClientPool";
 import { LoggerInstance } from "winston";
 import { BridgedClient } from "./BridgedClient";
-import { IrcMessage, ConnectionInstance } from "./ConnectionInstance";
+import { IrcMessage, LocalConnectionInstance } from "./LocalConnectionInstance";
 import { IrcHandler } from "../bridge/IrcHandler";
 
 const log = getLogger("IrcEventBroker");
@@ -155,7 +155,7 @@ export class IrcEventBroker {
         return false;
     }
 
-    private hookIfClaimed (client: BridgedClient, connInst: ConnectionInstance,
+    private hookIfClaimed (client: BridgedClient, connInst: LocalConnectionInstance,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         eventName: string, fn: (...args: Array<any>) => void) {
         if (client.isBot && !client.server.isBotEnabled()) {
@@ -214,7 +214,7 @@ export class IrcEventBroker {
         complete(req, this.ircHandler.onMetadata(req, client, msg, force));
     }
 
-    public addHooks(client: BridgedClient, connInst: ConnectionInstance) {
+    public addHooks(client: BridgedClient, connInst: LocalConnectionInstance) {
         const server = client.server;
         const ircHandler = this.ircHandler;
 

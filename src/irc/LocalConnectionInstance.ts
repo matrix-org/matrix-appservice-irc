@@ -21,6 +21,7 @@ import * as logging from "../logging";
 import Bluebird from "bluebird";
 import { Defer } from "../promiseutil";
 import { IrcServer } from "./IrcServer";
+import { ConnectionInstance, InstanceDisconnectReason } from "./IConnectionInstance";
 
 const log = logging.get("client-connection");
 
@@ -76,16 +77,12 @@ export interface ConnectionOpts {
     };
 }
 
-export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|
-                                       "toomanyconns"|"banned"|"killed"|"idle"|"limit_reached"|
-                                       "iwantoreconnect";
-
-export class ConnectionInstance {
+export class LocalConnectionInstance implements ConnectionInstance {
     public dead = false;
     private state: "created"|"connecting"|"connected" = "created";
     private pingRateTimerId: NodeJS.Timer|null = null;
     private clientSidePingTimeoutTimerId: NodeJS.Timer|null = null;
-    private connectDefer: Defer<ConnectionInstance>;
+    private connectDefer: Defer<LocalConnectionInstance>;
     public onDisconnect?: (reason: string) => void;
     /**
      * Create an IRC connection instance. Wraps the node-irc library to handle
@@ -107,7 +104,7 @@ export class ConnectionInstance {
      * connect.
      * @return {Promise} Resolves if connected; rejects if failed to connect.
      */
-    public connect(): Promise<ConnectionInstance> {
+    public connect(): Promise<LocalConnectionInstance> {
         if (this.dead) {
             throw new Error("connect() called on dead client: " + this.nick);
         }
@@ -345,7 +342,7 @@ export class ConnectionInstance {
      * @return {Promise} Resolves to an ConnectionInstance or rejects.
      */
     public static async create (server: IrcServer, opts: ConnectionOpts,
-                                onCreatedCallback?: (inst: ConnectionInstance) => void): Promise<ConnectionInstance> {
+                                onCreatedCallback?: (inst: LocalConnectionInstance) => void): Promise<LocalConnectionInstance> {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
         }
@@ -373,7 +370,7 @@ export class ConnectionInstance {
             const nodeClient = new Client(
                 server.randomDomain(), opts.nick, connectionOpts
             );
-            const inst = new ConnectionInstance(
+            const inst = new LocalConnectionInstance(
                 nodeClient, server.domain, opts.nick
             );
             if (onCreatedCallback) {
@@ -391,7 +388,7 @@ export class ConnectionInstance {
                     // wait until scheduled
                     return (await Scheduler.reschedule(
                         server, retryTimeMs, retryConnection, opts.nick
-                    )) as ConnectionInstance;
+                    )) as LocalConnectionInstance;
                 }
                 // Try to connect immediately: we'll wait if we fail.
                 return await retryConnection();
