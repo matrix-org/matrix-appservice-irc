@@ -99,6 +99,10 @@ export class LocalConnectionInstance implements ConnectionInstance {
         this.connectDefer = promiseutil.defer();
     }
 
+    public get localPort() {
+        return this.client.conn && this.client.conn.localPort ? this.client.conn.localPort : null;
+    }
+
     /**
      * Connect this client to the server. There are zero guarantees this will ever
      * connect.

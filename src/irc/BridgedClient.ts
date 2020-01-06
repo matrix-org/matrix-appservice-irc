@@ -691,11 +691,8 @@ export class BridgedClient extends EventEmitter {
         // established and set ident info (this is different to the connect() callback
         // in node-irc which actually fires on a registered event..)
         connInst.client.once("connect", function() {
-            let localPort = -1;
-            if (connInst.client.conn && connInst.client.conn.localPort) {
-                localPort = connInst.client.conn.localPort;
-            }
-            if (localPort > 0 && nameInfo.username) {
+            const localPort = connInst.localPort;
+            if (localPort && localPort > 0 && nameInfo.username) {
                 Ident.setMapping(nameInfo.username, localPort);
             }
         });

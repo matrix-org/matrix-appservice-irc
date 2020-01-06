@@ -6,7 +6,7 @@ export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"time
 
 export interface ConnectionInstance {
     dead: boolean;
-    client: Client;
+    localPort: null|number;
     onDisconnect?: (reason: string) => void;
     connect: () => Promise<ConnectionInstance>;
     disconnect: (reason: InstanceDisconnectReason, ircReason?: string) => Promise<void>;
