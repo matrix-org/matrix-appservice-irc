@@ -86,7 +86,10 @@ export class MatrixHandler {
     private memberTracker: StateLookup|null = null;
     private adminHandler: AdminRoomHandler;
 
-    constructor(private ircBridge: IrcBridge, config: {eventCacheSize?: number} = {}, private readonly membershipQueue: MembershipQueue) {
+    constructor(
+        private ircBridge: IrcBridge,
+        config: {eventCacheSize?: number} = {},
+        private readonly membershipQueue: MembershipQueue) {
         // maintain a list of room IDs which are being processed invite-wise. This is
         // required because invites are processed asyncly, so you could get invite->msg
         // and the message is processed before the room is created.

@@ -15,7 +15,6 @@ import { RequestLogger } from "../logging";
 import { RoomOrigin } from "../datastore/DataStore";
 import QuickLRU from "quick-lru";
 import { MembershipQueue } from "../util/MembershipQueue";
-import Bluebird from "bluebird";
 
 const NICK_USERID_CACHE_MAX = 512;
 
@@ -79,7 +78,11 @@ export class IrcHandler {
         [key in MetricNames]: number;
     };
     private registeredNicks: {[userId: string]: boolean} = {};
-    constructor (private readonly ircBridge: IrcBridge, config: IrcHandlerConfig = {}, private readonly membershipQueue: MembershipQueue) {
+    constructor (
+        private readonly ircBridge: IrcBridge,
+        config: IrcHandlerConfig = {},
+        private readonly membershipQueue: MembershipQueue
+        ) {
         this.quitDebouncer = new QuitDebouncer(ircBridge);
         this.roomAccessSyncer = new RoomAccessSyncer(ircBridge);
         this.mentionMode = config.mapIrcMentionsToMatrix || "on";
