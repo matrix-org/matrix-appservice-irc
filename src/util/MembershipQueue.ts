@@ -6,7 +6,7 @@ const log = getLogger("MembershipQueue");
 
 const CONCURRENT_ROOM_LIMIT = 8;
 const ATTEMPTS_LIMIT = 10;
-const JOIN_DELAY_MS = 250;
+const JOIN_DELAY_MS = 500;
 const JOIN_DELAY_CAP_MS = 30 * 60 * 1000; // 30 mins
 
 interface QueueUserItem {
@@ -92,7 +92,7 @@ export class MembershipQueue {
             req.log.warn(`Failed to join ${roomId}, delaying for ${delay}ms`);
             req.log.debug(`Failed with: ${ex.errcode} ${ex.message}`);
             await new Promise((r) => setTimeout(r, delay));
-            this.queueMembership(item);
+            this.queueMembership({...item, attempts: item.attempts + 1});
         }
     }
 

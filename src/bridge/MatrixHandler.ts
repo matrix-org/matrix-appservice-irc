@@ -184,7 +184,7 @@ export class MatrixHandler {
         }
         // create a virtual Matrix user for the IRC user
 
-        await this.membershipQueue.join(event.room_id, mxUser.getId(), req, true);
+        await this.membershipQueue.join(event.room_id, invitedUser.getId(), req, true);
         req.log.info("Joined %s to room %s", invitedUser.getId(), event.room_id);
 
         // check if this room is a PM room or not.
