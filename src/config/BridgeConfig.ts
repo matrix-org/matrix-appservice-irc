@@ -49,6 +49,10 @@ export interface BridgeConfig {
             hostname: string;
             port: number;
         };
+        bridgeInfoState?: {
+            enabled: boolean;
+            syncExisting: boolean;
+        };
     };
     sentry?: {
         enabled: boolean;

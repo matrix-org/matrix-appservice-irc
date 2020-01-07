@@ -36,7 +36,7 @@ import { DataStore } from "../datastore/DataStore";
 import { MatrixAction } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
 import { MembershipQueue } from "../util/MembershipQueue";
-
+import { BridgeStateSyncer } from "./BridgeStateSyncer";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -67,7 +67,12 @@ export class IrcBridge {
         remote_request_seconds: Histogram;
     }|null = null;
     private membershipCache: MembershipCache;
+<<<<<<< HEAD
     private readonly membershipQueue: MembershipQueue;
+=======
+    private bridgeStateSyncer!: BridgeStateSyncer;
+
+>>>>>>> Initial work on MSC2346
     constructor(public readonly config: BridgeConfig, private registration: AppServiceRegistration) {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
@@ -413,6 +418,16 @@ export class IrcBridge {
 
         for (const roomId of this.joinedRoomList) {
             this.membershipCache.setMemberEntry(roomId, this.appServiceUserId, "join");
+        }
+        if (this.config.ircService.bridgeInfoState?.enabled) {
+            this.bridgeStateSyncer = new BridgeStateSyncer(this.dataStore, this.bridge);
+            if (this.config.ircService.bridgeInfoState.syncExisting) {
+                this.bridgeStateSyncer.beginSync().then(() => {
+                    log.info("Bridge state syncing completed");
+                }).catch((err) => {
+                    log.error("Bridge state syncing resulted in an error:", err);
+                });
+            }
         }
 
         log.info("Joining mapped Matrix rooms...");
