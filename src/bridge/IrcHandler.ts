@@ -128,11 +128,7 @@ export class IrcHandler {
         if (priv.membership !== "join" && priv.membership !== "invite") {
             log.info("Inviting %s to the existing PM room with %s (current membership=%s)",
                 userId, virtUserId, priv.membership);
-            try {
-                await intent.invite(roomId, userId);
-            } catch (err) {
-                throw Error(err);
-            }
+            await intent.invite(roomId, userId);
             // this should also be echoed back to us via onMatrixMemberEvent but hey,
             // let's do this now as well.
             priv.membership = "invite";
