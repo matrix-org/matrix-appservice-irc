@@ -6,13 +6,12 @@ import { IrcBridge } from "./IrcBridge";
 
 const log = logging("BridgeStateSyncer");
 
-const SYNC_INTERVAL = 1500;
 const SYNC_CONCURRENCY = 3;
 const TYPE = "uk.half-shot.bridge";
 
 interface QueueItem {
     roomId: string;
-    mappings: Array<{networkId: string; channel: string}>
+    mappings: Array<{networkId: string; channel: string}>;
 }
 
 /**
@@ -39,14 +38,17 @@ export class BridgeStateSyncer {
             const key = BridgeStateSyncer.createStateKey(mapping.networkId, mapping.channel);
             try {
                 const eventData = await this.getStateEvent(item.roomId, TYPE, key);
-                if (eventData !== null) {
-                    const expectedContent = this.createBridgeInfoContent(item.roomId, mapping.networkId, mapping.channel);
-                    // Validate
+                if (eventData !== null) { // If found, validate.
+                    const expectedContent = this.createBridgeInfoContent(
+                        item.roomId, mapping.networkId, mapping.channel
+                    );
+
                     const isValid = expectedContent.channel.id === eventData.channel.id &&
                         expectedContent.network.id === eventData.network.id &&
                         expectedContent.network.displayname === eventData.network.displayname &&
                         expectedContent.protocol.id === eventData.protocol.id &&
                         expectedContent.protocol.displayname === eventData.protocol.displayname;
+
                     if (isValid) {
                         log.debug(`${key} is valid`);
                         continue;
@@ -65,7 +67,8 @@ export class BridgeStateSyncer {
             eventContent.creator = owner || intent.client.credentials.userId;
             try {
                 await intent.sendStateEvent(item.roomId, TYPE, key, eventContent);
-            } catch (ex) {
+            }
+            catch (ex) {
                 log.error(`Failed to update room with new state content: ${ex.message}`);
             }
         }
@@ -83,7 +86,8 @@ export class BridgeStateSyncer {
                 return ev.user_id;
             }
             // Event not found or invalid, leave blank.
-        } catch (ex) {
+        }
+        catch (ex) {
             log.warn(`Failed to get m.room.bridging information for room: ${ex.message}`);
         }
         return null;
