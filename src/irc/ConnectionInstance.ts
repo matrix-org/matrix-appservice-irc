@@ -149,7 +149,7 @@ export class ConnectionInstance {
 
         return new Bluebird((resolve) => {
             // close the connection
-            this.client.disconnect(ircReason, () => {});
+            this.client.disconnect(ircReason, () => { /* This is needed for tests */ });
             // remove timers
             if (this.pingRateTimerId) {
                 clearTimeout(this.pingRateTimerId);
