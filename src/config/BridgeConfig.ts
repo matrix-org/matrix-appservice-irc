@@ -51,7 +51,7 @@ export interface BridgeConfig {
         };
         bridgeInfoState?: {
             enabled: boolean;
-            syncExisting: boolean;
+            initial: boolean;
         };
     };
     sentry?: {

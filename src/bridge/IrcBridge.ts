@@ -420,8 +420,8 @@ export class IrcBridge {
             this.membershipCache.setMemberEntry(roomId, this.appServiceUserId, "join");
         }
         if (this.config.ircService.bridgeInfoState?.enabled) {
-            this.bridgeStateSyncer = new BridgeStateSyncer(this.dataStore, this.bridge);
-            if (this.config.ircService.bridgeInfoState.syncExisting) {
+            this.bridgeStateSyncer = new BridgeStateSyncer(this.dataStore, this.bridge, this);
+            if (this.config.ircService.bridgeInfoState.initial) {
                 this.bridgeStateSyncer.beginSync().then(() => {
                     log.info("Bridge state syncing completed");
                 }).catch((err) => {
