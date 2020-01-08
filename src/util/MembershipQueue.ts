@@ -30,6 +30,13 @@ export class MembershipQueue {
         this.queuePool = new QueuePool(CONCURRENT_ROOM_LIMIT, this.serviceQueue.bind(this));
     }
 
+    /**
+     * Join a user to a room
+     * @param roomId The roomId to join
+     * @param userId Leave empty to act as the bot user.
+     * @param req The request entry for logging context
+     * @param retry Should the request retry if it fails
+     */
     public async join(roomId: string, userId: string|undefined, req: BridgeRequest, retry = true) {
         return this.queueMembership({
             roomId,
@@ -41,6 +48,15 @@ export class MembershipQueue {
         });
     }
 
+    /**
+     * Leave OR kick a user from a room
+     * @param roomId The roomId to leave
+     * @param userId Leave empty to act as the bot user.
+     * @param req The request entry for logging context
+     * @param retry Should the request retry if it fails
+     * @param reason Reason for leaving/kicking
+     * @param kickUser The user to be kicked. If left blank, this will be a leave.
+     */
     public async leave(roomId: string, userId: string, req: BridgeRequest,
                        retry = true, reason?: string, kickUser?: string) {
         return this.queueMembership({
