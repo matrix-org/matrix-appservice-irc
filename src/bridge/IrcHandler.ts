@@ -351,6 +351,15 @@ export class IrcHandler {
                     }
                 });
             }
+
+            if (this.ircBridge.stateSyncer) {
+                initialState.push(
+                    this.ircBridge.stateSyncer.createInitialState(
+                        server,
+                        channel,
+                    )
+                )
+            }
             const ircRoom = await this.ircBridge.trackChannel(server, channel);
             const response = await this.ircBridge.getAppServiceBridge().getIntent(
                 virtualMatrixUser.getId()

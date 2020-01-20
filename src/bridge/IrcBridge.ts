@@ -67,12 +67,9 @@ export class IrcBridge {
         remote_request_seconds: Histogram;
     }|null = null;
     private membershipCache: MembershipCache;
-<<<<<<< HEAD
     private readonly membershipQueue: MembershipQueue;
-=======
     private bridgeStateSyncer!: BridgeStateSyncer;
 
->>>>>>> Initial work on MSC2346
     constructor(public readonly config: BridgeConfig, private registration: AppServiceRegistration) {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
@@ -319,6 +316,10 @@ export class IrcBridge {
         return this.config.homeserver.domain;
     }
 
+    public get stateSyncer() {
+        return this.bridgeStateSyncer;
+    }
+
     public async run(port: number|null) {
         const dbConfig = this.config.database;
         // cli port, then config port, then default port
@@ -419,6 +420,7 @@ export class IrcBridge {
         for (const roomId of this.joinedRoomList) {
             this.membershipCache.setMemberEntry(roomId, this.appServiceUserId, "join");
         }
+
         if (this.config.ircService.bridgeInfoState?.enabled) {
             this.bridgeStateSyncer = new BridgeStateSyncer(this.dataStore, this.bridge, this);
             if (this.config.ircService.bridgeInfoState.initial) {
@@ -1034,12 +1036,12 @@ export class IrcBridge {
             }
         });
         const bridgingEvent = stateEvents.find((ev: {type: string}) => ev.type === "m.room.bridging");
+        const bridgeInfoEvent = stateEvents.find((ev: {type: string}) => ev.type === BridgeStateSyncer.EventType);
         if (bridgingEvent) {
-            // The room had a bridge state event, so try to stick it in the new one.
             try {
                 await this.bridge.getIntent().sendStateEvent(
                     newRoomId,
-                    "m.room.bridging",
+                    bridgingEvent.type,
                     bridgingEvent.state_key,
                     bridgingEvent.content
                 );
@@ -1048,6 +1050,21 @@ export class IrcBridge {
             catch (ex) {
                 // We may not have permissions to do so, which means we are basically stuffed.
                 log.warn("Could not send m.room.bridging event to new room:", ex);
+            }
+        }
+        if (bridgeInfoEvent) {
+            try {
+                await this.bridge.getIntent().sendStateEvent(
+                    newRoomId,
+                    bridgeInfoEvent.type,
+                    bridgingEvent.state_key,
+                    bridgingEvent.content
+                );
+                log.info("Bridge info event copied to new room");
+            }
+            catch (ex) {
+                // We may not have permissions to do so, which means we are basically stuffed.
+                log.warn("Could not send bridge info event to new room:", ex);
             }
         }
         await Bluebird.all(rooms.map((room) => {

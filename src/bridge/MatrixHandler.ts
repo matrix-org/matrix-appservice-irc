@@ -13,6 +13,7 @@ import { IrcAction } from "../models/IrcAction";
 import { toIrcLowerCase } from "../irc/formatting";
 import { AdminRoomHandler } from "./AdminRoomHandler";
 import { MembershipQueue } from "../util/MembershipQueue";
+import { BridgeStateSyncer } from "./BridgeStateSyncer";
 
 function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
     return promise.then(function(res) {
@@ -1031,6 +1032,14 @@ export class MatrixHandler {
                             groups: [channelInfo.server.getGroupId()]
                         }
                     });
+                }
+                if (this.ircBridge.stateSyncer) {
+                    options.initial_state.push(
+                        this.ircBridge.stateSyncer.createInitialState(
+                            channelInfo.server,
+                            channelInfo.channel,
+                        )
+                    )
                 }
                 if (channelInfo.server.forceRoomVersion()) {
                     options.room_version = channelInfo.server.forceRoomVersion();

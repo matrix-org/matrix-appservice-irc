@@ -227,6 +227,14 @@ export class AdminRoomHandler {
                     }
                 });
             }
+            if (this.ircBridge.stateSyncer) {
+                initialState.push(
+                    this.ircBridge.stateSyncer.createInitialState(
+                        server,
+                        ircChannel,
+                    )
+                )
+            }
             const ircRoom = await this.ircBridge.trackChannel(server, ircChannel, key);
             const response = await this.ircBridge.getAppServiceBridge().getIntent(
                 sender,
