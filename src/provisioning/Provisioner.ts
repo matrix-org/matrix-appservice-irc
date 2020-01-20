@@ -1,7 +1,7 @@
 import { Request } from "express";
 import { IrcBridge } from "../bridge/IrcBridge";
 import { Defer } from "../promiseutil";
-import { ConfigValidator, MatrixRoom, MatrixUser, Intent } from "matrix-appservice-bridge";
+import { ConfigValidator, MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import Bluebird from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcAction } from "../models/IrcAction";

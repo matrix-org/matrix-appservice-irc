@@ -13,7 +13,6 @@ import { IrcAction } from "../models/IrcAction";
 import { toIrcLowerCase } from "../irc/formatting";
 import { AdminRoomHandler } from "./AdminRoomHandler";
 import { MembershipQueue } from "../util/MembershipQueue";
-import { BridgeStateSyncer } from "./BridgeStateSyncer";
 
 function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
     return promise.then(function(res) {

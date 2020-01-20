@@ -38,7 +38,7 @@ export class BridgeStateSyncer {
         for (const mapping of item.mappings) {
             const key = BridgeStateSyncer.createStateKey(mapping.networkId, mapping.channel);
             try {
-                const eventData = await this.getStateEvent(item.roomId, TYPE, key);
+                const eventData = await this.getStateEvent(item.roomId, BridgeStateSyncer.EventType, key);
                 if (eventData !== null) { // If found, validate.
                     const expectedContent = this.createBridgeInfoContent(
                         mapping.networkId, mapping.channel
@@ -67,7 +67,7 @@ export class BridgeStateSyncer {
             const owner = await this.determineProvisionedOwner(item.roomId, mapping.networkId, mapping.channel);
             eventContent.creator = owner || intent.client.credentials.userId;
             try {
-                await intent.sendStateEvent(item.roomId, TYPE, key, eventContent);
+                await intent.sendStateEvent(item.roomId, BridgeStateSyncer.EventType, key, eventContent);
             }
             catch (ex) {
                 log.error(`Failed to update room with new state content: ${ex.message}`);
@@ -77,7 +77,7 @@ export class BridgeStateSyncer {
 
     public createInitialState(server: IrcServer, channel: string, owner?: string) {
         return {
-            type: TYPE,
+            type: BridgeStateSyncer.EventType,
             content: this.createBridgeInfoContent(server, channel, owner),
             state_key: BridgeStateSyncer.createStateKey(server.domain, channel)
         };
