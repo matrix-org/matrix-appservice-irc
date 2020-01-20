@@ -43,7 +43,7 @@ export class IrcAction {
                 }
                 if (matrixAction.htmlText) {
                     const text = ircFormatting.htmlToIrc(matrixAction.htmlText);
-                    const ircText = text !== null ? text : matrixAction.text; // fallback if needed.
+                    const ircText = text ?? matrixAction.text; // fallback if needed.
                     if (ircText === null) {
                         throw Error("ircText is null");
                     }

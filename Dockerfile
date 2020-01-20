@@ -15,7 +15,9 @@ WORKDIR /build
 
 RUN apt-get update && apt-get install -y git python3 libicu-dev build-essential
 
-COPY . /build/
+COPY src/ /build/src/ 
+COPY types/ /build/types/
+COPY .eslintrc *json /build/
 
 RUN npm ci
 RUN npm run build
@@ -34,7 +36,7 @@ COPY --from=freebind /freebindfree/libfreebindfree.so /app/libfreebindfree.so
 COPY --from=builder /build/node_modules /app/node_modules
 COPY --from=builder /build/lib /app/lib
 
-COPY app.js /app/
+COPY app.js config.schema.yml /app/
 COPY docker /app/docker
 
 ENV LD_PRELOAD /app/libfreebindfree.so

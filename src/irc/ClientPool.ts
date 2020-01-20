@@ -348,7 +348,7 @@ export class ClientPool {
             return undefined;
         }
         const cli = this.virtualClients[server.domain].nicks[nick];
-        if (!cli || cli.isDead()) {
+        if (cli?.isDead()) {
             return undefined;
         }
         return cli;

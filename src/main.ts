@@ -22,8 +22,16 @@ const log = logging.get("main");
 http.globalAgent.maxSockets = 1000;
 https.globalAgent.maxSockets = 1000;
 
-process.on("unhandledRejection", (reason?: Error) => {
-    log.error((reason ? reason.stack : undefined) || "No reason given");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+process.on("unhandledRejection", (reason: any) => {
+    let reasonStr = "No reason given";
+    if (reason && reason.stack) {
+        reasonStr = reason.stack
+    }
+    else if (typeof(reason) === "string") {
+        reasonStr = reason;
+    }
+    log.error(reasonStr);
 });
 
 const _toServer = (domain: string, serverConfig: any, homeserverDomain: string) => {
@@ -68,7 +76,7 @@ export function generateRegistration(reg: AppServiceRegistration, config: Bridge
 }
 
 export async function runBridge(port: number, config: BridgeConfig, reg: AppServiceRegistration, isDBInMemory = false) {
-    if (config.sentry && config.sentry.dsn) {
+    if (config.sentry && config.sentry.enabled && config.sentry.dsn) {
         log.info("Sentry ENABLED");
         Sentry.init({
             dsn: config.sentry.dsn,

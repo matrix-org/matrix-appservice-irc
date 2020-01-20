@@ -306,7 +306,14 @@ export class PgDataStore implements DataStore {
     }
 
     public async setPmRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom, userId: string, virtualUserId: string): Promise<void> {
-        await this.pgPool.query("INSERT INTO pm_rooms VALUES ($1, $2, $3, $4, $5)", [
+        await this.pgPool.query(
+            PgDataStore.BuildUpsertStatement("pm_rooms", "ON CONSTRAINT cons_pm_rooms_matrix_irc_unique", [
+            "room_id",
+            "irc_domain",
+            "irc_nick",
+            "matrix_user_id",
+            "virtual_user_id",
+        ]), [
             matrixRoom.getId(),
             ircRoom.getDomain(),
             ircRoom.getChannel(),

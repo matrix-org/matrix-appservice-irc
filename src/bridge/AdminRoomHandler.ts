@@ -268,7 +268,7 @@ export class AdminRoomHandler {
         });
         for (const r of matrixRooms) {
             const userMustJoin = (
-                key || server.shouldSyncMembershipToIrc("incremental", r.getId())
+                key ?? server.shouldSyncMembershipToIrc("incremental", r.getId())
             );
             if (!userMustJoin) {
                 continue;
@@ -283,7 +283,7 @@ export class AdminRoomHandler {
         for (let i = 0; i < matrixRooms.length; i++) {
             const m = matrixRooms[i];
             const userMustJoin = (
-                key || server.shouldSyncMembershipToIrc("incremental", m.getId())
+                key ?? server.shouldSyncMembershipToIrc("incremental", m.getId())
             );
             if (userMustJoin) {
                 // force join then break out (we only ever join once no matter how many

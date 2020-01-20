@@ -80,7 +80,7 @@ export class IrcBridge {
             });
         }
         // Dependency graph
-        this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler);
+        this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {});
         if (!this.config.database && this.config.ircService.databaseUri) {
             log.warn("ircService.databaseUri is a deprecated config option." +
                      "Please use the database configuration block");

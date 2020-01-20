@@ -11,6 +11,7 @@
     "composite": false,
     "strict": true,
     "esModuleInterop": true,
+    "strictNullChecks": true,
     "typeRoots": [
       "./types"
     ]
