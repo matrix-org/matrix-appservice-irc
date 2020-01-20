@@ -1,3 +1,21 @@
+ 0.14.0 (2020-01-20)
+====================
+
+Bugfixes
+--------
+
+- If a new DM room is created for a IRC user, discard the old room. ([\#919](https://github.com/matrix-org/matrix-appservice-irc/issues/919))
+- Fix missig config.schema.yml in the Docker image ([\#920](https://github.com/matrix-org/matrix-appservice-irc/issues/920))
+- Stop trying to use sentry when config.sentry.enabled is false ([\#921](https://github.com/matrix-org/matrix-appservice-irc/issues/921))
+- Improve reply matching logic for Matrix messages. ([\#925](https://github.com/matrix-org/matrix-appservice-irc/issues/925))
+
+
+Internal Changes
+----------------
+
+- Use Typescript 3.7 and fix build issues. ([\#931](https://github.com/matrix-org/matrix-appservice-irc/issues/931))
+
+
 0.14.0-rc4 (2019-12-18)
 ========================
 
