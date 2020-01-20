@@ -1,0 +1,1 @@
+Removed `upgrade-db-0.*.js` scripts. Use an older release to upgrade NeDB.
