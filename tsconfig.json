@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+    "target": "ES2017",
+    "module": "commonjs",
+    "allowJs": true,
+    "checkJs": false,
+    "declaration": false,
+    "sourceMap": true,
+    "outDir": "./lib",
+    "composite": false,
+    "strict": true,
+    "esModuleInterop": true,
+    "strictNullChecks": true,
+    "typeRoots": [
+      "./types"
+    ]
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "spec/**/*",
+    "scripts/**/*",
+    "app.js"
+  ]
+}

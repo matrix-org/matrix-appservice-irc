@@ -5,14 +5,14 @@ const main = require("./lib/main");
 const path = require("path");
 
 const REG_PATH = "appservice-registration-irc.yaml";
-
 new Cli({
     registrationPath: REG_PATH,
     enableRegistration: true,
     enableLocalpart: true,
+    port: -1, // Set this here so we know if the port is a default
     bridgeConfig: {
         affectsRegistration: true,
-        schema: path.join(__dirname, "lib/config/schema.yml"),
+        schema: path.join(__dirname, "config.schema.yml"),
         defaults: {
             homeserver: {
                 dropMatrixMessagesAfterSecs: 0,
@@ -37,14 +37,34 @@ new Cli({
         }
     },
     generateRegistration: function(reg, callback) {
-        main.generateRegistration(reg, this.getConfig()).done(function(completeRegistration) {
-            callback(completeRegistration);
-        });
+        try {
+            const completeReg = main.generateRegistration(reg, this.getConfig());
+            callback(completeReg);
+        }
+        catch (ex) {
+            log.error("Failed to generate registration:", ex);
+            process.exit(1);
+        }
     },
     run: function(port, config, reg) {
-        main.runBridge(port, config, reg).catch(function(err) {
+        if (port === -1) {
+            port = null;
+        }
+        const bridge = main.runBridge(port, config, reg).catch(function(err) {
             log.error("Failed to run bridge.");
-            throw err;
+            process.exit(1);
+        });
+
+        process.on("SIGTERM", async () => {
+            log.info("SIGTERM recieved, killing bridge");
+            try {
+                await main.killBridge(await bridge);
+            }
+            catch (ex) {
+                log.error("Failed to killBridge:", ex);
+                process.exit(1);
+            }
+            process.exit(0);
         });
     }
 }).run();

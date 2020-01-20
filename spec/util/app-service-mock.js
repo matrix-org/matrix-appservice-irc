@@ -85,6 +85,9 @@ MockAppService.prototype.listen = function(port) {
 };
 
 MockAppService.prototype._trigger = function(eventType, content) {
+    if (content.user_id) {
+        content.sender = content.user_id;
+    }
     var listeners = instance.listeners(eventType);
     var promises = listeners.map(function(l) {
         return l(content);

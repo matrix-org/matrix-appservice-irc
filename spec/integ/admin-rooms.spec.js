@@ -34,6 +34,7 @@ describe("Creating admin rooms", function() {
         yield env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
+                is_direct: true,
             },
             state_key: botUserId,
             user_id: "@someone:somewhere",
@@ -41,6 +42,40 @@ describe("Creating admin rooms", function() {
             type: "m.room.member"
         });
         expect(botJoinedRoom).toBe(true);
+    }));
+
+    it("should not create a room for a non is_direct invite",
+    test.coroutine(function*() {
+        let botJoinedRoom = false;
+        let sdk = env.clientMock._client(botUserId);
+        sdk.joinRoom.and.callFake(function(roomId) {
+            expect(roomId).toEqual("!adminroomid:here");
+            botJoinedRoom = true;
+            return Promise.resolve({});
+        });
+
+        yield env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "invite",
+            },
+            state_key: botUserId,
+            user_id: "@someone:somewhere",
+            room_id: "!adminroomid:here",
+            type: "m.room.member"
+        });
+
+        yield env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "invite",
+                is_direct: false,
+            },
+            state_key: botUserId,
+            user_id: "@someone:somewhere",
+            room_id: "!adminroomid:here",
+            type: "m.room.member"
+        });
+
+        expect(botJoinedRoom).toBe(false);
     }));
 });
 
@@ -98,7 +133,8 @@ describe("Admin rooms", function() {
             // auto-setup an admin room
             return env.mockAppService._trigger("type:m.room.member", {
                 content: {
-                    membership: "invite"
+                    membership: "invite",
+                    is_direct: true
                 },
                 state_key: botUserId,
                 user_id: userId,
@@ -1051,5 +1087,106 @@ describe("Admin rooms", function() {
         });
     });
 
-    // Bad format unknown set value
+    it("should be able to store a password with !storepass", async function() {
+        const sdk = env.clientMock._client(botUserId);
+
+        const sendPromise = sdk.sendEvent.and.callFake(async (roomId, _, content) => {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).toEqual(
+                "Successfully stored password for irc.example. You will now be reconnected to IRC."
+            );
+            return {};
+        });
+
+        const disconnectPromise = env.ircMock._whenClient(roomMapping.server, userIdNick, "disconnect", () => { });
+        const connectPromise = env.ircMock._whenClient(roomMapping.server, userIdNick, "connect", () => { });
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!storepass foobar",
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+        await sendPromise;
+        // Ensure that the user reconnects
+        await disconnectPromise;
+        await connectPromise;
+    });
+
+    it("should be able to store a username:password with !storepass", async function() {
+        const password = "mynick:foopassword"
+        const sdk = env.clientMock._client(botUserId);
+
+        const sendPromise = sdk.sendEvent.and.callFake(async (roomId, _, content) => {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).toEqual(
+                "Successfully stored password for irc.example. You will now be reconnected to IRC."
+            );
+            return {};
+        });
+        const disconnectPromise = env.ircMock._whenClient(roomMapping.server, userIdNick, "disconnect", () => { });
+        const connectPromise = env.ircMock._whenClient(roomMapping.server, userIdNick, "connect", (client) => {
+            const opts = client.opts;
+            expect(opts.password).toBe(password);
+        });
+
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: `!storepass ${password}`,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+        await sendPromise;
+        await disconnectPromise;
+        await connectPromise;
+    });
+
+
+    it("should be able to remove a password with !removepass", async function() {
+        const sdk = env.clientMock._client(botUserId);
+
+        let sendPromise = sdk.sendEvent.and.callFake(async (roomId, _, content) => {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).toEqual(
+                "Successfully stored password for irc.example. You will now be reconnected to IRC."
+            );
+            return {};
+        });
+
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!storepass foobar",
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        sendPromise = sdk.sendEvent.and.callFake(async (roomId, _, content) => {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).toEqual("Successfully removed password.");
+            return {};
+        });
+
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!removepass",
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+        await sendPromise;
+    });
 });
