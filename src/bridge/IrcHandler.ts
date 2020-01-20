@@ -74,16 +74,17 @@ export class IrcHandler {
 
     public readonly roomAccessSyncer: RoomAccessSyncer;
 
-    private readonly membershipQueue: MembershipQueue;
-
     private callCountMetrics?: {
         [key in MetricNames]: number;
     };
     private registeredNicks: {[userId: string]: boolean} = {};
-    constructor (private readonly ircBridge: IrcBridge, config: IrcHandlerConfig = {}) {
+    constructor (
+        private readonly ircBridge: IrcBridge,
+        config: IrcHandlerConfig = {},
+        private readonly membershipQueue: MembershipQueue
+        ) {
         this.quitDebouncer = new QuitDebouncer(ircBridge);
         this.roomAccessSyncer = new RoomAccessSyncer(ircBridge);
-        this.membershipQueue = new MembershipQueue(ircBridge.getAppServiceBridge());
         this.mentionMode = config.mapIrcMentionsToMatrix || "on";
         this.getMetrics();
     }
@@ -120,12 +121,14 @@ export class IrcHandler {
             log.info("Querying PM room state (%s) between %s and %s",
                 roomId, userId, virtUserId);
             priv = (await intent.getStateEvent(roomId, "m.room.member", userId));
+            this.roomIdToPrivateMember[roomId] = priv;
         }
+
 
         // we should have the latest membership state now for this user (either we just
         // fetched it or it has been kept in sync via onMatrixMemberEvent calls)
 
-        if (priv.membership !== "join" && priv.membership !== "invite") { // fix it!
+        if (priv.membership !== "join" && priv.membership !== "invite") {
             log.info("Inviting %s to the existing PM room with %s (current membership=%s)",
                 userId, virtUserId, priv.membership);
             await intent.invite(roomId, userId);
@@ -231,6 +234,8 @@ export class IrcHandler {
 
         const virtualMatrixUser = await this.ircBridge.getMatrixUser(fromUser);
         req.log.info("Mapped to %s", JSON.stringify(virtualMatrixUser));
+
+        // Try to get the room from the store.
         let pmRoom = await this.ircBridge.getStore().getMatrixPmRoom(
             bridgedIrcClient.userId, virtualMatrixUser.getId()
         );

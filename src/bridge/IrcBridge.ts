@@ -35,6 +35,7 @@ import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
 import { MatrixAction } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
+import { MembershipQueue } from "../util/MembershipQueue";
 
 
 const log = getLogger("IrcBridge");
@@ -66,6 +67,7 @@ export class IrcBridge {
         remote_request_seconds: Histogram;
     }|null = null;
     private membershipCache: MembershipCache;
+    private readonly membershipQueue: MembershipQueue;
     constructor(public readonly config: BridgeConfig, private registration: AppServiceRegistration) {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
@@ -79,8 +81,6 @@ export class IrcBridge {
                 defaultOnline: true,
             });
         }
-        // Dependency graph
-        this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {});
         if (!this.config.database && this.config.ircService.databaseUri) {
             log.warn("ircService.databaseUri is a deprecated config option." +
                      "Please use the database configuration block");
@@ -158,7 +158,9 @@ export class IrcBridge {
             },
             membershipCache: this.membershipCache,
         });
-        this.ircHandler = new IrcHandler(this, this.config.ircHandler);
+        this.membershipQueue = new MembershipQueue(this.bridge);
+        this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
+        this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue);
 
         // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
         MatrixUser.ESCAPE_DEFAULT = false;
@@ -178,6 +180,7 @@ export class IrcBridge {
             homeserverToken,
             httpMaxSizeBytes: (this.config.advanced || { }).maxTxnSize || TXN_SIZE_DEFAULT,
         });
+
     }
 
     private initialiseMetrics() {
