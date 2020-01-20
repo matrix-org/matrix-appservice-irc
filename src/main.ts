@@ -6,7 +6,6 @@ import https from "https";
 import { RoomBridgeStore, UserBridgeStore } from "matrix-appservice-bridge";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { IrcServer } from "./irc/IrcServer";
-import stats from "./config/stats";
 import ident from "./irc/Ident";
 import * as logging from "./logging";
 import { LoggerInstance } from "winston";
@@ -97,7 +96,6 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
     if (config.ircService.statsd.hostname) {
         log.warn("STATSD WILL BE DEPRECATED SOON")
         log.warn("SEE https://github.com/matrix-org/matrix-appservice-irc/issues/818")
-        stats.setEndpoint(config.ircService.statsd);
     }
     if (config.ircService.ident && config.ircService.ident.enabled) {
         ident.configure(config.ircService.ident);

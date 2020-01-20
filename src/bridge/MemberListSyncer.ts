@@ -11,7 +11,6 @@ import { IrcRoom } from "../models/IrcRoom";
 import { BridgeRequest } from "../models/BridgeRequest";
 import * as promiseutil from "../promiseutil";
 import { Queue } from "../util/Queue";
-import stats from "../config/stats";
 
 const log = logging("MemberListSyncer");
 
@@ -364,7 +363,6 @@ export class MemberListSyncer {
             // Do this here, we might not manage to leave but we won't retry.
             this.usersToLeave--;
             await this.ircBridge.getAppServiceBridge().getIntent(userId).leave(item.roomId);
-            stats.membership(true, "part");
         });
 
         await Promise.all(item.userIds.map((userId) =>
