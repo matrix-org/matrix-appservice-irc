@@ -27,7 +27,6 @@ new Cli({
                     level: "debug",
                     toConsole: true
                 },
-                statsd: {},
                 debugApi: {},
                 provisioning: {
                     enabled: false,

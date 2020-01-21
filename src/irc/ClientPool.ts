@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import * as stats from "../config/stats";
 import { getLogger } from "../logging";
 import { QueuePool } from "../util/QueuePool";
 import Bluebird from "bluebird";
@@ -395,7 +394,6 @@ export class ClientPool {
         }
 
         const numConnections = this.getNumberOfConnections(server);
-        this.sendConnectionMetric(server);
 
         if (numConnections < server.getMaxClients()) {
             // under the limit, we're good for now.
@@ -509,10 +507,6 @@ export class ClientPool {
         return this.virtualClientCounts[server.domain];
     }
 
-    private sendConnectionMetric(server: IrcServer): void {
-        stats.ircClients(server.domain, this.getNumberOfConnections(server));
-    }
-
     private removeBridgedClient(bridgedClient: BridgedClient): void {
         const server = bridgedClient.server;
         if (bridgedClient.userId) {
@@ -549,7 +543,6 @@ export class ClientPool {
 
     private async onClientDisconnected(bridgedClient: BridgedClient) {
         this.removeBridgedClient(bridgedClient);
-        this.sendConnectionMetric(bridgedClient.server);
 
         // remove the pending nick we had set for this user
         if (this.virtualClients[bridgedClient.server.domain]) {
@@ -615,7 +608,6 @@ export class ClientPool {
     private async reconnectClient(cliChan: ReconnectionItem) {
         try {
             await cliChan.cli.reconnect();
-            this.sendConnectionMetric(cliChan.cli.server);
         }
         catch (ex) {
             log.error(
