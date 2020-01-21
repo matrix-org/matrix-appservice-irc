@@ -81,8 +81,7 @@ export class IrcHandler {
     constructor (
         private readonly ircBridge: IrcBridge,
         config: IrcHandlerConfig = {},
-        private readonly membershipQueue: MembershipQueue
-        ) {
+        private readonly membershipQueue: MembershipQueue) {
         this.quitDebouncer = new QuitDebouncer(ircBridge);
         this.roomAccessSyncer = new RoomAccessSyncer(ircBridge);
         this.mentionMode = config.mapIrcMentionsToMatrix || "on";
@@ -522,6 +521,15 @@ export class IrcHandler {
         if (fromUser.isVirtual) {
             return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
+        const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
+
+        if (matrixRooms.length === 0) {
+            req.log.info(
+                "No mapped matrix rooms for IRC channel %s",
+                channel
+            );
+            return undefined;
+        }
 
         req.log.info("onMessage: %s from=%s to=%s action=%s",
             server.domain, fromUser, channel, JSON.stringify(action).substring(0, 80)
@@ -583,19 +591,12 @@ export class IrcHandler {
             this.registeredNicks[nickKey] = true;
         }
 
-        const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
         const promises = [];
         for (const room of matrixRooms) {
             req.log.info(
                 "Relaying in room %s", room.getId()
             );
             promises.push(this.ircBridge.sendMatrixAction(room, virtualMatrixUser, mxAction));
-        }
-        if (matrixRooms.length === 0) {
-            req.log.info(
-                "No mapped matrix rooms for IRC channel %s",
-                channel
-            );
         }
         await Promise.all(promises);
         return undefined;
