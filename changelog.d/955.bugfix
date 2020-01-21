@@ -1,1 +1,0 @@
-Fix issue where bridges using NeDB would not start.

@@ -1,4 +1,13 @@
- 0.14.0 (2020-01-20)
+ 0.14.1 (2020-01-21)
+====================
+
+Bugfixes
+--------
+
+- Fix issue where bridges using NeDB would not start. ([\#955](https://github.com/matrix-org/matrix-appservice-irc/issues/955))
+
+
+0.14.0 (2020-01-20)
 ====================
 
 Bugfixes
