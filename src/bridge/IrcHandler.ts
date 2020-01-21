@@ -8,7 +8,6 @@ import { BridgedClient } from "../irc/BridgedClient";
 import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { IrcAction } from "../models/IrcAction";
-import stats from "../config/stats";
 import { IrcRoom } from "../models/IrcRoom";
 import { MatrixAction } from "../models/MatrixAction";
 import { RequestLogger } from "../logging";
@@ -670,9 +669,6 @@ export class IrcHandler {
         if (matrixRooms.length === 0) {
             req.log.info("No mapped matrix rooms for IRC channel %s", chan);
         }
-        else {
-            stats.membership(true, "join");
-        }
         await Promise.all(promises);
         return undefined;
     }
@@ -833,7 +829,6 @@ export class IrcHandler {
                 req.log.warn("Failed to remove power levels for leaving user.");
             }
         }));
-        stats.membership(true, "part");
         await promise;
         return undefined;
     }

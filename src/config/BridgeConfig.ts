@@ -45,10 +45,6 @@ export interface BridgeConfig {
             address: string;
             port: number;
         };
-        statsd: {
-            hostname: string;
-            port: number;
-        };
         bridgeInfoState?: {
             enabled: boolean;
             initial: boolean;

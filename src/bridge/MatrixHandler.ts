@@ -7,7 +7,6 @@ import { IrcRoom } from "../models/IrcRoom";
 import logging from "../logging";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcServer } from "../irc/IrcServer";
-import stats from "../config/stats";
 import Bluebird = require("bluebird");
 import { IrcAction } from "../models/IrcAction";
 import { toIrcLowerCase } from "../irc/formatting";
@@ -522,7 +521,6 @@ export class MatrixHandler {
             return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
 
-        stats.membership(false, "join");
         await Promise.all(promises);
         return null;
     }
@@ -691,7 +689,6 @@ export class MatrixHandler {
                 }
             }
         }));
-        stats.membership(false, "part");
         await Promise.all(promises);
         return null;
     }

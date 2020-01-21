@@ -10,7 +10,6 @@ import { BridgedClient } from "../irc/BridgedClient";
 import { IrcUser } from "../models/IrcUser";
 import { IrcRoom } from "../models/IrcRoom";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
-import stats from "../config/stats";
 import { NeDBDataStore } from "../datastore/NedbDataStore";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
 import { getLogger } from "../logging";
@@ -540,29 +539,21 @@ export class IrcBridge {
                 return;
             }
             logMessage(req, "SUCCESS");
-            const isFromIrc = Boolean((req.getData() || {}).isFromIrc);
-            stats.request(isFromIrc, "success", req.getDuration());
             this.logMetric(req, "success");
         });
         // FAILURE
         this.bridge.getRequestFactory().addDefaultRejectCallback((req) => {
-            const isFromIrc = Boolean((req.getData() || {}).isFromIrc);
             logMessage(req, "FAILED");
-            stats.request(isFromIrc, "fail", req.getDuration());
             this.logMetric(req, "fail");
             BridgeRequest.HandleExceptionForSentry(req, "fail");
         });
         // DELAYED
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
             logMessage(req, "DELAYED");
-            const isFromIrc = Boolean((req.getData() || {}).isFromIrc);
-            stats.request(isFromIrc, "delay", req.getDuration());
         }, DELAY_TIME_MS);
         // DEAD
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
             logMessage(req, "DEAD");
-            const isFromIrc = Boolean((req.getData() || {}).isFromIrc);
-            stats.request(isFromIrc, "dead", req.getDuration());
             this.logMetric(req, "dead");
             BridgeRequest.HandleExceptionForSentry(req, "dead");
         }, DEAD_TIME_MS);
