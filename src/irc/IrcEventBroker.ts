@@ -461,7 +461,6 @@ export class IrcEventBroker {
                     req, server, createUser(from), to, new IrcAction("notice", text)
                 ));
             }, req);
-                
         });
         this.hookIfClaimed(client, connInst, "topic", function(channel: string, topic: string, nick: string) {
             if (channel.indexOf("#") !== 0) { return; }
@@ -489,15 +488,15 @@ export class IrcEventBroker {
      * milliseconds, in which case they will "jump" the queue. This ensures that messages will be
      * hopefully ordered correctly, but will not arrive too late if the IRC bridge or the homeserver
      * is running slow.
-     * 
+     *
      * @param channel The channel to key the queue on.
      * @param req The request function
      * @param request The request object for logging to.
      */
-    private async bufferRequestToChannel(roomId: string, req: () => Promise<unknown>, request: BridgeRequest) {
-        this.channelReqBuffer[roomId] = (async () => {
+    private async bufferRequestToChannel(channel: string, req: () => Promise<unknown>, request: BridgeRequest) {
+        this.channelReqBuffer[channel] = (async () => {
             // Get the existing promise.
-            const existing = this.channelReqBuffer[roomId] || Promise.resolve();
+            const existing = this.channelReqBuffer[channel] || Promise.resolve();
             try {
                 // Wait ROOM_BUFFER_TIMEOUT ms for the promise to complete.
                 await new Promise((res, rej) => {
