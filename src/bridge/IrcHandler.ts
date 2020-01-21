@@ -17,6 +17,7 @@ import QuickLRU from "quick-lru";
 import { MembershipQueue } from "../util/MembershipQueue";
 
 const NICK_USERID_CACHE_MAX = 512;
+const ROOM_BUFFER_TIMEOUT = 5000; // 5 seconds.
 
 type MatrixMembership = "join"|"invite"|"leave"|"ban";
 
@@ -78,6 +79,9 @@ export class IrcHandler {
         [key in MetricNames]: number;
     };
     private registeredNicks: {[userId: string]: boolean} = {};
+
+    private roomPromiseBuffer: {[roomId: string]: Promise<unknown>} = {};
+
     constructor (
         private readonly ircBridge: IrcBridge,
         config: IrcHandlerConfig = {},
@@ -596,7 +600,13 @@ export class IrcHandler {
             req.log.info(
                 "Relaying in room %s", room.getId()
             );
-            promises.push(this.ircBridge.sendMatrixAction(room, virtualMatrixUser, mxAction));
+            promises.push(
+                this.bufferRequestToRoom(
+                    room.getId(), () =>
+                    this.ircBridge.sendMatrixAction(room, virtualMatrixUser, mxAction),
+                    req
+                ),
+            );
         }
         await Promise.all(promises);
         return undefined;
@@ -957,6 +967,49 @@ export class IrcHandler {
 
     private invalidateNickUserIdMap(server: IrcServer, channel: string) {
         this.nickUserIdMapCache.delete(`${server.domain}:${channel}`);
+    }
+
+    /**
+     * This function "soft" queues functions acting on a single room. This means
+     * that messages will be processed in order, unless they take longer than `ROOM_BUFFER_TIMEOUT`
+     * milliseconds, in which case they will "jump" the queue. This ensures that messages will be
+     * hopefully ordered correctly, but will not arrive too late if the IRC bridge or the homeserver
+     * is running slow.
+     * @param roomId The roomId to key the queue on.
+     * @param req The request function
+     * @param request The request object for logging to.
+     */
+    private async bufferRequestToRoom(roomId: string, req: () => Promise<unknown>, request: BridgeRequest) {
+        this.roomPromiseBuffer[roomId] = (async () => {
+            // Get the existing promise.
+            const existing = this.roomPromiseBuffer[roomId] || Promise.resolve();
+            try {
+                // Wait ROOM_BUFFER_TIMEOUT ms for the promise to complete.
+                await new Promise((res, rej) => {
+                    const t = setTimeout(() => {
+                        rej(new Error("Timed out waiting"))
+                    }, ROOM_BUFFER_TIMEOUT);
+                    existing.then((data) => {
+                        res(data);
+                    }).catch((data) => {
+                        rej(data);
+                    }).finally(() => {
+                        clearTimeout(t);
+                    });
+                });
+                // If the promise didn't complete in time, continue with the next promise anyway.
+            }
+            catch (ex) {
+                if (ex.message === "Timed out waiting") {
+                    request.log.warn(`Request took >${ROOM_BUFFER_TIMEOUT} to complete.`);
+                }
+                else {
+                    request.log.error(ex.message);
+                }
+                // Fall through.
+            }
+            await req();
+        })();
     }
 }
 
