@@ -51,7 +51,7 @@ new Cli({
             port = null;
         }
         const bridge = main.runBridge(port, config, reg).catch(function(err) {
-            log.error("Failed to run bridge.");
+            log.error("Failed to run bridge.", err);
             process.exit(1);
         });
 
