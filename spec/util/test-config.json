@@ -40,7 +40,6 @@
             "level": "debug",
             "toConsole": true
         },
-        "statsd": {},
         "servers": {
             "irc.example": {
                 "port": 6667,

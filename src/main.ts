@@ -93,10 +93,6 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
         logging.configure(config.ircService.logging);
         logging.setUncaughtExceptionLogger(log as LoggerInstance);
     }
-    if (config.ircService.statsd.hostname) {
-        log.warn("STATSD WILL BE DEPRECATED SOON")
-        log.warn("SEE https://github.com/matrix-org/matrix-appservice-irc/issues/818")
-    }
     if (config.ircService.ident && config.ircService.ident.enabled) {
         ident.configure(config.ircService.ident);
         ident.run();

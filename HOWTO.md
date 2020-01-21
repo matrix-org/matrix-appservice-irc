@@ -268,20 +268,6 @@ ircService:
     port: 1113  # optional (default: 113) but this allows you to run the AS without root.
 ```
 
-### Statsd
-This application service supports sending metrics to a 
-[statsd server](https://github.com/etsy/statsd). Metrics monitored include:
- - Memory usage (RSS, heap, etc)
- - Request outcomes (success/fail) and durations (ms).
- - Number of active IRC client connections
-Sending metrics is disabled by default. To enable this:
-```yaml
-ircService:
-  statsd:
-    hostname: "127.0.0.1"
-    port: 8125
-```
-
 ### Logging
 Logging is configurable in the yaml, but there is also an extra verbose setting
 you can enable. This is done by passing ``--verbose`` or ``-v`` to 
