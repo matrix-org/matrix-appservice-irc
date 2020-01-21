@@ -1,1 +1,1 @@
-Removed `upgrade-db-0.*.js` scripts. Use an older release to upgrade NeDB.
+Removed `upgrade-db-0.*.js` scripts which were used to upgrade old versions of the NeDB database. If you are upgrading from <=0.9.1 then you can find the upgrade scripts [here](https://github.com/matrix-org/matrix-appservice-irc/tree/0.14.0/scripts).
