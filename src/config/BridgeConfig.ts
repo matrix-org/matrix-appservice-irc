@@ -45,6 +45,10 @@ export interface BridgeConfig {
             address: string;
             port: number;
         };
+        bridgeInfoState?: {
+            enabled: boolean;
+            initial: boolean;
+        };
     };
     sentry?: {
         enabled: boolean;

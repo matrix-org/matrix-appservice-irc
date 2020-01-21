@@ -1029,6 +1029,14 @@ export class MatrixHandler {
                         }
                     });
                 }
+                if (this.ircBridge.stateSyncer) {
+                    options.initial_state.push(
+                        this.ircBridge.stateSyncer.createInitialState(
+                            channelInfo.server,
+                            channelInfo.channel,
+                        )
+                    )
+                }
                 if (channelInfo.server.forceRoomVersion()) {
                     options.room_version = channelInfo.server.forceRoomVersion();
                 }
