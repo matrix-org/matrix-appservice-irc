@@ -95,6 +95,8 @@ import { IrcHandler } from "../bridge/IrcHandler";
 
 const log = getLogger("IrcEventBroker");
 
+const BUFFER_TIMEOUT_MS = 5000;
+
 function complete(req: BridgeRequest, promise: Promise<BridgeRequestErr|void>) {
     return promise.then(function(res) {
         req.resolve(res);
@@ -105,6 +107,7 @@ function complete(req: BridgeRequest, promise: Promise<BridgeRequestErr|void>) {
 
 export class IrcEventBroker {
     private processed: ProcessedDict;
+    private channelReqBuffer: {[channel: string]: Promise<unknown>} = {};
     constructor(
         private readonly appServiceBridge: Bridge,
         private readonly pool: ClientPool,
@@ -427,13 +430,15 @@ export class IrcEventBroker {
                 req, server, channel, by, mode, false, arg
             ));
         });
-        this.hookIfClaimed(client, connInst, "message", function(from: string, to: string, text: string) {
+        this.hookIfClaimed(client, connInst, "message", (from: string, to: string, text: string) => {
             if (to.indexOf("#") !== 0) { return; }
             const req = createRequest();
-            complete(req, ircHandler.onMessage(
-                req, server, createUser(from), to,
-                new IrcAction("message", text)
-            ));
+            this.bufferRequestToChannel(to, () => {
+                return complete(req, ircHandler.onMessage(
+                    req, server, createUser(from), to,
+                    new IrcAction("message", text)
+                ));
+            }, req);
         });
         this.hookIfClaimed(client, connInst, "ctcp-privmsg", function(from: string, to: string, text: string) {
             if (to.indexOf("#") !== 0) { return; }
@@ -445,14 +450,18 @@ export class IrcEventBroker {
                 ));
             }
         });
-        this.hookIfClaimed(client, connInst, "notice", function(from: string, to: string, text: string) {
+        this.hookIfClaimed(client, connInst, "notice", (from: string, to: string, text: string) => {
             if (to.indexOf("#") !== 0) { return; }
-            if (from) { // ignore server notices
-                const req = createRequest();
-                complete(req, ircHandler.onMessage(
+            if (!from) { // ignore server notices
+                return;
+            }
+            const req = createRequest();
+            this.bufferRequestToChannel(to, () => {
+                return complete(req, ircHandler.onMessage(
                     req, server, createUser(from), to, new IrcAction("notice", text)
                 ));
-            }
+            }, req);
+                
         });
         this.hookIfClaimed(client, connInst, "topic", function(channel: string, topic: string, nick: string) {
             if (channel.indexOf("#") !== 0) { return; }
@@ -471,5 +480,50 @@ export class IrcEventBroker {
                 req, server, createUser(nick), channel, new IrcAction("topic", topic)
             ));
         });
+    }
+
+
+    /**
+     * This function "soft" queues functions acting on a single channel. This means
+     * that messages will be processed in order, unless they take longer than `BUFFER_TIMEOUT_MS`
+     * milliseconds, in which case they will "jump" the queue. This ensures that messages will be
+     * hopefully ordered correctly, but will not arrive too late if the IRC bridge or the homeserver
+     * is running slow.
+     * 
+     * @param channel The channel to key the queue on.
+     * @param req The request function
+     * @param request The request object for logging to.
+     */
+    private async bufferRequestToChannel(roomId: string, req: () => Promise<unknown>, request: BridgeRequest) {
+        this.channelReqBuffer[roomId] = (async () => {
+            // Get the existing promise.
+            const existing = this.channelReqBuffer[roomId] || Promise.resolve();
+            try {
+                // Wait ROOM_BUFFER_TIMEOUT ms for the promise to complete.
+                await new Promise((res, rej) => {
+                    const t = setTimeout(() => {
+                        rej(new Error("Timed out waiting"))
+                    }, BUFFER_TIMEOUT_MS);
+                    existing.then((data) => {
+                        res(data);
+                    }).catch((data) => {
+                        rej(data);
+                    }).finally(() => {
+                        clearTimeout(t);
+                    });
+                });
+                // If the promise didn't complete in time, continue with the next promise anyway.
+            }
+            catch (ex) {
+                if (ex.message === "Timed out waiting") {
+                    request.log.warn(`Request took >${BUFFER_TIMEOUT_MS} to complete.`);
+                }
+                else {
+                    request.log.error(ex.message);
+                }
+                // Fall through.
+            }
+            await req();
+        })();
     }
 }
