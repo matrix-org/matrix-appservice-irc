@@ -122,9 +122,6 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
         ircBridge.getAppServiceBridge().opts.userStore = undefined;
     }
     else if (engine !== "nedb") {
-        // do nothing.
-    }
-    else {
         throw Error("Invalid database configuration");
     }
 
