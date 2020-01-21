@@ -931,10 +931,6 @@ export class IrcHandler {
         return true;
     }
 
-    private invalidateNickUserIdMap(server: IrcServer, channel: string) {
-        this.nickUserIdMapCache.delete(`${server.domain}:${channel}`);
-    }
-
     public incrementMetric(metric: MetricNames) {
         if (!this.callCountMetrics) { return; /* for TS-safety, but this shouldn't happen */ }
         if (this.callCountMetrics[metric] === undefined) {
@@ -957,6 +953,10 @@ export class IrcHandler {
             "mode": 0,
         };
         return metrics;
+    }
+
+    private invalidateNickUserIdMap(server: IrcServer, channel: string) {
+        this.nickUserIdMapCache.delete(`${server.domain}:${channel}`);
     }
 }
 
