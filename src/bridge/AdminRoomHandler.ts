@@ -169,7 +169,7 @@ export class AdminRoomHandler {
         if (!ircChannel || ircChannel.indexOf("#") !== 0) {
             errText = "Format: '!join irc.example.com #channel [key]'";
         }
-        else if (server.hasInviteRooms() && !server.isInWhitelist(sender)) {
+        else if (!server.canJoinRooms(sender)) {
             errText = "You are not authorised to join channels on this server.";
         }
 

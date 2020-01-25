@@ -289,9 +289,10 @@ export class IrcServer {
         });
     }
 
-    public hasInviteRooms() {
+    public canJoinRooms(userId: string) {
         return (
-            this.config.dynamicChannels.enabled && this.getJoinRule() === "invite"
+            this.config.dynamicChannels.enabled &&
+            (this.getJoinRule() === "public" || this.isInWhitelist(userId))
         );
     }
 
