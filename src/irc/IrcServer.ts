@@ -154,11 +154,15 @@ export class IrcServer {
         const roomIds = new Set<string>();
         const channels = Object.keys(this.config.mappings);
         channels.forEach((chan) => {
-            this.config.mappings[chan].forEach((roomId) => {
+            this.config.mappings[chan].roomIds.forEach((roomId) => {
                 roomIds.add(roomId);
             });
         });
         return Array.from(roomIds.keys());
+    }
+
+    public getChannelKey(channel: string) {
+        return this.config.mappings[channel]?.key;
     }
 
     public shouldSendConnectionNotices() {
@@ -638,7 +642,12 @@ export interface IrcServerConfig {
         delayMinMs: number;
         delayMaxMs: number;
     };
-    mappings: {[channel: string]: string[]}; // chan -> roomId[]
+    mappings: {
+        [channel: string]: {
+            roomIds: string[];
+            key?: string;
+        };
+    };
     modePowerMap?: {[mode: string]: number};
     sendConnectionMessages: boolean;
     botConfig: {

@@ -93,7 +93,7 @@ export class NeDBDataStore implements DataStore {
 
         for (const channel of Object.keys(serverConfig.mappings)) {
             const ircRoom = new IrcRoom(server, channel);
-            for (const roomId of serverConfig.mappings[channel]) {
+            for (const roomId of serverConfig.mappings[channel].roomIds) {
                 const mxRoom = new MatrixRoom(roomId);
                 await this.storeRoom(ircRoom, mxRoom, "config");
             }

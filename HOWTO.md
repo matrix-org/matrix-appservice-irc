@@ -60,7 +60,8 @@ ircService:
     # This is the IRC server url to connect to.
     irc.example.com:
       mappings:
-        "#some-channel": ["!someroomid:here"]
+        "#some-channel":
+          roomIds: ["!someroomid:here"]
 ```
 This would set up a simple mapping from ``#some-channel`` on 
 ``irc.example.com`` to ``!someroomid:here``, and that's it. Dynamic mappings

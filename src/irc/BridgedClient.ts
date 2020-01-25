@@ -845,6 +845,10 @@ export class BridgedClient extends EventEmitter {
             }
         }, JOIN_TIMEOUT_MS);
 
+        if (!key) {
+            key = this.server.getChannelKey(channel);
+        }
+
         // send the JOIN with a key if it was specified.
         this.unsafeClient.join(channel + (key ? " " + key : ""), () => {
             this.log.debug("Joined channel %s", channel);
