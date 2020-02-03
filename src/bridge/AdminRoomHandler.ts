@@ -50,6 +50,10 @@ const COMMANDS = {
         example: `!removepass [irc.example.net]`,
         summary: `Remove a previously stored NickServ password`,
     },
+    "!listjoined": {
+        example: `!listjoined`,
+        summary: "List all of your joined channels, and the rooms they are bridged into.",
+    },
     "!quit": {
         example: `!quit`,
         summary: "Leave all bridged channels, on all networks, and remove your " +
@@ -134,6 +138,9 @@ export class AdminRoomHandler {
                 break;
             case "!removepass":
                 await this.handleRemovePass(ircServer, adminRoom, event.sender);
+                break;
+            case "!listrooms":
+                await this.handleListRooms(ircServer, adminRoom, event.sender);
                 break;
             case "!quit":
                 await this.handleQuit(req, event.sender, ircServer, adminRoom, clientList);
@@ -457,6 +464,36 @@ export class AdminRoomHandler {
         }
 
         await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+    }
+
+    private async handleListRooms(server: IrcServer, room: MatrixRoom, sender: string) {
+        const client = this.ircBridge.getIrcUserFromCache(server, sender);
+        if (!client || client.isDead()) {
+            return this.ircBridge.sendMatrixAction(room, this.botUser, new MatrixAction(
+                "notice", "You are not currently connected to this irc network"
+            ));
+        }
+        if (client.chanList.length === 0) {
+            return this.ircBridge.sendMatrixAction(room, this.botUser, new MatrixAction(
+                "notice", "You are connected, but not joined to any channels."
+            ));
+        }
+
+        let chanList = "You are joined to:\n\n";
+        let chanListHTML = "<p> You are joined to </p><ul>";
+        for (const channel of client.chanList) {
+            const rooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
+            chanList += `- \`${channel}\` which is bridged to ${rooms.map((r) => r.getId()).join(", ")}`;
+            const roomMentions = rooms
+                .map((r) => `<a href="https://matrix.to/#/${r.getId()}">${r.getId()}</a>`)
+                .join(", ");
+            chanListHTML += `<li><code>${channel}</code> which is bridged to ${roomMentions} </li>`
+        }
+        chanListHTML += "</ul>"
+
+        return this.ircBridge.sendMatrixAction(room, this.botUser, new MatrixAction(
+            "notice", chanList, chanListHTML
+        ));
     }
 
     private async handleQuit(req: BridgeRequest, sender: string, server: IrcServer,
