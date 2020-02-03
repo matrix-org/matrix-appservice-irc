@@ -245,8 +245,6 @@ async function main() {
     log.info("Finished migration at %sms", Date.now() - time);
 }
 
-main().then(() => {
-
-}).catch((ex) => {
+main().catch((ex) => {
     log.error("Failed to run migration script: %s", ex);
 })

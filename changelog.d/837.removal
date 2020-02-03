@@ -1,1 +1,0 @@
-Statsd is deprecated in this release, and will be removed in the next. Users are encouraged to use prometheus instead, which has richer logging capabilites.

@@ -1,1 +1,0 @@
-Inviting the bridge bot to an existing bridged room will no longer cause the room to be bridged as an admin room. Invites must also use `is_direct`.

@@ -1,3 +1,128 @@
+ 0.14.0 (2020-01-20)
+====================
+
+Bugfixes
+--------
+
+- If a new DM room is created for a IRC user, discard the old room. ([\#919](https://github.com/matrix-org/matrix-appservice-irc/issues/919))
+- Fix missig config.schema.yml in the Docker image ([\#920](https://github.com/matrix-org/matrix-appservice-irc/issues/920))
+- Stop trying to use sentry when config.sentry.enabled is false ([\#921](https://github.com/matrix-org/matrix-appservice-irc/issues/921))
+- Improve reply matching logic for Matrix messages. ([\#925](https://github.com/matrix-org/matrix-appservice-irc/issues/925))
+
+
+Internal Changes
+----------------
+
+- Use Typescript 3.7 and fix build issues. ([\#931](https://github.com/matrix-org/matrix-appservice-irc/issues/931))
+
+
+0.14.0-rc4 (2019-12-18)
+========================
+
+Bugfixes
+--------
+
+- Massively speed up connection reaper by not syncing all rooms ([\#914](https://github.com/matrix-org/matrix-appservice-irc/issues/914))
+- Tweak DB migration script to handle duplicate PMs and DB inconsistencies ([\#917](https://github.com/matrix-org/matrix-appservice-irc/issues/917))
+- Handle replies that contain a displayname rather than a userid. ([\#918](https://github.com/matrix-org/matrix-appservice-irc/issues/918))
+
+
+0.14.0-rc3 (2019-12-06)
+========================
+
+Features
+--------
+
+- Maximum AS transaction size has been raised from 5MB to 10MB. You may also now specify this limit in the config. ([\#907](https://github.com/matrix-org/matrix-appservice-irc/issues/907))
+
+
+0.14.0-rc2 (2019-12-05)
+========================
+
+Internal Changes
+----------------
+
+- Ensure that joins and leaves are performed linearly per-room. ([\#905](https://github.com/matrix-org/matrix-appservice-irc/issues/905))
+
+
+0.14.0-rc1 (2019-11-29)
+========================
+
+Features
+--------
+
+- The project now uses Typescript for it's source code. ([\#808](https://github.com/matrix-org/matrix-appservice-irc/issues/808))
+- Add support for PostgreSQL ([\#815](https://github.com/matrix-org/matrix-appservice-irc/issues/815))
+- Add migration script for migrating NeDB databases to PostgreSQL. ([\#816](https://github.com/matrix-org/matrix-appservice-irc/issues/816))
+- Add config option `excludedUsers` to exclude users from bridging by regex. ([\#820](https://github.com/matrix-org/matrix-appservice-irc/issues/820))
+- Support room upgrades on PostgreSQL. ([\#824](https://github.com/matrix-org/matrix-appservice-irc/issues/824))
+- Delay ident responses until pending clients have connected. Thanks to @heftig for the initial PR. ([\#825](https://github.com/matrix-org/matrix-appservice-irc/issues/825))
+- Allow admins to specify a bind port and/or hostname in the config. ([\#857](https://github.com/matrix-org/matrix-appservice-irc/issues/857))
+- When !storepass is called, reconnect the user to ensure the password is set. ([\#864](https://github.com/matrix-org/matrix-appservice-irc/issues/864))
+- Track last seen times of users between restarts ([\#876](https://github.com/matrix-org/matrix-appservice-irc/issues/876))
+- Add dry run mode to the debugApi /reapUsers command. ([\#879](https://github.com/matrix-org/matrix-appservice-irc/issues/879))
+- The bridge now supports error tracing via sentry ([\#897](https://github.com/matrix-org/matrix-appservice-irc/issues/897))
+
+
+Bugfixes
+--------
+
+- Inviting the bridge bot to an existing bridged room will no longer cause the room to be bridged as an admin room. Invites must also use `is_direct`. ([\#846](https://github.com/matrix-org/matrix-appservice-irc/issues/846))
+- Fix counter for leaving users. ([\#855](https://github.com/matrix-org/matrix-appservice-irc/issues/855))
+- Replace calls to `/state` with more efficient calls, where possible. ([\#865](https://github.com/matrix-org/matrix-appservice-irc/issues/865))
+- Topic changes from Matrix no longer cause a ghost user to join the room. ([\#866](https://github.com/matrix-org/matrix-appservice-irc/issues/866))
+- Ensure bot clients stay connected after being disconnected. ([\#867](https://github.com/matrix-org/matrix-appservice-irc/issues/867))
+- Fix issue where the internal ipv6 counter would not be correctly set ([\#873](https://github.com/matrix-org/matrix-appservice-irc/issues/873))
+- Fix bug where users could not store or remove their password ([\#874](https://github.com/matrix-org/matrix-appservice-irc/issues/874))
+- Fix a bug where users could not generate registration files ([\#875](https://github.com/matrix-org/matrix-appservice-irc/issues/875))
+- Fix uploaded long message URL's not sent to IRC side. ([\#889](https://github.com/matrix-org/matrix-appservice-irc/issues/889))
+- Debug API is now correctly enabled on startup ([\#893](https://github.com/matrix-org/matrix-appservice-irc/issues/893))
+- Quit the app with exitcode 1 if it fails to start ([\#894](https://github.com/matrix-org/matrix-appservice-irc/issues/894))
+- The !storepass command now reconnects users with their new password. ([\#900](https://github.com/matrix-org/matrix-appservice-irc/issues/900))
+
+
+Deprecations and Removals
+-------------------------
+
+- Statsd is deprecated in this release, and will be removed in the next. Users are encouraged to use prometheus instead, which has richer logging capabilites. ([\#837](https://github.com/matrix-org/matrix-appservice-irc/issues/837))
+- Remove warnings/hacks around `config.appservice`. Users should have upgraded to the new format by now. ([\#849](https://github.com/matrix-org/matrix-appservice-irc/issues/849))
+
+
+Internal Changes
+----------------
+
+- Refactor Datastore for Typescript ([\#809](https://github.com/matrix-org/matrix-appservice-irc/issues/809))
+- Add linting support for Typescript files. ([\#810](https://github.com/matrix-org/matrix-appservice-irc/issues/810))
+- Fatal exceptions are now logged to stdout in addition to logs. ([\#812](https://github.com/matrix-org/matrix-appservice-irc/issues/812))
+- Refactor Datastore code to be more generic. ([\#814](https://github.com/matrix-org/matrix-appservice-irc/issues/814))
+- Move schema.yml from /lib/config to / ([\#819](https://github.com/matrix-org/matrix-appservice-irc/issues/819))
+- Use [Towncrier](https://pypi.org/project/towncrier/) for changelog management ([\#821](https://github.com/matrix-org/matrix-appservice-irc/issues/821))
+- Internal conversions of model classes to Typescript ([\#822](https://github.com/matrix-org/matrix-appservice-irc/issues/822))
+- Convert ClientPool and associated dependencies to Typescript ([\#826](https://github.com/matrix-org/matrix-appservice-irc/issues/826))
+- Convert logging to Typescript ([\#827](https://github.com/matrix-org/matrix-appservice-irc/issues/827))
+- Convert DebugApi to Typescript ([\#829](https://github.com/matrix-org/matrix-appservice-irc/issues/829))
+- Typescriptify QuitDebouncer ([\#830](https://github.com/matrix-org/matrix-appservice-irc/issues/830))
+- Typescriptify BridgedClient and dependencies ([\#831](https://github.com/matrix-org/matrix-appservice-irc/issues/831))
+- Convert generator and formatter functions to Typescript ([\#832](https://github.com/matrix-org/matrix-appservice-irc/issues/832))
+- Typescriptify IrcEventBroker ([\#833](https://github.com/matrix-org/matrix-appservice-irc/issues/833))
+- Use seperate DBs for each integration test. ([\#834](https://github.com/matrix-org/matrix-appservice-irc/issues/834))
+- Typescriptify IrcBridge ([\#836](https://github.com/matrix-org/matrix-appservice-irc/issues/836))
+- Typescriptify irc syncer classes ([\#839](https://github.com/matrix-org/matrix-appservice-irc/issues/839))
+- Do not call keepalive() callbacks if the user doesn't need to be kept alive. ([\#844](https://github.com/matrix-org/matrix-appservice-irc/issues/844))
+- Typescriptify matrix handler class ([\#845](https://github.com/matrix-org/matrix-appservice-irc/issues/845))
+- Remove `crc` and `prom-client` packages. ([\#846](https://github.com/matrix-org/matrix-appservice-irc/issues/846))
+- Swap to using promises over timers for queuing messages on IRC connections. ([\#848](https://github.com/matrix-org/matrix-appservice-irc/issues/848))
+- Typescriptify irc handler class ([\#850](https://github.com/matrix-org/matrix-appservice-irc/issues/850))
+- Updates to Dockerfile to add multiple stages and support Typescript ([\#853](https://github.com/matrix-org/matrix-appservice-irc/issues/853))
+- Rewrite provisioner/* in Typescript ([\#861](https://github.com/matrix-org/matrix-appservice-irc/issues/861))
+- Refactor bot command handling into own class. ([\#863](https://github.com/matrix-org/matrix-appservice-irc/issues/863))
+- Move some IRC specific functions from IrcBridge to ClientPool ([\#877](https://github.com/matrix-org/matrix-appservice-irc/issues/877))
+- Use the DB to prefill some membership caches, reducing the number of HTTP calls made and speeding up bridge startup. ([\#881](https://github.com/matrix-org/matrix-appservice-irc/issues/881))
+- Room directory visibility state for bridged rooms is now cached in the database ([\#882](https://github.com/matrix-org/matrix-appservice-irc/issues/882))
+- Gracefully close irc connections on SIGTERM ([\#895](https://github.com/matrix-org/matrix-appservice-irc/issues/895))
+- Log when a newly discovered irc user's profile is updated. ([\#896](https://github.com/matrix-org/matrix-appservice-irc/issues/896))
+
+
 Changes in 0.13.0 (2019-09-25)
 ==============================
 

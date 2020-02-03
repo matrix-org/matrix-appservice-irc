@@ -10,7 +10,6 @@ import { BridgedClient } from "../irc/BridgedClient";
 import { IrcUser } from "../models/IrcUser";
 import { IrcRoom } from "../models/IrcRoom";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
-import stats from "../config/stats";
 import { NeDBDataStore } from "../datastore/NedbDataStore";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
 import { getLogger } from "../logging";
@@ -35,7 +34,8 @@ import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
 import { MatrixAction } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
-
+import { MembershipQueue } from "../util/MembershipQueue";
+import { BridgeStateSyncer } from "./BridgeStateSyncer";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -66,6 +66,9 @@ export class IrcBridge {
         remote_request_seconds: Histogram;
     }|null = null;
     private membershipCache: MembershipCache;
+    private readonly membershipQueue: MembershipQueue;
+    private bridgeStateSyncer!: BridgeStateSyncer;
+
     constructor(public readonly config: BridgeConfig, private registration: AppServiceRegistration) {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
@@ -79,8 +82,6 @@ export class IrcBridge {
                 defaultOnline: true,
             });
         }
-        // Dependency graph
-        this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler);
         if (!this.config.database && this.config.ircService.databaseUri) {
             log.warn("ircService.databaseUri is a deprecated config option." +
                      "Please use the database configuration block");
@@ -158,7 +159,9 @@ export class IrcBridge {
             },
             membershipCache: this.membershipCache,
         });
-        this.ircHandler = new IrcHandler(this, this.config.ircHandler);
+        this.membershipQueue = new MembershipQueue(this.bridge);
+        this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
+        this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue);
 
         // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
         MatrixUser.ESCAPE_DEFAULT = false;
@@ -178,6 +181,7 @@ export class IrcBridge {
             homeserverToken,
             httpMaxSizeBytes: (this.config.advanced || { }).maxTxnSize || TXN_SIZE_DEFAULT,
         });
+
     }
 
     private initialiseMetrics() {
@@ -311,6 +315,10 @@ export class IrcBridge {
         return this.config.homeserver.domain;
     }
 
+    public get stateSyncer() {
+        return this.bridgeStateSyncer;
+    }
+
     public async run(port: number|null) {
         const dbConfig = this.config.database;
         // cli port, then config port, then default port
@@ -410,6 +418,17 @@ export class IrcBridge {
 
         for (const roomId of this.joinedRoomList) {
             this.membershipCache.setMemberEntry(roomId, this.appServiceUserId, "join");
+        }
+
+        if (this.config.ircService.bridgeInfoState?.enabled) {
+            this.bridgeStateSyncer = new BridgeStateSyncer(this.dataStore, this.bridge, this);
+            if (this.config.ircService.bridgeInfoState.initial) {
+                this.bridgeStateSyncer.beginSync().then(() => {
+                    log.info("Bridge state syncing completed");
+                }).catch((err) => {
+                    log.error("Bridge state syncing resulted in an error:", err);
+                });
+            }
         }
 
         log.info("Joining mapped Matrix rooms...");
@@ -520,29 +539,21 @@ export class IrcBridge {
                 return;
             }
             logMessage(req, "SUCCESS");
-            const isFromIrc = Boolean((req.getData() || {}).isFromIrc);
-            stats.request(isFromIrc, "success", req.getDuration());
             this.logMetric(req, "success");
         });
         // FAILURE
         this.bridge.getRequestFactory().addDefaultRejectCallback((req) => {
-            const isFromIrc = Boolean((req.getData() || {}).isFromIrc);
             logMessage(req, "FAILED");
-            stats.request(isFromIrc, "fail", req.getDuration());
             this.logMetric(req, "fail");
             BridgeRequest.HandleExceptionForSentry(req, "fail");
         });
         // DELAYED
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
             logMessage(req, "DELAYED");
-            const isFromIrc = Boolean((req.getData() || {}).isFromIrc);
-            stats.request(isFromIrc, "delay", req.getDuration());
         }, DELAY_TIME_MS);
         // DEAD
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
             logMessage(req, "DEAD");
-            const isFromIrc = Boolean((req.getData() || {}).isFromIrc);
-            stats.request(isFromIrc, "dead", req.getDuration());
             this.logMetric(req, "dead");
             BridgeRequest.HandleExceptionForSentry(req, "dead");
         }, DEAD_TIME_MS);
@@ -1016,12 +1027,12 @@ export class IrcBridge {
             }
         });
         const bridgingEvent = stateEvents.find((ev: {type: string}) => ev.type === "m.room.bridging");
+        const bridgeInfoEvent = stateEvents.find((ev: {type: string}) => ev.type === BridgeStateSyncer.EventType);
         if (bridgingEvent) {
-            // The room had a bridge state event, so try to stick it in the new one.
             try {
                 await this.bridge.getIntent().sendStateEvent(
                     newRoomId,
-                    "m.room.bridging",
+                    bridgingEvent.type,
                     bridgingEvent.state_key,
                     bridgingEvent.content
                 );
@@ -1030,6 +1041,21 @@ export class IrcBridge {
             catch (ex) {
                 // We may not have permissions to do so, which means we are basically stuffed.
                 log.warn("Could not send m.room.bridging event to new room:", ex);
+            }
+        }
+        if (bridgeInfoEvent) {
+            try {
+                await this.bridge.getIntent().sendStateEvent(
+                    newRoomId,
+                    bridgeInfoEvent.type,
+                    bridgingEvent.state_key,
+                    bridgingEvent.content
+                );
+                log.info("Bridge info event copied to new room");
+            }
+            catch (ex) {
+                // We may not have permissions to do so, which means we are basically stuffed.
+                log.warn("Could not send bridge info event to new room:", ex);
             }
         }
         await Bluebird.all(rooms.map((room) => {

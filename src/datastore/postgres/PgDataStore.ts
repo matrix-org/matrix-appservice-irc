@@ -306,6 +306,7 @@ export class PgDataStore implements DataStore {
     }
 
     public async setPmRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom, userId: string, virtualUserId: string): Promise<void> {
+        log.debug(`setPmRoom (matrix_user_id=${userId}, virtual_user_id=${virtualUserId}, room_id=${matrixRoom.getId()}, irc_nick=${ircRoom.getChannel()})`);
         await this.pgPool.query(
             PgDataStore.BuildUpsertStatement("pm_rooms", "ON CONSTRAINT cons_pm_rooms_matrix_irc_unique", [
             "room_id",
@@ -323,6 +324,7 @@ export class PgDataStore implements DataStore {
     }
 
     public async getMatrixPmRoom(realUserId: string, virtualUserId: string): Promise<MatrixRoom|null> {
+        log.debug(`getMatrixPmRoom (matrix_user_id=${realUserId}, virtual_user_id=${virtualUserId})`);
         const res = await this.pgPool.query("SELECT room_id FROM pm_rooms WHERE matrix_user_id = $1 AND virtual_user_id = $2", [
             realUserId,
             virtualUserId,

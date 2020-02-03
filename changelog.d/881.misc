@@ -1,1 +1,0 @@
-Use the DB to prefill some membership caches, reducing the number of HTTP calls made and speeding up bridge startup.

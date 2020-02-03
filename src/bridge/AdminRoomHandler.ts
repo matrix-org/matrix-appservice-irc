@@ -169,7 +169,7 @@ export class AdminRoomHandler {
         if (!ircChannel || ircChannel.indexOf("#") !== 0) {
             errText = "Format: '!join irc.example.com #channel [key]'";
         }
-        else if (server.hasInviteRooms() && !server.isInWhitelist(sender)) {
+        else if (!server.canJoinRooms(sender)) {
             errText = "You are not authorised to join channels on this server.";
         }
 
@@ -227,6 +227,14 @@ export class AdminRoomHandler {
                     }
                 });
             }
+            if (this.ircBridge.stateSyncer) {
+                initialState.push(
+                    this.ircBridge.stateSyncer.createInitialState(
+                        server,
+                        ircChannel,
+                    )
+                )
+            }
             const ircRoom = await this.ircBridge.trackChannel(server, ircChannel, key);
             const response = await this.ircBridge.getAppServiceBridge().getIntent(
                 sender,
@@ -268,7 +276,7 @@ export class AdminRoomHandler {
         });
         for (const r of matrixRooms) {
             const userMustJoin = (
-                key || server.shouldSyncMembershipToIrc("incremental", r.getId())
+                key ?? server.shouldSyncMembershipToIrc("incremental", r.getId())
             );
             if (!userMustJoin) {
                 continue;
@@ -283,7 +291,7 @@ export class AdminRoomHandler {
         for (let i = 0; i < matrixRooms.length; i++) {
             const m = matrixRooms[i];
             const userMustJoin = (
-                key || server.shouldSyncMembershipToIrc("incremental", m.getId())
+                key ?? server.shouldSyncMembershipToIrc("incremental", m.getId())
             );
             if (userMustJoin) {
                 // force join then break out (we only ever join once no matter how many
