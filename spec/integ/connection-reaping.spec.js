@@ -1,6 +1,5 @@
 const envBundle = require("../util/env-bundle");
 
-
 describe("Connection reaping", function() {
     const testUser = {
         id: "@flibble:wibble",
