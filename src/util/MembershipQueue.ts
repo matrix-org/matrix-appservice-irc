@@ -6,7 +6,7 @@ const log = getLogger("MembershipQueue");
 
 const CONCURRENT_ROOM_LIMIT = 8;
 const ATTEMPTS_LIMIT = 10;
-const JOIN_DELAY_MS = 250;
+const JOIN_DELAY_MS = 500;
 const JOIN_DELAY_CAP_MS = 30 * 60 * 1000; // 30 mins
 
 interface QueueUserItem {
@@ -15,7 +15,7 @@ interface QueueUserItem {
     reason?: string;
     attempts: number;
     roomId: string;
-    userId: string;
+    userId?: string;
     retry: boolean;
     req: BridgeRequest;
 }
@@ -30,7 +30,14 @@ export class MembershipQueue {
         this.queuePool = new QueuePool(CONCURRENT_ROOM_LIMIT, this.serviceQueue.bind(this));
     }
 
-    public async join(roomId: string, userId: string, req: BridgeRequest, retry = true) {
+    /**
+     * Join a user to a room
+     * @param roomId The roomId to join
+     * @param userId Leave empty to act as the bot user.
+     * @param req The request entry for logging context
+     * @param retry Should the request retry if it fails
+     */
+    public async join(roomId: string, userId: string|undefined, req: BridgeRequest, retry = true) {
         return this.queueMembership({
             roomId,
             userId,
@@ -41,6 +48,15 @@ export class MembershipQueue {
         });
     }
 
+    /**
+     * Leave OR kick a user from a room
+     * @param roomId The roomId to leave
+     * @param userId Leave empty to act as the bot user.
+     * @param req The request entry for logging context
+     * @param retry Should the request retry if it fails
+     * @param reason Reason for leaving/kicking
+     * @param kickUser The user to be kicked. If left blank, this will be a leave.
+     */
     public async leave(roomId: string, userId: string, req: BridgeRequest,
                        retry = true, reason?: string, kickUser?: string) {
         return this.queueMembership({
@@ -78,7 +94,7 @@ export class MembershipQueue {
                 await intent.join(roomId);
             }
             else {
-                await intent[kickUser ? "kick" : "leave"](roomId, userId, reason);
+                await intent[kickUser ? "kick" : "leave"](roomId, userId || "", reason);
             }
         }
         catch (ex) {
@@ -92,7 +108,7 @@ export class MembershipQueue {
             req.log.warn(`Failed to join ${roomId}, delaying for ${delay}ms`);
             req.log.debug(`Failed with: ${ex.errcode} ${ex.message}`);
             await new Promise((r) => setTimeout(r, delay));
-            this.queueMembership(item);
+            this.queueMembership({...item, attempts: item.attempts + 1});
         }
     }
 

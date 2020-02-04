@@ -1,1 +1,0 @@
-Gracefully close irc connections on SIGTERM

@@ -1,1 +1,0 @@
-Fix issue where the internal ipv6 counter would not be correctly set

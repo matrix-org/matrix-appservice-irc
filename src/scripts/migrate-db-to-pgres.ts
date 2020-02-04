@@ -105,8 +105,11 @@ async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgS
             for (const network of Object.keys(configs)) {
                 const config = configs[network];
                 const password = config.password;
-                await pgStore.storeIrcClientConfig(new IrcClientConfig(entry.id, network, config));
-                await pgStore.storePass(entry.id, network, password, false);
+
+                // NedbDataStore replaces .'s in keys with _
+                const realNetwork = network.replace(/\_/g, ".")
+                await pgStore.storeIrcClientConfig(new IrcClientConfig(entry.id, realNetwork, config));
+                await pgStore.storePass(entry.id, realNetwork, password, false);
             }
             await pgStore.storeUserFeatures(
                 entry.id,
@@ -245,8 +248,6 @@ async function main() {
     log.info("Finished migration at %sms", Date.now() - time);
 }
 
-main().then(() => {
-
-}).catch((ex) => {
+main().catch((ex) => {
     log.error("Failed to run migration script: %s", ex);
 })

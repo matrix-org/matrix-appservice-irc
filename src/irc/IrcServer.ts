@@ -289,9 +289,10 @@ export class IrcServer {
         });
     }
 
-    public hasInviteRooms() {
+    public canJoinRooms(userId: string) {
         return (
-            this.config.dynamicChannels.enabled && this.getJoinRule() === "invite"
+            this.config.dynamicChannels.enabled &&
+            (this.getJoinRule() === "public" || this.isInWhitelist(userId))
         );
     }
 
@@ -458,7 +459,9 @@ export class IrcServer {
 
     public getAliasFromChannel(channel: string) {
         const template = this.config.dynamicChannels.aliasTemplate;
-        return template.replace(/\$CHANNEL/, channel) + ":" + this.homeserverDomain;
+        let alias = template.replace(/\$CHANNEL/g, channel);
+        alias = alias.replace(/\$SERVER/g, this.domain);
+        return alias + ":" + this.homeserverDomain;
     }
 
     public getNick(userId: string, displayName?: string) {

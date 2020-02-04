@@ -186,6 +186,8 @@ export class BridgedClient extends EventEmitter {
      * @return {ConnectionInstance} A new connected connection instance.
      */
     public async connect(): Promise<ConnectionInstance> {
+        let identResolver: (() => void) | undefined;
+
         try {
             const nameInfo = await this.identGenerator.getIrcNames(
                 this.clientConfig, this.matrixUser
@@ -205,6 +207,7 @@ export class BridgedClient extends EventEmitter {
                 `Connecting to the IRC network '${this.server.domain}' as ${this.nick}...`
             );
 
+            identResolver = Ident.clientBegin();
             const connInst = await ConnectionInstance.create(this.server, {
                 nick: this.nick,
                 username: nameInfo.username,
@@ -216,7 +219,8 @@ export class BridgedClient extends EventEmitter {
                     this.server.getIpv6Prefix() ? this.clientConfig.getIpv6Address() : undefined
                 )
             }, (inst: ConnectionInstance) => {
-                this.onConnectionCreated(inst, nameInfo);
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                this.onConnectionCreated(inst, nameInfo, identResolver!);
             });
 
             this.inst = connInst;
@@ -268,6 +272,9 @@ export class BridgedClient extends EventEmitter {
         catch (err) {
             this.log.debug("Failed to connect.");
             this.instCreationFailed = true;
+            if (identResolver) {
+                identResolver();
+            }
             throw err;
         }
     }
@@ -685,7 +692,8 @@ export class BridgedClient extends EventEmitter {
         return this.lastActionTs;
     }
 
-    private onConnectionCreated(connInst: ConnectionInstance, nameInfo: {username?: string}) {
+    private onConnectionCreated(connInst: ConnectionInstance, nameInfo: {username?: string},
+                                identResolver: () => void) {
         // listen for a connect event which is done when the TCP connection is
         // established and set ident info (this is different to the connect() callback
         // in node-irc which actually fires on a registered event..)
@@ -697,6 +705,7 @@ export class BridgedClient extends EventEmitter {
             if (localPort > 0 && nameInfo.username) {
                 Ident.setMapping(nameInfo.username, localPort);
             }
+            identResolver();
         });
 
         connInst.onDisconnect = (reason) => {
@@ -713,6 +722,7 @@ export class BridgedClient extends EventEmitter {
             if (this.idleTimeout) {
                 clearTimeout(this.idleTimeout);
             }
+            identResolver();
         }
 
         this.eventBroker.addHooks(this, connInst);

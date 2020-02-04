@@ -7,11 +7,11 @@ import { IrcRoom } from "../models/IrcRoom";
 import logging from "../logging";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcServer } from "../irc/IrcServer";
-import stats from "../config/stats";
 import Bluebird = require("bluebird");
 import { IrcAction } from "../models/IrcAction";
 import { toIrcLowerCase } from "../irc/formatting";
 import { AdminRoomHandler } from "./AdminRoomHandler";
+import { MembershipQueue } from "../util/MembershipQueue";
 
 function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
     return promise.then(function(res) {
@@ -85,13 +85,14 @@ export class MatrixHandler {
     private memberTracker: StateLookup|null = null;
     private adminHandler: AdminRoomHandler;
 
-    constructor(private ircBridge: IrcBridge, config: {eventCacheSize?: number}) {
+    constructor(
+        private ircBridge: IrcBridge,
+        config: {eventCacheSize?: number} = {},
+        private readonly membershipQueue: MembershipQueue) {
         // maintain a list of room IDs which are being processed invite-wise. This is
         // required because invites are processed asyncly, so you could get invite->msg
         // and the message is processed before the room is created.
-        config = config || {}
-        this.eventCacheMaxSize = config.eventCacheSize === undefined ?
-            DEFAULT_EVENT_CACHE_SIZE : config.eventCacheSize;
+        this.eventCacheMaxSize = config.eventCacheSize ?? DEFAULT_EVENT_CACHE_SIZE;
         // The media URL to use to transform mxc:// URLs when handling m.room.[file|image]s
         this.mediaUrl = ircBridge.config.homeserver.media_url || ircBridge.config.homeserver.url;
         this.adminHandler = new AdminRoomHandler(ircBridge, this);
@@ -109,7 +110,7 @@ export class MatrixHandler {
         req.log.info("Handling invite from user directed to bot.");
         // Real MX user inviting BOT to a private chat
         const mxRoom = new MatrixRoom(event.room_id);
-        await this.ircBridge.getAppServiceBridge().getIntent().join(event.room_id);
+        await this.membershipQueue.join(event.room_id, undefined, req, true);
 
         // Do not create an admin room if the room is marked as 'plumbed'
         const matrixClient = this.ircBridge.getAppServiceBridge().getIntent();
@@ -144,12 +145,12 @@ export class MatrixHandler {
         // Bot inviting VMX to a matrix room which is mapped to IRC. Just make a
         // matrix user and join the room (we trust the bot, so no additional checks)
         const mxUser = await this.ircBridge.getMatrixUser(invitedIrcUser);
-        await this.ircBridge.getAppServiceBridge().getIntent(mxUser.getId()).join(event.room_id);
+        await this.membershipQueue.join(event.room_id, mxUser.getId(), req, true);
     }
 
     private async handleInviteFromUser(req: BridgeRequest, event: MatrixEventInvite, invited: IrcUser) {
         req.log.info("Handling invite from user directed at %s on %s",
-        invited.server.domain, invited.nick);
+        invited.nick, invited.server.domain);
         const invitedUser = await this.ircBridge.getMatrixUser(invited);
         const mxRoom = new MatrixRoom(event.room_id);
         const intent = this.ircBridge.getAppServiceBridge().getIntent(invitedUser.getId());
@@ -182,13 +183,10 @@ export class MatrixHandler {
                 await intent.leave(event.room_id);
                 return;
             }
-            req.log.info("(PM federation)Invite not rejected: user on local HS");
-        }
-        else {
-            req.log.info("(PM federation)Invite not rejected: federated PMs allowed");
         }
         // create a virtual Matrix user for the IRC user
-        await intent.join(event.room_id);
+
+        await this.membershipQueue.join(event.room_id, invitedUser.getId(), req, true);
         req.log.info("Joined %s to room %s", invitedUser.getId(), event.room_id);
 
         // check if this room is a PM room or not.
@@ -523,7 +521,6 @@ export class MatrixHandler {
             return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
 
-        stats.membership(false, "join");
         await Promise.all(promises);
         return null;
     }
@@ -692,7 +689,6 @@ export class MatrixHandler {
                 }
             }
         }));
-        stats.membership(false, "part");
         await Promise.all(promises);
         return null;
     }
@@ -1032,6 +1028,14 @@ export class MatrixHandler {
                             groups: [channelInfo.server.getGroupId()]
                         }
                     });
+                }
+                if (this.ircBridge.stateSyncer) {
+                    options.initial_state.push(
+                        this.ircBridge.stateSyncer.createInitialState(
+                            channelInfo.server,
+                            channelInfo.channel,
+                        )
+                    )
                 }
                 if (channelInfo.server.forceRoomVersion()) {
                     options.room_version = channelInfo.server.forceRoomVersion();

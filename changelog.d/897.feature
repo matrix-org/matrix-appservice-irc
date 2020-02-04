@@ -1,1 +1,0 @@
-The bridge now supports error tracing via sentry

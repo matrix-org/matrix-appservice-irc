@@ -60,16 +60,6 @@ properties:
                         items:
                             type: "string"
                             pattern: "^[0-9]+(h|d|w)$"
-            statsd:
-                type: "object"
-                properties:
-                    hostname:
-                        type: "string"
-                    port:
-                        type: "integer"
-                    jobName:
-                        type: "string"
-                required: ["hostname", "port"]
             ident:
                 type: "object"
                 properties:
@@ -130,6 +120,13 @@ properties:
                     mapIrcMentionsToMatrix:
                         type: "string"
                         enum: ["on", "off", "force-off"]
+            bridgeInfoState:
+                type: "object"
+                properties:
+                    enabled:
+                        type: "boolean"
+                    initial:
+                        type: "boolean"
             servers:
                 type: "object"
                 # all properties must follow the following

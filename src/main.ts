@@ -6,7 +6,6 @@ import https from "https";
 import { RoomBridgeStore, UserBridgeStore } from "matrix-appservice-bridge";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { IrcServer } from "./irc/IrcServer";
-import stats from "./config/stats";
 import ident from "./irc/Ident";
 import * as logging from "./logging";
 import { LoggerInstance } from "winston";
@@ -22,8 +21,16 @@ const log = logging.get("main");
 http.globalAgent.maxSockets = 1000;
 https.globalAgent.maxSockets = 1000;
 
-process.on("unhandledRejection", (reason?: Error) => {
-    log.error((reason ? reason.stack : undefined) || "No reason given");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+process.on("unhandledRejection", (reason: any) => {
+    let reasonStr = "No reason given";
+    if (reason && reason.stack) {
+        reasonStr = reason.stack
+    }
+    else if (typeof(reason) === "string") {
+        reasonStr = reason;
+    }
+    log.error(reasonStr);
 });
 
 const _toServer = (domain: string, serverConfig: any, homeserverDomain: string) => {
@@ -86,11 +93,6 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
         logging.configure(config.ircService.logging);
         logging.setUncaughtExceptionLogger(log as LoggerInstance);
     }
-    if (config.ircService.statsd.hostname) {
-        log.warn("STATSD WILL BE DEPRECATED SOON")
-        log.warn("SEE https://github.com/matrix-org/matrix-appservice-irc/issues/818")
-        stats.setEndpoint(config.ircService.statsd);
-    }
     if (config.ircService.ident && config.ircService.ident.enabled) {
         ident.configure(config.ircService.ident);
         ident.run();
@@ -114,9 +116,6 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
         ircBridge.getAppServiceBridge().opts.userStore = undefined;
     }
     else if (engine !== "nedb") {
-        // do nothing.
-    }
-    else {
         throw Error("Invalid database configuration");
     }
 

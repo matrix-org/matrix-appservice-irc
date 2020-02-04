@@ -13,6 +13,7 @@ import * as express from "express";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcUser } from "../models/IrcUser";
 import { BridgedClient, GetNicksResponseOperators } from "../irc/BridgedClient";
+import { BridgeStateSyncer } from "../bridge/BridgeStateSyncer";
 
 const log = logging("Provisioner");
 
@@ -566,6 +567,16 @@ export class Provisioner {
             return;
         }
         await this.updateBridgingState(roomId, userId, 'success', skey);
+        // Send bridge info state event
+        if (this.ircBridge.stateSyncer) {
+            const intent = this.ircBridge.getAppServiceBridge().getIntent();
+            await intent.sendStateEvent(
+                roomId,
+                BridgeStateSyncer.EventType,
+                BridgeStateSyncer.createStateKey(server.domain, ircChannel),
+                this.ircBridge.stateSyncer.createBridgeInfoContent(server, ircChannel, userId)
+            );
+        }
     }
 
     private removeRequest (server: IrcServer, opNick: string) {
