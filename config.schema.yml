@@ -312,7 +312,9 @@ properties:
                                                 type: "string"
                                         required: ["roomIds"]
                                         # Legacy format
-                                      - type: "string"
+                                      - type: "array"
+                                        items:
+                                            type: "string"
                             additionalProperties: false
                         matrixClients:
                             type: "object"

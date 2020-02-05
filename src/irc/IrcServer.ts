@@ -46,13 +46,13 @@ export class IrcServer {
         // This ensures that legacy mappings still work, but we prod the user to update.
         const stringMappings = Object.entries(config.mappings || {}).filter(([, data]) => {
             return typeof(data) === "string"
-        }) as unknown as [string, string][];
+        }) as unknown as [string, string[]][];
 
         if (stringMappings.length) {
             log.warn("** The IrcServer.mappings config schema has changed, allowing legacy format for now. **");
             log.warn("See https://github.com/matrix-org/matrix-appservice-irc/blob/master/CHANGELOG.md for details");
-            for (const [channelId, roomId] of stringMappings) {
-                config.mappings[channelId] = { roomIds: [roomId] }
+            for (const [channelId, roomIds] of stringMappings) {
+                config.mappings[channelId] = { roomIds: roomIds }
             }
         }
 
