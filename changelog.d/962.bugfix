@@ -1,1 +1,0 @@
-Fix an issue where the postgres migration script does not translate '_' => '.'

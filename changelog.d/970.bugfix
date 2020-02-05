@@ -1,1 +1,0 @@
-Fix bug where users would not be able to join a channel via `!join`.
