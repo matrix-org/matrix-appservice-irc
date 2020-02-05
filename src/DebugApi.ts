@@ -360,11 +360,11 @@ export class DebugApi {
 
         if (notice) {
             try {
-                await this.ircBridge.getAppServiceBridge().getIntent().sendMessage(roomId,
-                {
-                    msgtype: "m.notice",
-                    body: `This room has been unbridged from ${channel} (${server.getReadableName()})`
-                });
+                await this.ircBridge.getIntent().sendText(
+                    roomId,
+                    `This room has been unbridged from ${channel} (${server.getReadableName()})`,
+                    "m.notice",
+                );
                 result.stages.push("Left notice in room");
             }
             catch (e) {
@@ -375,7 +375,7 @@ export class DebugApi {
         if (remove_alias) {
             const roomAlias = server.getAliasFromChannel(channel);
             try {
-                await this.ircBridge.getAppServiceBridge().getIntent().client.deleteAlias(roomAlias);
+                await this.ircBridge.getIntent().underlyingClient.deleteRoomAlias(roomAlias);
                 result.stages.push("Deleted alias for room");
             }
             catch (e) {

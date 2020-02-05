@@ -35,12 +35,8 @@
     "js-yaml": "^3.2.7",
     "matrix-appservice-bridge": "^1.11.1",
     "matrix-appservice": "^0.4.1",
-<<<<<<< HEAD
-    "matrix-lastactive": "^0.1.2",
     "matrix-bot-sdk": "^0.4.0",
-=======
     "matrix-lastactive": "^0.1.3",
->>>>>>> origin/develop
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
     "pg": "^7.12.1",

@@ -643,7 +643,7 @@ export class ClientPool {
             bridgedClient.server, chan
         );
         const promises = matrixRooms.map((room: MatrixRoom) => {
-            return this.ircBridge.getAppServiceBridge().getIntent().kick(
+            return this.ircBridge.getIntent().underlyingClient.kickUser(
                 room.getId(), userId, `IRC error on ${chan}: ${err}`
             );
         });

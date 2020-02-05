@@ -83,9 +83,9 @@ export class QuitDebouncer {
 
         // TODO: This should be replaced with "disconnected" as per matrix-appservice-irc#222
         try {
-            await this.ircBridge.getAppServiceBridge().getIntent(
+            await this.ircBridge.getIntent(
                 matrixUser.getId()
-            ).setPresence(QUIT_PRESENCE);
+            ).underlyingClient.setPresenceStatus(QUIT_PRESENCE);
         }
         catch (err) {
             req.log.error(

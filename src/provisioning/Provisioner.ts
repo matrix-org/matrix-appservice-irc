@@ -198,12 +198,12 @@ export class Provisioner {
 
     private async updateBridgingState (roomId: string, userId: string,
         status: "pending"|"success"|"failure", skey: string) {
-        const intent = this.ircBridge.getAppServiceBridge().getIntent();
+        const intent = this.ircBridge.getIntent();
         try {
-            await intent.client.sendStateEvent(roomId, 'm.room.bridging', {
+            await intent.underlyingClient.sendStateEvent(roomId, 'm.room.bridging', skey, {
                 user_id: userId,
                 status,
-            }, skey);
+            });
         }
         catch (err) {
             throw new Error(`Could not update m.room.bridging state in ${roomId}`);
@@ -569,8 +569,8 @@ export class Provisioner {
         await this.updateBridgingState(roomId, userId, 'success', skey);
         // Send bridge info state event
         if (this.ircBridge.stateSyncer) {
-            const intent = this.ircBridge.getAppServiceBridge().getIntent();
-            await intent.sendStateEvent(
+            const intent = this.ircBridge.getIntent();
+            await intent.underlyingClient.sendStateEvent(
                 roomId,
                 BridgeStateSyncer.EventType,
                 BridgeStateSyncer.createStateKey(server.domain, ircChannel),

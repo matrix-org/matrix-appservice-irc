@@ -20,7 +20,7 @@ interface QueueItem {
 export class BridgeStateSyncer {
     public static readonly EventType = "uk.half-shot.bridge";
     private syncQueue: QueuePool<QueueItem>;
-    constructor(private datastore: DataStore, private bridge: Bridge, private ircBridge: IrcBridge) {
+    constructor(private datastore: DataStore, private ircBridge: IrcBridge) {
         this.syncQueue = new QueuePool(SYNC_CONCURRENCY, this.syncRoom.bind(this));
     }
 
@@ -34,7 +34,7 @@ export class BridgeStateSyncer {
 
     private async syncRoom(item: QueueItem) {
         log.info(`Syncing ${item.roomId}`);
-        const intent = this.bridge.getIntent();
+        const intent = this.ircBridge.getIntent();
         for (const mapping of item.mappings) {
             const key = BridgeStateSyncer.createStateKey(mapping.networkId, mapping.channel);
             try {
@@ -65,9 +65,9 @@ export class BridgeStateSyncer {
             // Event wasn't found or was invalid, let's try setting one.
             const eventContent = this.createBridgeInfoContent(mapping.networkId, mapping.channel);
             const owner = await this.determineProvisionedOwner(item.roomId, mapping.networkId, mapping.channel);
-            eventContent.creator = owner || intent.client.credentials.userId;
+            eventContent.creator = owner || intent.userId;
             try {
-                await intent.sendStateEvent(item.roomId, BridgeStateSyncer.EventType, key, eventContent);
+                await intent.underlyingClient.sendStateEvent(item.roomId, BridgeStateSyncer.EventType, key, eventContent);
             }
             catch (ex) {
                 log.error(`Failed to update room with new state content: ${ex.message}`);
@@ -133,9 +133,9 @@ export class BridgeStateSyncer {
     }
 
     private async getStateEvent(roomId: string, eventType: string, key: string) {
-        const intent = this.bridge.getIntent();
+        const intent = this.ircBridge.getIntent();
         try {
-            return await intent.getStateEvent(roomId, eventType, key);
+            return await intent.underlyingClient.getRoomStateEvent(roomId, eventType, key);
         }
         catch (ex) {
             if (ex.errcode !== "M_NOT_FOUND") {

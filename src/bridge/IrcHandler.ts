@@ -105,7 +105,7 @@ export class IrcHandler {
     }
 
     private async ensureMatrixUserJoined(roomId: string, userId: string, virtUserId: string, log: RequestLogger) {
-        const intent = this.ircBridge.getBotSdk().getIntentForUserId(virtUserId).underlyingClient;
+        const intent = this.ircBridge.getIntent(virtUserId).underlyingClient;
         let priv = this.roomIdToPrivateMember[roomId];
         if (!priv) {
             // create a brand new entry for this user. Set them to not joined initially
@@ -147,7 +147,7 @@ export class IrcHandler {
      * @return {Promise} which is resolved when the PM room has been created.
      */
     private async createPmRoom (toUserId: string, fromUserId: string, fromUserNick: string, server: IrcServer) {
-        const roomId = await this.ircBridge.getBotSdk().getIntentForUserId(fromUserId).underlyingClient.createRoom({
+        const roomId = await this.ircBridge.getIntent(fromUserId).underlyingClient.createRoom({
             name: (fromUserNick + " (PM on " + server.domain + ")"),
             visibility: "private",
             preset: "trusted_private_chat",
@@ -400,7 +400,7 @@ export class IrcHandler {
             req.log.info(
                 "Inviting %s to room %s", ircClient.userId, room.getId()
             );
-            return this.ircBridge.getBotSdk().getIntentForUserId(
+            return this.ircBridge.getIntent(
                 virtualMatrixUser.getId()
             ).underlyingClient.inviteUser(
                 invitee, room.getId(),
@@ -420,14 +420,22 @@ export class IrcHandler {
                 );
                 return Promise.resolve();
             }
-            return this.ircBridge.getAppServiceBridge().getIntent(
+            // TODO: Need helper to set powerlevels.
+            return this.ircBridge.getIntent(
                 item.matrixUser.getId()
-            ).setRoomTopic(
-                matrixRoom.getId(), item.topic
+            ).underlyingClient.sendStateEvent(
+                matrixRoom.getId(),
+                "m.room.topic",
+                "",
+                {topic: item.topic}
             ).catch(() => {
                 // Setter might not have powerlevels, trying again.
-                return this.ircBridge.getAppServiceBridge().getIntent()
-                    .setRoomTopic(matrixRoom.getId(), item.topic);
+                return this.ircBridge.getIntent().underlyingClient.sendStateEvent(
+                    matrixRoom.getId(),
+                    "m.room.topic",
+                    "",
+                    {topic: item.topic}
+                );
             }).then(
                 () => {
                     matrixRoom.topic = item.topic;
@@ -576,7 +584,7 @@ export class IrcHandler {
         if (mapping) {
             await mxAction.formatMentions(
                 mapping,
-                this.ircBridge.getBotSdk().botClient,
+                this.ircBridge.profileCache,
             );
         }
 
@@ -643,7 +651,7 @@ export class IrcHandler {
         // get virtual matrix user
         const matrixUser = await this.ircBridge.getMatrixUser(joiningUser);
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, chan);
-        const intent = this.ircBridge.getBotSdk().getIntentForUserId(
+        const intent = this.ircBridge.getIntent(
             matrixUser.getId()
         );
         const promises = matrixRooms.map(async (room) => {
@@ -660,7 +668,7 @@ export class IrcHandler {
             }
             req.log.info("Joining room %s and setting presence to online", room.getId());
             await this.membershipQueue.join(room.getId(), matrixUser.getId(), req);
-            intent.setPresence("online");
+            intent.underlyingClient.setPresenceStatus("online");
         });
         if (matrixRooms.length === 0) {
             req.log.info("No mapped matrix rooms for IRC channel %s", chan);

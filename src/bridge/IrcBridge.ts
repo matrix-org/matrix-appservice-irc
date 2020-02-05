@@ -34,7 +34,7 @@ import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
 import { MatrixAction } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
-import { Appservice as BotSdkAppservice } from "matrix-bot-sdk";
+import { Appservice as BotSdkAppservice, ProfileCache } from "matrix-bot-sdk";
 import { MembershipQueue } from "../util/MembershipQueue";
 import { BridgeStateSyncer } from "./BridgeStateSyncer";
 
@@ -44,6 +44,8 @@ const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
 const TXN_SIZE_DEFAULT = 10000000 // 10MB
+const PROFILE_CACHE_SIZE = 1024;
+const PROFILE_CACHE_AGE_MS = 180000; // 3 minutes
 
 export class IrcBridge {
     public static readonly DEFAULT_LOCALPART = "appservice-irc";
@@ -70,6 +72,7 @@ export class IrcBridge {
     private membershipCache: MembershipCache;
     private readonly membershipQueue: MembershipQueue;
     private bridgeStateSyncer!: BridgeStateSyncer;
+    public readonly profileCache: ProfileCache;
 
     constructor(public readonly config: BridgeConfig, private registration: AppServiceRegistration) {
         // TODO: Don't log this to stdout
@@ -161,9 +164,6 @@ export class IrcBridge {
             },
             membershipCache: this.membershipCache,
         });
-        this.membershipQueue = new MembershipQueue(this.bridge);
-        this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
-        this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue);
 
         // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
         MatrixUser.ESCAPE_DEFAULT = false;
@@ -190,7 +190,11 @@ export class IrcBridge {
             // Unused
             port: -1,
             bindAddress: "",
-        })
+        });
+        this.profileCache = new ProfileCache(PROFILE_CACHE_SIZE, PROFILE_CACHE_AGE_MS, this.appservice.botClient);
+        this.membershipQueue = new MembershipQueue(this.appservice);
+        this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
+        this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue);
 
         const homeserverToken = this.registration.getHomeserverToken();
         if (!homeserverToken) {
@@ -327,6 +331,10 @@ export class IrcBridge {
         return this.appservice;
     }
 
+    public getIntent(userId?: string) {
+        return userId ? this.appservice.getIntentForUserId(userId) : this.appservice.botIntent;
+    }
+
     public getClientPool() {
         return this.clientPool;
     }
@@ -420,7 +428,7 @@ export class IrcBridge {
         }
 
         // run the bridge (needs to be done prior to configure IRC side)
-        await this.bridge.run(port, undefined, this.appservice, this.config.homeserver.bindHostname);
+        await this.bridge.run(port, undefined, this.bridgeAppservice, this.config.homeserver.bindHostname);
 
         this.addRequestCallbacks();
         if (!this.registration.getSenderLocalpart() ||
@@ -445,7 +453,7 @@ export class IrcBridge {
         }
 
         if (this.config.ircService.bridgeInfoState?.enabled) {
-            this.bridgeStateSyncer = new BridgeStateSyncer(this.dataStore, this.bridge, this);
+            this.bridgeStateSyncer = new BridgeStateSyncer(this.dataStore, this);
             if (this.config.ircService.bridgeInfoState.initial) {
                 this.bridgeStateSyncer.beginSync().then(() => {
                     log.info("Bridge state syncing completed");
@@ -609,13 +617,13 @@ export class IrcBridge {
                 log.debug(`Not joining ${roomId} because we are marked as joined`);
                 return;
             }
-            await this.bridge.getIntent().join(roomId);
+            await this.getIntent().joinRoom(roomId);
         }).map(Bluebird.cast);
         await promiseutil.allSettled(promises);
     }
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
-        const intent = this.botSdk.getIntentForUserId(from.userId);
+        const intent = this.getIntent(from.userId);
         if (action.msgType) {
             if (action.htmlText) {
                 await intent.sendEvent(room.getId(), {
@@ -628,7 +636,6 @@ export class IrcBridge {
                 });
             }
             else {
-                
                 await intent.sendEvent(room.getId(), {
                     msgtype: action.msgType,
                     body: action.text
@@ -637,8 +644,8 @@ export class IrcBridge {
             return;
         }
         else if (action.type === "topic" && action.text) {
-            const fallbackIntent = this.bridge.getIntent(from.userId);
-            await fallbackIntent.setRoomTopic(room.getId(), action.text);
+            const fallbackIntent = this.getIntent(from.userId);
+            await fallbackIntent.underlyingClient.sendStateEvent(room.getId(), "m.room.topic", "", { topic: action.text });
             return;
         }
         throw Error("Unknown action: " + action.type);
@@ -671,9 +678,9 @@ export class IrcBridge {
 
         log.info(`${userLocalpart} does not exist in the store yet, setting a profile`);
 
-        const userIntent = this.bridge.getIntentFromLocalpart(userLocalpart);
-        await userIntent.setDisplayName(displayName); // will also register this user
-        matrixUser = new MatrixUser(userIntent.getClient().credentials.userId);
+        const userIntent = this.appservice.getIntent(userLocalpart);
+        await userIntent.underlyingClient.setDisplayName(displayName); // will also register this user
+        matrixUser = new MatrixUser(userIntent.userId);
         matrixUser.setDisplayName(displayName);
         await this.getStore().storeMatrixUser(matrixUser);
         return matrixUser;
@@ -1006,7 +1013,7 @@ export class IrcBridge {
         let gotRooms = false;
         while (!gotRooms) {
             try {
-                const roomIds = await this.botSdk.botClient.getJoinedRooms();
+                const roomIds = await this.appservice.botClient.getJoinedRooms();
                 gotRooms = true;
                 this.joinedRoomList = roomIds;
                 log.info(`ASBot is in ${roomIds.length} rooms!`);

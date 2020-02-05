@@ -1,7 +1,7 @@
-import { Bridge } from "matrix-appservice-bridge";
 import { BridgeRequest } from "../models/BridgeRequest";
 import getLogger from "../logging";
 import { QueuePool } from "./QueuePool";
+import { Appservice } from "matrix-bot-sdk";
 const log = getLogger("MembershipQueue");
 
 const CONCURRENT_ROOM_LIMIT = 8;
@@ -26,7 +26,7 @@ interface QueueUserItem {
 export class MembershipQueue {
     private queuePool: QueuePool<QueueUserItem>;
 
-    constructor(private bridge: Bridge) {
+    constructor(private appservice: Appservice) {
         this.queuePool = new QueuePool(CONCURRENT_ROOM_LIMIT, this.serviceQueue.bind(this));
     }
 
@@ -64,10 +64,10 @@ export class MembershipQueue {
             userId,
             retry,
             req,
-            attempts: 0,
             reason,
             kickUser,
             type: "leave",
+            attempts: 0,
         })
     }
 
@@ -88,13 +88,18 @@ export class MembershipQueue {
     private async serviceQueue(item: QueueUserItem): Promise<void> {
         log.debug(`${item.userId}@${item.roomId} -> ${item.type}`);
         const { req, roomId, userId, reason, kickUser, attempts } = item;
-        const intent = this.bridge.getIntent(kickUser || userId);
+        const intentUserId = kickUser || userId;
+        const intent = intentUserId ? this.appservice.getIntentForUserId(intentUserId) : this.appservice.botIntent;
         try {
             if (item.type === "join") {
-                await intent.join(roomId);
+                await intent.joinRoom(roomId);
             }
             else {
-                await intent[kickUser ? "kick" : "leave"](roomId, userId || "", reason);
+                if (kickUser) {
+                    intent.underlyingClient.kickUser(userId, roomId, reason);
+                } else {
+                    intent.leaveRoom(roomId);
+                }
             }
         }
         catch (ex) {

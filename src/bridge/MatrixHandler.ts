@@ -113,10 +113,10 @@ export class MatrixHandler {
         await this.membershipQueue.join(event.room_id, undefined, req, true);
 
         // Do not create an admin room if the room is marked as 'plumbed'
-        const matrixClient = this.ircBridge.getAppServiceBridge().getIntent();
+        const matrixClient = this.ircBridge.getIntent().underlyingClient;
 
         try {
-            const plumbedState = await matrixClient.getStateEvent(event.room_id, 'm.room.plumbing');
+            const plumbedState = await matrixClient.getRoomStateEvent(event.room_id, 'm.room.plumbing', '');
             if (plumbedState.status === "enabled") {
                 req.log.info(
                     'This room is marked for plumbing (m.room.plumbing.status = "enabled"). ' +
@@ -153,17 +153,14 @@ export class MatrixHandler {
         invited.nick, invited.server.domain);
         const invitedUser = await this.ircBridge.getMatrixUser(invited);
         const mxRoom = new MatrixRoom(event.room_id);
-        const intent = this.ircBridge.getAppServiceBridge().getIntent(invitedUser.getId());
+        const intent = this.ircBridge.getIntent(invitedUser.getId());
+        await intent.ensureRegistered();
         const mxUser = new MatrixUser(event.sender);
         // Real MX user inviting VMX to a matrix room for PM chat
         if (!invited.server.allowsPms()) {
-            req.log.error("Accepting invite, and then leaving: This server does not allow PMs.");
-            await intent.join(event.room_id);
-            await this.ircBridge.sendMatrixAction(mxRoom, invitedUser, new MatrixAction(
-                "notice",
-                MSG_PMS_DISABLED
-            ));
-            await intent.leave(event.room_id);
+            req.log.error("Rejecting invite, and then leaving: This server does not allow PMs.");
+            // Send a rejection notice.
+            await intent.underlyingClient.kickUser(intent.userId, event.room_id, MSG_PMS_DISABLED);
             return;
         }
 
@@ -173,14 +170,9 @@ export class MatrixHandler {
             // Matches for the local part (the not-user part)
             if (mxUser.host !== this.ircBridge.domain) {
                 req.log.error(
-                    "Accepting invite, and then leaving: This server does not allow federated PMs."
+                    "Rejecting invite: This server does not allow federated PMs."
                 );
-                await intent.join(event.room_id);
-                await this.ircBridge.sendMatrixAction(mxRoom, invitedUser, new MatrixAction(
-                    "notice",
-                    MSG_PMS_DISABLED_FEDERATION
-                ));
-                await intent.leave(event.room_id);
+                await intent.underlyingClient.kickUser(intent.userId, event.room_id, MSG_PMS_DISABLED_FEDERATION);
                 return;
             }
         }
@@ -209,7 +201,7 @@ export class MatrixHandler {
             return;
         }
         req.log.error("This room isn't a 1:1 chat!");
-        await intent.kick(event.room_id, invitedUser.getId(), "Group chat not supported.");
+        await intent.underlyingClient.kickUser(event.room_id, invitedUser.getId(), "Group chat not supported.");
     }
 
     // === Admin room handling ===
@@ -246,9 +238,9 @@ export class MatrixHandler {
             );
             await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
 
-            await this.ircBridge.getAppServiceBridge().getIntent(
+            await this.ircBridge.getIntent(
                     botUser.getId()
-                ).leave(adminRoom.getId());
+                ).leaveRoom(adminRoom.getId());
             return;
         }
 
@@ -294,8 +286,8 @@ export class MatrixHandler {
 
                 await Promise.all([...uniqueRoomIds].map(async (roomId) => {
                     try {
-                        await this.ircBridge.getAppServiceBridge().getIntent().kick(
-                            roomId, userId, reason
+                        await this.ircBridge.getIntent().underlyingClient.kickUser(
+                            userId, roomId, reason
                         );
                     }
                     catch (err) {
@@ -460,17 +452,17 @@ export class MatrixHandler {
                 catch (e) {
                     // We need to kick on failure to get a client.
                     req.log.info(`${user.getId()} failed to get a IRC connection. Kicking from room.`);
-                    kickIntent = this.ircBridge.getAppServiceBridge().getIntent();
+                    kickIntent = this.ircBridge.getIntent();
                 }
 
                 while (kickIntent) {
                     try {
                         // If they are known blacklisted, get a specific reason string.
                         const excluded = room.server.isExcludedUser(user.getId());
-                        await kickIntent.kick(
-                            event.room_id, user.getId(),
-                            excluded && excluded.kickReason ? excluded.kickReason
-                            : `IRC connection failure.`,
+                        await kickIntent.underlyingClient.kickUser(
+                            event.room_id,
+                            user.getId(),
+                            excluded && excluded.kickReason ? excluded.kickReason : `IRC connection failure.`,
                         );
                         this.incrementMetric(room.server.domain, "connection_failure_kicks");
                         break;
@@ -808,7 +800,7 @@ export class MatrixHandler {
                 messageSendPromiseSet.push((async () => {
                     let displayName = undefined;
                     try {
-                        const res = await this.ircBridge.getAppServiceBridge().getIntent().getStateEvent(
+                        const res = await this.ircBridge.getIntent().underlyingClient.getRoomStateEvent(
                             event.room_id, "m.room.member", event.sender
                         );
                         displayName = res.displayname;
@@ -1007,7 +999,7 @@ export class MatrixHandler {
 
             // ======== Create the Matrix room
             let newRoomId = null;
-            const botIntent = this.ircBridge.getAppServiceBridge().getIntent();
+            const botIntent = this.ircBridge.getIntent();
             try { // make the matrix room
                 const options: RoomCreationOpts = {
                     room_alias_name: roomAlias.split(":")[0].substring(1), // localpart
@@ -1040,10 +1032,9 @@ export class MatrixHandler {
                 if (channelInfo.server.forceRoomVersion()) {
                     options.room_version = channelInfo.server.forceRoomVersion();
                 }
-                const res = await botIntent.createRoom({
+                newRoomId = await botIntent.underlyingClient.createRoom(
                     options,
-                });
-                newRoomId = res.room_id;
+                );
             }
             catch (e) {
                 req.log.error("Failed to create room: %s", e.stack);
@@ -1119,7 +1110,7 @@ export class MatrixHandler {
         if (!cachedEvent) {
             // Fallback to fetching from the homeserver.
             try {
-                const eventContent = await this.ircBridge.getAppServiceBridge().getIntent().getEvent(
+                const eventContent = await this.ircBridge.getIntent().underlyingClient.getEvent(
                     event.room_id, eventId
                 );
                 rplName = eventContent.sender;

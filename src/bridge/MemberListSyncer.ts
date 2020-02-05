@@ -362,7 +362,7 @@ export class MemberListSyncer {
         const q = new Queue<string>(async (userId) => {
             // Do this here, we might not manage to leave but we won't retry.
             this.usersToLeave--;
-            await this.ircBridge.getBotSdk().getIntentForUserId(userId).leaveRoom(item.roomId);
+            await this.ircBridge.getIntent(userId).leaveRoom(item.roomId);
         });
 
         await Promise.all(item.userIds.map((userId) =>

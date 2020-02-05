@@ -236,20 +236,18 @@ export class AdminRoomHandler {
                 )
             }
             const ircRoom = await this.ircBridge.trackChannel(server, ircChannel, key);
-            const response = await this.ircBridge.getAppServiceBridge().getIntent(
+            const roomId = await this.ircBridge.getIntent(
                 sender,
-            ).createRoom({
-                options: {
-                    name: ircChannel,
-                    visibility: "private",
-                    preset: "public_chat",
-                    creation_content: {
-                        "m.federate": server.shouldFederate()
-                    },
-                    initial_state: initialState,
-                }
+            ).underlyingClient.createRoom({
+                name: ircChannel,
+                visibility: "private",
+                preset: "public_chat",
+                creation_content: {
+                    "m.federate": server.shouldFederate()
+                },
+                initial_state: initialState,
             });
-            const mxRoom = new MatrixRoom(response.room_id);
+            const mxRoom = new MatrixRoom(roomId);
             await this.ircBridge.getStore().storeRoom(ircRoom, mxRoom, 'join');
             // /mode the channel AFTER we have created the mapping so we process
             // +s and +i correctly.
@@ -270,7 +268,7 @@ export class AdminRoomHandler {
             req.log.info(
                 "Inviting %s to room %s", sender, r.getId()
             );
-            return this.ircBridge.getAppServiceBridge().getIntent().invite(
+            return this.ircBridge.getIntent().underlyingClient.inviteUser(
                 room.getId(), sender
             );
         });
