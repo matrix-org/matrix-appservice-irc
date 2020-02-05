@@ -1,3 +1,0 @@
-Substitute `$SERVER` in `ircService.servers.*.dynamicChannels.aliasTemplate`
-when generating a room alias from channel (fixes thirdparty lookups and joining
-by IRC channel name from Riot).

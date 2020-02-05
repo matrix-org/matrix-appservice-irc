@@ -1,1 +1,0 @@
-Add 'defaultOnline' and 'excludeRegex' parameters to /reapUsers.

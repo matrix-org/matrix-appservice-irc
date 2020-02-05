@@ -1,1 +1,0 @@
-Added `!listrooms` command to list which channels you are connected to.

@@ -1,1 +1,0 @@
-Add support for MSC2346; adding information about the bridged channel into room state.
