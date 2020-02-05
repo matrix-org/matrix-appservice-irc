@@ -296,11 +296,22 @@ properties:
                             patternProperties:
                                 # must start with a #
                                 "^#+.*$":
-                                    type: "array"
-                                    items:
-                                        type: "string"
-                                    minItems: 1
-                                    uniqueItems: true
+                                    anyOf:
+                                      - type: "object"
+                                        properties:
+                                            roomIds:
+                                                type: "array"
+                                                items:
+                                                    type: "string"
+                                                minItems: 1
+                                                uniqueItems: true
+                                            key:
+                                                type: "string"
+                                        required: ["roomIds"]
+                                        # Legacy format
+                                      - type: "array"
+                                        items:
+                                            type: "string"
                             additionalProperties: false
                         matrixClients:
                             type: "object"

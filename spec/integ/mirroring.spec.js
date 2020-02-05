@@ -16,9 +16,9 @@ describe("Mirroring", function() {
     ].membershipLists.global.matrixToIrc.incremental = true;
 
     // add additional mappings
-    config.ircService.servers[roomMapping.server].mappings["#a"] = ["!a:localhost"];
-    config.ircService.servers[roomMapping.server].mappings["#b"] = ["!b:localhost"];
-    config.ircService.servers[roomMapping.server].mappings["#c"] = ["!c:localhost"];
+    config.ircService.servers[roomMapping.server].mappings["#a"] = { roomIds: ["!a:localhost"] };
+    config.ircService.servers[roomMapping.server].mappings["#b"] = { roomIds: ["!b:localhost"] };
+    config.ircService.servers[roomMapping.server].mappings["#c"] = { roomIds: ["!c:localhost"] };
 
     let testUser = {
         id: "@flibble:wibble",

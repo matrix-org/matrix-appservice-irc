@@ -649,7 +649,7 @@ describe("Matrix-to-Matrix message bridging", function() {
 
         // Add in a 2nd mapping so it's #chan => [ !one:bar, !two:bar ]
         config.ircService.servers[roomMapping.server].mappings = {
-            [roomMapping.channel]: [roomMapping.roomId, secondRoomId]
+            [roomMapping.channel]: { roomIds: [roomMapping.roomId, secondRoomId] }
         };
 
         // Let the virtual matrix user register

@@ -97,7 +97,9 @@
                     "rooms": []
                 },
                 "mappings": {
-                    "#coffee": ["!foo:bar"]
+                    "#coffee": {
+                        "roomIds": ["!foo:bar"]
+                    }
                 }
             }
         },

@@ -43,6 +43,19 @@ export class IrcServer {
      */
     constructor(public domain: string, public config: IrcServerConfig,
                 private homeserverDomain: string, private expiryTimeSeconds: number = 0) {
+        // This ensures that legacy mappings still work, but we prod the user to update.
+        const stringMappings = Object.entries(config.mappings || {}).filter(([, data]) => {
+            return typeof(data) === "string"
+        }) as unknown as [string, string[]][];
+
+        if (stringMappings.length) {
+            log.warn("** The IrcServer.mappings config schema has changed, allowing legacy format for now. **");
+            log.warn("See https://github.com/matrix-org/matrix-appservice-irc/blob/master/CHANGELOG.md for details");
+            for (const [channelId, roomIds] of stringMappings) {
+                config.mappings[channelId] = { roomIds: roomIds }
+            }
+        }
+
         this.addresses = config.additionalAddresses || [];
         this.addresses.push(domain);
         this.excludedUsers = config.excludedUsers.map((excluded) => {
@@ -154,11 +167,15 @@ export class IrcServer {
         const roomIds = new Set<string>();
         const channels = Object.keys(this.config.mappings);
         channels.forEach((chan) => {
-            this.config.mappings[chan].forEach((roomId) => {
+            this.config.mappings[chan].roomIds.forEach((roomId) => {
                 roomIds.add(roomId);
             });
         });
         return Array.from(roomIds.keys());
+    }
+
+    public getChannelKey(channel: string) {
+        return this.config.mappings[channel]?.key;
     }
 
     public shouldSendConnectionNotices() {
@@ -641,7 +658,12 @@ export interface IrcServerConfig {
         delayMinMs: number;
         delayMaxMs: number;
     };
-    mappings: {[channel: string]: string[]}; // chan -> roomId[]
+    mappings: {
+        [channel: string]: {
+            roomIds: string[];
+            key?: string;
+        };
+    };
     modePowerMap?: {[mode: string]: number};
     sendConnectionMessages: boolean;
     botConfig: {
