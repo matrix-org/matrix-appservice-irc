@@ -249,6 +249,7 @@ export class AdminRoomHandler {
                         "m.federate": server.shouldFederate()
                     },
                     initial_state: initialState,
+                    invite: [sender],
                 }
             });
             const mxRoom = new MatrixRoom(response.room_id);
@@ -266,30 +267,21 @@ export class AdminRoomHandler {
             );
             matrixRooms.push(mxRoom);
         }
-
-        // already tracking channel, so just invite them.
-        const invitePromises = matrixRooms.map((r) => {
-            req.log.info(
-                "Inviting %s to room %s", sender, r.getId()
-            );
-            return this.ircBridge.getAppServiceBridge().getIntent().invite(
-                r.getId(), sender
-            ).catch((ex) => {
-                log.warn("Failed to invite:", ex);
-            });
-        });
-        for (const r of matrixRooms) {
-            const userMustJoin = (
-                key ?? server.shouldSyncMembershipToIrc("incremental", r.getId())
-            );
-            if (!userMustJoin) {
-                continue;
-            }
-            const bc = await this.ircBridge.getBridgedClient(
-                server, sender
-            );
-            await bc.joinChannel(ircChannel, key);
-            break;
+        else {
+            // already tracking channel, so just invite them.
+            await Promise.all(matrixRooms.map(async (r) => {
+                req.log.info(
+                    "Inviting %s to room %s", sender, r.getId()
+                );
+                try {
+                    await this.ircBridge.getAppServiceBridge().getIntent().invite(
+                        r.getId(), sender
+                    );
+                }
+                catch (ex) {
+                    log.warn(`Failed to invite ${sender} to ${r.getId()}:`, ex);
+                }
+            }));
         }
         // check whether we should be force joining the IRC user
         for (let i = 0; i < matrixRooms.length; i++) {
@@ -307,8 +299,6 @@ export class AdminRoomHandler {
                 break;
             }
         }
-
-        await Promise.all(invitePromises);
     }
 
     private async handleCmd(req: BridgeRequest, args: string[], server: IrcServer, room: MatrixRoom, sender: string) {
