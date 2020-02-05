@@ -299,17 +299,20 @@ properties:
                             patternProperties:
                                 # must start with a #
                                 "^#+.*$":
-                                    type: "object"
-                                    properties:
-                                        roomIds:
-                                            type: "array"
-                                            items:
+                                    anyOf:
+                                      - type: "object"
+                                        properties:
+                                            roomIds:
+                                                type: "array"
+                                                items:
+                                                    type: "string"
+                                                minItems: 1
+                                                uniqueItems: true
+                                            key:
                                                 type: "string"
-                                            minItems: 1
-                                            uniqueItems: true
-                                        key:
-                                            type: "string"
-                                    required: ["roomIds"]
+                                        required: ["roomIds"]
+                                        # Legacy format
+                                      - type: "string"
                             additionalProperties: false
                         matrixClients:
                             type: "object"
