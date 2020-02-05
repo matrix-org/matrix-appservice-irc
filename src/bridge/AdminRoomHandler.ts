@@ -166,9 +166,6 @@ export class AdminRoomHandler {
     }
 
     private async handleJoin(req: BridgeRequest, args: string[], server: IrcServer, room: MatrixRoom, sender: string) {
-        // TODO: Code dupe from !nick
-        // Format is: "!join irc.example.com #channel [key]"
-
         // check that the server exists and that the user_id is on the whitelist
         const ircChannel = args[0];
         const key = args[1]; // keys can't have spaces in them, so we can just do this.
@@ -243,9 +240,7 @@ export class AdminRoomHandler {
                 )
             }
             const ircRoom = await this.ircBridge.trackChannel(server, ircChannel, key);
-            const response = await this.ircBridge.getAppServiceBridge().getIntent(
-                sender,
-            ).createRoom({
+            const response = await this.ircBridge.getAppServiceBridge().getIntent().createRoom({
                 options: {
                     name: ircChannel,
                     visibility: "private",
@@ -278,8 +273,10 @@ export class AdminRoomHandler {
                 "Inviting %s to room %s", sender, r.getId()
             );
             return this.ircBridge.getAppServiceBridge().getIntent().invite(
-                room.getId(), sender
-            );
+                r.getId(), sender
+            ).catch((ex) => {
+                log.warn("Failed to invite:", ex);
+            });
         });
         for (const r of matrixRooms) {
             const userMustJoin = (
