@@ -50,8 +50,8 @@ const COMMANDS = {
         example: `!removepass [irc.example.net]`,
         summary: `Remove a previously stored NickServ password`,
     },
-    "!listjoined": {
-        example: `!listjoined`,
+    "!listrooms": {
+        example: `!listrooms [irc.example.net]`,
         summary: "List all of your joined channels, and the rooms they are bridged into.",
     },
     "!quit": {
@@ -479,8 +479,8 @@ export class AdminRoomHandler {
             ));
         }
 
-        let chanList = "You are joined to:\n\n";
-        let chanListHTML = "<p> You are joined to </p><ul>";
+        let chanList = `You are joined to ${client.chanList.length} rooms: \n\n`;
+        let chanListHTML = `<p> You are joined to <code>${client.chanList.length}</code> rooms: </p><ul>`;
         for (const channel of client.chanList) {
             const rooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
             chanList += `- \`${channel}\` which is bridged to ${rooms.map((r) => r.getId()).join(", ")}`;
