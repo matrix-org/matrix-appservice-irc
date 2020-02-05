@@ -1,4 +1,13 @@
- 0.14.0 (2020-01-20)
+ 0.14.1 (2020-01-21)
+====================
+
+Bugfixes
+--------
+
+- Fix issue where bridges using NeDB would not start. ([\#955](https://github.com/matrix-org/matrix-appservice-irc/issues/955))
+
+
+0.14.0 (2020-01-20)
 ====================
 
 Bugfixes
@@ -122,6 +131,10 @@ Internal Changes
 - Gracefully close irc connections on SIGTERM ([\#895](https://github.com/matrix-org/matrix-appservice-irc/issues/895))
 - Log when a newly discovered irc user's profile is updated. ([\#896](https://github.com/matrix-org/matrix-appservice-irc/issues/896))
 
+Changes in 0.13.1 (2019-11-07)
+==============================
+
+* Pin `node-irc` dependency to avoid new changes bleeding into old releases.
 
 Changes in 0.13.0 (2019-09-25)
 ==============================

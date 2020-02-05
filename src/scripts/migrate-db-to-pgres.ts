@@ -10,10 +10,6 @@ import { IrcRoom } from "../models/IrcRoom";
 import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 
-// Migrate rooms
-// Migrate users
-// Migrate configs
-
 const log = new Logger({
     level: "info",
     transports: [
@@ -105,11 +101,9 @@ async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgS
             for (const network of Object.keys(configs)) {
                 const config = configs[network];
                 const password = config.password;
-
-                // NedbDataStore replaces .'s in keys with _
-                const realNetwork = network.replace(/\_/g, ".")
-                await pgStore.storeIrcClientConfig(new IrcClientConfig(entry.id, realNetwork, config));
-                await pgStore.storePass(entry.id, realNetwork, password, false);
+                delete config.password; // We store this seperate now.
+                await pgStore.storeIrcClientConfig(new IrcClientConfig(entry.id, network, config));
+                await pgStore.storePass(entry.id, network, password, false);
             }
             await pgStore.storeUserFeatures(
                 entry.id,
