@@ -166,9 +166,6 @@ export class AdminRoomHandler {
     }
 
     private async handleJoin(req: BridgeRequest, args: string[], server: IrcServer, room: MatrixRoom, sender: string) {
-        // TODO: Code dupe from !nick
-        // Format is: "!join irc.example.com #channel [key]"
-
         // check that the server exists and that the user_id is on the whitelist
         const ircChannel = args[0];
         const key = args[1]; // keys can't have spaces in them, so we can just do this.
@@ -243,9 +240,7 @@ export class AdminRoomHandler {
                 )
             }
             const ircRoom = await this.ircBridge.trackChannel(server, ircChannel, key);
-            const response = await this.ircBridge.getAppServiceBridge().getIntent(
-                sender,
-            ).createRoom({
+            const response = await this.ircBridge.getAppServiceBridge().getIntent().createRoom({
                 options: {
                     name: ircChannel,
                     visibility: "private",
@@ -254,6 +249,7 @@ export class AdminRoomHandler {
                         "m.federate": server.shouldFederate()
                     },
                     initial_state: initialState,
+                    invite: [sender],
                 }
             });
             const mxRoom = new MatrixRoom(response.room_id);
@@ -271,28 +267,21 @@ export class AdminRoomHandler {
             );
             matrixRooms.push(mxRoom);
         }
-
-        // already tracking channel, so just invite them.
-        const invitePromises = matrixRooms.map((r) => {
-            req.log.info(
-                "Inviting %s to room %s", sender, r.getId()
-            );
-            return this.ircBridge.getAppServiceBridge().getIntent().invite(
-                room.getId(), sender
-            );
-        });
-        for (const r of matrixRooms) {
-            const userMustJoin = (
-                key ?? server.shouldSyncMembershipToIrc("incremental", r.getId())
-            );
-            if (!userMustJoin) {
-                continue;
-            }
-            const bc = await this.ircBridge.getBridgedClient(
-                server, sender
-            );
-            await bc.joinChannel(ircChannel, key);
-            break;
+        else {
+            // already tracking channel, so just invite them.
+            await Promise.all(matrixRooms.map(async (r) => {
+                req.log.info(
+                    "Inviting %s to room %s", sender, r.getId()
+                );
+                try {
+                    await this.ircBridge.getAppServiceBridge().getIntent().invite(
+                        r.getId(), sender
+                    );
+                }
+                catch (ex) {
+                    log.warn(`Failed to invite ${sender} to ${r.getId()}:`, ex);
+                }
+            }));
         }
         // check whether we should be force joining the IRC user
         for (let i = 0; i < matrixRooms.length; i++) {
@@ -310,8 +299,6 @@ export class AdminRoomHandler {
                 break;
             }
         }
-
-        await Promise.all(invitePromises);
     }
 
     private async handleCmd(req: BridgeRequest, args: string[], server: IrcServer, room: MatrixRoom, sender: string) {
