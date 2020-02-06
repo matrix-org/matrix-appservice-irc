@@ -45,7 +45,7 @@ export class IrcServer {
                 private homeserverDomain: string, private expiryTimeSeconds: number = 0) {
         // This ensures that legacy mappings still work, but we prod the user to update.
         const stringMappings = Object.entries(config.mappings || {}).filter(([, data]) => {
-            return typeof(data) === "string"
+            return Array.isArray(data);
         }) as unknown as [string, string[]][];
 
         if (stringMappings.length) {
