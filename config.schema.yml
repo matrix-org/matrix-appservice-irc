@@ -141,6 +141,8 @@ properties:
                                 type: "string"
                         ssl:
                             type: "boolean"
+                        connectionOpts:
+                            type: "object"
                         sslselfsign:
                             type: "boolean"
                         sasl:

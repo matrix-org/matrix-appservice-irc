@@ -225,12 +225,12 @@ export class IrcServer {
         return this.config.dynamicChannels.whitelist.indexOf(userId) !== -1;
     }
 
-    public getCA() {
-        return this.config.ca;
-    }
-
     public useSsl() {
         return Boolean(this.config.ssl);
+    }
+
+    public getConnectionOpts() {
+        return this.config.connectionOpts;
     }
 
     public useSslSelfSigned() {
@@ -635,6 +635,7 @@ export interface IrcServerConfig {
     ca?: string;
     networkId?: string;
     ssl?: boolean;
+    connectionOpts?: object;
     sslselfsign?: boolean;
     sasl?: boolean;
     password?: string;

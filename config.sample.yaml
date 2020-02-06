@@ -69,6 +69,21 @@ ircService:
       port: 6697
       # Whether to use SSL or not. Default: false.
       ssl: true
+      # Object to merge with node-irc's connectionOpts
+      # Can be used to override keys like 'ca' and 'ciphers'
+      # valid options in https://nodejs.org/api/tls.html#tls_tls_connect_options_callback
+      # and https://nodejs.org/api/tls.html#tls_tls_createsecurecontext_options
+      # Examples:
+      # A specific CA to trust instead of the default CAs. Optional.
+      #ca: |
+      #  -----BEGIN CERTIFICATE-----
+      #  ...
+      #  -----END CERTIFICATE-----
+      #
+      # If your CA cert has a weak signature digest it will give an error like "CA signature digest algorithm too weak"
+      # You can append @SECLEVEL=0 to nodejs' default cipherlist:
+      #ciphers: "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA:@SECLEVEL=0"
+      connectionOpts: {}
       # Whether or not IRC server is using a self-signed cert or not providing CA Chain
       sslselfsign: false
       # Should the connection attempt to identify via SASL (if a server or user password is given)
@@ -77,12 +92,6 @@ ircService:
       # Whether to allow expired certs when connecting to the IRC server.
       # Usually this should be off. Default: false.
       allowExpiredCerts: false
-      # A specific CA to trust instead of the default CAs. Optional.
-      #ca: |
-      #  -----BEGIN CERTIFICATE-----
-      #  ...
-      #  -----END CERTIFICATE-----
-
       #
       # The connection password to send for all clients as a PASS (or SASL, if enabled above) command. Optional.
       # password: 'pa$$w0rd'
