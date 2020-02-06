@@ -1,1 +1,0 @@
-Fix an issue where legacy mappings would cause the bridge to not start.

@@ -1,4 +1,13 @@
- 0.15.0 (2020-02-05)
+ 0.15.1 (2020-02-06)
+====================
+
+Bugfixes
+--------
+
+- Fix an issue where legacy mappings would cause the bridge to not start. ([\#971](https://github.com/matrix-org/matrix-appservice-irc/issues/971))
+
+
+0.15.0 (2020-02-05)
 ====================
 
 Features
