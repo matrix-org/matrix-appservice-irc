@@ -1,0 +1,1 @@
+Fix "User did not rejoin" error when bridge debounces QUITs

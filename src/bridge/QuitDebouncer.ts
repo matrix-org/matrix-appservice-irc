@@ -13,7 +13,6 @@ export class QuitDebouncer {
         [domain: string]: {
             rejoinPromises: {
                 [nick: string]: {
-                    promise: Promise<unknown>;
                     resolve: () => void;
                 };
             };
@@ -116,15 +115,9 @@ export class QuitDebouncer {
         }
 
         req.log.info('Debouncing for ' + debounceMs + 'ms');
-
         const promise = new Bluebird((resolve) => {
-            debouncer.rejoinPromises[nick] = {
-                resolve,
-                promise
-            };
+            debouncer.rejoinPromises[nick] = {resolve};
         }).timeout(debounceMs);
-
-
 
         // Return whether the part should be bridged as a leave
         try {
