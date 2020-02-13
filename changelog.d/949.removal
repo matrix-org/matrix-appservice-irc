@@ -1,1 +1,0 @@
-Remove `statsd` support as per https://github.com/matrix-org/matrix-appservice-irc/issues/818

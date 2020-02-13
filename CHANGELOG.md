@@ -1,4 +1,70 @@
- 0.14.1 (2020-01-21)
+ 0.15.1 (2020-02-06)
+====================
+
+Bugfixes
+--------
+
+- Fix an issue where legacy mappings would cause the bridge to not start. ([\#971](https://github.com/matrix-org/matrix-appservice-irc/issues/971))
+
+
+0.15.0 (2020-02-05)
+====================
+
+Features
+--------
+
+- **Breaking Change** - Static mappings can now set a channel key:
+   - This changes the config schema, even if you do not make use of this feature. You MUST update your existing `mappings` to use the new `roomIds`:
+     ```yaml
+     old:
+       mappings:
+         "#thepub": ["!kieouiJuedJoxtVdaG:localhost"]
+
+     new:
+       mappings:
+         "#thepub":
+           roomIds: ["!kieouiJuedJoxtVdaG:localhost"]
+     ```
+   - The key is automatically used to join Matrix users to the mapped channel. They do not need to know the key. For example, you can bridge password-protected IRC channels to invite-only Matrix rooms:
+     ```yaml
+     mappings:
+       "#viplounge":
+         roomIds: ["!xKtieojhareASOokdc:localhost"]
+         key: "vip-pass"
+     ``` ([\#591](https://github.com/matrix-org/matrix-appservice-irc/issues/591))
+- Add 'defaultOnline' and 'excludeRegex' parameters to /reapUsers. ([\#930](https://github.com/matrix-org/matrix-appservice-irc/issues/930))
+- Add support for MSC2346; adding information about the bridged channel into room state. ([\#941](https://github.com/matrix-org/matrix-appservice-irc/issues/941))
+- Added `!listrooms` command to list which channels you are connected to. ([\#965](https://github.com/matrix-org/matrix-appservice-irc/issues/965))
+
+
+Bugfixes
+--------
+
+- Fix issue where bridges using NeDB would not start. ([\#955](https://github.com/matrix-org/matrix-appservice-irc/issues/955))
+- Substitute `$SERVER` in `ircService.servers.*.dynamicChannels.aliasTemplate`
+  when generating a room alias from channel (fixes thirdparty lookups and joining
+  by IRC channel name from Riot). ([\#958](https://github.com/matrix-org/matrix-appservice-irc/issues/958))
+- Fix an issue where the postgres migration script does not translate '_' => '.' ([\#962](https://github.com/matrix-org/matrix-appservice-irc/issues/962))
+- Fix issue where migrating users from NeDB to Postgres would fail if they had a password. ([\#968](https://github.com/matrix-org/matrix-appservice-irc/issues/968))
+- Fix bug where users would not be able to join a channel via `!join`. ([\#970](https://github.com/matrix-org/matrix-appservice-irc/issues/970))
+
+
+Deprecations and Removals
+-------------------------
+
+- Removed `upgrade-db-0.*.js` scripts which were used to upgrade old versions of the NeDB database. If you are upgrading from <=0.9.1 then you can find the upgrade scripts [here](https://github.com/matrix-org/matrix-appservice-irc/tree/0.14.0/scripts). ([\#947](https://github.com/matrix-org/matrix-appservice-irc/issues/947))
+- Remove `statsd` support as per https://github.com/matrix-org/matrix-appservice-irc/issues/818 ([\#949](https://github.com/matrix-org/matrix-appservice-irc/issues/949))
+- Remove githooks, since they are unused. ([\#951](https://github.com/matrix-org/matrix-appservice-irc/issues/951))
+
+
+Internal Changes
+----------------
+
+- Queue more membership operations inside a retry queue ([\#932](https://github.com/matrix-org/matrix-appservice-irc/issues/932))
+- Queue IRC messages inbound to Matrix for a maximum of 5 seconds. ([\#953](https://github.com/matrix-org/matrix-appservice-irc/issues/953))
+
+
+0.14.1 (2020-01-21)
 ====================
 
 Bugfixes

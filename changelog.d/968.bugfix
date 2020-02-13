@@ -1,1 +1,0 @@
-Fix issue where migrating users from NeDB to Postgres would fail if they had a password.

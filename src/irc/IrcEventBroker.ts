@@ -203,7 +203,7 @@ export class IrcEventBroker {
         });
     }
 
-    public sendMetadata(client: BridgedClient, msg: string, force = false) {
+    public sendMetadata(client: BridgedClient, msg: string, force = false, err?: IrcMessage) {
         if ((client.isBot || !client.server.shouldSendConnectionNotices()) && !force) {
             return;
         }
@@ -214,7 +214,7 @@ export class IrcEventBroker {
                 }
             })
         );
-        complete(req, this.ircHandler.onMetadata(req, client, msg, force));
+        complete(req, this.ircHandler.onMetadata(req, client, msg, force, err));
     }
 
     public addHooks(client: BridgedClient, connInst: ConnectionInstance) {

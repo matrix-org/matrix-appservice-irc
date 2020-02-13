@@ -1,1 +1,0 @@
-Queue IRC messages inbound to Matrix for a maximum of 5 seconds.

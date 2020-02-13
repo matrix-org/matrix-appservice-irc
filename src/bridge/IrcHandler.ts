@@ -14,6 +14,7 @@ import { RequestLogger } from "../logging";
 import { RoomOrigin } from "../datastore/DataStore";
 import QuickLRU from "quick-lru";
 import { MembershipQueue } from "../util/MembershipQueue";
+import { IrcMessage } from "../irc/ConnectionInstance";
 
 const NICK_USERID_CACHE_MAX = 512;
 
@@ -875,20 +876,42 @@ export class IrcHandler {
      * @param {BridgedClient} client The client who is acting on behalf of the Matrix user.
      * @param {string} msg The message to share with the Matrix user.
      * @param {boolean} force True if ignoring startup suppresion.
+     * @param ircMsg Optional data about the metadata.
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
-    public async onMetadata(req: BridgeRequest, client: BridgedClient, msg: string, force: boolean) {
+    public async onMetadata(req: BridgeRequest, client: BridgedClient, msg: string, force: boolean,
+                            ircMsg?: IrcMessage) {
         req.log.info("%s : Sending metadata '%s'", client, msg);
         if (!this.ircBridge.isStartedUp && !force) {
             req.log.info("Suppressing metadata: not started up.");
-            return BridgeRequestErr.ERR_NOT_MAPPED;
+            return BridgeRequestErr.ERR_DROPPED;
         }
+
         const botUser = new MatrixUser(this.ircBridge.appServiceUserId);
 
         if (!client.userId) {
             // Probably the bot
             return undefined;
         }
+
+        console.log("IRCMSG:", ircMsg);
+
+        if (ircMsg && ircMsg.command === "err_nosuchnick") {
+            const otherNick = ircMsg.args[1];
+            const otherUser = new MatrixUser(client.server.getUserIdFromNick(otherNick));
+            const room = await this.ircBridge.getStore().getMatrixPmRoom(client.userId, otherUser.userId);
+            if (room) {
+                return this.ircBridge.sendMatrixAction(
+                    room, otherUser, new MatrixAction(
+                        "notice", `User is not online or does not exist. Message not sent.`
+                    ),
+                );
+            }
+            req.log.warn(`No existing PM found for ${client.userId} <--> ${otherUser.userId}`);
+            // No room associated, fall through
+        }
+
+
         let adminRoom: MatrixRoom;
         const fetchedAdminRoom = await this.ircBridge.getStore().getAdminRoomByUserId(client.userId);
         if (!fetchedAdminRoom) {
