@@ -62,7 +62,7 @@ export class BridgedClient extends EventEmitter {
     private instCreationFailed = false;
     private _explicitDisconnect = false;
     private _disconnectReason: string|null = null;
-    private _chanList: string[] = [];
+    private _chanList: Set<string> = new Set();
     private connectDefer: promiseutil.Defer<void>;
     public readonly log: LoggerInstance;
     private cachedOperatorNicksInfo: {[channel: string]: GetNicksResponseOperators} = {};
@@ -143,7 +143,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     public get chanList() {
-        return this._chanList;
+        return Array.from(this._chanList);
     }
 
     public get unsafeClient() {
@@ -279,7 +279,8 @@ export class BridgedClient extends EventEmitter {
         }
     }
 
-    public async reconnect() {
+    public async reconnect(reconnectChanList: string[]) {
+        reconnectChanList.forEach((c) => this._chanList.add(c));
         await this.connect();
         this.log.info(
             "Reconnected %s@%s", this.nick, this.server.domain
@@ -389,7 +390,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     public inChannel(channel: string) {
-        return this.chanList.includes(channel);
+        return this._chanList.has(channel);
     }
 
     public kick(nick: string, channel: string, reason: string) {
@@ -673,19 +674,11 @@ export class BridgedClient extends EventEmitter {
     }
 
     private removeChannel(channel: string) {
-        const i = this.chanList.indexOf(channel);
-        if (i === -1) {
-            return;
-        }
-        this.chanList.splice(i, 1);
+        this._chanList.delete(channel);
     }
 
     private addChannel(channel: string) {
-        const i = this.chanList.indexOf(channel);
-        if (i !== -1) {
-            return; // already added
-        }
-        this.chanList.push(channel);
+        this._chanList.add(channel);
     }
 
     public getLastActionTs() {
@@ -828,7 +821,7 @@ export class BridgedClient extends EventEmitter {
                 return;
             }
             // promise isn't resolved yet and we still want to join this channel
-            if (defer.promise.isPending() && this.chanList.indexOf(channel) !== -1) {
+            if (defer.promise.isPending() && this._chanList.has(channel)) {
                 // we may have joined but didn't get the callback so check the client
                 if (Object.keys(this.unsafeClient.chans).indexOf(channel) !== -1) {
                     // we're joined
