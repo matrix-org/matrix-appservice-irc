@@ -1,1 +1,0 @@
-Fix an issue where users were not rejoined to channels on netsplit/password change.

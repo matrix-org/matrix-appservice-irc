@@ -1,1 +1,0 @@
-The bridge will now notify you if a DM recipient is offline.
