@@ -879,7 +879,8 @@ export class IrcHandler {
      * @param ircMsg Optional data about the metadata.
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
-    public async onMetadata(req: BridgeRequest, client: BridgedClient, msg: string, force: boolean, ircMsg?: IrcMessage) {
+    public async onMetadata(req: BridgeRequest, client: BridgedClient, msg: string, force: boolean,
+                            ircMsg?: IrcMessage) {
         req.log.info("%s : Sending metadata '%s'", client, msg);
         if (!this.ircBridge.isStartedUp && !force) {
             req.log.info("Suppressing metadata: not started up.");
