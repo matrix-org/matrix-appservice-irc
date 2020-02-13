@@ -902,7 +902,7 @@ export class IrcHandler {
             if (room) {
                 return this.ircBridge.sendMatrixAction(
                     room, otherUser, new MatrixAction(
-                        "notice", `User is not online or does not exist.`
+                        "notice", `User is not online or does not exist. Message not sent.`
                     ),
                 );
             }
