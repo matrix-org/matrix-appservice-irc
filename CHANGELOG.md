@@ -1,4 +1,20 @@
- 0.15.1 (2020-02-06)
+ 0.15.2 (2020-02-13)
+====================
+
+Features
+--------
+
+- The bridge will now notify you if a DM recipient is offline. ([\#978](https://github.com/matrix-org/matrix-appservice-irc/issues/978))
+
+
+Bugfixes
+--------
+
+- Fix "User did not rejoin" error when bridge debounces QUITs ([\#977](https://github.com/matrix-org/matrix-appservice-irc/issues/977))
+- Fix an issue where users were not rejoined to channels on netsplit/password change. ([\#979](https://github.com/matrix-org/matrix-appservice-irc/issues/979))
+
+
+0.15.1 (2020-02-06)
 ====================
 
 Bugfixes
