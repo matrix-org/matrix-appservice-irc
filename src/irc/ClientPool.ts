@@ -607,7 +607,7 @@ export class ClientPool {
 
     private async reconnectClient(cliChan: ReconnectionItem) {
         try {
-            await cliChan.cli.reconnect();
+            await cliChan.cli.reconnect(cliChan.chanList);
         }
         catch (ex) {
             log.error(
