@@ -259,13 +259,13 @@ export class BridgedClient extends EventEmitter {
             });
             connInst.client.addListener("error", (err: IrcMessage) => {
                 // Errors we MUST notify the user about, regardless of the bridge's admin room config.
-                const ERRORS_TO_FORCE = ["err_nononreg"]
+                const ERRORS_TO_FORCE = ["err_nononreg", "err_nosuchnick"];
                 if (!err || !err.command || connInst.dead) {
                     return;
                 }
                 let msg = "Received an error on " + this.server.domain + ": " + err.command + "\n";
                 msg += JSON.stringify(err.args);
-                this.eventBroker.sendMetadata(this, msg, ERRORS_TO_FORCE.includes(err.command));
+                this.eventBroker.sendMetadata(this, msg, ERRORS_TO_FORCE.includes(err.command), err);
             });
             return connInst;
         }
