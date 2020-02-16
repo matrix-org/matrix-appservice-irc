@@ -319,7 +319,8 @@ ircService:
           # connected user. If not specified, all users will connect from the same
           # (default) address. This may require additional OS-specific work to allow
           # for the node process to bind to multiple different source addresses
-          # e.g IP_FREEBIND on Linux, which requires an LD_PRELOAD with the library
+          # Linux kernels 4.3+ support sysctl net.ipv6.ip_nonlocal_bind=1
+          # Older kernels will need IP_FREEBIND, which requires an LD_PRELOAD with the library
           # https://github.com/matrix-org/freebindfree as Node does not expose setsockopt.
           # prefix: "2001:0db8:85a3::"  # modify appropriately
         #
