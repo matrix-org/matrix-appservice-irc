@@ -1,1 +1,1 @@
-Add `scripts/towncrier-check.sh` and `scripts/towncrier-release.sh`
+Add `scripts/changelog-check.sh` and `scripts/changelog-release.sh`
