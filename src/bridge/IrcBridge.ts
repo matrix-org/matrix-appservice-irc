@@ -1054,7 +1054,7 @@ export class IrcBridge {
                 this.memberListSyncers[room.getServer().domain].addToLeavePool(
                     roomInfo.remoteJoinedUsers,
                     oldRoomId,
-                    room.channel,
+                    room.getChannel(),
                 );
             })
         }));

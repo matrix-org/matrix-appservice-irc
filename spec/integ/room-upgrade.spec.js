@@ -3,9 +3,20 @@ const BridgeEventType = require("../../lib/bridge/BridgeStateSyncer").BridgeStat
 
 describe("Room upgrades", function() {
     const {env, roomMapping, botUserId, test} = envBundle();
+    const testUser = {
+        id: "@flibble:wibble",
+        nick: "M-flibble"
+    };
 
     beforeEach(async () => {
         await test.beforeEach(env);
+
+        env.ircMock._autoConnectNetworks(
+            roomMapping.server, testUser.nick, roomMapping.server
+        );
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, testUser.nick, roomMapping.channel
+        );
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -71,6 +82,16 @@ describe("Room upgrades", function() {
                                 more_state: true,
                             }
                         },
+                        {
+                            sender: testUser.id,
+                            state_key: testUser.id,
+                            membership: "join",
+                            content: {
+                                membership: "join",
+                            },
+                            room_id: roomMapping.roomId,
+                            type: "m.room.member",
+                        }
                     ].concat(members.map((userId) => ({
                         sender: userId,
                         state_key: userId,
