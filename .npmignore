@@ -1,0 +1,5 @@
+.vscode
+.nyc_output
+data
+tsconfig.tsbuildinfo
+*.log
