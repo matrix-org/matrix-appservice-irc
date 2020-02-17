@@ -25,7 +25,6 @@ import {
     MatrixUser,
     MatrixRoom,
     Logging,
-    Entry,
     Request,
     PrometheusMetrics,
     MembershipCache,
