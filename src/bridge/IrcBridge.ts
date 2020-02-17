@@ -1041,7 +1041,7 @@ export class IrcBridge {
                 // We may not have permissions to do so, which means we are basically stuffed.
                 log.warn(`Could not send bridge info event to new room: ${ex}`);
             }
-        } 
+        }
         log.info("Migrating ghosts");
         await Bluebird.all(rooms.map((room) => {
             return this.getBridgedClient(room.getServer(), roomInfo.realJoinedUsers[0]).then((client) => {
