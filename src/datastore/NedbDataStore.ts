@@ -648,8 +648,24 @@ export class NeDBDataStore implements DataStore {
         await this.roomStore.setMatrixRoom(room);
     }
 
-    public async roomUpgradeOnRoomMigrated() {
-        // this can no-op, because the matrix-appservice-bridge library will take care of it.
+    public async roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string) {
+        const ircRooms = await this.getIrcChannelsForRoomId(oldRoomId);
+        for (const ircRoom of ircRooms) {
+            log.debug(`Migrating ${ircRoom.getId()}`);
+            // Determine the origin for the room:
+            const room = await this.getRoom(oldRoomId, ircRoom.server.domain, ircRoom.channel);
+            if (!room) {
+                // Room doesn't exist.
+                log.info("Not migrating room, room doesn't exist in datastore");
+                continue;
+            }
+            const origin = room.data.origin;
+            await this.removeRoom(oldRoomId, ircRoom.server.domain, ircRoom.channel, origin);
+            log.debug(`Removed old room ${oldRoomId}`);
+            await this.storeRoom(ircRoom, new MatrixRoom(newRoomId), origin);
+            log.debug(`Stored new room ${newRoomId}`);
+        }
+        log.debug("Finished migrating rooms in database");
     }
 
     public async destroy() {
