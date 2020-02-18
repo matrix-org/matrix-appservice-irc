@@ -681,7 +681,7 @@ export class NeDBDataStore implements DataStore {
         return "ADMIN_" + userId; // clobber based on this.
     }
 
-    private static createMappingId(roomId: string, ircDomain: string, ircChannel: string) {
+    public static createMappingId(roomId: string, ircDomain: string, ircChannel: string) {
         // space as delimiter as none of these IDs allow spaces.
         return roomId + " " + ircDomain + " " + ircChannel; // clobber based on this
     }
