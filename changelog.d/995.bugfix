@@ -1,0 +1,1 @@
+Fix a bug where users with high numbers of channels would flood the ircd and be stuck trying to connect forever.
