@@ -1024,7 +1024,7 @@ export class IrcBridge {
             }
             catch (ex) {
                 // We may not have permissions to do so, which means we are basically stuffed.
-                log.warn("Could not send m.room.bridging event to new room:", ex);
+                log.warn(`Could not send m.room.bridging event to new room: ${ex}`);
             }
         }
         if (bridgeInfoEvent) {
@@ -1039,24 +1039,22 @@ export class IrcBridge {
             }
             catch (ex) {
                 // We may not have permissions to do so, which means we are basically stuffed.
-                log.warn("Could not send bridge info event to new room:", ex);
+                log.warn(`Could not send bridge info event to new room: ${ex}`);
             }
         }
         log.info("Migrating ghosts");
         await Bluebird.all(rooms.map((room) => {
-            return this.getBotClient(room.getServer()).then((bot) => {
+            return this.getBridgedClient(room.getServer(), roomInfo.realJoinedUsers[0]).then((client) => {
                 // This will invoke NAMES and make members join the new room,
                 // so we don't need to await it.
-                bot.getNicks(room.getChannel()).catch(() => {
-                    log.error("Failed to get nicks for upgraded room");
-                });
+                client.getNicks(room.getChannel());
                 log.info(
                     `Leaving ${roomInfo.remoteJoinedUsers.length} users from old room ${oldRoomId}.`
                 );
                 this.memberListSyncers[room.getServer().domain].addToLeavePool(
                     roomInfo.remoteJoinedUsers,
                     oldRoomId,
-                    room.channel,
+                    room.getChannel(),
                 );
             })
         }));

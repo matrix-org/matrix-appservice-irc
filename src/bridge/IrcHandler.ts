@@ -894,8 +894,6 @@ export class IrcHandler {
             return undefined;
         }
 
-        console.log("IRCMSG:", ircMsg);
-
         if (ircMsg && ircMsg.command === "err_nosuchnick") {
             const otherNick = ircMsg.args[1];
             const otherUser = new MatrixUser(client.server.getUserIdFromNick(otherNick));
