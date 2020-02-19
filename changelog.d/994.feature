@@ -1,0 +1,1 @@
+Kicks from one IRC user to another will now be shown as kicks on Matrix.
