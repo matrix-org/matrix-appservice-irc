@@ -286,9 +286,10 @@ export class BridgedClient extends EventEmitter {
             "Reconnected %s@%s", this.nick, this.server.domain
         );
         this.log.info("Rejoining %s channels", this.chanList.length);
-        await Promise.all(this.chanList.map((c: string) => {
-            return this.joinChannel(c);
-        }));
+        // This needs to be synchronous
+        for (const channel of this.chanList) {
+            await this.joinChannel(channel);
+        }
         this.log.info("Rejoined channels");
     }
 
