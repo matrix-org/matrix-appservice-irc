@@ -750,7 +750,8 @@ export class IrcHandler {
                     await this.membershipQueue.leave(
                         room.getId(), matrixUserKickee.getId(), req, false, reason, matrixUserKicker.getId(),
                     );
-                } catch (ex) {
+                }
+                catch (ex) {
                     const formattedReason = `Kicked by ${kicker.nick} ${reason ? ": " + reason : ""}`;
                     // We failed to show a real kick, so just leave.
                     await this.membershipQueue.leave(
