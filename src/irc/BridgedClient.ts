@@ -337,6 +337,7 @@ export class BridgedClient extends EventEmitter {
                 if (nickErrListener) {
                     client.removeListener("error", nickErrListener);
                 }
+                this.emit("pending-nick.remove", validNick);
                 reject(new Error("Timed out waiting for a response to change nick."));
             }, NICK_DELAY_TIMER_MS);
             nickListener = (old, n) => {
@@ -344,6 +345,7 @@ export class BridgedClient extends EventEmitter {
                 if (nickErrListener) {
                     client.removeListener("error", nickErrListener);
                 }
+                this.emit("pending-nick.remove", validNick);
                 resolve("Nick changed from '" + old + "' to '" + n + "'.");
             }
             nickErrListener = (err) => {
@@ -361,9 +363,11 @@ export class BridgedClient extends EventEmitter {
                     }
                     reject(new Error("Failed to change nick: " + err.command));
                 }
+                this.emit("pending-nick.remove", validNick);
             }
             client.once("nick", nickListener);
             client.once("error", nickErrListener);
+            this.emit("pending-nick.add", validNick);
             client.send("NICK", validNick);
         });
     }
