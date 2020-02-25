@@ -134,7 +134,7 @@ export class AdminRoomHandler {
                 await this.handleWhois(req, args, ircServer, adminRoom, event.sender);
                 break;
             case "!storepass":
-                await this.handleStorePass(req, args, ircServer, adminRoom, event.sender, clientList[0]);
+                await this.handleStorePass(req, args, ircServer, adminRoom, event.sender, clientList);
                 break;
             case "!removepass":
                 await this.handleRemovePass(ircServer, adminRoom, event.sender);
@@ -400,7 +400,7 @@ export class AdminRoomHandler {
     }
 
     private async handleStorePass(req: BridgeRequest, args: string[], server: IrcServer,
-        room: MatrixRoom, userId: string, client: BridgedClient) {
+        room: MatrixRoom, userId: string, clientList: BridgedClient[]) {
         const domain = server.domain;
         let notice;
 
@@ -419,8 +419,10 @@ export class AdminRoomHandler {
                 notice = new MatrixAction(
                     "notice", `Successfully stored password for ${domain}. You will now be reconnected to IRC.`
                 );
-                if (client) {
-                    await client.disconnect("iwantoreconnect", "authenticating", false);
+                for (let i = 0; i < clientList.length; i++) {
+                  if (clientList[i].server === server) {
+                      await clientList[i].disconnect("iwantoreconnect", "authenticating", false);
+                  }
                 }
             }
         }
