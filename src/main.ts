@@ -8,7 +8,6 @@ import { IrcBridge } from "./bridge/IrcBridge";
 import { IrcServer } from "./irc/IrcServer";
 import ident from "./irc/Ident";
 import * as logging from "./logging";
-import { LoggerInstance } from "winston";
 import { BridgeConfig } from "./config/BridgeConfig";
 import { AppServiceRegistration } from "matrix-appservice";
 import * as Sentry from "@sentry/node";
@@ -91,7 +90,7 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
     // configure global stuff for the process
     if (config.ircService.logging) {
         logging.configure(config.ircService.logging);
-        logging.setUncaughtExceptionLogger(log as LoggerInstance);
+        logging.setUncaughtExceptionLogger(log);
     }
     if (config.ircService.ident && config.ircService.ident.enabled) {
         ident.configure(config.ircService.ident);
