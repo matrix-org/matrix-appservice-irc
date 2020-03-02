@@ -44,7 +44,7 @@
     "quick-lru": "^4.0.1",
     "request": "^2.54.0",
     "request-promise-native": "^1.0.8",
-    "sanitize-html": "^1.22.0",
+    "sanitize-html": "^1.6.1",
     "winston": "^3.2.1",
     "winston-daily-rotate-file": "^4.4.2"
   },
@@ -56,7 +56,6 @@
     "@types/nedb": "^1.8.9",
     "@types/nopt": "^3.0.29",
     "@types/pg": "^7.11.1",
-    "@types/sanitize-html": "^1.20.2",
     "@typescript-eslint/eslint-plugin": "^2.14.0",
     "@typescript-eslint/parser": "^2.14.0",
     "eslint": "^5.16.0",

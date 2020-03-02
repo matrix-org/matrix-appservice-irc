@@ -1,4 +1,7 @@
-import sanitizeHtml from "sanitize-html";
+// XXX: https://github.com/matrix-org/matrix-appservice-irc/issues/1003
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const sanitizeHtml = require("sanitize-html");
+
 import he from "he";
 
 const htmlNamesToColorCodes: {[color: string]: string[]} = {
