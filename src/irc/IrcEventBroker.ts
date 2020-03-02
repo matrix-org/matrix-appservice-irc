@@ -88,7 +88,6 @@ import { ProcessedDict } from "../util/ProcessedDict";
 import { getLogger } from "../logging";
 import { Bridge } from "matrix-appservice-bridge";
 import { ClientPool } from "./ClientPool";
-import { LoggerInstance } from "winston";
 import { BridgedClient } from "./BridgedClient";
 import { IrcMessage, ConnectionInstance } from "./ConnectionInstance";
 import { IrcHandler } from "../bridge/IrcHandler";
@@ -113,7 +112,7 @@ export class IrcEventBroker {
         private readonly pool: ClientPool,
         private readonly ircHandler: IrcHandler) {
         this.processed = new ProcessedDict();
-        this.processed.startCleaner(log as LoggerInstance);
+        this.processed.startCleaner(log);
     }
 
 

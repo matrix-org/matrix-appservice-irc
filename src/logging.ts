@@ -1,5 +1,6 @@
 /*
 Copyright 2019 The Matrix.org Foundation C.I.C.
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,17 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import winston, { TransportInstance, LeveledLogMethod, LoggerInstance } from "winston";
+import winston, { LeveledLogMethod, Logger, format as WinstonFormat } from "winston";
+import * as Transport from "winston-transport";
 import "winston-daily-rotate-file";
-import { WriteStream } from "fs";
-
-
-interface FormatterFnOpts {
-    timestamp: () => string;
-    level: string;
-    meta: {[key: string]: string};
-    message: string;
-}
 
 export interface LoggerConfig {
     level: "debug"|"info"|"warn"|"error";
@@ -33,6 +26,7 @@ export interface LoggerConfig {
     toConsole: boolean;
     maxFiles: number;
     verbose: boolean;
+    timestamp: boolean;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -52,26 +46,44 @@ let loggerConfig: LoggerConfig = {
     errfile: undefined, // path to file
     toConsole: true, // make a console logger
     maxFiles: 5,
-    verbose: false
+    verbose: false,
+    timestamp: true,
 };
 
-const loggers: {[name: string]: LoggerInstance } = {
+const loggers: {[name: string]: Logger } = {
     // name_of_logger: Logger
 };
 
-let loggerTransports: TransportInstance[]; // from config
+let loggerTransports: Transport[]; // from config
 
-export function timestampFn() {
-    return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+export function formatterFn(forceTimestamp = false) {
+    const layers = [
+        WinstonFormat.splat(),
+        WinstonFormat.printf((info) => {
+            info.level = info.level.toUpperCase();
+            info.loggerName = info.loggerName ? `${info.loggerName} ` : "";
+            info.reqId = info.reqId ? `[${info.reqId}] ` : "";
+            info.dir = info.dir ? `[${info.dir}] ` : "";
+            info.timestamp = info.timestamp ? `${info.timestamp} ` : "";
+            return "" +
+`${info.timestamp}${info.level}:${info.loggerName}${info.reqId}${info.dir}${info.message}`;
+        } ),
+    ];
+    if (forceTimestamp || loggerConfig.timestamp) {
+        layers.unshift(WinstonFormat.timestamp({format: "YYYY-MM-DD HH:mm:ss"}));
+    }
+    return WinstonFormat.combine(...layers);
 }
 
-export function formatterFn(opts: FormatterFnOpts) {
-    return opts.timestamp() + ' ' +
-    opts.level.toUpperCase() + ':' +
-    (opts.meta && opts.meta.loggerName ? opts.meta.loggerName : "") + ' ' +
-    (opts.meta && opts.meta.reqId ? ("[" + opts.meta.reqId + "] ") : "") +
-    (opts.meta && opts.meta.dir ? opts.meta.dir : "") +
-    (undefined !== opts.message ? opts.message : '');
+export function simpleLogger(level = "info") {
+    const l = winston.createLogger({
+        level: level,
+    });
+    l.add(new (winston.transports.Console)({
+        format: formatterFn(),
+        level: level
+    }));
+    return l;
 }
 
 const makeTransports = function() {
@@ -79,37 +91,31 @@ const makeTransports = function() {
     const transports = [];
     if (loggerConfig.toConsole) {
         transports.push(new (winston.transports.Console)({
-            json: false,
-            name: "console",
-            timestamp: timestampFn,
-            formatter: formatterFn,
+            format: formatterFn(true),
             level: loggerConfig.level
         }));
     }
+
     if (loggerConfig.logfile) {
         transports.push(new (winston.transports.DailyRotateFile)({
             filename: loggerConfig.logfile,
             json: false,
-            name: "logfile",
             level: loggerConfig.level,
-            timestamp: timestampFn,
-            formatter: formatterFn,
+            format: formatterFn(),
             maxFiles: loggerConfig.maxFiles,
             datePattern: "YYYY-MM-DD",
-            tailable: true
+            createSymlink: true, // Make it tailable.
         }));
     }
     if (loggerConfig.errfile) {
         transports.push(new (winston.transports.DailyRotateFile)({
             filename: loggerConfig.errfile,
             json: false,
-            name: "errorfile",
             level: "error",
-            timestamp: timestampFn,
-            formatter: formatterFn,
+            format: formatterFn(),
             maxFiles: loggerConfig.maxFiles,
             datePattern: "YYYY-MM-DD",
-            tailable: true
+            createSymlink: true, // Make it tailable.
         }));
     }
     // by default, EventEmitters will whine if you set more than 10 listeners on
@@ -128,18 +134,11 @@ const createLogger = function(nameOfLogger: string) {
         loggerTransports = makeTransports();
     }
 
-    return new (winston.Logger)({
+    return winston.createLogger({
         transports: loggerTransports,
-        // winston doesn't support getting the logger category from the
-        // formatting function, which is a shame. Instead, write a rewriter
-        // which sets the 'meta' info for the logged message with the loggerName
-        rewriters: [
-            function(level, msg, meta) {
-                if (!meta) { meta = {}; }
-                meta.loggerName = nameOfLogger;
-                return meta;
-            }
-        ]
+        defaultMeta: {
+            loggerName: nameOfLogger,
+        }
     });
 };
 
@@ -155,7 +154,7 @@ export function get(nameOfLogger: string) {
     return logger;
 }
 
-export function logErr(logger: LoggerInstance, e: Error) {
+export function logErr(logger: Logger, e: Error) {
     logger.error("Error: %s", JSON.stringify(e));
     if (e.stack) {
         logger.error(e.stack);
@@ -181,16 +180,13 @@ export function configure(opts: LoggerConfig) {
     Object.keys(loggers).forEach(function(loggerName) {
         const existingLogger = loggers[loggerName];
         // remove each individual transport
-        const transportNames = ["logfile", "console", "errorfile"];
-        transportNames.forEach(function(tname) {
-            if (existingLogger.transports[tname]) {
-                existingLogger.remove(tname);
-            }
-        });
+        for (const transport of existingLogger.transports) {
+            existingLogger.remove(transport);
+        }
         // apply the new transports
-        loggerTransports.forEach(function(transport) {
-            existingLogger.add(transport, undefined, true);
-        });
+        for (const transport of loggerTransports) {
+            existingLogger.add(transport);
+        }
     });
 }
 
@@ -200,7 +196,7 @@ export function isVerbose() {
 
 // We use any a lot here to avoid having to deal with IArguments inflexibity
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export function newRequestLogger(baseLogger: LoggerInstance, requestId: string, isFromIrc: boolean): RequestLogger {
+export function newRequestLogger(baseLogger: Logger, requestId: string, isFromIrc: boolean): RequestLogger {
     const decorate = function(fn: LeveledLogMethod, args: any[] ) {
         const newArgs: Array<unknown> = [];
         // don't slice this; screws v8 optimisations apparently
@@ -224,7 +220,7 @@ export function newRequestLogger(baseLogger: LoggerInstance, requestId: string, 
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-export function setUncaughtExceptionLogger(exceptionLogger: LoggerInstance) {
+export function setUncaughtExceptionLogger(exceptionLogger: Logger) {
     process.on("uncaughtException", function(e) {
         // Log to stderr first and foremost, to avoid any chance of us missing a flush.
         console.error("FATAL EXCEPTION");
@@ -249,10 +245,9 @@ export function setUncaughtExceptionLogger(exceptionLogger: LoggerInstance) {
         exceptionLogger.error("Terminating (exitcode=1)", function() {
             let numFlushes = 0;
             let numFlushed = 0;
-            Object.keys(exceptionLogger.transports).forEach(function(k) {
+            Object.values(exceptionLogger.transports).forEach((stream) => {
                 // We need to access the unexposed _stream
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const stream: WriteStream = (exceptionLogger.transports[k] as any)._stream;
                 if (stream) {
                     numFlushes += 1;
                     stream.once("finish", function() {

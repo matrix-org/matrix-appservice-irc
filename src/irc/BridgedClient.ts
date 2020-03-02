@@ -24,7 +24,6 @@ import { getLogger } from "../logging";
 import { IrcServer } from "./IrcServer";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { MatrixUser } from "matrix-appservice-bridge";
-import { LoggerInstance } from "winston";
 import { IrcAction } from "../models/IrcAction";
 import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
@@ -48,6 +47,14 @@ export interface GetNicksResponseOperators extends GetNicksResponse {
     operatorNicks: string[];
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export interface BridgedClientLogger {
+    debug(msg: string, ...args: any[]): void;
+    info(msg: string, ...args: any[]): void;
+    error(msg: string, ...args: any[]): void;
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 export const illegalCharactersRegex = /[^A-Za-z0-9\]\[\^\\\{\}\-`_\|]/g;
 
 export class BridgedClient extends EventEmitter {
@@ -64,7 +71,7 @@ export class BridgedClient extends EventEmitter {
     private _disconnectReason: string|null = null;
     private _chanList: Set<string> = new Set();
     private connectDefer: promiseutil.Defer<void>;
-    public readonly log: LoggerInstance;
+    public readonly log: BridgedClientLogger;
     private cachedOperatorNicksInfo: {[channel: string]: GetNicksResponseOperators} = {};
     private idleTimeout: NodeJS.Timer|null = null;
     /**
@@ -116,22 +123,16 @@ export class BridgedClient extends EventEmitter {
             prefix += "(" + this.userId + ") ";
         }
         this.log = {
-            // More args magic
-            /* eslint-disable @typescript-eslint/no-explicit-any */
-            debug: (...args: any[]) => {
-                const msg = prefix + args[0];
-                log.debug(msg, ...args.slice(1));
+            debug: (msg: string, ...args) => {
+                log.debug(`${prefix}${msg}`, ...args.slice(1));
             },
-            info: (...args: any[]) => {
-                const msg = prefix + args[0];
-                log.info(msg, ...args.slice(1));
+            info: (msg: string, ...args) => {
+                log.info(`${prefix}${msg}`, ...args.slice(1));
             },
-            error: (...args: any[]) => {
-                const msg = prefix + args[0];
-                log.error(msg, ...args.slice(1));
+            error: (msg: string, ...args) => {
+                log.error(`${prefix}${msg}`, ...args.slice(1));
             }
-            /* eslint-enable @typescript-eslint/no-explicit-any */
-        } as unknown as LoggerInstance;
+        };
     }
 
     public get explicitDisconnect() {

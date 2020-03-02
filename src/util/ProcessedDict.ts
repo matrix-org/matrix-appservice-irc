@@ -1,7 +1,8 @@
-import { LoggerInstance } from "winston";
+import { Logger } from "winston";
 
 /*
 Copyright 2019 The Matrix.org Foundation C.I.C.
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,7 +50,7 @@ export class ProcessedDict {
         };
     }
 
-    public startCleaner (parentLog: LoggerInstance) {
+    public startCleaner (parentLog: Logger) {
         const expiredList: {[domain: string]: string[] } = { };
         this.timeoutObj = setTimeout(() => {
             const now = Date.now();
