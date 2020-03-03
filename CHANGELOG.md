@@ -1,4 +1,33 @@
- 0.15.2 (2020-02-13)
+ 0.16.0 (2020-03-03)
+====================
+
+Features
+--------
+
+- Kicks from one IRC user to another will now be shown as kicks on Matrix. ([\#994](https://github.com/matrix-org/matrix-appservice-irc/issues/994))
+
+
+Bugfixes
+--------
+
+- Fix issue where bridged channel(s) would not be carried across on room upgrade. ([\#989](https://github.com/matrix-org/matrix-appservice-irc/issues/989))
+- IRC users will now join the new room on a room upgrade ([\#993](https://github.com/matrix-org/matrix-appservice-irc/issues/993))
+- Fix a bug where users with high numbers of channels would flood the ircd and be stuck trying to connect forever. ([\#995](https://github.com/matrix-org/matrix-appservice-irc/issues/995))
+- Matrix users who change nicks will no longer cause ghosts to appear in rooms with their new nick. ([\#996](https://github.com/matrix-org/matrix-appservice-irc/issues/996))
+- Fix bug where failing to start the bridge would not report any useful information ([\#997](https://github.com/matrix-org/matrix-appservice-irc/issues/997))
+- Fix missing logline arguments for BridgedClient ([\#1004](https://github.com/matrix-org/matrix-appservice-irc/issues/1004))
+
+
+Internal Changes
+----------------
+
+- Add `scripts/changelog-check.sh` and `scripts/changelog-release.sh` ([\#990](https://github.com/matrix-org/matrix-appservice-irc/issues/990))
+- Add `.npmignore` ([\#991](https://github.com/matrix-org/matrix-appservice-irc/issues/991))
+- Ensure the room upgrades test passes with Postgres ([\#992](https://github.com/matrix-org/matrix-appservice-irc/issues/992))
+- Upgrade `winston` logging library to 3.2.1 ([\#1002](https://github.com/matrix-org/matrix-appservice-irc/issues/1002))
+
+
+0.15.2 (2020-02-13)
 ====================
 
 Features

@@ -25,7 +25,6 @@ import {
     MatrixUser,
     MatrixRoom,
     Logging,
-    Entry,
     Request,
     PrometheusMetrics,
     MembershipCache,
@@ -152,12 +151,12 @@ export class IrcBridge {
             roomLinkValidation,
             roomUpgradeOpts: {
                 consumeEvent: true,
-                // We want to handle this in _onRoomUpgrade
                 migrateGhosts: false,
                 onRoomMigrated: this.onRoomUpgrade.bind(this),
-                migrateEntry: this.roomUpgradeMigrateEntry.bind(this),
+                migrateStoreEntries: false, // Only NeDB supports this.
             },
             membershipCache: this.membershipCache,
+            migrateStoreEntries: false,
         });
         this.membershipQueue = new MembershipQueue(this.bridge);
         this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
@@ -543,6 +542,7 @@ export class IrcBridge {
         });
         // FAILURE
         this.bridge.getRequestFactory().addDefaultRejectCallback((req) => {
+            console.log(req);
             logMessage(req, "FAILED");
             this.logMetric(req, "fail");
             BridgeRequest.HandleExceptionForSentry(req, "fail");
@@ -994,31 +994,15 @@ export class IrcBridge {
         }
     }
 
-    // This function is used to ensure that room entries have their IDs modified
-    // so that the room ID contained within is kept up to date.
-    private roomUpgradeMigrateEntry(entry: Entry, newRoomId: string): Entry|undefined {
-        if (!entry.matrix) {
-            return undefined;
-        }
-        const oldRoomId = entry.matrix.getId();
-        // Often our IDs for entries depend upon the room, so replace them.
-        entry.id = entry.id.replace(oldRoomId, newRoomId);
-        entry.matrix = new MatrixRoom(newRoomId, {
-            // name: entry.name,
-            // topic: entry.topic,
-            // extras: entry._extras,
-        });
-        // matrix-appservice-bridge will know to remove the old room entry
-        // and insert the new room entry despite the differing IDs
-        return entry;
-    }
-
     private async onRoomUpgrade(oldRoomId: string, newRoomId: string) {
-        log.info(`Room has been upgraded from ${oldRoomId} to ${newRoomId}, updating ghosts..`);
+        log.info(`Room has been upgraded from ${oldRoomId} to ${newRoomId}`);
+        log.info("Migrating channels");
+        await this.getStore().roomUpgradeOnRoomMigrated(oldRoomId, newRoomId);
         // Get the channels for the room_id
         const rooms = await this.getStore().getIrcChannelsForRoomId(newRoomId);
         // Get users who we wish to leave.
         const asBot = this.bridge.getBot();
+        log.info("Migrating state");
         const stateEvents = await asBot.getClient().roomState(oldRoomId);
         //TODO:  _getRoomInfo is a private func and should be replaced.
         const roomInfo = asBot._getRoomInfo(oldRoomId, {
@@ -1040,7 +1024,7 @@ export class IrcBridge {
             }
             catch (ex) {
                 // We may not have permissions to do so, which means we are basically stuffed.
-                log.warn("Could not send m.room.bridging event to new room:", ex);
+                log.warn(`Could not send m.room.bridging event to new room: ${ex}`);
             }
         }
         if (bridgeInfoEvent) {
@@ -1055,23 +1039,22 @@ export class IrcBridge {
             }
             catch (ex) {
                 // We may not have permissions to do so, which means we are basically stuffed.
-                log.warn("Could not send bridge info event to new room:", ex);
+                log.warn(`Could not send bridge info event to new room: ${ex}`);
             }
         }
+        log.info("Migrating ghosts");
         await Bluebird.all(rooms.map((room) => {
-            return this.getBotClient(room.getServer()).then((bot) => {
+            return this.getBridgedClient(room.getServer(), roomInfo.realJoinedUsers[0]).then((client) => {
                 // This will invoke NAMES and make members join the new room,
                 // so we don't need to await it.
-                bot.getNicks(room.getChannel()).catch(() => {
-                    log.error("Failed to get nicks for upgraded room");
-                });
+                client.getNicks(room.getChannel());
                 log.info(
                     `Leaving ${roomInfo.remoteJoinedUsers.length} users from old room ${oldRoomId}.`
                 );
                 this.memberListSyncers[room.getServer().domain].addToLeavePool(
                     roomInfo.remoteJoinedUsers,
                     oldRoomId,
-                    room.channel,
+                    room.getChannel(),
                 );
             })
         }));

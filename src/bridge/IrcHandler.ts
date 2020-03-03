@@ -737,19 +737,30 @@ export class IrcHandler {
             // will NOT send a PART command. We equally cannot make a fake PART command and
             // reuse the same code path as we want to force this to go through, regardless of
             // whether incremental join/leave syncing is turned on.
-            const matrixUser = await this.ircBridge.getMatrixUser(kickee);
-            req.log.info("Mapped kickee nick %s to %s", kickee.nick, JSON.stringify(matrixUser));
+            const matrixUserKickee = await this.ircBridge.getMatrixUser(kickee);
+            const matrixUserKicker = await this.ircBridge.getMatrixUser(kicker);
+            req.log.info("Mapped kickee nick %s to %s", kickee.nick, JSON.stringify(matrixUserKickee));
             const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, chan);
             if (matrixRooms.length === 0) {
                 req.log.info("No mapped matrix rooms for IRC channel %s", chan);
                 return;
             }
             await Promise.all(matrixRooms.map(async (room) => {
-                await this.membershipQueue.leave(
-                    room.getId(), matrixUser.getId(), req,
-                );
                 try {
-                    await this.roomAccessSyncer.removePowerLevels(room.getId(), [matrixUser.getId()]);
+                    await this.membershipQueue.leave(
+                        room.getId(), matrixUserKickee.getId(), req, false, reason, matrixUserKicker.getId(),
+                    );
+                }
+                catch (ex) {
+                    const formattedReason = `Kicked by ${kicker.nick} ${reason ? ": " + reason : ""}`;
+                    // We failed to show a real kick, so just leave.
+                    await this.membershipQueue.leave(
+                        room.getId(), matrixUserKickee.getId(), req, false, formattedReason,
+                    );
+                    // If this fails, we want to fail the operation.
+                }
+                try {
+                    await this.roomAccessSyncer.removePowerLevels(room.getId(), [matrixUserKickee.getId()]);
                 }
                 catch (ex) {
                     // This is non-critical but annoying.
@@ -893,8 +904,6 @@ export class IrcHandler {
             // Probably the bot
             return undefined;
         }
-
-        console.log("IRCMSG:", ircMsg);
 
         if (ircMsg && ircMsg.command === "err_nosuchnick") {
             const otherNick = ircMsg.args[1];

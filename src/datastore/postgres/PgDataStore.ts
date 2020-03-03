@@ -26,6 +26,7 @@ import { getLogger } from "../../logging";
 import Bluebird from "bluebird";
 import { StringCrypto } from "../StringCrypto";
 import { toIrcLowerCase } from "../../irc/formatting";
+import { NeDBDataStore } from "../NedbDataStore";
 
 const log = getLogger("PgDatastore");
 
@@ -116,7 +117,7 @@ export class PgDataStore implements DataStore {
 
     private static pgToRoomEntry(pgEntry: any): Entry {
         return {
-            id: "",
+            id: NeDBDataStore.createMappingId(pgEntry.room_id, pgEntry.irc_domain, pgEntry.irc_channel),
             matrix: new MatrixRoom(pgEntry.room_id, pgEntry.matrix_json),
             remote: new RemoteRoom("",
             {

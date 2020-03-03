@@ -17,6 +17,12 @@ describe("Kicking", function() {
         id: "@" + config._server + "_bob:" + config.homeserver.domain
     };
 
+    const ircUserKicker = {
+        nick: "KickerNick",
+        localpart: config._server + "_KickerNick",
+        id: "@" + config._server + "_KickerNick:" + config.homeserver.domain
+    };
+
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
 
@@ -72,23 +78,25 @@ describe("Kicking", function() {
     }));
 
     describe("IRC users on IRC", function() {
-        it("should make the kickee leave the Matrix room", test.coroutine(function*() {
-            let kickPromise = new Promise(function(resolve, reject) {
-                let ircUserSdk = env.clientMock._client(ircUser.id);
-                ircUserSdk.leave.and.callFake(function(roomId) {
+        it("should make the kickee leave the Matrix room", async () => {
+            const kickReason = "They had to go, they knew too much";
+            const kickPromise = new Promise((resolve) => {
+                const ircUserSdk = env.clientMock._client(ircUserKicker.id);
+                ircUserSdk.kick.and.callFake(async (roomId, kickee, reason) => {
                     expect(roomId).toEqual(config._roomid);
+                    expect(kickee).toEqual(ircUser.id);
+                    expect(reason).toEqual(kickReason)
                     resolve();
-                    return Promise.resolve();
                 });
             });
 
             // send the KICK command
-            let ircUserCli = yield env.ircMock._findClientAsync(
+            const ircUserCli = await env.ircMock._findClientAsync(
                 config._server, config._botnick
             );
-            ircUserCli.emit("kick", config._chan, ircUser.nick, "KickerNick", "Reasons");
-            yield kickPromise;
-        }));
+            ircUserCli.emit("kick", config._chan, ircUser.nick, ircUserKicker.nick, kickReason);
+            await kickPromise;
+        });
     });
 
     describe("Matrix users on Matrix", function() {

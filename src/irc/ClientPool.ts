@@ -314,6 +314,16 @@ export class ClientPool {
         bridgedClient.on("join-error", this.onJoinError.bind(this));
         bridgedClient.on("irc-names", this.onNames.bind(this));
 
+        // If the client is in the middle of changing nick, we might see IRC messages
+        // come in that reference the new nick. In order to avoid duplicates, add a "pending"
+        // nick in the bucket tempoarily.
+        bridgedClient.on("pending-nick.add", (pendingNick) => {
+            this.virtualClients[server.domain].pending[pendingNick] = bridgedClient;
+        });
+        bridgedClient.on("pending-nick.remove", (pendingNick) => {
+            delete this.virtualClients[server.domain].pending[pendingNick];
+        });
+
         // store the bridged client immediately in the pool even though it isn't
         // connected yet, else we could spawn 2 clients for a single user if this
         // function is called quickly.
