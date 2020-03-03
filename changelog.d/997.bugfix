@@ -1,1 +1,0 @@
-Fix bug where failing to start the bridge would not report any useful information
