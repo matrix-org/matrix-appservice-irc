@@ -124,13 +124,13 @@ export class BridgedClient extends EventEmitter {
         }
         this.log = {
             debug: (msg: string, ...args) => {
-                log.debug(`${prefix}${msg}`, ...args.slice(1));
+                log.debug(`${prefix}${msg}`, ...args);
             },
             info: (msg: string, ...args) => {
-                log.info(`${prefix}${msg}`, ...args.slice(1));
+                log.info(`${prefix}${msg}`, ...args);
             },
             error: (msg: string, ...args) => {
-                log.error(`${prefix}${msg}`, ...args.slice(1));
+                log.error(`${prefix}${msg}`, ...args);
             }
         };
     }
