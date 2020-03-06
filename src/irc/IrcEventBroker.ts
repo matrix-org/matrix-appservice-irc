@@ -88,7 +88,7 @@ import { ProcessedDict } from "../util/ProcessedDict";
 import { getLogger } from "../logging";
 import { Bridge } from "matrix-appservice-bridge";
 import { ClientPool } from "./ClientPool";
-import { BridgedClient } from "./BridgedClient";
+import { BridgedClient, BridgedClientStatus } from "./BridgedClient";
 import { IrcMessage, ConnectionInstance } from "./ConnectionInstance";
 import { IrcHandler } from "../bridge/IrcHandler";
 
@@ -354,7 +354,7 @@ export class IrcEventBroker {
             }
             // chain off an onMode after the onJoin has been processed.
             return promise.then(() => {
-                if (!client.unsafeClient) {
+                if (client.state.status != BridgedClientStatus.CONNECTED) {
                     req.log.error("No client exists to set onMode for " + name.nick);
                     return null;
                 }
@@ -370,14 +370,14 @@ export class IrcEventBroker {
                         prefixLetter = prefix;
                         continue;
                     }
-                    if (client.unsafeClient.isUserPrefixMorePowerfulThan(prefixLetter, prefix)) {
+                    if (client.state.client.isUserPrefixMorePowerfulThan(prefixLetter, prefix)) {
                         prefixLetter = prefix;
                     }
                 }
                 if (!prefixLetter) {
                     return null;
                 }
-                const modeLetter = client.unsafeClient.modeForPrefix[prefixLetter];
+                const modeLetter = client.state.client.modeForPrefix[prefixLetter];
                 if (!modeLetter) {
                     return null;
                 }

@@ -6,7 +6,7 @@ import { MatrixHandler } from "./MatrixHandler";
 import { MemberListSyncer } from "./MemberListSyncer";
 import { IrcServer } from "../irc/IrcServer";
 import { ClientPool } from "../irc/ClientPool";
-import { BridgedClient } from "../irc/BridgedClient";
+import { BridgedClient, BridgedClientStatus } from "../irc/BridgedClient";
 import { IrcUser } from "../models/IrcUser";
 import { IrcRoom } from "../models/IrcRoom";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
@@ -958,7 +958,7 @@ export class IrcBridge {
     public sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction) {
         log.info(
             "Sending IRC message in %s as %s (connected=%s)",
-            ircRoom.channel, bridgedClient.nick, Boolean(bridgedClient.unsafeClient)
+            ircRoom.channel, bridgedClient.nick, Boolean(bridgedClient.state.status == BridgedClientStatus.CONNECTED)
         );
         return bridgedClient.sendAction(ircRoom, action);
     }

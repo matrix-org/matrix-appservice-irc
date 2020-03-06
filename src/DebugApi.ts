@@ -24,7 +24,7 @@ import { inspect } from "util";
 import { DataStore } from "./datastore/DataStore";
 import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
-import { BridgedClient } from "./irc/BridgedClient";
+import { BridgedClient, BridgedClientStatus } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { ProvisionRequest } from "./provisioning/ProvisionRequest";
 import { getBridgeVersion } from "./util/PackageInfo";
@@ -249,12 +249,12 @@ export class DebugApi {
                 "User " + user + " does not have a client on " + server.domain + "\n"
             );
         }
-        const connection = client.unsafeClient && client.unsafeClient.conn;
-        if (!client.unsafeClient || !connection) {
+        if (client.state.status != BridgedClientStatus.CONNECTED || !client.state.client.conn) {
             return Bluebird.resolve(
                 "There is no underlying client instance.\n"
             );
         }
+        const connection = client.state.client.conn;
 
         // store all received response strings
         const buffer: string[] = [];
@@ -263,7 +263,7 @@ export class DebugApi {
             buffer.push(JSON.stringify(msg));
         }
 
-        client.unsafeClient.on("raw", listener);
+        client.state.client.on("raw", listener);
         // turn rn to n so if there are any new lines they are all n.
         body = body.replace("\r\n", "\n");
         body.split("\n").forEach((c: string) => {
@@ -275,8 +275,8 @@ export class DebugApi {
         // wait 3s to pool responses
         return Bluebird.delay(3000).then(function() {
             // unhook listener to avoid leaking
-            if (client.unsafeClient) {
-                client.unsafeClient.removeListener("raw", listener);
+            if (client.state.status == BridgedClientStatus.CONNECTED) {
+                client.state.client.removeListener("raw", listener);
             }
             return buffer.join("\n") + "\n";
         });

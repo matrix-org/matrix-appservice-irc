@@ -5,7 +5,7 @@ import { IrcUser } from "../models/IrcUser";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { IrcRoom } from "../models/IrcRoom";
 import logging from "../logging";
-import { BridgedClient } from "../irc/BridgedClient";
+import { BridgedClient, BridgedClientStatus } from "../irc/BridgedClient";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcAction } from "../models/IrcAction";
 import { toIrcLowerCase } from "../irc/formatting";
@@ -908,13 +908,13 @@ export class MatrixHandler {
         }
 
         // Check for the existance of the getSplitMessages method.
-        if (!(ircClient.unsafeClient && ircClient.unsafeClient.getSplitMessages)) {
+        if (!(ircClient.state.status == BridgedClientStatus.CONNECTED && ircClient.state.client.getSplitMessages)) {
             await this.ircBridge.sendIrcAction(ircRoom, ircClient, ircAction);
             return;
         }
 
         // Generate an array of individual messages that would be sent
-        const potentialMessages = ircClient.unsafeClient.getSplitMessages(ircRoom.channel, text);
+        const potentialMessages = ircClient.state.client.getSplitMessages(ircRoom.channel, text);
         const lineLimit = ircRoom.server.getLineLimit();
 
         if (potentialMessages.length <= lineLimit) {

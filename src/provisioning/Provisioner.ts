@@ -12,7 +12,7 @@ import * as promiseutil from "../promiseutil";
 import * as express from "express";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcUser } from "../models/IrcUser";
-import { BridgedClient, GetNicksResponseOperators } from "../irc/BridgedClient";
+import { BridgedClient, GetNicksResponseOperators, BridgedClientStatus } from "../irc/BridgedClient";
 import { BridgeStateSyncer } from "../bridge/BridgeStateSyncer";
 
 const log = logging("Provisioner");
@@ -1101,10 +1101,10 @@ export class Provisioner {
 
     // Using ISUPPORT rules supported by MatrixBridge bot, case map ircChannel
     private static caseFold(cli: BridgedClient, channel: string) {
-        if (!cli.unsafeClient) {
+        if (cli.state.status != BridgedClientStatus.CONNECTED) {
             log.warn(`Could not case map ${channel} - BridgedClient has no IRC client`);
             return channel;
         }
-        return cli.unsafeClient._toLowerCase(channel);
+        return cli.state.client._toLowerCase(channel);
     }
 }

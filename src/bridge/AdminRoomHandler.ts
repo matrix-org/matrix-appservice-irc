@@ -19,7 +19,7 @@ import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import { IrcBridge } from "./IrcBridge";
 import { MatrixAction } from "../models/MatrixAction";
 import { IrcServer } from "../irc/IrcServer";
-import { BridgedClient } from "../irc/BridgedClient";
+import { BridgedClient, BridgedClientStatus } from "../irc/BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { MatrixHandler } from "./MatrixHandler";
 import logging from "../logging";
@@ -335,11 +335,11 @@ export class AdminRoomHandler {
                 server, sender
             );
 
-            if (!bridgedClient.unsafeClient) {
+            if (bridgedClient.state.status != BridgedClientStatus.CONNECTED) {
                 throw new Error('Possibly disconnected');
             }
 
-            bridgedClient.unsafeClient.send(...sendArgs);
+            bridgedClient.state.client.send(...sendArgs);
         }
         catch (err) {
             const notice = new MatrixAction("notice", `${err}\n` );
