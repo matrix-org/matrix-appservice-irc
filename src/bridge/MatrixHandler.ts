@@ -354,7 +354,7 @@ export class MatrixHandler {
         const intent = this.ircBridge.getAppServiceBridge().getIntent(userId);
         await intent.sendMessage(event.room_id, {
             msgtype: "m.notice",
-            body: "This room has been disconnected from IRC. You cannot invite new users into a IRC PM. Please create a new PM room",
+            body: "This room has been disconnected from IRC. You cannot invite new users into a IRC PM. Please create a new PM room.",
         });
         await intent.leave(event.room_id);
         return null;
