@@ -396,7 +396,7 @@ export class MatrixHandler {
         const hasExistingRoom= rooms.length > 1;
 
         const inviteeIsVirtual = !!this.ircBridge.getServerForUserId(event.state_key);
-        const inviterIsVirtual = !!this.ircBridge.getServerForUserId(event.sender)
+        const inviterIsVirtual = !!this.ircBridge.getServerForUserId(event.sender);
 
         // work out which flow we're dealing with and fork off asap
         // is the invitee the bot?
@@ -411,7 +411,7 @@ export class MatrixHandler {
         }
         else if (!inviterIsVirtual) {
             // case[7]
-            if (rooms.length === 1 && rooms[0].getType() === "pm") {
+            if (rooms[0]?.getType() === "pm") {
                 // PMs
                 return this.handleInviteToPMRoom(req, event, inviter, invitee);
             }
