@@ -343,10 +343,12 @@ export class MatrixHandler {
      * @param {MatrixUser} invitee : The invitee (receiver).
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
-    private async handleInviteToPMRoom(req: BridgeRequest, event: MatrixEventInvite, inviter: MatrixUser, invitee: MatrixUser):
-    Promise<BridgeRequestErr|null> {
+    private async handleInviteToPMRoom(req: BridgeRequest, event: MatrixEventInvite,
+        inviter: MatrixUser, invitee: MatrixUser): Promise<BridgeRequestErr|null> {
         // We don't support this
-        req.log.warn(`User ${inviter.getId()} tried to invite ${invitee.getId()} to a PM room. Disconnecting from room`);
+        req.log.warn(
+            `User ${inviter.getId()} tried to invite ${invitee.getId()} to a PM room. Disconnecting from room`
+        );
         const store = this.ircBridge.getStore();
         const [room] = await store.getIrcChannelsForRoomId(event.room_id);
         await store.removePmRoom(event.room_id);
@@ -354,7 +356,8 @@ export class MatrixHandler {
         const intent = this.ircBridge.getAppServiceBridge().getIntent(userId);
         await intent.sendMessage(event.room_id, {
             msgtype: "m.notice",
-            body: "This room has been disconnected from IRC. You cannot invite new users into a IRC PM. Please create a new PM room.",
+            body: "This room has been disconnected from IRC. You cannot invite new users into a IRC PM. " +
+                  "Please create a new PM room",
         });
         await intent.leave(event.room_id);
         return null;
