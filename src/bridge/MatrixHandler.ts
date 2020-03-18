@@ -401,6 +401,8 @@ export class MatrixHandler {
         const inviteeIsVirtual = !!this.ircBridge.getServerForUserId(event.state_key);
         const inviterIsVirtual = !!this.ircBridge.getServerForUserId(event.sender);
 
+        console.log(rooms, event.sender)
+
         // work out which flow we're dealing with and fork off asap
         // is the invitee the bot?
         if (this.ircBridge.appServiceUserId === event.state_key) {
@@ -412,15 +414,10 @@ export class MatrixHandler {
             // case[6]
             // Drop through so the invite stays active, but do not join the room.
         }
-        else if (!inviterIsVirtual) {
-            // case[7]
-            if (rooms[0]?.getType() === "pm") {
-                // PMs
-                return this.handleInviteToPMRoom(req, event, inviter, invitee);
-            }
-            // Groups just pass through
-            return BridgeRequestErr.ERR_NOT_MAPPED;
-        }
+        else if (!inviterIsVirtual && rooms[0]?.getType() === "pm") {
+            // case[7]-pms
+            return this.handleInviteToPMRoom(req, event, inviter, invitee);
+        } // case[7]-groups falls through.
         // else is the invitee a real matrix user? If they are, there will be no IRC server
         else if (!inviteeIsVirtual) {
             // If this is a PM, we need to disconnect it
