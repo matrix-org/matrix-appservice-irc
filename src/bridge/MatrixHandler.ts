@@ -401,8 +401,6 @@ export class MatrixHandler {
         const inviteeIsVirtual = !!this.ircBridge.getServerForUserId(event.state_key);
         const inviterIsVirtual = !!this.ircBridge.getServerForUserId(event.sender);
 
-        console.log(rooms, event.sender)
-
         // work out which flow we're dealing with and fork off asap
         // is the invitee the bot?
         if (this.ircBridge.appServiceUserId === event.state_key) {
