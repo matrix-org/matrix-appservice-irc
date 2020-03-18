@@ -368,6 +368,11 @@ export class NeDBDataStore implements DataStore {
         }, NeDBDataStore.createPmId(userId, virtualUserId));
     }
 
+    public async removePmRoom(roomId: string): Promise<void> {
+        log.debug(`removePmRoom (room_id=${roomId}`);
+        await this.roomStore.removeEntriesByMatrixRoomId(roomId);
+    }
+
     public async getMatrixPmRoom(realUserId: string, virtualUserId: string) {
         const id = NeDBDataStore.createPmId(realUserId, virtualUserId);
         const entry = await this.roomStore.getEntryById(id);
