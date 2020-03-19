@@ -38,7 +38,7 @@ This project follows "git flow" semantics. In practice, this means:
    `npm run check`.
  - Create a pull request. If this PR fixes an issue, link to it by referring to its number.
  - PRs from community members must be signed off as per Synapse's [Attribution section](https://github.com/matrix-org/synapse/blob/master/CONTRIBUTING.rst#attribution)
- - Create a changelog entry in `changelog.d`. A changelog filename should be `${GithubIssueNumber}.{bugfix|misc|feature|doc|removal}`
+ - Create a changelog entry in `changelog.d`. A changelog filename should be `${GithubPRNumber}.{bugfix|misc|feature|doc|removal}`
    The change should include information that is useful to the user rather than the developer.
 
 ## Coding notes
