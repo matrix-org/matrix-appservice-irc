@@ -1,0 +1,1 @@
+**BREAKING**: The deprecated field `config.ircService.databaseUri` has been removed and all bridges must update their config to use `config.database` instead

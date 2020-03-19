@@ -26,8 +26,11 @@
         "url": "https://some.home.server.goeshere",
         "domain": "some.home.server"
     },
+    "database": {
+        "engine": "nedb",
+        "connectionString": "nedb://spec-db"
+    },
     "ircService": {
-        "databaseUri": "nedb://spec-db",
         "debugApi": {
             "enabled": false
         },

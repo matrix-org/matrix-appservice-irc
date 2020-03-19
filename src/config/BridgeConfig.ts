@@ -33,8 +33,6 @@ export interface BridgeConfig {
             enabled: boolean;
             port: number;
         };
-        /** @deprecated Use `BridgeConfig.database` */
-        databaseUri?: string;
         metrics: {
             enabled: boolean;
             remoteUserAgeBuckets: string[];

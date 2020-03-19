@@ -1,5 +1,6 @@
 "$schema": "http://json-schema.org/draft-04/schema#"
 type: "object"
+required: ["database", "homeserver", "ircService"]
 properties:
     advanced:
         type: "object"

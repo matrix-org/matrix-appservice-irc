@@ -81,14 +81,6 @@ export class IrcBridge {
                 defaultOnline: true,
             });
         }
-        if (!this.config.database && this.config.ircService.databaseUri) {
-            log.warn("ircService.databaseUri is a deprecated config option." +
-                     "Please use the database configuration block");
-            this.config.database = {
-                engine: "nedb",
-                connectionString: this.config.ircService.databaseUri,
-            }
-        }
         let roomLinkValidation = undefined;
         const provisioning = config.ircService.provisioning;
         if (provisioning && provisioning.enabled &&
