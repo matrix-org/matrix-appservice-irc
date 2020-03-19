@@ -56,4 +56,4 @@ new code.
  - Each formal release corresponds to a branch which is of the form `vX.Y.Z` where `X.Y.Z` maps
    directly onto the `package.json` (NPM) version.
  - Releases are also tagged so they are present on the Releases page on Github.
- - Releases should always be signed by the maintainer's key.
+ - Releases should be signed by the maintainer's key.
