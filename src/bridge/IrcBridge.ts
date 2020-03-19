@@ -542,7 +542,6 @@ export class IrcBridge {
         });
         // FAILURE
         this.bridge.getRequestFactory().addDefaultRejectCallback((req) => {
-            console.log(req);
             logMessage(req, "FAILED");
             this.logMetric(req, "fail");
             BridgeRequest.HandleExceptionForSentry(req, "fail");
