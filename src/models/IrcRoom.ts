@@ -51,7 +51,7 @@ export class IrcRoom extends RemoteRoom {
     }
 
     getType() {
-        return super.get("type") as string;
+        return super.get("type") as "channel"|"pm";
     }
 
     public static fromRemoteRoom(server: IrcServer, remoteRoom: RemoteRoom) {

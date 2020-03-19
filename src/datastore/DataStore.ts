@@ -120,6 +120,8 @@ export interface DataStore {
 
     setPmRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom, userId: string, virtualUserId: string): Promise<void>;
 
+    removePmRoom(roomId: string): Promise<void>;
+
     getMatrixPmRoom(realUserId: string, virtualUserId: string): Promise<MatrixRoom|null>;
 
     getTrackedChannelsForServer(domain: string): Promise<string[]>;

@@ -337,6 +337,33 @@ export class MatrixHandler {
     }
 
     /**
+     * Called when a Matrix user tries to invite another user into a PM
+     * @param {Object} event : The Matrix invite event.
+     * @param {MatrixUser} inviter : The inviter (sender).
+     * @param {MatrixUser} invitee : The invitee (receiver).
+     * @return {Promise} which is resolved/rejected when the request finishes.
+     */
+    private async handleInviteToPMRoom(req: BridgeRequest, event: MatrixEventInvite,
+        inviter: MatrixUser, invitee: MatrixUser): Promise<BridgeRequestErr|null> {
+        // We don't support this
+        req.log.warn(
+            `User ${inviter.getId()} tried to invite ${invitee.getId()} to a PM room. Disconnecting from room`
+        );
+        const store = this.ircBridge.getStore();
+        const [room] = await store.getIrcChannelsForRoomId(event.room_id);
+        await store.removePmRoom(event.room_id);
+        const userId = room.server.getUserIdFromNick(room.channel);
+        const intent = this.ircBridge.getAppServiceBridge().getIntent(userId);
+        await intent.sendMessage(event.room_id, {
+            msgtype: "m.notice",
+            body: "This room has been disconnected from IRC. You cannot invite new users into a IRC PM. " +
+                  "Please create a new PM room.",
+        });
+        await intent.leave(event.room_id);
+        return null;
+    }
+
+    /**
      * Called when the AS receives a new Matrix invite event.
      * @param {Object} event : The Matrix invite event.
      * @param {MatrixUser} inviter : The inviter (sender).
@@ -354,6 +381,7 @@ export class MatrixHandler {
         * [4] bot --invite--> MX   (bot telling real mx user IRC conn state) - Ignore.
         * [5] irc --invite--> MX   (real irc user PMing a Matrix user) - Ignore.
         * [6] MX  --invite--> BOT  (invite to private room to allow bot to bridge) - Ignore.
+        * [7] MX  --invite--> MX   (matrix user inviting another matrix user)
         */
         req.log.info("onInvite: %s", JSON.stringify(event));
         this._onMemberEvent(req, event);
@@ -367,9 +395,11 @@ export class MatrixHandler {
         });
 
         // Check if this room is known to us.
-        const hasExistingRoom = (
-            await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id)
-        ).length > 0;
+        const rooms = await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
+        const hasExistingRoom= rooms.length > 1;
+
+        const inviteeIsVirtual = !!this.ircBridge.getServerForUserId(event.state_key);
+        const inviterIsVirtual = !!this.ircBridge.getServerForUserId(event.sender);
 
         // work out which flow we're dealing with and fork off asap
         // is the invitee the bot?
@@ -382,9 +412,14 @@ export class MatrixHandler {
             // case[6]
             // Drop through so the invite stays active, but do not join the room.
         }
+        else if (!inviterIsVirtual && rooms[0]?.getType() === "pm") {
+            // case[7]-pms
+            return this.handleInviteToPMRoom(req, event, inviter, invitee);
+        } // case[7]-groups falls through.
         // else is the invitee a real matrix user? If they are, there will be no IRC server
-        else if (!this.ircBridge.getServerForUserId(event.state_key)) {
-            // cases [4] and [5] : We cannot accept on behalf of real matrix users, so nop
+        else if (!inviteeIsVirtual) {
+            // If this is a PM, we need to disconnect it
+            // cases [4], [5]: We cannot accept on behalf of real matrix users, so nop
             return BridgeRequestErr.ERR_NOT_MAPPED;
         }
         else {

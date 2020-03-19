@@ -324,6 +324,11 @@ export class PgDataStore implements DataStore {
         ]);
     }
 
+    public async removePmRoom(roomId: string): Promise<void> {
+        log.debug(`removePmRoom (room_id=${roomId}`);
+        await this.pgPool.query("DELETE FROM pm_rooms WHERE room_id = $1", [roomId]);
+    }
+
     public async getMatrixPmRoom(realUserId: string, virtualUserId: string): Promise<MatrixRoom|null> {
         log.debug(`getMatrixPmRoom (matrix_user_id=${realUserId}, virtual_user_id=${virtualUserId})`);
         const res = await this.pgPool.query("SELECT room_id FROM pm_rooms WHERE matrix_user_id = $1 AND virtual_user_id = $2", [
