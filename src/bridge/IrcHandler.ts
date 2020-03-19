@@ -17,6 +17,8 @@ import { MembershipQueue } from "../util/MembershipQueue";
 import { IrcMessage } from "../irc/ConnectionInstance";
 
 const NICK_USERID_CACHE_MAX = 512;
+const PM_POWERLEVEL_MATRIXUSER = 10;
+const PM_POWERLEVEL_IRCUSER = 100;
 
 type MatrixMembership = "join"|"invite"|"leave"|"ban";
 
@@ -149,8 +151,8 @@ export class IrcHandler {
      */
     private async createPmRoom (toUserId: string, fromUserId: string, fromUserNick: string, server: IrcServer) {
         const users: {[userId: string]: number} = { };
-        users[toUserId] = 10;
-        users[fromUserId] = 100;
+        users[toUserId] = PM_POWERLEVEL_MATRIXUSER;
+        users[fromUserId] = PM_POWERLEVEL_IRCUSER;
         const response = await this.ircBridge.getAppServiceBridge().getIntent(
             fromUserId
         ).createRoom({
