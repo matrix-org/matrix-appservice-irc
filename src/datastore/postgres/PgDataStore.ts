@@ -417,7 +417,7 @@ export class PgDataStore implements DataStore {
             return null;
         }
         const row = res.rows[0];
-        const config = row.config;
+        const config = row.config || {}; // This may not be defined.
         if (row.password && this.cryptoStore) {
             config.password = this.cryptoStore.decrypt(row.password);
         }
