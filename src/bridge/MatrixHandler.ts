@@ -494,7 +494,7 @@ export class MatrixHandler {
                 }
                 catch (e) {
                     // We need to kick on failure to get a client.
-                    req.log.info(`${user.getId()} failed to get a IRC connection. Kicking from room.`);
+                    req.log.info(`${user.getId()} failed to get a IRC connection. Kicking from room: ${e}`);
                     kickIntent = this.ircBridge.getAppServiceBridge().getIntent();
                 }
 
