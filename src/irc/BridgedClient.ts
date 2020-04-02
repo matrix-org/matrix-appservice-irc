@@ -310,11 +310,16 @@ export class BridgedClient extends EventEmitter {
      * @return {Promise<String>} Which resolves to a message to be sent to the user.
      */
     public changeNick(newNick: string, throwOnInvalid: boolean): Promise<string> {
+        this.log.info(`Trying to change nick from ${this.nick} to ${newNick}`);
         let validNick = newNick;
         try {
             validNick = this.getValidNick(newNick, throwOnInvalid);
             if (validNick === this.nick) {
-                return Promise.resolve(`Your nick is already '${validNick}'.`);
+                throw Error(`Your nick is already '${validNick}'.`);
+            }
+            if (validNick !== newNick) {
+                // Don't "suggest" a nick.
+                throw Error("Nickname is not valid");
             }
         }
         catch (err) {
