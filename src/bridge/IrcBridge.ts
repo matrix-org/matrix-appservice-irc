@@ -619,7 +619,7 @@ export class IrcBridge {
 
     public uploadTextFile(fileName: string, plaintext: string) {
         return this.bridge.getIntent().getClient().uploadContent(
-            new Buffer(plaintext),
+            Buffer.from(plaintext),
             {
                 name: fileName,
                 type: "text/plain; charset=utf-8",
