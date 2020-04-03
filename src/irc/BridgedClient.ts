@@ -35,6 +35,7 @@ const log = getLogger("BridgedClient");
 // The length of time to wait before trying to join the channel again
 const JOIN_TIMEOUT_MS = 15 * 1000; // 15s
 const NICK_DELAY_TIMER_MS = 10 * 1000; // 10s
+const WHOIS_DELAY_TIMER_MS = 10 * 1000; // 10s
 
 export interface GetNicksResponse {
     server: IrcServer;
@@ -303,47 +304,69 @@ export class BridgedClient extends EventEmitter {
     }
 
     /**
+     * Determines if a nick name already exists.
+     */
+    public async checkNickExists(nick: string): Promise<boolean> {
+        try {
+            // We don't care about the return value of .whois().
+            // It will throw an error if the user isn't defined.
+            await this.whois(nick); 
+            return true;
+        } catch (error) {
+            if (error.message === "Cannot find nick on whois.") {
+                return false;
+            }
+            throw error;
+        }
+    }
+
+    /**
      * Change this user's nick.
      * @param {string} newNick The new nick for the user.
      * @param {boolean} throwOnInvalid True to throw an error on invalid nicks
      * instead of coercing them.
      * @return {Promise<String>} Which resolves to a message to be sent to the user.
      */
-    public changeNick(newNick: string, throwOnInvalid: boolean): Promise<string> {
+    public async changeNick(newNick: string, throwOnInvalid: boolean): Promise<string> {
         this.log.info(`Trying to change nick from ${this.nick} to ${newNick}`);
-        let validNick = newNick;
-        try {
-            validNick = this.getValidNick(newNick, throwOnInvalid);
-            if (validNick === this.nick) {
-                throw Error(`Your nick is already '${validNick}'.`);
-            }
-            if (validNick !== newNick) {
-                // Don't "suggest" a nick.
-                throw Error("Nickname is not valid");
-            }
+        const validNick = this.getValidNick(newNick, throwOnInvalid);
+        if (validNick === this.nick) {
+            throw Error(`Your nick is already '${validNick}'.`);
         }
-        catch (err) {
-            return Promise.reject(err);
+        if (validNick !== newNick) {
+            // Don't "suggest" a nick.
+            throw Error("Nickname is not valid");
         }
+
+        if (await this.checkNickExists(validNick)) {
+            throw Error(
+                `The user name ${newNick} is taken on ${this.server.domain}. ` +
+                "Please pick a different name!"
+            );
+        }
+
+        return await this.sendNickCommand(validNick);
+    }
+
+    private sendNickCommand(nick: string): Promise<string> {
         if (!this.unsafeClient) {
-            return Promise.reject(new Error("You are not connected to the network."));
+            throw new Error("You are not connected to the network.");
         }
         const client = this.unsafeClient;
-
         return new Promise((resolve, reject) => {
             // These are nullified to prevent the linter from thinking these should be consts.
             let nickListener: ((old: string, n: string) => void) | null = null;
             let nickErrListener: ((err: IrcMessage) => void) | null = null;
             const timeoutId = setTimeout(() => {
-                this.log.error("Timed out trying to change nick to %s", validNick);
-                // may have d/ced between sending nick change and now so recheck
+                this.log.error("Timed out trying to change nick to %s", nick);
+                // may have disconnected between sending nick change and now so recheck
                 if (nickListener) {
                     client.removeListener("nick", nickListener);
                 }
                 if (nickErrListener) {
                     client.removeListener("error", nickErrListener);
                 }
-                this.emit("pending-nick.remove", validNick);
+                this.emit("pending-nick.remove", nick);
                 reject(new Error("Timed out waiting for a response to change nick."));
             }, NICK_DELAY_TIMER_MS);
             nickListener = (old, n) => {
@@ -351,7 +374,7 @@ export class BridgedClient extends EventEmitter {
                 if (nickErrListener) {
                     client.removeListener("error", nickErrListener);
                 }
-                this.emit("pending-nick.remove", validNick);
+                this.emit("pending-nick.remove", nick);
                 resolve("Nick changed from '" + old + "' to '" + n + "'.");
             }
             nickErrListener = (err) => {
@@ -369,15 +392,14 @@ export class BridgedClient extends EventEmitter {
                     }
                     reject(new Error("Failed to change nick: " + err.command));
                 }
-                this.emit("pending-nick.remove", validNick);
+                this.emit("pending-nick.remove", nick);
             }
             client.once("nick", nickListener);
             client.once("error", nickErrListener);
-            this.emit("pending-nick.add", validNick);
-            client.send("NICK", validNick);
+            this.emit("pending-nick.add", nick);
+            client.send("NICK", nick);
         });
     }
-
 
     public leaveChannel(channel: string, reason = "User left") {
         if (!this.inst || this.inst.dead || !this.unsafeClient) {

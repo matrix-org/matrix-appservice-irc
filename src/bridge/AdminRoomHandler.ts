@@ -536,14 +536,6 @@ export class AdminRoomHandler {
             return;
         }
 
-        if (await this.ircBridge.checkNickExists(ircServer, nick)) {
-            const notice = new MatrixAction("notice",
-                `The user name ${nick} is taken on ${ircServer.domain}. Please pick a different name!`
-            );
-            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
-            return;
-        }
-
         // change the nick
         const bridgedClient = await this.ircBridge.getBridgedClient(ircServer, sender);
         try {
