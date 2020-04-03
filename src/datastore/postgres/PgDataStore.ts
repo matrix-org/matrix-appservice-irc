@@ -561,7 +561,7 @@ export class PgDataStore implements DataStore {
     }
 
     public async isUserDeactivated(userId: string): Promise<boolean> {
-        const res = await this.pgPool.query(`SELECT user_id FROM deactivated_users WHERE userId = $1`, [userId]);
+        const res = await this.pgPool.query(`SELECT user_id FROM deactivated_users WHERE user_id = $1`, [userId]);
         return res.rowCount > 0;
     }
 
