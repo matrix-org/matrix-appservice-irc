@@ -208,6 +208,10 @@ export class ClientPool {
             return bridgedClient;
         }
 
+        if (userId && await this.ircBridge.getStore().isUserDeactivated(userId)) {
+            throw Error("Cannot create bridged client - user has been deactivated");
+        }
+
         const mxUser = new MatrixUser(userId);
         if (displayName) {
             mxUser.setDisplayName(displayName);
