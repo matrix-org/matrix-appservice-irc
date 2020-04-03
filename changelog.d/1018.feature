@@ -1,0 +1,1 @@
+On name change, inform Matrix users, if their preferred IRC name is taken
