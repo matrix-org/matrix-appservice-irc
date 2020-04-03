@@ -566,7 +566,7 @@ export class PgDataStore implements DataStore {
     }
 
     public async deactivateUser(userId: string) {
-        this.pgPool.query("INSERT INTO deactivated_users VALUES ($1)", [userId]);
+        this.pgPool.query("INSERT INTO deactivated_users VALUES ($1, $2)", [userId, Date.now()]);
     }
 
     public async ensureSchema() {
