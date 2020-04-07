@@ -208,7 +208,7 @@ export class ClientPool {
             return bridgedClient;
         }
 
-        if (userId && await this.ircBridge.getStore().isUserDeactivated(userId)) {
+        if (await this.ircBridge.getStore().isUserDeactivated(userId)) {
             throw Error("Cannot create bridged client - user has been deactivated");
         }
 
