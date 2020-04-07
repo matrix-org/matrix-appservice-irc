@@ -345,7 +345,7 @@ export class BridgedClient extends EventEmitter {
 
         if (await this.checkNickExists(validNick)) {
             throw Error(
-                `The nickname ${newNick} is taken on ${this.server.domain}. ` +
+                `The nickname ${newNick} is taken on ${this.server.domain}.` +
                 "Please pick a different nick."
             );
         }
@@ -490,7 +490,6 @@ export class BridgedClient extends EventEmitter {
         let errorHandler!: (msg: IrcMessage) => void;
         try {
             this.whoisPendingNicks.add(nick);
-
             const whois: WhoisResponse|null = await new Promise((resolve, reject) => {
                 errorHandler = (msg: IrcMessage) => {
                     if (msg.command !== "err_nosuchnick" || msg.args[1] !== nick) {
