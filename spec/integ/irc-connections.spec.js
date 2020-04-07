@@ -563,14 +563,13 @@ describe("IRC connections", function() {
     it("should not bridge matrix users who are deactivated", async function() {
         const deactivatedUserId = "@deactivated:hs";
         const nick = "M-deactivated";
-        
+
         const store = env.ircBridge.getStore();
         await store.deactivateUser(deactivatedUserId);
         expect(await store.isUserDeactivated(deactivatedUserId)).toBe(true);
 
         env.ircMock._whenClient(roomMapping.server, nick, "connect",
         function() {
-            console.log(nick);
             throw Error("Client should not be saying anything")
         });
         try {
