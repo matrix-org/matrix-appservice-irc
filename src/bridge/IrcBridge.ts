@@ -932,15 +932,7 @@ export class IrcBridge {
     public async checkNickExists(server: IrcServer, nick: string) {
         log.info("Querying for nick %s on %s", nick, server.domain);
         const client = await this.getBotClient(server);
-        try {
-            await client.whois(nick);
-            return true;
-        } catch (error) {
-            if (error.message === "Cannot find nick on whois.") {
-                return false;
-            }
-            throw error;
-        }
+        return await client.whois(nick) !== null;
     }
 
     public async joinBot(ircRoom: IrcRoom) {

@@ -28,7 +28,7 @@ import { IrcAction } from "../models/IrcAction";
 import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
-import { Client } from "irc";
+import { Client, WhoisResponse } from "irc";
 
 const log = getLogger("BridgedClient");
 
@@ -75,6 +75,7 @@ export class BridgedClient extends EventEmitter {
     public readonly log: BridgedClientLogger;
     private cachedOperatorNicksInfo: {[channel: string]: GetNicksResponseOperators} = {};
     private idleTimeout: NodeJS.Timer|null = null;
+    private whoisPendingNicks: Set<string> = new Set();
     /**
      * Create a new bridged IRC client.
      * @constructor
@@ -265,6 +266,10 @@ export class BridgedClient extends EventEmitter {
                 if (!err || !err.command || connInst.dead) {
                     return;
                 }
+                if (err.command === 'err_nosuchnick' && this.whoisPendingNicks.has(err.args[1])) {
+                    // Hide this one, because whois is listening for it.
+                    return;
+                }
                 let msg = "Received an error on " + this.server.domain + ": " + err.command + "\n";
                 msg += JSON.stringify(err.args);
                 this.eventBroker.sendMetadata(this, msg, ERRORS_TO_FORCE.includes(err.command), err);
@@ -309,10 +314,10 @@ export class BridgedClient extends EventEmitter {
     public async checkNickExists(nick: string): Promise<boolean> {
         try {
             // We don't care about the return value of .whois().
-            // It will throw an error if the user isn't defined.
-            await this.whois(nick); 
-            return true;
-        } catch (error) {
+            // It will return null if the user isn't defined.
+            return (await this.whois(nick)) !== null;
+        }
+        catch (error) {
             if (error.message === "Cannot find nick on whois.") {
                 return false;
             }
@@ -340,8 +345,8 @@ export class BridgedClient extends EventEmitter {
 
         if (await this.checkNickExists(validNick)) {
             throw Error(
-                `The user name ${newNick} is taken on ${this.server.domain}. ` +
-                "Please pick a different name!"
+                `The nickname ${newNick} is taken on ${this.server.domain}. ` +
+                "Please pick a different nick."
             );
         }
 
@@ -476,36 +481,60 @@ export class BridgedClient extends EventEmitter {
      * Get the whois info for an IRC user
      * @param {string} nick : The nick to call /whois on
      */
-    public whois(nick: string): Promise<{ server: IrcServer; nick: string; msg: string}> {
-        return new Promise((resolve, reject) => {
-            if (!this.unsafeClient) {
-                reject(Error("unsafeClient not ready yet"));
-                return;
-            }
-            this.unsafeClient.whois(nick, (whois) => {
-                if (!whois.user) {
-                    reject(new Error("Cannot find nick on whois."));
-                    return;
-                }
-                const idle = whois.idle ? `${whois.idle} seconds idle` : "";
-                const chans = (
-                    (whois.channels && whois.channels.length) > 0 ?
-                    `On channels: ${JSON.stringify(whois.channels)}` :
-                    ""
-                );
+    public async whois(nick: string): Promise<{ server: IrcServer; nick: string; msg: string}|null> {
+        if (!this.unsafeClient) {
+            throw Error("unsafeClient not ready yet");
+        }
+        const client = this.unsafeClient;
+        let timeout: NodeJS.Timeout|null = null;
+        let errorHandler!: (msg: IrcMessage) => void;
+        try {
+            this.whoisPendingNicks.add(nick);
 
-                const info = `${whois.user}@${whois.host}
+            const whois: WhoisResponse|null = await new Promise((resolve, reject) => {
+                errorHandler = (msg: IrcMessage) => {
+                    if (msg.command !== "err_nosuchnick" || msg.args[1] !== nick) {
+                        return;
+                    }
+                    resolve(null);
+                };
+                client.on("error", errorHandler);
+                client.whois(nick, (whoisResponse) => {
+                    resolve(whoisResponse);
+                });
+                timeout = setTimeout(() => {
+                    reject(Error("Whois request timed out"));
+                }, WHOIS_DELAY_TIMER_MS);
+            });
+
+            if (!whois?.user) {
+                return null;
+            }
+            const idle = whois.idle ? `${whois.idle} seconds idle` : "";
+            const chans = (
+                (whois.channels && whois.channels.length) > 0 ?
+                `On channels: ${JSON.stringify(whois.channels)}` :
+                ""
+            );
+
+            const info = `${whois.user}@${whois.host}
                 Real name: ${whois.realname}
                 ${chans}
                 ${idle}
-                `;
-                resolve({
-                    server: this.server,
-                    nick: nick,
-                    msg: `Whois info for '${nick}': ${info}`
-                });
-            });
-        });
+            `;
+            return {
+                server: this.server,
+                nick: nick,
+                msg: `Whois info for '${nick}': ${info}`
+            };
+        }
+        finally {
+            this.whoisPendingNicks.delete(nick);
+            client.removeListener("error", errorHandler);
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+        }
     }
 
 

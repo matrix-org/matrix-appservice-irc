@@ -387,7 +387,7 @@ export class AdminRoomHandler {
         const bridgedClient = await this.ircBridge.getBridgedClient(server, sender);
         try {
             const response = await bridgedClient.whois(whoisNick);
-            const noticeRes = new MatrixAction("notice", response.msg);
+            const noticeRes = new MatrixAction("notice", response?.msg || "User not found");
             await this.ircBridge.sendMatrixAction(room, this.botUser, noticeRes);
         }
         catch (err) {
