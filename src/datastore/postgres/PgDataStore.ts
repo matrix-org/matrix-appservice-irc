@@ -33,7 +33,7 @@ const log = getLogger("PgDatastore");
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 3;
+    public static readonly LATEST_SCHEMA = 4;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -558,6 +558,15 @@ export class PgDataStore implements DataStore {
         ]);
         await this.pgPool.query(statement, [roomId, visibility === "public"]);
         log.info(`setRoomVisibility ${roomId} => ${visibility}`);
+    }
+
+    public async isUserDeactivated(userId: string): Promise<boolean> {
+        const res = await this.pgPool.query(`SELECT user_id FROM deactivated_users WHERE user_id = $1`, [userId]);
+        return res.rowCount > 0;
+    }
+
+    public async deactivateUser(userId: string) {
+        this.pgPool.query("INSERT INTO deactivated_users VALUES ($1, $2)", [userId, Date.now()]);
     }
 
     public async ensureSchema() {

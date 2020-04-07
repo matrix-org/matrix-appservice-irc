@@ -653,6 +653,20 @@ export class NeDBDataStore implements DataStore {
         await this.roomStore.setMatrixRoom(room);
     }
 
+    public async deactivateUser(userId: string) {
+        let user = await this.userStore.getMatrixUser(userId);
+        if (!user) {
+            user = new MatrixUser(userId);
+        }
+        user.set("deactivated", true);
+        await this.userStore.setMatrixUser(user);
+    }
+
+    public async isUserDeactivated(userId: string) {
+        const user = await this.userStore.getMatrixUser(userId);
+        return user?.get("deactivated") === true;
+    }
+
     public async roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string) {
         const ircRooms = await this.getIrcChannelsForRoomId(oldRoomId);
         for (const ircRoom of ircRooms) {

@@ -230,11 +230,10 @@ describe("IRC connections", function() {
     });
 
     it("should be made once per client, regardless of how many messages are " +
-    "to be sent to IRC", function(done) {
+    "to be sent to IRC", async function() {
         let connectCount = 0;
 
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect",
-        function(client, cb) {
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect", (client, cb) => {
             connectCount += 1;
             // add an artificially long delay to make sure it isn't connecting
             // twice
@@ -243,7 +242,7 @@ describe("IRC connections", function() {
             }, 500);
         });
 
-        let promises = [];
+        const promises = [];
 
         promises.push(env.mockAppService._trigger("type:m.room.message", {
             content: {
@@ -264,11 +263,8 @@ describe("IRC connections", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         }));
-
-        Promise.all(promises).done(function() {
-            expect(connectCount).toBe(1);
-            done();
-        });
+        await Promise.all(promises);
+        expect(connectCount).toBe(1);
     });
 
     // BOTS-41
@@ -558,6 +554,38 @@ describe("IRC connections", function() {
         catch (ex) {
             expect(ex.message).toBe(
                 "Cannot create bridged client - user is excluded from bridging"
+            );
+            return;
+        }
+        throw Error("Should have thrown");
+    });
+
+    it("should not bridge matrix users who are deactivated", async function() {
+        const deactivatedUserId = "@deactivated:hs";
+        const nick = "M-deactivated";
+
+        const store = env.ircBridge.getStore();
+        await store.deactivateUser(deactivatedUserId);
+        expect(await store.isUserDeactivated(deactivatedUserId)).toBe(true);
+
+        env.ircMock._whenClient(roomMapping.server, nick, "connect",
+        function() {
+            throw Error("Client should not be saying anything")
+        });
+        try {
+            await env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: "Text that should never be sent",
+                    msgtype: "m.text"
+                },
+                user_id: deactivatedUserId,
+                room_id: roomMapping.roomId,
+                type: "m.room.message"
+            });
+        }
+        catch (ex) {
+            expect(ex.message).toBe(
+                "Cannot create bridged client - user has been deactivated"
             );
             return;
         }

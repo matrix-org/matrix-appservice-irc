@@ -172,5 +172,9 @@ export interface DataStore {
 
     setRoomVisibility(roomId: string, vis: "public"|"private"): Promise<void>;
 
+    isUserDeactivated(userId: string): Promise<boolean>;
+
+    deactivateUser(userId: string): Promise<void>;
+
     destroy(): Promise<void>;
 }
