@@ -420,7 +420,7 @@ export class AdminRoomHandler {
                     "notice", `Successfully stored password for ${domain}. You will now be reconnected to IRC.`
                 );
                 if (client) {
-                    await client.disconnect("iwantoreconnect", "authenticating", false);
+                    await client.disconnect("iwanttoreconnect", "authenticating", false);
                 }
             }
         }
