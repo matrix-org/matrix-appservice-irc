@@ -653,8 +653,12 @@ describe("Admin rooms", function() {
         // make sure that the NICK command not is sent
         let sentNickCommand = false;
         env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
-        function() {
-            sentNickCommand = false;
+        function(client, command, arg) {
+            expect(client.nick).toEqual(userIdNick, "use the old nick on /nick");
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(command).toEqual("NICK");
+            expect(arg).toEqual(newNick);
+            sentNickCommand = true;
         });
 
         env.ircMock._whenClient(roomMapping.server, userIdNick, "whois", (client, whoisNick, callback) => {

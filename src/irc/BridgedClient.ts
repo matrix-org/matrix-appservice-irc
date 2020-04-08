@@ -312,17 +312,9 @@ export class BridgedClient extends EventEmitter {
      * Determines if a nick name already exists.
      */
     public async checkNickExists(nick: string): Promise<boolean> {
-        try {
-            // We don't care about the return value of .whois().
-            // It will return null if the user isn't defined.
-            return (await this.whois(nick)) !== null;
-        }
-        catch (error) {
-            if (error.message === "Cannot find nick on whois.") {
-                return false;
-            }
-            throw error;
-        }
+        // We don't care about the return value of .whois().
+        // It will return null if the user isn't defined.
+        return (await this.whois(nick)) !== null;
     }
 
     /**
@@ -353,9 +345,9 @@ export class BridgedClient extends EventEmitter {
         return await this.sendNickCommand(validNick);
     }
 
-    private sendNickCommand(nick: string): Promise<string> {
+    private async sendNickCommand(nick: string): Promise<string> {
         if (!this.unsafeClient) {
-            throw new Error("You are not connected to the network.");
+            throw Error("You are not connected to the network.");
         }
         const client = this.unsafeClient;
         return new Promise((resolve, reject) => {
