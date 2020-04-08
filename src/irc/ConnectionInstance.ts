@@ -422,6 +422,15 @@ export class ConnectionInstance {
                     throw new Error("Connection was ILINED. We cannot retry this.");
                 }
 
+                // Closing Link: gateway/shell/matrix.org/session (Bad user info)
+                // ircd-seven doc link: https://git.io/JvxEs
+                if ((err.args[0] as string|null)?.match(/Closing Link: .+\(Bad user info\)/)) {
+                    log.error(
+                        `User ${opts.nick} was X:LINED!`
+                    );
+                    throw Error("User is banned from the network (X:LINE).");
+                }
+
                 // always set a staggered delay here to avoid thundering herd
                 // problems on mass-disconnects
                 const delay = (BASE_RETRY_TIME_MS * Math.random())+ retryTimeMs +
