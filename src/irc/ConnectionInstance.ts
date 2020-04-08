@@ -423,7 +423,7 @@ export class ConnectionInstance {
                 }
 
                 // Closing Link: gateway/shell/matrix.org/session (Bad user info)
-                // https://github.com/freenode/ircd-seven/blob/02023be9f8cdd13937814eb83ed4445b7be5081a/doc/sgml/oper-guide/commands.sgml#L378-#L406
+                // ircd-seven doc link: https://git.io/JvxEs
                 if ((err.args[0] as string|null)?.match(/Closing Link: .+\(Bad user info\)/)) {
                     log.error(
                         `User ${opts.nick} was X:LINED!`
