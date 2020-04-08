@@ -926,10 +926,13 @@ export class IrcBridge {
         ));
     }
 
+    /**
+     * Determines if a nick name already exists.
+     */
     public async checkNickExists(server: IrcServer, nick: string) {
         log.info("Querying for nick %s on %s", nick, server.domain);
         const client = await this.getBotClient(server);
-        return await client.whois(nick);
+        return await client.whois(nick) !== null;
     }
 
     public async joinBot(ircRoom: IrcRoom) {
