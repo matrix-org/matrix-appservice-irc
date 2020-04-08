@@ -422,6 +422,15 @@ export class ConnectionInstance {
                     throw new Error("Connection was ILINED. We cannot retry this.");
                 }
 
+                // Closing Link: gateway/shell/matrix.org/session (Bad user info)
+                // https://github.com/freenode/ircd-seven/blob/02023be9f8cdd13937814eb83ed4445b7be5081a/doc/sgml/oper-guide/commands.sgml#L378-#L406
+                if ((err.args[0] as string|null)?.match(/Closing Link: .+\(Bad user info\)/)) {
+                    log.error(
+                        `User ${opts.nick} was X:LINED!`
+                    );
+                    throw Error("User is banned from the network (X:LINE).");
+                }
+
                 // always set a staggered delay here to avoid thundering herd
                 // problems on mass-disconnects
                 const delay = (BASE_RETRY_TIME_MS * Math.random())+ retryTimeMs +
