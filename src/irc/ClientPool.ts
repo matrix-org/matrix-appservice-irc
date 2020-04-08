@@ -215,13 +215,15 @@ export class ClientPool {
 
         // check the database for stored config information for this irc client
         // including username, custom nick, nickserv password, etc.
-        let ircClientConfig = IrcClientConfig.newConfig(
-            mxUser, server.domain
-        );
+        let ircClientConfig: IrcClientConfig;
         const storedConfig = await this.store.getIrcClientConfig(userId, server.domain);
         if (storedConfig) {
             log.debug("Configuring IRC user from store => " + storedConfig);
             ircClientConfig = storedConfig;
+        } else {
+            ircClientConfig = IrcClientConfig.newConfig(
+                mxUser, server.domain
+            );
         }
 
         // recheck the cache: We just await'ed to check the client config. We may
@@ -245,8 +247,13 @@ export class ClientPool {
             return bridgedClient;
         }
         catch (err) {
-            log.error("Couldn't connect virtual user %s to %s : %s",
-                    ircClientConfig.getDesiredNick(), server.domain, JSON.stringify(err));
+            if (bridgedClient) {
+                // Remove client if we failed to connect!
+                this.removeBridgedClient(bridgedClient);
+            }
+            // If we failed to connect
+            log.error("Couldn't connect virtual user %s (%s) to %s : %s",
+                    ircClientConfig.getDesiredNick(), userId, server.domain, JSON.stringify(err));
             throw err;
         }
     }
@@ -553,6 +560,8 @@ export class ClientPool {
 
     private async onClientDisconnected(bridgedClient: BridgedClient) {
         this.removeBridgedClient(bridgedClient);
+
+        log.warn(`Client ${bridgedClient.id} disconnected with reason ${bridgedClient.disconnectReason}`);
 
         // remove the pending nick we had set for this user
         if (this.virtualClients[bridgedClient.server.domain]) {
