@@ -220,7 +220,8 @@ export class ClientPool {
         if (storedConfig) {
             log.debug("Configuring IRC user from store => " + storedConfig);
             ircClientConfig = storedConfig;
-        } else {
+        }
+        else {
             ircClientConfig = IrcClientConfig.newConfig(
                 mxUser, server.domain
             );
@@ -581,7 +582,9 @@ export class ClientPool {
 
         if (chanList.length === 0 && !isBot && bridgedClient.disconnectReason !== "iwanttoreconnect") {
             // Never drop the bot, or users that really want to reconnect.
-            log.info(`Dropping ${bridgedClient.id} (${bridgedClient.nick}) because they are not joined to any channels`);
+            log.info(
+                `Dropping ${bridgedClient.id} (${bridgedClient.nick}) because they are not joined to any channels`
+            );
             return;
         }
 
