@@ -219,13 +219,16 @@ export class ClientPool {
 
         // check the database for stored config information for this irc client
         // including username, custom nick, nickserv password, etc.
-        let ircClientConfig = IrcClientConfig.newConfig(
-            mxUser, server.domain
-        );
+        let ircClientConfig: IrcClientConfig;
         const storedConfig = await this.store.getIrcClientConfig(userId, server.domain);
         if (storedConfig) {
             log.debug("Configuring IRC user from store => " + storedConfig);
             ircClientConfig = storedConfig;
+        }
+        else {
+            ircClientConfig = IrcClientConfig.newConfig(
+                mxUser, server.domain
+            );
         }
 
         // recheck the cache: We just await'ed to check the client config. We may
@@ -249,8 +252,13 @@ export class ClientPool {
             return bridgedClient;
         }
         catch (err) {
-            log.error("Couldn't connect virtual user %s to %s : %s",
-                    ircClientConfig.getDesiredNick(), server.domain, JSON.stringify(err));
+            if (bridgedClient) {
+                // Remove client if we failed to connect!
+                this.removeBridgedClient(bridgedClient);
+            }
+            // If we failed to connect
+            log.error("Couldn't connect virtual user %s (%s) to %s : %s",
+                    ircClientConfig.getDesiredNick(), userId, server.domain, JSON.stringify(err));
             throw err;
         }
     }
@@ -558,6 +566,8 @@ export class ClientPool {
     private async onClientDisconnected(bridgedClient: BridgedClient) {
         this.removeBridgedClient(bridgedClient);
 
+        log.warn(`Client ${bridgedClient.id} disconnected with reason ${bridgedClient.disconnectReason}`);
+
         // remove the pending nick we had set for this user
         if (this.virtualClients[bridgedClient.server.domain]) {
             delete this.virtualClients[bridgedClient.server.domain].pending[bridgedClient.nick];
@@ -569,6 +579,17 @@ export class ClientPool {
                 req, bridgedClient.userId, [bridgedClient],
                 null, "User was banned from the network"
             );
+        }
+
+        const isBot = bridgedClient.isBot;
+        const chanList = bridgedClient.chanList;
+
+        if (chanList.length === 0 && !isBot && bridgedClient.disconnectReason !== "iwanttoreconnect") {
+            // Never drop the bot, or users that really want to reconnect.
+            log.info(
+                `Dropping ${bridgedClient.id} (${bridgedClient.nick}) because they are not joined to any channels`
+            );
+            return;
         }
 
         if (bridgedClient.explicitDisconnect) {
@@ -591,20 +612,13 @@ export class ClientPool {
         }
 
         cliConfig.setDesiredNick(bridgedClient.nick);
-
         const cli = this.createIrcClient(
             cliConfig, bridgedClient.matrixUser || null, bridgedClient.isBot
         );
-        const isBot = bridgedClient.isBot;
-        const chanList = bridgedClient.chanList;
         // remove ref to the disconnected client so it can be GC'd. If we don't do this,
         // the timeout below holds it in a closure, preventing it from being GC'd.
         (bridgedClient as unknown) = undefined;
 
-        if (chanList.length === 0 && !isBot) { // Never drop the bot.
-            log.info(`Dropping ${cli.id} (${cli.nick}) because they are not joined to any channels`);
-            return;
-        }
         const queue = this.getOrCreateReconnectQueue(cli.server);
         if (queue === null) {
             this.reconnectClient({

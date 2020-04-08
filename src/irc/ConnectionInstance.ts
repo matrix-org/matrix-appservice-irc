@@ -78,7 +78,7 @@ export interface ConnectionOpts {
 
 export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|
                                        "toomanyconns"|"banned"|"killed"|"idle"|"limit_reached"|
-                                       "iwantoreconnect";
+                                       "iwanttoreconnect";
 
 export class ConnectionInstance {
     public dead = false;

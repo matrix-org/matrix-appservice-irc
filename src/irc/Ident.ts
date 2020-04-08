@@ -50,6 +50,7 @@ class IdentSrv {
     private config: IdentConfig = DEFAULT_CONFIG;
     private portMappings: {[port: string]: string} = {};
     private pendingConnections: Set<Promise<void>> = new Set();
+    private isEnabled = false;
 
     public run() {
         net.createServer(
@@ -60,9 +61,14 @@ class IdentSrv {
     public configure(opts: IdentConfig) {
         log.info("Configuring ident server => %s", JSON.stringify(opts));
         this.config = opts;
+         // This is only called if enabled.
+        this.isEnabled = true;
     }
 
     public setMapping(username: string, port: number) {
+        if (!this.isEnabled) {
+            return;
+        }
         if (port > 0) {
             this.portMappings[port] = username;
             log.debug("Set user %s on port %s", username, port);
@@ -110,6 +116,11 @@ class IdentSrv {
     }
 
     public clientBegin(): () => void {
+        if (!this.isEnabled) {
+            return () => {
+                // Not enabled, so no-op
+            };
+        }
         log.debug("IRC client started connection");
         let res!: () => void;
         const p: Promise<void> = new Promise((resolve) => {
