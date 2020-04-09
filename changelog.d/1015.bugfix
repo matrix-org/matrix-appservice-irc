@@ -1,1 +1,0 @@
-Fix issue where users with stored passwords but no config settings (IPv6 address, nickname) would not be able to get connected. Fixes #1014.

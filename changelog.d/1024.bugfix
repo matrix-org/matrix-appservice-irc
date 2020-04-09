@@ -1,1 +1,0 @@
-Fix issue where users who used !storepass are never reconnected and cannot send messages through the bridge.
