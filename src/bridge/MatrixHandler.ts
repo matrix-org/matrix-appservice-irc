@@ -17,7 +17,8 @@ async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
     try {
         const res = await promise;
         req.resolve(res);
-    } catch (err) {
+    }
+    catch (err) {
         req.reject(err);
         throw err;
     }
