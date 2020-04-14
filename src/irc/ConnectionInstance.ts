@@ -246,6 +246,7 @@ export class ConnectionInstance {
                 );
                 let wasThrottled = false;
                 if (!msg.args) {
+                    this.disconnect("raw_error").catch(logError);
                     return;
                 }
 
