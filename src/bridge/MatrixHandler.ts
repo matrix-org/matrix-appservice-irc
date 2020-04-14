@@ -13,14 +13,14 @@ import { toIrcLowerCase } from "../irc/formatting";
 import { AdminRoomHandler } from "./AdminRoomHandler";
 import { MembershipQueue } from "../util/MembershipQueue";
 
-function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
-    return promise.then(function(res) {
+async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
+    try {
+        const res = await promise;
         req.resolve(res);
-        return res;
-    }, function(err) {
+    } catch (err) {
         req.reject(err);
         throw err;
-    });
+    }
 }
 
 const log = logging("MatrixHandler");
@@ -856,13 +856,14 @@ export class MatrixHandler {
                         ircRoom.server, event.sender, displayName
                     );
                     await this.sendIrcAction(req, ircRoom, bridgedClient, ircAction, event);
+                    return null;
                 })());
             }
             else {
                 // push each request so we don't block processing other rooms
-                messageSendPromiseSet.push((async () => {
-                    await this.sendIrcAction(req, ircRoom, bridgedClient, ircAction, event);
-                })());
+                messageSendPromiseSet.push(
+                    this.sendIrcAction(req, ircRoom, bridgedClient, ircAction, event),
+                );
             }
         });
         await Promise.all(fetchRoomsPromiseSet);
