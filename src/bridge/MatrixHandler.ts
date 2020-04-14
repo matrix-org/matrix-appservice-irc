@@ -17,6 +17,7 @@ async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
     try {
         const res = await promise;
         req.resolve(res);
+        return res;
     }
     catch (err) {
         req.reject(err);
@@ -857,7 +858,6 @@ export class MatrixHandler {
                         ircRoom.server, event.sender, displayName
                     );
                     await this.sendIrcAction(req, ircRoom, bridgedClient, ircAction, event);
-                    return null;
                 })());
             }
             else {
