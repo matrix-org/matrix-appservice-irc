@@ -249,13 +249,14 @@ export class ConnectionInstance {
                     return;
                 }
 
-                // Closing Link: gateway/shell/matrix.org/session (Bad user info)
+                // E.g. 'Closing Link: gateway/shell/matrix.org/session (Bad user info)'
                 // ircd-seven doc link: https://git.io/JvxEs
                 if (msg.args[0]?.match(/Closing Link: .+\(Bad user info\)/)) {
                     log.error(
                         `User ${this.nick} was X:LINED!`
                     );
                     this.disconnect("banned").catch(logError);
+                    return;
                 }
 
                 let errText = ("" + msg.args[0]) || "";
