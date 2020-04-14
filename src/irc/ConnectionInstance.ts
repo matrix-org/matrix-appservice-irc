@@ -245,30 +245,45 @@ export class ConnectionInstance {
                     "%s@%s: %s", this.nick, this.domain, JSON.stringify(msg)
                 );
                 let wasThrottled = false;
-                if (msg.args) {
-                    let errText = ("" + msg.args[0]) || "";
-                    errText = errText.toLowerCase();
-                    wasThrottled = errText.indexOf("throttl") !== -1;
-                    if (wasThrottled) {
-                        this.disconnect("throttled").catch(logError);
-                        return;
-                    }
-                    const wasBanned = errText.includes("banned") || errText.includes("k-lined");
-                    if (wasBanned) {
-                        this.disconnect("banned").catch(logError);
-                        return;
-                    }
-                    const tooManyHosts = CONN_LIMIT_MESSAGES.find((connLimitMsg) => {
-                       return errText.includes(connLimitMsg);
-                    }) !== undefined;
-                    if (tooManyHosts) {
-                        this.disconnect("toomanyconns").catch(logError);
-                        return;
-                    }
+                if (!msg.args) {
+                    return;
                 }
-                if (!wasThrottled) {
-                    this.disconnect("raw_error").catch(logError);
+
+                // Closing Link: gateway/shell/matrix.org/session (Bad user info)
+                // ircd-seven doc link: https://git.io/JvxEs
+                if (msg.args[0]?.match(/Closing Link: .+\(Bad user info\)/)) {
+                    log.error(
+                        `User ${this.nick} was X:LINED!`
+                    );
+                    this.disconnect("banned").catch(logError);
                 }
+
+                let errText = ("" + msg.args[0]) || "";
+                errText = errText.toLowerCase();
+                wasThrottled = errText.indexOf("throttl") !== -1;
+
+                if (wasThrottled) {
+                    this.disconnect("throttled").catch(logError);
+                    return;
+                }
+
+                const wasBanned = errText.includes("banned") || errText.includes("k-lined");
+
+                if (wasBanned) {
+                    this.disconnect("banned").catch(logError);
+                    return;
+                }
+
+                const tooManyHosts = CONN_LIMIT_MESSAGES.find((connLimitMsg) => {
+                    return errText.includes(connLimitMsg);
+                }) !== undefined;
+
+                if (tooManyHosts) {
+                    this.disconnect("toomanyconns").catch(logError);
+                    return;
+                }
+
+                this.disconnect("raw_error").catch(logError);
             }
         });
     }
@@ -420,15 +435,6 @@ export class ConnectionInstance {
                         `User ${opts.nick} was ILINED. This may be the network limiting us!`
                     );
                     throw new Error("Connection was ILINED. We cannot retry this.");
-                }
-
-                // Closing Link: gateway/shell/matrix.org/session (Bad user info)
-                // ircd-seven doc link: https://git.io/JvxEs
-                if (err.args && err.args[0]?.match(/Closing Link: .+\(Bad user info\)/)) {
-                    log.error(
-                        `User ${opts.nick} was X:LINED!`
-                    );
-                    throw Error("User is banned from the network (X:LINE).");
                 }
 
                 // always set a staggered delay here to avoid thundering herd
