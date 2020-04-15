@@ -1,0 +1,1 @@
+Ensure `err.args` is defined when checking errors in `ConnectionInstance`

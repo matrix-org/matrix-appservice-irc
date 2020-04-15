@@ -534,22 +534,17 @@ describe("IRC connections", function() {
         });
 
         const botSdk = env.clientMock._client(config._botUserId);
-        botSdk.kick.and.callFake(async (roomId, userId, reason) => {
+        botSdk.kick.and.callFake(async (roomId, userId) => {
             if (roomId === roomMapping.roomId && userId === excludedUserId) {
                 throw Error("Should not kick");
             }
         });
 
         try {
-            await env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "Text that should never be sent",
-                    msgtype: "m.text"
-                },
-                user_id: excludedUserId,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
+            await env.ircBridge.getClientPool().getBridgedClient(
+                env.ircBridge.getServer(roomMapping.server),
+                excludedUserId
+            );
         }
         catch (ex) {
             expect(ex.message).toBe(
@@ -567,21 +562,15 @@ describe("IRC connections", function() {
         const store = env.ircBridge.getStore();
         await store.deactivateUser(deactivatedUserId);
         expect(await store.isUserDeactivated(deactivatedUserId)).toBe(true);
-
         env.ircMock._whenClient(roomMapping.server, nick, "connect",
         function() {
             throw Error("Client should not be saying anything")
         });
         try {
-            await env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "Text that should never be sent",
-                    msgtype: "m.text"
-                },
-                user_id: deactivatedUserId,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
+            await env.ircBridge.getClientPool().getBridgedClient(
+                env.ircBridge.getServer(roomMapping.server),
+                deactivatedUserId
+            );
         }
         catch (ex) {
             expect(ex.message).toBe(
