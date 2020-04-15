@@ -1,3 +1,12 @@
+0.17.0-rc2 (2020-04-15)
+========================
+
+Bugfixes
+--------
+
+- Ensure `err.args` is defined when checking errors in `ConnectionInstance` ([\#1030](https://github.com/matrix-org/matrix-appservice-irc/issues/1030))
+
+
 0.17.0-rc1 (2020-04-09)
 ========================
 
