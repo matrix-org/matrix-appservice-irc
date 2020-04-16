@@ -170,7 +170,6 @@ export class IrcBridge {
         }
         this.publicitySyncer = new PublicitySyncer(this);
 
-
         const homeserverToken = this.registration.getHomeserverToken();
         if (!homeserverToken) {
             throw Error("No HS token defined");

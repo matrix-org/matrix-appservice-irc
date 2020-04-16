@@ -39,29 +39,22 @@ interface ReconnectionItem {
  * and may be closed for a variety of reasons.
  */
 export class ClientPool {
-    private botClients: { [serverDomain: string]: BridgedClient|undefined};
+    private botClients: Map<string, BridgedClient>;
     private virtualClients: { [serverDomain: string]: {
-        nicks: { [nickname: string]: BridgedClient|undefined};
-        userIds: { [userId: string]: BridgedClient|undefined};
-        pending: { [nick: string]: BridgedClient};
+        nicks: Map<string, BridgedClient>;
+        userIds: Map<string, BridgedClient>;
+        pending: Map<string, BridgedClient>;
     };};
-    private virtualClientCounts: { [serverDomain: string]: number };
     private reconnectQueues: { [serverDomain: string]: QueuePool<ReconnectionItem> };
     private identGenerator: IdentGenerator;
     private ipv6Generator: Ipv6Generator;
     private ircEventBroker: IrcEventBroker;
     constructor(private ircBridge: IrcBridge, private store: DataStore) {
         // The list of bot clients on servers (not specific users)
-        this.botClients = { };
+        this.botClients = new Map();
 
         // list of virtual users on servers
         this.virtualClients = { };
-
-        // map of numbers of connected clients on each server
-        // Counting these is quite expensive because we have to
-        // ignore entries where the value is undefined. Instead,
-        // just keep track of how many we have.
-        this.virtualClientCounts = { };
 
         this.reconnectQueues = { };
 
@@ -84,8 +77,7 @@ export class ClientPool {
         }
 
         // The client may not have signalled to us that it's connected, but it is connect*ing*.
-        const pending = Object.keys(this.virtualClients[server.domain].pending || {});
-        return pending.includes(nick);
+        return this.virtualClients[server.domain].pending.has(nick)
     }
 
     public killAllClients(): Bluebird<void[]> {
@@ -93,18 +85,14 @@ export class ClientPool {
         let clients: (BridgedClient|undefined)[] = [];
         domainList.forEach((domain) => {
             clients = clients.concat(
-                Object.keys(this.virtualClients[domain].nicks).map(
-                    (nick: string) => this.virtualClients[domain].nicks[nick]
-                )
+                [...this.virtualClients[domain].nicks.values()]
             );
 
             clients = clients.concat(
-                Object.keys(this.virtualClients[domain].userIds).map(
-                    (userId: string) => this.virtualClients[domain].userIds[userId]
-                )
+                [...this.virtualClients[domain].userIds.values()]
             );
 
-            clients.push(this.botClients[domain]);
+            clients.push(this.botClients.get(domain));
         });
 
         const safeClients = clients.filter((c) => Boolean(c)) as BridgedClient[];
@@ -134,11 +122,11 @@ export class ClientPool {
     }
 
     public setBot(server: IrcServer, client: BridgedClient) {
-        this.botClients[server.domain] = client;
+        this.botClients.set(server.domain, client);
     }
 
     public getBot(server: IrcServer) {
-        return this.botClients[server.domain];
+        return this.botClients.get(server.domain);
     }
 
     public async loginToServer(server: IrcServer): Promise<BridgedClient> {
@@ -301,14 +289,13 @@ export class ClientPool {
 
         if (this.virtualClients[server.domain] === undefined) {
             this.virtualClients[server.domain] = {
-                nicks: Object.create(null),
-                userIds: Object.create(null),
-                pending: {},
+                nicks: new Map(),
+                userIds: new Map(),
+                pending: new Map(),
             };
-            this.virtualClientCounts[server.domain] = 0;
         }
         if (isBot) {
-            this.botClients[server.domain] = bridgedClient;
+            this.botClients.set(server.domain, bridgedClient);
         }
 
         // `pending` is used to ensure that we know if a nick belongs to a userId
@@ -317,7 +304,7 @@ export class ClientPool {
         // should catch most cases. Knowing the nick is important, because
         // slow clients may not send a 'client-connected' signal before a join is
         // emitted, which means ghost users may join with their nickname into matrix.
-        this.virtualClients[server.domain].pending[bridgedClient.nick] = bridgedClient;
+        this.virtualClients[server.domain].pending.set(bridgedClient.nick, bridgedClient);
 
         // add event listeners
         bridgedClient.on("client-connected", this.onClientConnected.bind(this));
@@ -330,17 +317,17 @@ export class ClientPool {
         // come in that reference the new nick. In order to avoid duplicates, add a "pending"
         // nick in the bucket tempoarily.
         bridgedClient.on("pending-nick.add", (pendingNick) => {
-            this.virtualClients[server.domain].pending[pendingNick] = bridgedClient;
+            log.debug(`Added pending nick: ${pendingNick}`);
+            this.virtualClients[server.domain].pending.set(pendingNick, bridgedClient);
         });
         bridgedClient.on("pending-nick.remove", (pendingNick) => {
-            delete this.virtualClients[server.domain].pending[pendingNick];
+            this.virtualClients[server.domain].pending.delete(pendingNick);
         });
 
         // store the bridged client immediately in the pool even though it isn't
         // connected yet, else we could spawn 2 clients for a single user if this
         // function is called quickly.
-        this.virtualClients[server.domain].userIds[bridgedClient.userId as string] = bridgedClient;
-        this.virtualClientCounts[server.domain] = this.virtualClientCounts[server.domain] + 1;
+        this.virtualClients[server.domain].userIds.set(bridgedClient.userId as string, bridgedClient);
 
         // Does this server have a max clients limit? If so, check if the limit is
         // reached and start cycling based on oldest time.
@@ -352,7 +339,7 @@ export class ClientPool {
         if (!this.virtualClients[server.domain]) {
             return undefined;
         }
-        const cli = this.virtualClients[server.domain].userIds[userId];
+        const cli = this.virtualClients[server.domain].userIds.get(userId);
         if (!cli || cli.isDead()) {
             return undefined;
         }
@@ -368,7 +355,7 @@ export class ClientPool {
         if (!this.virtualClients[server.domain]) {
             return undefined;
         }
-        const cli = this.virtualClients[server.domain].nicks[nick];
+        const cli = this.virtualClients[server.domain].nicks.get(nick);
         if (cli?.isDead()) {
             return undefined;
         }
@@ -379,7 +366,7 @@ export class ClientPool {
         const domainList = Object.keys(this.virtualClients);
         const clientList: BridgedClient[] = [];
         domainList.forEach((domain) => {
-            const cli = this.virtualClients[domain].userIds[userId];
+            const cli = this.virtualClients[domain].userIds.get(userId);
             if (cli && !cli.isDead()) {
                 clientList.push(cli);
             }
@@ -400,7 +387,7 @@ export class ClientPool {
                 if (!clientList[userId]) {
                     clientList[userId] = [];
                 }
-                const client = this.virtualClients[domain].userIds[userId];
+                const client = this.virtualClients[domain].userIds.get(userId);
                 if (client) {
                     clientList[userId].push(client);
                 }
@@ -500,17 +487,11 @@ export class ClientPool {
 
     public getNickUserIdMappingForChannel(server: IrcServer, channel: string): {[nick: string]: string} {
         const nickUserIdMap: {[nick: string]: string} = {};
-        const cliSet = this.virtualClients[server.domain].userIds;
-        Object.keys(cliSet).filter((userId: string) => {
-            if (!userId) {
-                return false;
+        for (const [userId, client] of this.virtualClients[server.domain].userIds.entries()) {
+            if (client.chanList.includes(channel)) {
+                nickUserIdMap[client.nick] = userId;
             }
-            const cli = cliSet[userId];
-            return cli && cli.chanList.includes(channel);
-        }).forEach((userId: string) => {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            nickUserIdMap[cliSet[userId]!.nick] = userId;
-        });
+        }
         // Correctly map the bot too.
         nickUserIdMap[server.getBotNickname()] = this.ircBridge.appServiceUserId;
         return nickUserIdMap;
@@ -521,24 +502,23 @@ export class ClientPool {
         if (!users) {
             throw Error("Cannot get users for unknown server");
         }
-        return Object.keys(users.userIds).filter((userId) => users.userIds[userId] !== null);
+        return [...users.userIds.keys()];
     }
 
     private getNumberOfConnections(server: IrcServer): number {
         if (!server || !this.virtualClients[server.domain]) { return 0; }
-        return this.virtualClientCounts[server.domain];
+        return this.virtualClients[server.domain].userIds.size;
     }
 
     private removeBridgedClient(bridgedClient: BridgedClient): void {
         const server = bridgedClient.server;
         if (bridgedClient.userId) {
-            this.virtualClients[server.domain].userIds[bridgedClient.userId] = undefined;
+            this.virtualClients[server.domain].userIds.delete(bridgedClient.userId);
         }
-        this.virtualClients[server.domain].nicks[bridgedClient.nick] = undefined;
-        this.virtualClientCounts[server.domain] = this.virtualClientCounts[server.domain] - 1;
+        this.virtualClients[server.domain].nicks.delete(bridgedClient.nick);
 
         if (bridgedClient.isBot) {
-            this.botClients[server.domain] = undefined;
+            this.botClients.delete(server.domain);
         }
     }
 
@@ -551,10 +531,10 @@ export class ClientPool {
         const actualNick = bridgedClient.unsafeClient.nick;
 
         // remove the pending nick we had set for this user
-        delete this.virtualClients[server.domain].pending[oldNick];
+        this.virtualClients[server.domain].pending.delete(oldNick);
 
         // assign a nick to this client
-        this.virtualClients[server.domain].nicks[actualNick] = bridgedClient;
+        this.virtualClients[server.domain].nicks.set(actualNick, bridgedClient);
 
         // informative logging
         if (oldNick !== actualNick) {
@@ -570,7 +550,7 @@ export class ClientPool {
 
         // remove the pending nick we had set for this user
         if (this.virtualClients[bridgedClient.server.domain]) {
-            delete this.virtualClients[bridgedClient.server.domain].pending[bridgedClient.nick];
+            this.virtualClients[bridgedClient.server.domain].pending.delete(bridgedClient.nick);
         }
 
         if (bridgedClient.disconnectReason === "banned" && bridgedClient.userId) {
@@ -645,8 +625,10 @@ export class ClientPool {
     }
 
     private onNickChange(bridgedClient: BridgedClient, oldNick: string, newNick: string): void {
-        this.virtualClients[bridgedClient.server.domain].nicks[oldNick] = undefined;
-        this.virtualClients[bridgedClient.server.domain].nicks[newNick] = bridgedClient;
+        log.info(`Remapped ${bridgedClient.userId} from ${oldNick} to ${newNick}`);
+        this.virtualClients[bridgedClient.server.domain].nicks.delete(oldNick);
+        this.virtualClients[bridgedClient.server.domain].nicks.set(newNick, bridgedClient);
+        this.virtualClients[bridgedClient.server.domain].pending.delete(newNick);
     }
 
     private async onJoinError (bridgedClient: BridgedClient, chan: string, err: string): Promise<void> {
