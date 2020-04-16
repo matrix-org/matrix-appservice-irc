@@ -80,28 +80,16 @@ export class ClientPool {
         return this.virtualClients[server.domain].pending.has(nick)
     }
 
-    public killAllClients(): Bluebird<void[]> {
-        const domainList = Object.keys(this.virtualClients);
-        let clients: (BridgedClient|undefined)[] = [];
-        domainList.forEach((domain) => {
-            clients = clients.concat(
-                [...this.virtualClients[domain].nicks.values()]
-            );
-
-            clients = clients.concat(
-                [...this.virtualClients[domain].userIds.values()]
-            );
-
-            clients.push(this.botClients.get(domain));
-        });
-
-        const safeClients = clients.filter((c) => Boolean(c)) as BridgedClient[];
-
-        return Bluebird.all(
-            safeClients.map(
-                (client) => client.kill()
-            )
-        );
+    public killAllClients() {
+        return Bluebird.all(Object.keys(this.virtualClients).map((domain) =>
+            [
+                ...this.virtualClients[domain].nicks.values(),
+                ...this.virtualClients[domain].userIds.values(),
+                this.botClients.get(domain),
+            ]
+        ).map((clients) =>
+            Promise.all(clients.map((client) => client?.kill()))
+        ));
     }
 
     public getOrCreateReconnectQueue(server: IrcServer) {
