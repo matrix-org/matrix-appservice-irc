@@ -132,12 +132,18 @@ export class Provisioner {
 
         // Deal with CORS (temporarily for s-web)
         app.use((req, res, next) => {
+            if (!this.ircBridge.getAppServiceBridge().requestCheckToken(req)) {
+                return res.status(403).send({
+                    errcode: "M_FORBIDDEN",
+                    error: "Bad token supplied,"
+                });
+            }
             if (this.isProvisionRequest(req)) {
                 res.header("Access-Control-Allow-Origin", "*");
                 res.header("Access-Control-Allow-Headers",
                     "Origin, X-Requested-With, Content-Type, Accept");
             }
-            next();
+            return next();
         });
 
         app.post("/_matrix/provision/link",

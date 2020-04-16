@@ -260,7 +260,7 @@ declare module 'matrix-appservice-bridge' {
         getPrometheusMetrics(): PrometheusMetrics;
         getIntent(userId?: string): Intent;
         getIntentFromLocalpart(localpart: string): Intent;
-
+        requestCheckToken(req: Express.Request): boolean;
         run(port: number, config: undefined, appservice?: import("matrix-appservice").AppService, hostname?: string): void;
         registerBridgeGauges(cb: () => void): void;
         getClientFactory(): ClientFactory;
