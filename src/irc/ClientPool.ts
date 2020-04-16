@@ -420,7 +420,7 @@ export class ClientPool {
 
         // find the oldest client to kill.
         let oldest: BridgedClient|null = null;
-        for (const client of Object.values(this.virtualClients[server.domain].nicks)) {
+        for (const client of this.virtualClients[server.domain].nicks.values()) {
             if (!client) {
                 // possible since undefined/null values can be present from culled entries
                 continue;
