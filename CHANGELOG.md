@@ -1,3 +1,18 @@
+ 0.17.0-rc3 (2020-04-17)
+========================
+
+Bugfixes
+--------
+
+- **SECURITY FIX** The bridge now authenticatess the /_matrix/provision set of endpoints. It now requires either a `access_token` query parameter or a `Authorization` header containing the `hs_token` provided in the registration file. ([\#1035](https://github.com/matrix-org/matrix-appservice-irc/issues/1035))
+
+
+Internal Changes
+----------------
+
+- Simplify ClientPool logic using Maps ([\#1034](https://github.com/matrix-org/matrix-appservice-irc/issues/1034))
+
+
 0.17.0-rc2 (2020-04-15)
 ========================
 
