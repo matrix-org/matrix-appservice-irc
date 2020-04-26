@@ -94,7 +94,8 @@ export class BridgedClient extends EventEmitter {
         public readonly isBot: boolean,
         private readonly eventBroker: IrcEventBroker,
         private readonly identGenerator: IdentGenerator,
-        private readonly ipv6Generator: Ipv6Generator) {
+        private readonly ipv6Generator: Ipv6Generator,
+        private readonly encodingFallback: string) {
         super();
         this.userId = matrixUser ? matrixUser.getId() : null;
         this.displayName = matrixUser ? matrixUser.getDisplayName() : null;
@@ -220,7 +221,8 @@ export class BridgedClient extends EventEmitter {
                 // won't be able to turn off IPv6!
                 localAddress: (
                     this.server.getIpv6Prefix() ? this.clientConfig.getIpv6Address() : undefined
-                )
+                ),
+                encodingFallback: this.encodingFallback,
             }, (inst: ConnectionInstance) => {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 this.onConnectionCreated(inst, nameInfo, identResolver!);

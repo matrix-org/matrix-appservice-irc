@@ -98,7 +98,6 @@ export class IrcBridge {
                 triggerEndpoint: provisioning.enableReload
             };
         }
-
         let bridgeStoreConfig = {};
 
         if (this.config.database.engine === "nedb") {

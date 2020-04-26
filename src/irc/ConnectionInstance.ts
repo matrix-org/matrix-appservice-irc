@@ -74,6 +74,7 @@ export interface ConnectionOpts {
     secure?: {
         ca?: string;
     };
+    encodingFallback: string;
 }
 
 export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|
@@ -383,6 +384,7 @@ export class ConnectionInstance {
             bustRfc3484: true,
             sasl: opts.password ? server.useSasl() : false,
             secure: server.useSsl() ? { ca: server.getCA() } : undefined,
+            encodingFallback: opts.encodingFallback
         };
 
         // Returns: A promise which resolves to a ConnectionInstance
