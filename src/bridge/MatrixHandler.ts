@@ -296,9 +296,9 @@ export class MatrixHandler {
                         await this.membershipQueue.leave(
                             roomId,
                             userId,
-                            req, 
+                            req,
                             false,
-                            reason, 
+                            reason,
                             this.ircBridge.appServiceUserId
                         );
                     }
@@ -490,7 +490,6 @@ export class MatrixHandler {
             // get the virtual IRC user for this user
             promises.push((async () => {
                 let bridgedClient: BridgedClient|null = null;
-                let kickIntent;
                 try {
                     bridgedClient = await this.ircBridge.getBridgedClient(
                         room.server, user.getId(), (event.content || {}).displayname
@@ -501,7 +500,7 @@ export class MatrixHandler {
                     req.log.info(`${user.getId()} failed to get a IRC connection. Kicking from room: ${e}`);
                     this.incrementMetric(room.server.domain, "connection_failure_kicks");
                     const excluded = room.server.isExcludedUser(user.getId());
-                    return this.membershipQueue.leave(
+                    await this.membershipQueue.leave(
                         event.room_id,
                         user.getId(),
                         req,
