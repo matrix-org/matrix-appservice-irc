@@ -1,4 +1,19 @@
- 0.17.0-rc3 (2020-04-17)
+ 0.17.0-rc4 (2020-04-29)
+========================
+
+Bugfixes
+--------
+
+- Will no longer try retry a kick for connection failure if the bot lacks permission ([\#1040](https://github.com/matrix-org/matrix-appservice-irc/issues/1040))
+
+
+Internal Changes
+----------------
+
+- Update matrix-appservice-bridge to 1.12.2 to fix a header bug ([\#1036](https://github.com/matrix-org/matrix-appservice-irc/issues/1036))
+
+
+0.17.0-rc3 (2020-04-17)
 ========================
 
 Bugfixes

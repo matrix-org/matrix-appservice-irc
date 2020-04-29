@@ -1,1 +1,0 @@
-Will no longer try retry a kick for connection failure if the bot lacks permission
