@@ -7,7 +7,6 @@ import { IrcRoom } from "../models/IrcRoom";
 import logging from "../logging";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcServer } from "../irc/IrcServer";
-import Bluebird = require("bluebird");
 import { IrcAction } from "../models/IrcAction";
 import { toIrcLowerCase } from "../irc/formatting";
 import { AdminRoomHandler } from "./AdminRoomHandler";
@@ -30,8 +29,6 @@ const log = logging("MatrixHandler");
 const MSG_PMS_DISABLED = "[Bridge] Sorry, PMs are disabled on this bridge.";
 const MSG_PMS_DISABLED_FEDERATION = "[Bridge] Sorry, PMs are disabled on this bridge over federation.";
 
-const KICK_RETRY_DELAY_MS = 15000;
-const KICK_DELAY_JITTER = 30000;
 /* Number of events to store in memory for use in replies. */
 const DEFAULT_EVENT_CACHE_SIZE = 4096;
 /* Length of the source text in a formatted reply message */
@@ -296,8 +293,13 @@ export class MatrixHandler {
 
                 await Promise.all([...uniqueRoomIds].map(async (roomId) => {
                     try {
-                        await this.ircBridge.getAppServiceBridge().getIntent().kick(
-                            roomId, userId, reason
+                        await this.membershipQueue.leave(
+                            roomId,
+                            userId,
+                            req,
+                            false,
+                            reason,
+                            this.ircBridge.appServiceUserId
                         );
                     }
                     catch (err) {
@@ -488,7 +490,6 @@ export class MatrixHandler {
             // get the virtual IRC user for this user
             promises.push((async () => {
                 let bridgedClient: BridgedClient|null = null;
-                let kickIntent;
                 try {
                     bridgedClient = await this.ircBridge.getBridgedClient(
                         room.server, user.getId(), (event.content || {}).displayname
@@ -497,29 +498,18 @@ export class MatrixHandler {
                 catch (e) {
                     // We need to kick on failure to get a client.
                     req.log.info(`${user.getId()} failed to get a IRC connection. Kicking from room: ${e}`);
-                    kickIntent = this.ircBridge.getAppServiceBridge().getIntent();
+                    this.incrementMetric(room.server.domain, "connection_failure_kicks");
+                    const excluded = room.server.isExcludedUser(user.getId());
+                    await this.membershipQueue.leave(
+                        event.room_id,
+                        user.getId(),
+                        req,
+                        true,
+                        excluded && excluded.kickReason ? excluded.kickReason : `IRC connection failure.`,
+                        this.ircBridge.appServiceUserId,
+                    );
                 }
 
-                while (kickIntent) {
-                    try {
-                        // If they are known blacklisted, get a specific reason string.
-                        const excluded = room.server.isExcludedUser(user.getId());
-                        await kickIntent.kick(
-                            event.room_id, user.getId(),
-                            excluded && excluded.kickReason ? excluded.kickReason
-                            : `IRC connection failure.`,
-                        );
-                        this.incrementMetric(room.server.domain, "connection_failure_kicks");
-                        break;
-                    }
-                    catch (err) {
-                        const delay = KICK_RETRY_DELAY_MS + (Math.random() * KICK_DELAY_JITTER);
-                        req.log.warn(
-                            `User was not kicked. Retrying in ${delay}ms. ${err}`
-                        );
-                        await Bluebird.delay(delay);
-                    }
-                }
                 if (!bridgedClient || !bridgedClient.userId) {
                     // For types, drop out early if we don't have a bridgedClient
                     return;
