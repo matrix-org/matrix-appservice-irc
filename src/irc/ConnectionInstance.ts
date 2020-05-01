@@ -32,7 +32,7 @@ export interface IrcMessage {
 }
 
 // The time we're willing to wait for a connect callback when connecting to IRC.
-const CONNECT_TIMEOUT_MS = 30 * 1000; // 30s
+const CONNECT_TIMEOUT_MS = 60 * 1000; // 60s
 // The delay between messages when there are >1 messages to send.
 const FLOOD_PROTECTION_DELAY_MS = 700;
 // The max amount of time we should wait for the server to ping us before reconnecting.
