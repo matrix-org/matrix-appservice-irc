@@ -1,6 +1,6 @@
 Matrix <--> IRC Bridge
 ----------------------
-[![Build Status](https://badge.buildkite.com/f33ff3f5e59aed3057cec0215a84e26747581e0fcb09b4b699.svg)](https://buildkite.com/matrix-dot-org/matrix-appservice-irc)
+[![Build Status](https://badge.buildkite.com/f33ff3f5e59aed3057cec0215a84e26747581e0fcb09b4b699.svg?branch=master)](https://buildkite.com/matrix-dot-org/matrix-appservice-irc)
 
 This is an IRC bridge for Matrix using the Application Services (AS) API. If you're upgrading from an old release, be sure to read the [CHANGELOG](CHANGELOG.md) as there may be breaking changes between releases.
 
