@@ -387,7 +387,7 @@ export class AdminRoomHandler {
         const bridgedClient = await this.ircBridge.getBridgedClient(server, sender);
         try {
             const response = await bridgedClient.whois(whoisNick);
-            const noticeRes = new MatrixAction("notice", response.msg);
+            const noticeRes = new MatrixAction("notice", response?.msg || "User not found");
             await this.ircBridge.sendMatrixAction(room, this.botUser, noticeRes);
         }
         catch (err) {
@@ -420,7 +420,7 @@ export class AdminRoomHandler {
                     "notice", `Successfully stored password for ${domain}. You will now be reconnected to IRC.`
                 );
                 if (client) {
-                    await client.disconnect("iwantoreconnect", "authenticating", false);
+                    await client.disconnect("iwanttoreconnect", "authenticating", false);
                 }
             }
         }

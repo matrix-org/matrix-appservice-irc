@@ -360,6 +360,7 @@ export class MemberListSyncer {
         // 2 in-flight requests at the same time. We return a promise which resolves
         // when this room is completely done.
         const q = new Queue<string>(async (userId) => {
+            log.debug(`Leaving ${userId} from ${item.roomId}`);
             // Do this here, we might not manage to leave but we won't retry.
             this.usersToLeave--;
             await this.ircBridge.getAppServiceBridge().getIntent(userId).leave(item.roomId);

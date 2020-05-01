@@ -120,6 +120,8 @@ export interface DataStore {
 
     setPmRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom, userId: string, virtualUserId: string): Promise<void>;
 
+    removePmRoom(roomId: string): Promise<void>;
+
     getMatrixPmRoom(realUserId: string, virtualUserId: string): Promise<MatrixRoom|null>;
 
     getTrackedChannelsForServer(domain: string): Promise<string[]>;
@@ -169,6 +171,10 @@ export interface DataStore {
     getRoomsVisibility(roomIds: string[]): Promise<{[roomId: string]: "public"|"private"}>;
 
     setRoomVisibility(roomId: string, vis: "public"|"private"): Promise<void>;
+
+    isUserDeactivated(userId: string): Promise<boolean>;
+
+    deactivateUser(userId: string): Promise<void>;
 
     destroy(): Promise<void>;
 }

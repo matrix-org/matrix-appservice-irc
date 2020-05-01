@@ -170,7 +170,6 @@ export class IrcBridge {
         }
         this.publicitySyncer = new PublicitySyncer(this);
 
-
         const homeserverToken = this.registration.getHomeserverToken();
         if (!homeserverToken) {
             throw Error("No HS token defined");
@@ -542,7 +541,6 @@ export class IrcBridge {
         });
         // FAILURE
         this.bridge.getRequestFactory().addDefaultRejectCallback((req) => {
-            console.log(req);
             logMessage(req, "FAILED");
             this.logMetric(req, "fail");
             BridgeRequest.HandleExceptionForSentry(req, "fail");
@@ -620,7 +618,7 @@ export class IrcBridge {
 
     public uploadTextFile(fileName: string, plaintext: string) {
         return this.bridge.getIntent().getClient().uploadContent(
-            new Buffer(plaintext),
+            Buffer.from(plaintext),
             {
                 name: fileName,
                 type: "text/plain; charset=utf-8",
@@ -927,10 +925,13 @@ export class IrcBridge {
         ));
     }
 
+    /**
+     * Determines if a nick name already exists.
+     */
     public async checkNickExists(server: IrcServer, nick: string) {
         log.info("Querying for nick %s on %s", nick, server.domain);
         const client = await this.getBotClient(server);
-        return await client.whois(nick);
+        return await client.whois(nick) !== null;
     }
 
     public async joinBot(ircRoom: IrcRoom) {

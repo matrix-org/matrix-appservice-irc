@@ -1,4 +1,83 @@
- 0.16.0 (2020-03-03)
+ 0.17.0 (2020-05-01)
+====================
+
+No changes since 0.17.0-rc4 
+
+
+0.17.0-rc4 (2020-04-29)
+========================
+
+Bugfixes
+--------
+
+- Will no longer try retry a kick for connection failure if the bot lacks permission ([\#1040](https://github.com/matrix-org/matrix-appservice-irc/issues/1040))
+
+
+Internal Changes
+----------------
+
+- Update matrix-appservice-bridge to 1.12.2 to fix a header bug ([\#1036](https://github.com/matrix-org/matrix-appservice-irc/issues/1036))
+
+
+0.17.0-rc3 (2020-04-17)
+========================
+
+Bugfixes
+--------
+
+- **SECURITY FIX** The bridge now authenticatess the /_matrix/provision set of endpoints. It now requires either a `access_token` query parameter or a `Authorization` header containing the `hs_token` provided in the registration file. ([\#1035](https://github.com/matrix-org/matrix-appservice-irc/issues/1035))
+
+
+Internal Changes
+----------------
+
+- Simplify ClientPool logic using Maps ([\#1034](https://github.com/matrix-org/matrix-appservice-irc/issues/1034))
+
+
+0.17.0-rc2 (2020-04-15)
+========================
+
+Bugfixes
+--------
+
+- Ensure `err.args` is defined when checking errors in `ConnectionInstance` ([\#1030](https://github.com/matrix-org/matrix-appservice-irc/issues/1030))
+
+
+0.17.0-rc1 (2020-04-09)
+========================
+
+Features
+--------
+
+- On name change, inform Matrix users, if their preferred IRC name is taken ([\#1018](https://github.com/matrix-org/matrix-appservice-irc/issues/1018))
+- Add ability to deactivate users permanently via the DebugAPI. ([\#1021](https://github.com/matrix-org/matrix-appservice-irc/issues/1021))
+
+
+Bugfixes
+--------
+
+- Disconnect a PM room from IRC when another user is invited, and disallow invites to PM rooms. ([\#1010](https://github.com/matrix-org/matrix-appservice-irc/issues/1010))
+- Fix issue where users with stored passwords but no config settings (IPv6 address, nickname) would not be able to get connected. Fixes #1014. ([\#1015](https://github.com/matrix-org/matrix-appservice-irc/issues/1015))
+- Kick users who have been X:lined ([\#1023](https://github.com/matrix-org/matrix-appservice-irc/issues/1023))
+- Fix issue where users who used !storepass are never reconnected and cannot send messages through the bridge. ([\#1024](https://github.com/matrix-org/matrix-appservice-irc/issues/1024))
+
+
+Improved Documentation
+----------------------
+
+- Add instructions for registering IRC bot's nickname. Thanks to @DylanVanAssche ([\#1004](https://github.com/matrix-org/matrix-appservice-irc/issues/1004))
+- Improve documentation for changelog entries ([\#1020](https://github.com/matrix-org/matrix-appservice-irc/issues/1020))
+
+
+Internal Changes
+----------------
+
+- Replace deprecated new Buffer("a") ([\#1019](https://github.com/matrix-org/matrix-appservice-irc/issues/1019))
+- Test !nick when the user already has the nick ([\#1020](https://github.com/matrix-org/matrix-appservice-irc/issues/1020))
+- Update dependencies to fix vulnerabilities. ([\#1025](https://github.com/matrix-org/matrix-appservice-irc/issues/1025))
+
+
+0.16.0 (2020-03-03)
 ====================
 
 Features

@@ -33,7 +33,7 @@ const log = getLogger("PgDatastore");
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 3;
+    public static readonly LATEST_SCHEMA = 4;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -324,6 +324,11 @@ export class PgDataStore implements DataStore {
         ]);
     }
 
+    public async removePmRoom(roomId: string): Promise<void> {
+        log.debug(`removePmRoom (room_id=${roomId}`);
+        await this.pgPool.query("DELETE FROM pm_rooms WHERE room_id = $1", [roomId]);
+    }
+
     public async getMatrixPmRoom(realUserId: string, virtualUserId: string): Promise<MatrixRoom|null> {
         log.debug(`getMatrixPmRoom (matrix_user_id=${realUserId}, virtual_user_id=${virtualUserId})`);
         const res = await this.pgPool.query("SELECT room_id FROM pm_rooms WHERE matrix_user_id = $1 AND virtual_user_id = $2", [
@@ -417,7 +422,7 @@ export class PgDataStore implements DataStore {
             return null;
         }
         const row = res.rows[0];
-        const config = row.config;
+        const config = row.config || {}; // This may not be defined.
         if (row.password && this.cryptoStore) {
             config.password = this.cryptoStore.decrypt(row.password);
         }
@@ -553,6 +558,15 @@ export class PgDataStore implements DataStore {
         ]);
         await this.pgPool.query(statement, [roomId, visibility === "public"]);
         log.info(`setRoomVisibility ${roomId} => ${visibility}`);
+    }
+
+    public async isUserDeactivated(userId: string): Promise<boolean> {
+        const res = await this.pgPool.query(`SELECT user_id FROM deactivated_users WHERE user_id = $1`, [userId]);
+        return res.rowCount > 0;
+    }
+
+    public async deactivateUser(userId: string) {
+        await this.pgPool.query("INSERT INTO deactivated_users VALUES ($1, $2)", [userId, Date.now()]);
     }
 
     public async ensureSchema() {

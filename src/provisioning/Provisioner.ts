@@ -130,12 +130,19 @@ export class Provisioner {
             });
         }
 
-        // Deal with CORS (temporarily for s-web)
         app.use((req, res, next) => {
+            // Deal with CORS (temporarily for s-web)
             if (this.isProvisionRequest(req)) {
                 res.header("Access-Control-Allow-Origin", "*");
                 res.header("Access-Control-Allow-Headers",
                     "Origin, X-Requested-With, Content-Type, Accept");
+            }
+            if (!this.ircBridge.getAppServiceBridge().requestCheckToken(req)) {
+                res.status(403).send({
+                    errcode: "M_FORBIDDEN",
+                    error: "Bad token supplied"
+                });
+                return;
             }
             next();
         });

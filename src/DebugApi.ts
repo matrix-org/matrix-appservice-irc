@@ -170,7 +170,7 @@ export class DebugApi {
                     promise = Promise.reject(new Error("Need user_id and reason"));
                 }
                 else {
-                    promise = this.killUser(body.user_id, body.reason);
+                    promise = this.killUser(body.user_id, body.reason, body.deactivate);
                 }
             }
             catch (err) {
@@ -232,8 +232,11 @@ export class DebugApi {
         return inspect(client, { colors:true, depth:7 });
     }
 
-    private killUser(userId: string, reason: string) {
+    private async killUser(userId: string, reason: string, deactivate: boolean) {
         const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
+        if (deactivate) {
+            await this.ircBridge.getStore().deactivateUser(userId);
+        }
         const clients = this.pool.getBridgedClientsForUserId(userId);
         return this.ircBridge.matrixHandler.quitUser(req, userId, clients, null, reason);
     }

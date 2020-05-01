@@ -31,7 +31,7 @@ export class StringCrypto {
             try {
                 crypto.publicEncrypt(
                     this.privateKey,
-                    new Buffer("This is a test!")
+                    Buffer.from("This is a test!")
                 );
             }
             catch (err) {
@@ -51,14 +51,14 @@ export class StringCrypto {
         const salt = crypto.randomBytes(16).toString('base64');
         return crypto.publicEncrypt(
             this.privateKey,
-            new Buffer(salt + ' ' + plaintext)
+            Buffer.from(salt + ' ' + plaintext)
         ).toString('base64');
     }
 
     public decrypt(encryptedString: string): string {
         const decryptedPass = crypto.privateDecrypt(
             this.privateKey,
-            new Buffer(encryptedString, 'base64')
+            Buffer.from(encryptedString, 'base64')
         ).toString();
         // Extract the password by removing the prefixed salt and seperating space
         return decryptedPass.split(' ')[1];
