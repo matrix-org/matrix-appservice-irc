@@ -1,0 +1,1 @@
+Use `prepare` rather than `prepublish` in `package.json`
