@@ -1078,11 +1078,15 @@ export class IrcBridge {
         log.warn(`Running connection reaper for ${serverName} dryrun=${dry}`);
         const req = new BridgeRequest(this.bridge.getRequestFactory().newRequest());
         logCb(`Connection reaping for ${serverName}`);
-        const users: string[] = this.clientPool.getConnectedMatrixUsersForServer(server);
+        const users: (string|null)[] = this.clientPool.getConnectedMatrixUsersForServer(server);
         logCb(`Found ${users.length} real users for ${serverName}`);
         const exclude = excludeRegex ? new RegExp(excludeRegex) : null;
         let offlineCount = 0;
         for (const userId of users) {
+            if (!userId) {
+                // The bot user has a userId of null, ignore it.
+                continue;
+            }
             const status = await this.activityTracker.isUserOnline(userId, maxIdleTime, defaultOnline);
             if (status.online) {
                 continue;

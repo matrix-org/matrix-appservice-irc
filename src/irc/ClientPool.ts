@@ -486,7 +486,7 @@ export class ClientPool {
         return nickUserIdMap;
     }
 
-    public getConnectedMatrixUsersForServer(server: IrcServer): string[] {
+    public getConnectedMatrixUsersForServer(server: IrcServer): (string|null)[] {
         const users = this.virtualClients[server.domain];
         if (!users) {
             throw Error("Cannot get users for unknown server");
