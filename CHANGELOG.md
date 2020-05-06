@@ -1,4 +1,26 @@
- 0.17.0 (2020-05-01)
+ 0.17.1 (2020-05-06)
+====================
+
+Features
+--------
+
+- Add ability to set fallback text encoding for non-UTF-8 messages. ([\#580](https://github.com/matrix-org/matrix-appservice-irc/issues/580))
+
+
+Bugfixes
+--------
+
+- Fixed an issue where installing the bridge from NPM would cause `tsc` to fail and the operation would fail. ([\#1045](https://github.com/matrix-org/matrix-appservice-irc/issues/1045))
+- Ensure we don't kick the bot user on connectionReap ([\#1046](https://github.com/matrix-org/matrix-appservice-irc/issues/1046))
+
+
+Internal Changes
+----------------
+
+- Use `prepare` rather than `prepublish` in `package.json` ([\#1047](https://github.com/matrix-org/matrix-appservice-irc/issues/1047))
+
+
+0.17.0 (2020-05-01)
 ====================
 
 No changes since 0.17.0-rc4 
