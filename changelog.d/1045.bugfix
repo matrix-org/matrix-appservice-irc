@@ -1,0 +1,1 @@
+Fixed an issue where installing the bridge from NPM would cause `tsc` to fail and the operation would fail.

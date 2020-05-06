@@ -8,7 +8,7 @@
     "node": ">=6.9"
   },
   "scripts": {
-    "postinstall": "npm run build",
+    "prepublish": "npm run build",
     "build": "tsc --project ./tsconfig.json",
     "test": "BLUEBIRD_DEBUG=1 node --max_old_space_size=3072 node_modules/jasmine/bin/jasmine.js --stop-on-failure=true",
     "lint": "eslint -c .eslintrc --max-warnings 0 src/**/*.ts",
