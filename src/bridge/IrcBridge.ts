@@ -1083,6 +1083,10 @@ export class IrcBridge {
         const exclude = excludeRegex ? new RegExp(excludeRegex) : null;
         let offlineCount = 0;
         for (const userId of users) {
+            if (!userId) {
+                // The bot user has a userId of null, ignore it.
+                continue;
+            }
             const status = await this.activityTracker.isUserOnline(userId, maxIdleTime, defaultOnline);
             if (status.online) {
                 continue;
