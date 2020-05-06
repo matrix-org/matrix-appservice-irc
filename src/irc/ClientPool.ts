@@ -265,7 +265,8 @@ export class ClientPool {
 
         return new BridgedClient(
             server, ircClientConfig, matrixUser || undefined, isBot,
-            this.ircEventBroker, this.identGenerator, this.ipv6Generator
+            this.ircEventBroker, this.identGenerator, this.ipv6Generator,
+            this.ircBridge.config.ircService.encodingFallback
         );
     }
 

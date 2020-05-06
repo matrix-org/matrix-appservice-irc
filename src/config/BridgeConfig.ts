@@ -49,6 +49,7 @@ export interface BridgeConfig {
             enabled: boolean;
             initial: boolean;
         };
+        encodingFallback: string;
     };
     sentry?: {
         enabled: boolean;
