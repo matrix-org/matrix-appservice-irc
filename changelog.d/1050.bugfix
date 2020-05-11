@@ -1,0 +1,1 @@
+Update `pg` dependency to `8.1.0` to fix NodeJS 14 compatibility 
