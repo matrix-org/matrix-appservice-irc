@@ -1,1 +1,2 @@
-Update `pg` dependency to `8.1.0` to fix NodeJS 14 compatibility 
+Update `pg` dependency to `8.1.0` to fix NodeJS 14 compatibility.
+**Be aware** that this means that unauthorized SSL connections are now rejected as of [pg@8.0.0](https://github.com/brianc/node-postgres/blob/master/CHANGELOG.md#pg800)
