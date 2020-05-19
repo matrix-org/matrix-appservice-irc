@@ -330,7 +330,9 @@ export class ConnectionInstance {
 
     private listenForCTCPVersions() {
         this.client.addListener("ctcp-version", (from: string) => {
-           this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
+           if (from) { // Ensure the sender is valid before we try to respond
+               this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
+           }
         });
     }
 

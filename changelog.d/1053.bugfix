@@ -1,0 +1,1 @@
+Fixed a crash related to an invalid `ctcp-version` request
