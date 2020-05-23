@@ -186,6 +186,23 @@ export class RoomAccessSyncer {
             }
             catch (ex) {
                 req.log.warn(`Failed to apply PL${level} to ${userId}`, ex);
+                if (ex.errcode === "M_TOO_LARGE") {
+                    req.log.warn(`The powerlevel event is too large, attempting to flush out left users`);
+                    /**
+                     * We have so many custom power levels that the event is too large.
+                     * This can happen for channels with extremely large numbers of members,
+                     * but there *are* things we can do about this.
+                     * One trick is to flush out any users that aren't present in the room.
+                     */
+                    const joinedMembers = Object.keys(
+                        await this.ircBridge.getAppServiceBridge().getBot().getJoinedMembers(room.getId())
+                    );
+                    const customPLs = Object.keys(
+                        (await intent.getStateEvent(room.getId(), 'm.room.power_levels')).users
+                    );
+                    const leftUsers = new Set(customPLs.filter((u) => !joinedMembers.includes(u)));
+                    await this.removePowerLevels(room.getId(), [...leftUsers]);
+                }
             }
         }
 
