@@ -917,4 +917,15 @@ export class BridgedClient extends EventEmitter {
 
         return defer.promise;
     }
+
+    /**
+     * Call MODE on the client for a channelOrNick
+     * @param channelOrNick A channel or user nick to check
+     */
+    public mode(channelOrNick: string) {
+        if (!this.unsafeClient) {
+            throw Error('No unsafe client');
+        }
+        return this.unsafeClient.mode(channelOrNick);
+    }
 }
