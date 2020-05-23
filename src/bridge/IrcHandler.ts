@@ -635,7 +635,9 @@ export class IrcHandler {
                 // Check if it was a permission fail.
                 if (ex.data?.errcode === "M_FORBIDDEN" &&
                     ex.data?.error?.startsWith("You don't have permission to post that to the room.")) {
-                    req.log.warn(`User ${virtualMatrixUser.getId()} doesn't have permission to post in ${room.getId()}`);
+                    req.log.warn(
+                        `User ${virtualMatrixUser.getId()} doesn't have permission to post in ${room.getId()}`
+                    );
                     this.roomAccessSyncer.onFailedMessage(req, server, channel);
                 }
                 // Do not fail the operation because a message failed, but keep track of the failures
