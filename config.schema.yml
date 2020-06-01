@@ -105,6 +105,8 @@ properties:
                         type: "string"
                     enableReload:
                         type: "boolean"
+                    channelLimit:
+                        type: "number" 
             passwordEncryptionKeyPath:
                 type: "string"
             matrixHandler:

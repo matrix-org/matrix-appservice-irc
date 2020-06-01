@@ -27,6 +27,7 @@ export interface BridgeConfig {
             requestTimeoutSeconds: number;
             ruleFile: string;
             enableReload: boolean;
+            channelLimit?: number;
         };
         logging: LoggerConfig;
         debugApi: {

@@ -167,6 +167,10 @@ export class Provisioner {
             this.createProvisionEndpoint(this.queryNetworks, 'queryNetworks')
         );
 
+        app.get("/_matrix/provision/limits",
+            this.createProvisionEndpoint(this.getLimits, 'limits')
+        );
+
         if (enabled) {
             log.info("Provisioning started");
         }
@@ -749,6 +753,10 @@ export class Provisioner {
             }
         }
 
+        if (await this.ircBridge.atBridgedRoomLimit()) {
+            throw new Error('At maximum number of bridged rooms');
+        }
+
         const ircDomain = options.remote_room_server;
         let ircChannel = options.remote_room_channel;
         const roomId = options.matrix_room_id;
@@ -1080,6 +1088,15 @@ export class Provisioner {
                     remote_room_server : entry.remote.get("domain"),
                 }
             }).filter((e) => e !== false);
+    }
+
+    private getLimits() {
+        const count = this.ircBridge.getStore().getRoomCount();
+        const limit = this.ircBridge.config.ircService.provisioning?.channelLimit || false;
+        return {
+            count,
+            limit,
+        };
     }
 
     // Using ISUPPORT rules supported by MatrixBridge bot, case map ircChannel
