@@ -1118,6 +1118,6 @@ export class IrcBridge {
             return false;
         }
         const current = await this.dataStore.getRoomCount();
-        return current < limit;
+        return current >= limit;
     }
 }
