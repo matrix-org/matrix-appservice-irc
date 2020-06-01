@@ -105,7 +105,7 @@ properties:
                         type: "string"
                     enableReload:
                         type: "boolean"
-                    channelLimit:
+                    roomLimit:
                         type: "number" 
             passwordEncryptionKeyPath:
                 type: "string"

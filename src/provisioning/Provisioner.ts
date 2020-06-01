@@ -1092,7 +1092,7 @@ export class Provisioner {
 
     private getLimits() {
         const count = this.ircBridge.getStore().getRoomCount();
-        const limit = this.ircBridge.config.ircService.provisioning?.channelLimit || false;
+        const limit = this.ircBridge.config.ircService.provisioning?.roomLimit || false;
         return {
             count,
             limit,

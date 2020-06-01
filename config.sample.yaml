@@ -450,7 +450,7 @@ ircService:
     # Watch the file for changes, and apply the rules. Default: false
     enableReload: true
     # Number of channels allowed to be bridged
-    channelLimit: 50
+    roomLimit: 50
 
   # WARNING: The bridge needs to send plaintext passwords to the IRC server, it cannot
   # send a password hash. As a result, passwords (NOT hashes) are stored encrypted in
