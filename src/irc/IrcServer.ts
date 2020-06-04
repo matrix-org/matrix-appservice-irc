@@ -229,6 +229,14 @@ export class IrcServer {
         return this.config.ca;
     }
 
+    public getKey() {
+        return this.config.key;
+    }
+
+    public getCert() {
+        return this.config.cert;
+    }
+
     public useSsl() {
         return Boolean(this.config.ssl);
     }
@@ -239,6 +247,10 @@ export class IrcServer {
 
     public useSasl() {
         return Boolean(this.config.sasl);
+    }
+
+    public saslType() {
+        return this.config.saslType;
     }
 
     public allowExpiredCerts() {
@@ -634,10 +646,13 @@ export interface IrcServerConfig {
     port?: number;
     icon?: string;
     ca?: string;
+    key?: string;
+    cert?: string;
     networkId?: string;
     ssl?: boolean;
     sslselfsign?: boolean;
     sasl?: boolean;
+    saslType?: string;
     password?: string;
     allowExpiredCerts?: boolean;
     additionalAddresses?: string[];

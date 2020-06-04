@@ -74,6 +74,8 @@ ircService:
       # Should the connection attempt to identify via SASL (if a server or user password is given)
       # If false, this will use PASS instead. If SASL fails, we do not fallback to PASS.
       sasl: false
+      # Sasl authentication type. EXTERNAL or PLAIN are supported at the moment.
+      saslType: "PLAIN"
       # Whether to allow expired certs when connecting to the IRC server.
       # Usually this should be off. Default: false.
       allowExpiredCerts: false
@@ -82,7 +84,17 @@ ircService:
       #  -----BEGIN CERTIFICATE-----
       #  ...
       #  -----END CERTIFICATE-----
-
+      #
+      # Explicit key/cert to use when connecting. Optional.
+      # When setting up with https://freenode.net/kb/answer/certfp , you can copy these from the .pem file
+      #key: |
+      #  -----BEGIN PRIVATE KEY-----
+      #  ...
+      #  -----END PRIVATE KEY-----
+      #cert: |
+      #  -----BEGIN CERTIFICATE-----
+      #  ...
+      #  -----END CERTIFICATE-----
       #
       # The connection password to send for all clients as a PASS (or SASL, if enabled above) command. Optional.
       # password: 'pa$$w0rd'
