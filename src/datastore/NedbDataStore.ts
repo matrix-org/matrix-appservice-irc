@@ -667,6 +667,17 @@ export class NeDBDataStore implements DataStore {
         return user?.get("deactivated") === true;
     }
 
+    public async getRoomCount() {
+        const entries = await this.roomStore.select(
+            {
+                matrix_id: {$exists: true},
+                remote_id: {$exists: true},
+                'remote.type': "channel"
+            }
+        );
+        return entries.length;
+    }
+
     public async roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string) {
         const ircRooms = await this.getIrcChannelsForRoomId(oldRoomId);
         for (const ircRoom of ircRooms) {

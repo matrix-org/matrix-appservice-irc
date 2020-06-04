@@ -105,6 +105,8 @@ properties:
                         type: "string"
                     enableReload:
                         type: "boolean"
+                    roomLimit:
+                        type: "number" 
             passwordEncryptionKeyPath:
                 type: "string"
             matrixHandler:

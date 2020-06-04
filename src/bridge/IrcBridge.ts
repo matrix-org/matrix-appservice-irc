@@ -1111,4 +1111,13 @@ export class IrcBridge {
         }
         logCb(`Quit ${offlineCount}/${users.length}`);
     }
+
+    public async atBridgedRoomLimit() {
+        const limit = this.config.ircService.provisioning?.roomLimit;
+        if (!limit) {
+            return false;
+        }
+        const current = await this.dataStore.getRoomCount();
+        return current >= limit;
+    }
 }

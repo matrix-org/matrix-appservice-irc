@@ -588,6 +588,11 @@ export class PgDataStore implements DataStore {
         log.info(`Database schema is at version v${currentVersion}`);
     }
 
+    public async getRoomCount(): Promise<number> {
+        const res = await this.pgPool.query(`SELECT COUNT(*) FROM rooms`);
+        return res.rows[0];
+    }
+
     public async destroy() {
         log.info("Destroy called");
         if (this.hasEnded) {
