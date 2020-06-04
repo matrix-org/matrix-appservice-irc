@@ -1113,7 +1113,7 @@ export class IrcBridge {
     }
 
     public async atBridgedRoomLimit() {
-        const limit = this.config.ircService.provisioning.roomLimit;
+        const limit = this.config.ircService.provisioning?.roomLimit;
         if (!limit) {
             return false;
         }
