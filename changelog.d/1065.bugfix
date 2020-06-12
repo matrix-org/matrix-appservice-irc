@@ -1,0 +1,1 @@
+Fixed issue where setting initial sync to true for `membershipLists.room` entries would not work if syncing is off globally.

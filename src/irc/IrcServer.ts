@@ -334,14 +334,14 @@ export class IrcServer {
     }
 
     public shouldSyncMembershipToIrc(kind: MembershipSyncKind, roomId?: string) {
-        return this._shouldSyncMembership(kind, roomId, true);
+        return this.shouldSyncMembership(kind, roomId, true);
     }
 
     public shouldSyncMembershipToMatrix(kind: MembershipSyncKind, channel: string) {
-        return this._shouldSyncMembership(kind, channel, false);
+        return this.shouldSyncMembership(kind, channel, false);
     }
 
-    public _shouldSyncMembership(kind: MembershipSyncKind, identifier: string|undefined, toIrc: boolean) {
+    private shouldSyncMembership(kind: MembershipSyncKind, identifier: string|undefined, toIrc: boolean) {
         if (["incremental", "initial"].indexOf(kind) === -1) {
             throw new Error("Bad kind: " + kind);
         }
