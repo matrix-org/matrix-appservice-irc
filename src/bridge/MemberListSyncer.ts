@@ -77,18 +77,14 @@ export class MemberListSyncer {
             log.info("%s does not have membership list syncing enabled.", server.domain);
             return;
         }
-        if (!server.shouldSyncMembershipToIrc("initial")) {
-            log.info("%s shouldn't sync initial memberships to irc.", server.domain);
-            return;
-        }
         log.info("Checking membership lists for syncing on %s", server.domain);
         let start = Date.now();
         const rooms = await this.getSyncableRooms();
         log.info("Found %s syncable rooms (%sms)", rooms.length, Date.now() - start);
-        this.leaveIrcUsersFromRooms(rooms, server);
+        this.leaveIrcUsersFromRooms(rooms);
         start = Date.now();
         log.info("Joining Matrix users to IRC channels...");
-        await this.joinMatrixUsersToChannels(rooms, server, this.injectJoinFn);
+        await this.joinMatrixUsersToChannels(rooms, this.injectJoinFn);
         log.info("Joined Matrix users to IRC channels. (%sms)", Date.now() - start);
         // NB: We do not need to explicitly join IRC users to Matrix rooms
         // because we get all of the NAMEs/JOINs as events when we connect to
@@ -191,7 +187,10 @@ export class MemberListSyncer {
             const roomInfoList: RoomInfo[] = [];
 
             const roomIdToChannel = await this.ircBridge.getStore().getAllChannelMappings();
-            const joinedRoomIds = Object.keys(roomIdToChannel);
+            const joinedRoomIds = Object.entries(roomIdToChannel).filter(([roomId, channelSet]) => {
+                const isInNetwork = !!channelSet.find(({networkId}) => this.server.getNetworkId() === networkId);
+                return isInNetwork ? this.server.shouldSyncMembershipToIrc("initial", roomId) : false;
+            }).map(([roomId]) => roomId);
 
             // fetch joined members allowing 50 in-flight reqs at a time
             const pool = new QueuePool(50, async (_roomId) => {
@@ -251,13 +250,13 @@ export class MemberListSyncer {
         return this.syncableRoomsPromise;
     }
 
-    private joinMatrixUsersToChannels(rooms: RoomInfo[], server: IrcServer, injectJoinFn: InjectJoinFn) {
+    private joinMatrixUsersToChannels(rooms: RoomInfo[], injectJoinFn: InjectJoinFn) {
         const d = promiseutil.defer();
 
         // filter out rooms listed in the rules
         const filteredRooms: RoomInfo[] = [];
         rooms.forEach((roomInfo) => {
-            if (!server.shouldSyncMembershipToIrc("initial", roomInfo.id)) {
+            if (!this.server.shouldSyncMembershipToIrc("initial", roomInfo.id)) {
                 log.debug(
                     "Trimming room %s according to config rules (matrixToIrc=false)",
                     roomInfo.id
@@ -322,7 +321,7 @@ export class MemberListSyncer {
                 entry.userId, entry.roomId, entries.length, entry.frontier
             );
             Bluebird.cast(injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier)).timeout(
-                server.getMemberListFloodDelayMs()
+                this.server.getMemberListFloodDelayMs()
             ).then(() => {
                 joinNextUser();
             }).catch(() => {
@@ -336,10 +335,10 @@ export class MemberListSyncer {
         return d.promise;
     }
 
-    public leaveIrcUsersFromRooms(rooms: RoomInfo[], server: IrcServer) {
+    public leaveIrcUsersFromRooms(rooms: RoomInfo[]) {
         log.info(
             `leaveIrcUsersFromRooms: storing member list info for ${rooms.length} ` +
-            `rooms for server ${server.domain}`
+            `rooms for server ${this.server.domain}`
         );
 
         // Store the matrix room info in memory for later retrieval when NAMES is received
