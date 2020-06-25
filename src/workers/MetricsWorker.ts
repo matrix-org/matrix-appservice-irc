@@ -41,7 +41,7 @@ function workerThread() {
         // We've checked for the existence of parentPort above.
 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        parentPort!.once("message", (msg) => {
+        parentPort!.once("message", (msg: string) => {
             clearTimeout(timeout);
             const time = Date.now();
             intervalCounter.set(time - lastDumpTs);
@@ -60,7 +60,7 @@ function workerThread() {
 export function spawnMetricsWorker(port: number, hostname = "127.0.0.1", onMetricsRequested: () => string) {
     const worker = new Worker(__filename, { workerData: { port, hostname } });
     const workerLogger = getLog("MetricsWorker");
-    worker.on("message", (msg) => {
+    worker.on("message", (msg: string) => {
         if (msg === "metricsdump") {
             worker.postMessage("metricsdump:" + onMetricsRequested());
         }
