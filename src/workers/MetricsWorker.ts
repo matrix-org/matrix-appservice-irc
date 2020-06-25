@@ -37,7 +37,7 @@ function workerThread() {
             res.write(`${registry.metrics()}`);
             res.end();
         }, METRICS_DUMP_TIMEOUT_MS)
-        // eslint-disable-next-line no-unused-expressions
+
         parentPort?.once("message", (msg) => {
             clearTimeout(timeout);
             const time = Date.now();
@@ -48,7 +48,7 @@ function workerThread() {
             res.write(`${dump}\n${registry.metrics()}`);
             res.end();
         });
-        // eslint-disable-next-line no-unused-expressions
+
         parentPort?.postMessage("metricsdump");
     }).listen(workerData.port, workerData.hostname, 1);
 }
@@ -62,7 +62,7 @@ export function spawnMetricsWorker(port: number, hostname = "127.0.0.1", onMetri
         }
         else if (msg.startsWith("log")) {
             const [, logLevel, logMsg] = msg.split(":");
-            workerLogger.log(logLevel, logMsg);
+            workerLogger.log(logLevel, logMsg, { loggerName: "MetricsWorker" });
         }
     })
     return worker;
