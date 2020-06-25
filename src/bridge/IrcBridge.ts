@@ -36,6 +36,7 @@ import { BridgeConfig } from "../config/BridgeConfig";
 import { MembershipQueue } from "../util/MembershipQueue";
 import { BridgeStateSyncer } from "./BridgeStateSyncer";
 import { Registry } from "prom-client";
+import { spawnMetricsWorker } from "../workers/MetricsWorker";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -43,16 +44,6 @@ const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
 const TXN_SIZE_DEFAULT = 10000000 // 10MB
-
-let spawnMetricsWorker: undefined|(
-    (port: number, hostname: string|undefined, metricFunc: () => string) => void
-) = undefined;
-try {
-    spawnMetricsWorker = require("../workers/MetricsWorker").spawnMetricsWorker;
-}
-catch (ex) {
-    log.warn(`Your version of node does NOT support worker_threads. Workers will be unavailable`);
-}
 
 export class IrcBridge {
     public static readonly DEFAULT_LOCALPART = "appservice-irc";
@@ -201,10 +192,6 @@ export class IrcBridge {
         const metrics = this.bridge.getPrometheusMetrics(!usingRemoteMetrics, registry);
 
         if (this.config.ircService.metrics.port) {
-            if (!spawnMetricsWorker) {
-                log.error("Your version of NodeJS doesn't support workers, so workerized metrics cannot be used");
-                throw Error('Unable to start metrics');
-            }
             log.info(
             `Started metrics on http://${this.config.ircService.metrics.host}:${this.config.ircService.metrics.port}`
             );
