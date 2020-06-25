@@ -38,7 +38,10 @@ function workerThread() {
             res.end();
         }, METRICS_DUMP_TIMEOUT_MS)
 
-        parentPort?.once("message", (msg) => {
+        // We've checked for the existence of parentPort above.
+
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        parentPort!.once("message", (msg) => {
             clearTimeout(timeout);
             const time = Date.now();
             intervalCounter.set(time - lastDumpTs);
@@ -49,7 +52,8 @@ function workerThread() {
             res.end();
         });
 
-        parentPort?.postMessage("metricsdump");
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        parentPort!.postMessage("metricsdump");
     }).listen(workerData.port, workerData.hostname, 1);
 }
 

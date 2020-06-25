@@ -192,7 +192,9 @@ export class IrcBridge {
         const metrics = this.bridge.getPrometheusMetrics(!usingRemoteMetrics, registry);
 
         if (this.config.ircService.metrics.port) {
-            log.info(`Spawned metrics worker on http://${this.config.ircService.metrics.host}:${this.config.ircService.metrics.port}`);
+            log.info(
+            `Started metrics on http://${this.config.ircService.metrics.host}:${this.config.ircService.metrics.port}`
+            );
             spawnMetricsWorker(
                 this.config.ircService.metrics.port,
                 this.config.ircService.metrics.host,
