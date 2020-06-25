@@ -62,7 +62,7 @@
     "eslint": "^5.16.0",
     "jasmine": "^3.1.0",
     "nyc": "^14.1.1",
-    "prom-client": "^11.5.3",
+    "prom-client": "^12.0.0",
     "proxyquire": "^1.4.0",
     "typescript": "^3.7.3"
   }

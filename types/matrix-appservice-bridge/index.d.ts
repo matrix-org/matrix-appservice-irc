@@ -30,9 +30,9 @@ declare module 'matrix-appservice-bridge' {
 
     export class PrometheusMetrics {
         addCollector(cb: () => void): void;
-        addCounter(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Counter
-        addTimer(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Histogram;
-        addGauge(arg0: { name: string; help: string; labels: string[]; }): import("prom-client").Gauge;
+        addCounter(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Counter<string>
+        addTimer(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Histogram<string>;
+        addGauge(arg0: { name: string; help: string; labels: string[]; }): import("prom-client").Gauge<string>;
     }
 
     interface RoomMemberDict {
@@ -257,7 +257,7 @@ declare module 'matrix-appservice-bridge' {
         getBot(): AppserviceBot;
         loadDatabases(): Promise<void>;
         getRequestFactory(): RequestFactory;
-        getPrometheusMetrics(): PrometheusMetrics;
+        getPrometheusMetrics(registerEndpoint?: boolean, registry?: unknown): PrometheusMetrics;
         getIntent(userId?: string): Intent;
         getIntentFromLocalpart(localpart: string): Intent;
         requestCheckToken(req: Express.Request): boolean;

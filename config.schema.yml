@@ -55,6 +55,10 @@ properties:
                 properties:
                     enabled:
                         type: "boolean"
+                    port:
+                        type: "number"
+                    host:
+                        type: "string"
                     remoteUserAgeBuckets:
                         type: "array"
                         items:
