@@ -199,7 +199,7 @@ export class DebugApi {
         };
         const server = query["server"] as string;
         const since = parseInt(query["since"] as string);
-        const limit = query["limit"] !== undefined ? parseInt(query["limit"] as string) : undefined;
+        const limit = query["targetCount"] !== undefined ? parseInt(query["targetCount"] as string) : undefined;
         const reason = query["reason"] as string;
         const dry = query["dryrun"] !== undefined && query["dryrun"] !== "false";
         const defaultOnline = (query["defaultOnline"] ?? "true") === "true";
