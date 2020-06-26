@@ -1119,7 +1119,7 @@ export class IrcBridge {
             usersToActiveTime.set(userId, inactiveMs);
         }
 
-        const sortedByActiveTime = new Map([...usersToActiveTime.entries()].sort((a, b) => b[1] - a[1])).keys();
+        const sortedByActiveTime = [...usersToActiveTime.entries()].sort((a, b) => b[1] - a[1]).map(user => user[0]);
         let userNumber = 0;
         for (const userId of sortedByActiveTime) {
             if (limit && userNumber === limit) {
