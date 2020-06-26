@@ -35,6 +35,8 @@ import { MatrixAction } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
 import { MembershipQueue } from "../util/MembershipQueue";
 import { BridgeStateSyncer } from "./BridgeStateSyncer";
+import { Registry } from "prom-client";
+import { spawnMetricsWorker } from "../workers/MetricsWorker";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -61,8 +63,8 @@ export class IrcBridge {
     private bridge: Bridge;
     private appservice: AppService;
     private timers: {
-        matrix_request_seconds: Histogram;
-        remote_request_seconds: Histogram;
+        matrix_request_seconds: Histogram<string>;
+        remote_request_seconds: Histogram<string>;
     }|null = null;
     private membershipCache: MembershipCache;
     private readonly membershipQueue: MembershipQueue;
@@ -183,8 +185,22 @@ export class IrcBridge {
 
     private initialiseMetrics() {
         const zeroAge = new PrometheusMetrics.AgeCounters();
+        const registry = new Registry();
 
-        const metrics = this.bridge.getPrometheusMetrics();
+        const usingRemoteMetrics = !!this.config.ircService.metrics.port;
+
+        const metrics = this.bridge.getPrometheusMetrics(!usingRemoteMetrics, registry);
+
+        if (this.config.ircService.metrics.port) {
+            log.info(
+            `Started metrics on http://${this.config.ircService.metrics.host}:${this.config.ircService.metrics.port}`
+            );
+            spawnMetricsWorker(
+                this.config.ircService.metrics.port,
+                this.config.ircService.metrics.host,
+                registry.metrics.bind(registry),
+            );
+        }
 
         this.bridge.registerBridgeGauges(() => {
             const remoteUsersByAge = new PrometheusMetrics.AgeCounters(
