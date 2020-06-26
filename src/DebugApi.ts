@@ -199,13 +199,15 @@ export class DebugApi {
         };
         const server = query["server"] as string;
         const since = parseInt(query["since"] as string);
+        const limit = query["limit"] !== undefined ? parseInt(query["limit"] as string) : undefined;
         const reason = query["reason"] as string;
         const dry = query["dryrun"] !== undefined && query["dryrun"] !== "false";
         const defaultOnline = (query["defaultOnline"] ?? "true") === "true";
         const excludeRegex = query["excludeRegex"] as string;
         this.ircBridge.connectionReap(
-            msgCb, server, since, reason, dry, defaultOnline, excludeRegex
+            msgCb, server, since, reason, dry, defaultOnline, excludeRegex, limit,
         ).catch((err: Error) => {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             log.error(err.stack!);
             if (!response.headersSent) {
                 response.writeHead(500, {"Content-Type": "text/plain"});

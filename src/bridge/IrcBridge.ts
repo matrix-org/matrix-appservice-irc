@@ -1079,7 +1079,7 @@ export class IrcBridge {
 
     public async connectionReap(logCb: (line: string) => void, serverName: string,
                                 maxIdleHours: number, reason = "User is inactive", dry = false,
-                                defaultOnline?: boolean, excludeRegex?: string) {
+                                defaultOnline?: boolean, excludeRegex?: string, limit?: number) {
         if (!this.activityTracker) {
             throw Error("activityTracker is not enabled");
         }
@@ -1097,35 +1097,46 @@ export class IrcBridge {
         const users: (string|null)[] = this.clientPool.getConnectedMatrixUsersForServer(server);
         logCb(`Found ${users.length} real users for ${serverName}`);
         const exclude = excludeRegex ? new RegExp(excludeRegex) : null;
-        let offlineCount = 0;
+        const usersToActiveTime = new Map<string, number>();
         for (const userId of users) {
             if (!userId) {
                 // The bot user has a userId of null, ignore it.
                 continue;
             }
-            const status = await this.activityTracker.isUserOnline(userId, maxIdleTime, defaultOnline);
-            if (status.online) {
-                continue;
-            }
-            const clients = this.clientPool.getBridgedClientsForUserId(userId);
             if (exclude && exclude.exec(userId)) {
                 logCb(`${userId} is excluded`);
                 continue;
             }
+            const {online, inactiveMs} = await this.activityTracker.isUserOnline(userId, maxIdleTime, defaultOnline);
+            if (online) {
+                continue;
+            }
+            const clients = this.clientPool.getBridgedClientsForUserId(userId);
             if (clients.length === 0) {
                 logCb(`${userId} has no active clients`);
                 continue;
             }
+            usersToActiveTime.set(userId, inactiveMs);
+        }
+
+        const sortedByActiveTime = new Map([...usersToActiveTime.entries()].sort((a, b) => b[1] - a[1])).keys();
+        let userNumber = 0;
+        for (const userId of sortedByActiveTime) {
+            if (limit && userNumber === limit) {
+                logCb(`Hit limit. Not kicking any more users.`);
+                break;
+            }
+            const clients = this.clientPool.getBridgedClientsForUserId(userId);
             const quitRes = dry ? "dry-run" : await this.matrixHandler.quitUser(req, userId, clients, null, reason);
             if (quitRes !== null) {
                 logCb(`Didn't quit ${userId}: ${quitRes}`);
                 continue;
             }
-            logCb(`Quit ${userId}`);
-            // To avoid us catching them again for maxIdleHours
-            offlineCount++;
+            logCb(`Quit ${userId} (${userNumber}/${usersToActiveTime.size})`);
+            userNumber++;
         }
-        logCb(`Quit ${offlineCount}/${users.length}`);
+
+        logCb(`Quit ${userNumber}/${users.length}`);
     }
 
     public async atBridgedRoomLimit() {
