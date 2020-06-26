@@ -1,4 +1,35 @@
- 0.17.1 (2020-05-06)
+ 0.18.0 (2020-06-26)
+====================
+
+No significant changes.
+
+
+0.18.0-rc1 (2020-06-22)
+========================
+
+Bugfixes
+--------
+
+- Update `pg` dependency to `8.1.0` to fix NodeJS 14 compatibility.
+  **Be aware** that this means that unauthorized SSL connections are now rejected as of [pg@8.0.0](https://github.com/brianc/node-postgres/blob/master/CHANGELOG.md#pg800) ([\#1050](https://github.com/matrix-org/matrix-appservice-irc/issues/1050))
+- Fixed a crash related to an invalid `ctcp-version` request ([\#1053](https://github.com/matrix-org/matrix-appservice-irc/issues/1053))
+- Add ability to limit the number of rooms that an instance can be bridged. ([\#1060](https://github.com/matrix-org/matrix-appservice-irc/issues/1060))
+- Fixed issue where setting initial sync to true for `membershipLists.room` entries would not work if syncing is off globally. ([\#1065](https://github.com/matrix-org/matrix-appservice-irc/issues/1065))
+
+
+Improved Documentation
+----------------------
+
+- Corrects tutorial port numbers for docker so that copying/pasting will properly run with default port numbers. ([\#1048](https://github.com/matrix-org/matrix-appservice-irc/issues/1048))
+
+
+Internal Changes
+----------------
+
+- Update `sanitizeHtml` package. ([\#1066](https://github.com/matrix-org/matrix-appservice-irc/issues/1066))
+
+
+0.17.1 (2020-05-06)
 ====================
 
 Features
