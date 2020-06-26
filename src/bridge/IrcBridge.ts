@@ -1077,7 +1077,7 @@ export class IrcBridge {
         log.info(`Ghost migration to ${newRoomId} complete`);
     }
 
-    public async connectionReap(logCb: (line: string) => void, serverName: string,
+    public async connectionReap(logCb: (line: string) => void, reqServerName: string,
                                 maxIdleHours: number, reason = "User is inactive", dry = false,
                                 defaultOnline?: boolean, excludeRegex?: string, limit?: number) {
         if (!this.activityTracker) {
@@ -1087,7 +1087,8 @@ export class IrcBridge {
             throw Error("'since' must be greater than 0");
         }
         const maxIdleTime = maxIdleHours * 60 * 60 * 1000;
-        const server = serverName ? this.getServer(serverName) : this.getServers()[0];
+        const server = reqServerName ? this.getServer(reqServerName) : this.getServers()[0];
+        const serverName = server?.getReadableName();
         if (server === null) {
             throw Error("Server not found");
         }
@@ -1095,7 +1096,7 @@ export class IrcBridge {
         const req = new BridgeRequest(this.bridge.getRequestFactory().newRequest());
         logCb(`Connection reaping for ${serverName}`);
         const users: (string|null)[] = this.clientPool.getConnectedMatrixUsersForServer(server);
-        logCb(`Found ${users.length} real users for ${serverName}`);
+        logCb(`${users.length} users are connected to the bridge`);
         const exclude = excludeRegex ? new RegExp(excludeRegex) : null;
         const usersToActiveTime = new Map<string, number>();
         for (const userId of users) {
@@ -1118,11 +1119,13 @@ export class IrcBridge {
             }
             usersToActiveTime.set(userId, inactiveMs);
         }
+        logCb(`${usersToActiveTime.size} users are considered idle`);
 
         const sortedByActiveTime = [...usersToActiveTime.entries()].sort((a, b) => b[1] - a[1]).map(user => user[0]);
         let userNumber = 0;
         for (const userId of sortedByActiveTime) {
-            if (limit && userNumber === limit) {
+            userNumber++;
+            if (limit && userNumber > limit) {
                 logCb(`Hit limit. Not kicking any more users.`);
                 break;
             }
@@ -1133,7 +1136,6 @@ export class IrcBridge {
                 continue;
             }
             logCb(`Quit ${userId} (${userNumber}/${usersToActiveTime.size})`);
-            userNumber++;
         }
 
         logCb(`Quit ${userNumber}/${users.length}`);
