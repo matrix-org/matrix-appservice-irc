@@ -37,6 +37,7 @@ import { MembershipQueue } from "../util/MembershipQueue";
 import { BridgeStateSyncer } from "./BridgeStateSyncer";
 import { Registry } from "prom-client";
 import { spawnMetricsWorker } from "../workers/MetricsWorker";
+import { getBridgeVersion } from "../util/PackageInfo";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -273,6 +274,12 @@ export class IrcBridge {
             help: "Track IRC connection failures resulting in kicks",
             labels: ["server"]
         });
+
+        metrics.addCounter({
+            name: "app_version",
+            help: "Version number of the bridge",
+            labels: ["version"],
+        }).inc({ version: getBridgeVersion()}, 1);
 
         metrics.addCollector(() => {
             this.ircServers.forEach((server) => {
