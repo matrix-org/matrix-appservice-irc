@@ -1,1 +1,0 @@
-Split out metrics endpoint to a seperate worker

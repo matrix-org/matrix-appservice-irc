@@ -1,4 +1,22 @@
- 0.18.0 (2020-06-26)
+0.19.0-rc1 (2020-06-26)
+========================
+
+**0.19 introduces a minimum reqirement of NodeJS 12.x**
+
+Features
+--------
+
+- Split out metrics endpoint to a seperate worker ([\#1069](https://github.com/matrix-org/matrix-appservice-irc/issues/1069))
+- Add ability to limit the number of kicked users, and order by inactive time when using the reapUsers Debug API command. ([\#1072](https://github.com/matrix-org/matrix-appservice-irc/issues/1072))
+
+
+Internal Changes
+----------------
+
+- **BREAKING CHANGE**: The bridge now requires a minimum of `NodeJS` v12.x ([\#1070](https://github.com/matrix-org/matrix-appservice-irc/issues/1070))
+
+
+0.18.0 (2020-06-26)
 ====================
 
 No significant changes.
