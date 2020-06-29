@@ -206,8 +206,8 @@ export class AdminRoomHandler {
 
         if (matrixRooms.length === 0) {
             // track the channel then invite them.
-            // TODO: Dupes onAliasQuery a lot
-            const { ircRoom, mxRoom } = await RoomCreation.createAndTrackRoom(this.ircBridge, req, {
+            const { ircRoom, mxRoom } = await RoomCreation.trackChannelAndCreateRoom(this.ircBridge, req, {
+                origin: "join",
                 server: server,
                 ircChannel,
                 key,

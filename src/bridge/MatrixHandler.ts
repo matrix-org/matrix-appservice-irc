@@ -11,6 +11,7 @@ import { IrcAction } from "../models/IrcAction";
 import { toIrcLowerCase } from "../irc/formatting";
 import { AdminRoomHandler } from "./AdminRoomHandler";
 import { MembershipQueue } from "../util/MembershipQueue";
+import { trackChannelAndCreateRoom } from "./RoomCreation";
 
 async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
     try {
@@ -1022,83 +1023,15 @@ export class MatrixHandler {
             channelInfo.server, channelInfo.channel
         );
         if (matrixRooms.length === 0) {
-            // ====== Track the IRC channel
-            // lower case the name to join (there's a bug in the IRC lib
-            // where the join callback never fires if you try to join
-            // #WithCaps in channels :/)
-            channelInfo.channel = toIrcLowerCase(channelInfo.channel);
-            req.log.info("Going to track IRC channel %s", channelInfo.channel);
-            // join the irc server + channel
-            await this.ircBridge.trackChannel(channelInfo.server, channelInfo.channel);
-            req.log.info("Bot is now tracking IRC channel.");
-
-            // ======== Create the Matrix room
-            let newRoomId = null;
-            const botIntent = this.ircBridge.getAppServiceBridge().getIntent();
-            try { // make the matrix room
-                const options: RoomCreationOpts = {
-                    room_alias_name: roomAlias.split(":")[0].substring(1), // localpart
-                    name: channelInfo.channel,
-                    visibility: "private",
-                    preset: "public_chat",
-                    creation_content: {
-                        "m.federate": channelInfo.server.shouldFederate()
-                    },
-                    initial_state: [],
-                    room_version: undefined,
-                };
-                if (channelInfo.server.areGroupsEnabled()) {
-                    options.initial_state.push({
-                        type: "m.room.related_groups",
-                        state_key: "",
-                        content: {
-                            groups: [channelInfo.server.getGroupId()]
-                        }
-                    });
-                }
-                if (this.ircBridge.stateSyncer) {
-                    options.initial_state.push(
-                        this.ircBridge.stateSyncer.createInitialState(
-                            channelInfo.server,
-                            channelInfo.channel,
-                        )
-                    )
-                }
-                if (channelInfo.server.forceRoomVersion()) {
-                    options.room_version = channelInfo.server.forceRoomVersion();
-                }
-                const res = await botIntent.createRoom({
-                    options,
-                });
-                newRoomId = res.room_id;
-            }
-            catch (e) {
-                req.log.error("Failed to create room: %s", e.stack);
-                throw e;
-            }
-
-            const matrixRoom = new MatrixRoom(newRoomId);
-            req.log.info("Matrix room %s created.", matrixRoom.getId());
-
-            // TODO set topic, add matrix members f.e. irc user(?) given
-            // they are cheap to do.
-
-            // ========= store the mapping and return OK
-            const ircRoom = new IrcRoom(channelInfo.server, channelInfo.channel);
-            await this.ircBridge.getStore().storeRoom(ircRoom, matrixRoom, 'alias');
-
-            // /mode the channel AFTER we have created the mapping so we process +s and +i correctly.
-            try {
-                await this.ircBridge.publicitySyncer.initModeForChannel(
-                    channelInfo.server, channelInfo.channel
-                );
-            }
-            catch (ex) {
-                log.error(
-                    `Could not init mode for channel ${channelInfo.channel} on ` +
-                    `${channelInfo.server.domain}`
-                );
-            }
+            await trackChannelAndCreateRoom(this.ircBridge, req, {
+                server: channelInfo.server,
+                // lower case the name to join (there's a bug in the IRC lib
+                // where the join callback never fires if you try to join
+                // #WithCaps in channels :/)
+                ircChannel:  toIrcLowerCase(channelInfo.channel),
+                roomAliasName: roomAlias.split(":")[0].substring(1), // localpart
+                origin: "alias",
+            })
         }
         else {
             // create an alias pointing to this room (take first)

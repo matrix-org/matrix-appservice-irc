@@ -1,17 +1,28 @@
 import { IrcServer } from "../irc/IrcServer";
 import { IrcBridge } from "./IrcBridge";
-import { MatrixRoom } from "matrix-appservice-bridge";
+import { MatrixRoom, Intent } from "matrix-appservice-bridge";
 import { BridgeRequest } from "../models/BridgeRequest";
+import { RoomOrigin } from "../datastore/DataStore";
 
-interface CreateRoomOpts {
+interface TrackChannelOpts {
     server: IrcServer;
     ircChannel: string;
     key?: string;
-    inviteList: string[];
+    inviteList?: string[];
+    origin: RoomOrigin;
+    roomAliasName?: string;
+    intent?: Intent;
 }
 
-export async function createAndTrackRoom(ircBridge: IrcBridge, req: BridgeRequest, opts: CreateRoomOpts) {
+/**
+ * Track an IRC channel and create a room for it.
+ * @param ircBridge The ircBridge instance
+ * @param req The request that triggered the room creation
+ * @param opts Information about the room creation request.
+ */
+export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: BridgeRequest, opts: TrackChannelOpts) {
     const { server, ircChannel, key, inviteList } = opts;
+    const intent = opts.intent || ircBridge.getAppServiceBridge().getIntent();
     const initialState: unknown[] = [
         {
             type: "m.room.join_rules",
@@ -45,21 +56,34 @@ export async function createAndTrackRoom(ircBridge: IrcBridge, req: BridgeReques
             )
         )
     }
+    req.log.info("Going to track IRC channel %s", ircChannel);
     const ircRoom = await ircBridge.trackChannel(server, ircChannel, key);
-    const response = await ircBridge.getAppServiceBridge().getIntent().createRoom({
-        options: {
-            name: ircChannel,
-            visibility: "private",
-            preset: "public_chat",
-            creation_content: {
-                "m.federate": server.shouldFederate()
-            },
-            initial_state: initialState,
-            invite: inviteList,
-        }
-    });
-    const mxRoom = new MatrixRoom(response.room_id);
-    await ircBridge.getStore().storeRoom(ircRoom, mxRoom, 'join');
+    req.log.info("Bot is now tracking IRC channel.");
+    let roomId;
+    try {
+        const response = await intent.createRoom({
+            options: {
+                name: ircChannel,
+                visibility: "private",
+                preset: "public_chat",
+                creation_content: {
+                    "m.federate": server.shouldFederate()
+                },
+                room_alias_name: opts.roomAliasName,
+                initial_state: initialState,
+                invite: inviteList,
+            }
+        });
+        roomId = response.room_id;
+        req.log.info("Matrix room %s created.", roomId);
+    }
+    catch (ex) {
+        req.log.error("Failed to create room: %s", ex.stack);
+        throw ex;
+    }
+
+    const mxRoom = new MatrixRoom(roomId);
+    await ircBridge.getStore().storeRoom(ircRoom, mxRoom, opts.origin);
     // /mode the channel AFTER we have created the mapping so we process
     // +s and +i correctly. This is done asyncronously.
     ircBridge.publicitySyncer.initModeForChannel(server, ircChannel).catch(() => {
