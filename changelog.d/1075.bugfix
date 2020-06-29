@@ -1,0 +1,2 @@
+Fix issue where some metrics would not be reported,
+and a bug in `inspectUsers` which would return an empty list.
