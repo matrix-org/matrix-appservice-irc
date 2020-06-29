@@ -21,7 +21,7 @@ interface TrackChannelOpts {
  * @param opts Information about the room creation request.
  */
 export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: BridgeRequest, opts: TrackChannelOpts) {
-    const { server, ircChannel, key, inviteList } = opts;
+    const { server, ircChannel, key, inviteList, origin, roomAliasName } = opts;
     const intent = opts.intent || ircBridge.getAppServiceBridge().getIntent();
     const initialState: unknown[] = [
         {
@@ -69,9 +69,10 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
                 creation_content: {
                     "m.federate": server.shouldFederate()
                 },
-                room_alias_name: opts.roomAliasName,
+                room_alias_name: roomAliasName,
                 initial_state: initialState,
                 invite: inviteList,
+                room_version: server.forceRoomVersion(),
             }
         });
         roomId = response.room_id;
@@ -83,7 +84,7 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
     }
 
     const mxRoom = new MatrixRoom(roomId);
-    await ircBridge.getStore().storeRoom(ircRoom, mxRoom, opts.origin);
+    await ircBridge.getStore().storeRoom(ircRoom, mxRoom, origin);
     // /mode the channel AFTER we have created the mapping so we process
     // +s and +i correctly. This is done asyncronously.
     ircBridge.publicitySyncer.initModeForChannel(server, ircChannel).catch(() => {
