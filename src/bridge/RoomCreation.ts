@@ -44,7 +44,7 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
             type: "m.room.related_groups",
             state_key: "",
             content: {
-                groups: server.getGroupId(),
+                groups: [server.getGroupId()],
             }
         });
     }
