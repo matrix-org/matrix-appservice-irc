@@ -199,7 +199,10 @@ export class IrcBridge {
             spawnMetricsWorker(
                 this.config.ircService.metrics.port,
                 this.config.ircService.metrics.host,
-                registry.metrics.bind(registry),
+                () => {
+                    metrics.refresh();
+                    return registry.metrics();
+                },
             );
         }
 
