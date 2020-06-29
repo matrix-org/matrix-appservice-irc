@@ -1,10 +1,9 @@
 import { IrcBridge } from "./IrcBridge";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
-import { MatrixUser, MatrixRoom, StateLookup, RoomCreationOpts } from "matrix-appservice-bridge";
+import { MatrixUser, MatrixRoom, StateLookup } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { IrcRoom } from "../models/IrcRoom";
-import logging from "../logging";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcAction } from "../models/IrcAction";
@@ -24,8 +23,6 @@ async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
         throw err;
     }
 }
-
-const log = logging("MatrixHandler");
 
 const MSG_PMS_DISABLED = "[Bridge] Sorry, PMs are disabled on this bridge.";
 const MSG_PMS_DISABLED_FEDERATION = "[Bridge] Sorry, PMs are disabled on this bridge over federation.";
