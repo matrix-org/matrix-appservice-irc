@@ -67,7 +67,7 @@ export class IrcServer {
 
         if (this.config.dynamicChannels.groupId !== undefined &&
             this.config.dynamicChannels.groupId.trim() !== "") {
-            this.groupIdValid = GROUP_ID_REGEX.exec(this.config.dynamicChannels.groupId) !== null;
+            this.groupIdValid = GROUP_ID_REGEX.test(this.config.dynamicChannels.groupId);
             if (!this.groupIdValid) {
                 log.warn(
     `${domain} has an incorrectly configured groupId for dynamicChannels and will not set groups.`
