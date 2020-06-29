@@ -1114,7 +1114,7 @@ export class IrcBridge {
                 // The bot user has a userId of null, ignore it.
                 continue;
             }
-            if (exclude && exclude.exec(userId)) {
+            if (exclude && exclude.test(userId)) {
                 logCb(`${userId} is excluded`);
                 continue;
             }
