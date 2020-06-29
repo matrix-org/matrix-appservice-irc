@@ -23,7 +23,7 @@ interface TrackChannelOpts {
 export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: BridgeRequest, opts: TrackChannelOpts) {
     const { server, ircChannel, key, inviteList, origin, roomAliasName } = opts;
     const intent = opts.intent || ircBridge.getAppServiceBridge().getIntent();
-    const initialState: unknown[] = [
+    const initialState: ({type: string; state_key: string; content: object})[] = [
         {
             type: "m.room.join_rules",
             state_key: "",
@@ -44,7 +44,7 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
             type: "m.room.related_groups",
             state_key: "",
             content: {
-                groups: [server.getGroupId() as string]
+                groups: server.getGroupId(),
             }
         });
     }
