@@ -23,6 +23,7 @@ import { BridgedClient } from "../irc/BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { MatrixHandler } from "./MatrixHandler";
 import logging from "../logging";
+import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "../util/PackageInfo";
 
 const log = logging("AdminRoomHandler");
@@ -205,61 +206,12 @@ export class AdminRoomHandler {
 
         if (matrixRooms.length === 0) {
             // track the channel then invite them.
-            // TODO: Dupes onAliasQuery a lot
-            const initialState: unknown[] = [
-                {
-                    type: "m.room.join_rules",
-                    state_key: "",
-                    content: {
-                        join_rule: server.getJoinRule()
-                    }
-                },
-                {
-                    type: "m.room.history_visibility",
-                    state_key: "",
-                    content: {
-                        history_visibility: "joined"
-                    }
-                }
-            ];
-            if (server.areGroupsEnabled()) {
-                initialState.push({
-                    type: "m.room.related_groups",
-                    state_key: "",
-                    content: {
-                        groups: [server.getGroupId() as string]
-                    }
-                });
-            }
-            if (this.ircBridge.stateSyncer) {
-                initialState.push(
-                    this.ircBridge.stateSyncer.createInitialState(
-                        server,
-                        ircChannel,
-                    )
-                )
-            }
-            const ircRoom = await this.ircBridge.trackChannel(server, ircChannel, key);
-            const response = await this.ircBridge.getAppServiceBridge().getIntent().createRoom({
-                options: {
-                    name: ircChannel,
-                    visibility: "private",
-                    preset: "public_chat",
-                    creation_content: {
-                        "m.federate": server.shouldFederate()
-                    },
-                    initial_state: initialState,
-                    invite: [sender],
-                }
-            });
-            const mxRoom = new MatrixRoom(response.room_id);
-            await this.ircBridge.getStore().storeRoom(ircRoom, mxRoom, 'join');
-            // /mode the channel AFTER we have created the mapping so we process
-            // +s and +i correctly.
-            this.ircBridge.publicitySyncer.initModeForChannel(server, ircChannel).catch(() => {
-                log.error(
-                    `Could not init mode for channel ${ircChannel} on ${server.domain}`
-                );
+            const { ircRoom, mxRoom } = await RoomCreation.trackChannelAndCreateRoom(this.ircBridge, req, {
+                origin: "join",
+                server: server,
+                ircChannel,
+                key,
+                inviteList: [sender],
             });
             req.log.info(
                 "Created a room to track %s on %s and invited %s",

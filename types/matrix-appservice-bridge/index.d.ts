@@ -33,6 +33,7 @@ declare module 'matrix-appservice-bridge' {
         addCounter(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Counter<string>
         addTimer(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Histogram<string>;
         addGauge(arg0: { name: string; help: string; labels: string[]; }): import("prom-client").Gauge<string>;
+        refresh(): void;
     }
 
     interface RoomMemberDict {
