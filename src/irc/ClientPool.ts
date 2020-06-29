@@ -369,7 +369,7 @@ export class ClientPool {
         const clientList: {[userId: string]: BridgedClient[]} = {};
         domainList.forEach((domain) => {
             this.virtualClients[domain].userIds.forEach((_value, userId) => {
-                if (userIdRegex.exec(userId) === null) {
+                if (!userIdRegex.test(userId)) {
                     return;
                 }
                 if (!clientList[userId]) {
