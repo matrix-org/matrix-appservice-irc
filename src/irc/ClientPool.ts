@@ -368,11 +368,10 @@ export class ClientPool {
         const domainList = Object.keys(this.virtualClients);
         const clientList: {[userId: string]: BridgedClient[]} = {};
         domainList.forEach((domain) => {
-            Object.keys(
-                this.virtualClients[domain].userIds
-            ).filter(
-                (u) => userIdRegex.exec(u) !== null
-            ).forEach((userId: string) => {
+            this.virtualClients[domain].userIds.forEach((_value, userId) => {
+                if (!userIdRegex.test(userId)) {
+                    return;
+                }
                 if (!clientList[userId]) {
                     clientList[userId] = [];
                 }

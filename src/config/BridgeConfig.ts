@@ -38,6 +38,8 @@ export interface BridgeConfig {
         databaseUri?: string;
         metrics: {
             enabled: boolean;
+            port?: number;
+            host?: string;
             remoteUserAgeBuckets: string[];
         };
         passwordEncryptionKeyPath?: string;
