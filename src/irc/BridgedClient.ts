@@ -56,7 +56,7 @@ export interface BridgedClientLogger {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-export const illegalCharactersRegex = /^A-Za-z0-9\]\[\^\\\{\}\-`_\|]/g;
+export const illegalCharactersRegex = /^[A-Za-z0-9\]\[\^\\\{\}\-`_\|]/g;
 
 export class BridgedClient extends EventEmitter {
     public readonly userId: string|null;
