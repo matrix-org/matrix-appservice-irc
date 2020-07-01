@@ -70,7 +70,7 @@ export interface MatrixMessageEvent {
 }
 
 const MentionRegex = function(matcher: string): RegExp {
-    const WORD_BOUNDARY = "^|\:|\#|```|\\s|$|,";
+    const WORD_BOUNDARY = "^|:|#|```|\\s|$|,";
     return new RegExp(
         `(${WORD_BOUNDARY})(@?(${matcher}))(?=${WORD_BOUNDARY})`,
         "igm"
@@ -190,7 +190,7 @@ export class MatrixAction {
         switch (ircAction.type) {
             case "message":
             case "emote":
-            case "notice":
+            case "notice": {
                 const htmlText = ircFormatting.ircToHtml(ircAction.text);
                 return new MatrixAction(
                     ircAction.type,
@@ -199,6 +199,7 @@ export class MatrixAction {
                     // will send everything as HTML and never text only.
                     ircAction.text !== htmlText ? htmlText : undefined
                 );
+            }
             case "topic":
                 return new MatrixAction("topic", ircAction.text);
             default:

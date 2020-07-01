@@ -226,6 +226,7 @@ export class IdentGenerator {
 
     private static sanitiseRealname(realname: string) {
         // real name can be any old ASCII
+        // eslint-disable-next-line no-control-regex
         return realname.replace(/[^\x00-\x7F]/g, "");
     }
 }
