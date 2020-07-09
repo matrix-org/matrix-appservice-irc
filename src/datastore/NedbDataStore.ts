@@ -368,6 +368,11 @@ export class NeDBDataStore implements DataStore {
         }, NeDBDataStore.createPmId(userId, virtualUserId));
     }
 
+    public async removePmRoom(roomId: string): Promise<void> {
+        log.debug(`removePmRoom (room_id=${roomId}`);
+        await this.roomStore.removeEntriesByMatrixRoomId(roomId);
+    }
+
     public async getMatrixPmRoom(realUserId: string, virtualUserId: string) {
         const id = NeDBDataStore.createPmId(realUserId, virtualUserId);
         const entry = await this.roomStore.getEntryById(id);
@@ -646,6 +651,31 @@ export class NeDBDataStore implements DataStore {
         }
         room.set("visibility", visibility);
         await this.roomStore.setMatrixRoom(room);
+    }
+
+    public async deactivateUser(userId: string) {
+        let user = await this.userStore.getMatrixUser(userId);
+        if (!user) {
+            user = new MatrixUser(userId);
+        }
+        user.set("deactivated", true);
+        await this.userStore.setMatrixUser(user);
+    }
+
+    public async isUserDeactivated(userId: string) {
+        const user = await this.userStore.getMatrixUser(userId);
+        return user?.get("deactivated") === true;
+    }
+
+    public async getRoomCount() {
+        const entries = await this.roomStore.select(
+            {
+                matrix_id: {$exists: true},
+                remote_id: {$exists: true},
+                'remote.type': "channel"
+            }
+        );
+        return entries.length;
     }
 
     public async roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string) {

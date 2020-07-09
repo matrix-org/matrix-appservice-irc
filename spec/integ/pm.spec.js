@@ -280,11 +280,31 @@ describe("IRC-to-Matrix PMing", function() {
     "it receives a PM directed at a virtual user from a real IRC user",
     test.coroutine(function*() {
         // mock create room impl
-        let createRoomPromise = new Promise(function(resolve, reject) {
+        const createRoomPromise = new Promise(function(resolve) {
             sdk.createRoom.and.callFake(function(opts) {
                 expect(opts.visibility).toEqual("private");
                 expect(opts.invite).toEqual([tRealUserId]);
                 expect(opts.creation_content["m.federate"]).toEqual(true);
+                expect(opts.preset).not.toBeDefined();
+                expect(opts.initial_state).toEqual([{
+                    type: "m.room.power_levels",
+                    state_key: "",
+                    content: {
+                        users: {
+                            "@alice:anotherhomeserver": 10,
+                            "@irc.example_bob:some.home.server": 100
+                        },
+                        events: {
+                            "m.room.avatar": 10,
+                            "m.room.name": 10,
+                            "m.room.canonical_alias": 100,
+                            "m.room.history_visibility": 100,
+                            "m.room.power_levels": 100,
+                            "m.room.encryption": 100
+                        },
+                        invite: 100
+                    },
+                }]);
                 resolve();
                 return Promise.resolve({
                     room_id: tCreatedRoomId

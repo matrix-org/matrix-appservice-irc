@@ -1,35 +1,32 @@
 import { IrcBridge } from "./IrcBridge";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
-import { MatrixUser, MatrixRoom, StateLookup, RoomCreationOpts } from "matrix-appservice-bridge";
+import { MatrixUser, MatrixRoom, StateLookup } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { IrcRoom } from "../models/IrcRoom";
-import logging from "../logging";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcServer } from "../irc/IrcServer";
-import Bluebird = require("bluebird");
 import { IrcAction } from "../models/IrcAction";
 import { toIrcLowerCase } from "../irc/formatting";
 import { AdminRoomHandler } from "./AdminRoomHandler";
 import { MembershipQueue } from "../util/MembershipQueue";
+import { trackChannelAndCreateRoom } from "./RoomCreation";
 
-function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
-    return promise.then(function(res) {
+async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
+    try {
+        const res = await promise;
         req.resolve(res);
         return res;
-    }, function(err) {
+    }
+    catch (err) {
         req.reject(err);
         throw err;
-    });
+    }
 }
-
-const log = logging("MatrixHandler");
 
 const MSG_PMS_DISABLED = "[Bridge] Sorry, PMs are disabled on this bridge.";
 const MSG_PMS_DISABLED_FEDERATION = "[Bridge] Sorry, PMs are disabled on this bridge over federation.";
 
-const KICK_RETRY_DELAY_MS = 15000;
-const KICK_DELAY_JITTER = 30000;
 /* Number of events to store in memory for use in replies. */
 const DEFAULT_EVENT_CACHE_SIZE = 4096;
 /* Length of the source text in a formatted reply message */
@@ -294,8 +291,13 @@ export class MatrixHandler {
 
                 await Promise.all([...uniqueRoomIds].map(async (roomId) => {
                     try {
-                        await this.ircBridge.getAppServiceBridge().getIntent().kick(
-                            roomId, userId, reason
+                        await this.membershipQueue.leave(
+                            roomId,
+                            userId,
+                            req,
+                            false,
+                            reason,
+                            this.ircBridge.appServiceUserId
                         );
                     }
                     catch (err) {
@@ -337,6 +339,33 @@ export class MatrixHandler {
     }
 
     /**
+     * Called when a Matrix user tries to invite another user into a PM
+     * @param {Object} event : The Matrix invite event.
+     * @param {MatrixUser} inviter : The inviter (sender).
+     * @param {MatrixUser} invitee : The invitee (receiver).
+     * @return {Promise} which is resolved/rejected when the request finishes.
+     */
+    private async handleInviteToPMRoom(req: BridgeRequest, event: MatrixEventInvite,
+        inviter: MatrixUser, invitee: MatrixUser): Promise<BridgeRequestErr|null> {
+        // We don't support this
+        req.log.warn(
+            `User ${inviter.getId()} tried to invite ${invitee.getId()} to a PM room. Disconnecting from room`
+        );
+        const store = this.ircBridge.getStore();
+        const [room] = await store.getIrcChannelsForRoomId(event.room_id);
+        await store.removePmRoom(event.room_id);
+        const userId = room.server.getUserIdFromNick(room.channel);
+        const intent = this.ircBridge.getAppServiceBridge().getIntent(userId);
+        await intent.sendMessage(event.room_id, {
+            msgtype: "m.notice",
+            body: "This room has been disconnected from IRC. You cannot invite new users into a IRC PM. " +
+                  "Please create a new PM room.",
+        });
+        await intent.leave(event.room_id);
+        return null;
+    }
+
+    /**
      * Called when the AS receives a new Matrix invite event.
      * @param {Object} event : The Matrix invite event.
      * @param {MatrixUser} inviter : The inviter (sender).
@@ -354,6 +383,7 @@ export class MatrixHandler {
         * [4] bot --invite--> MX   (bot telling real mx user IRC conn state) - Ignore.
         * [5] irc --invite--> MX   (real irc user PMing a Matrix user) - Ignore.
         * [6] MX  --invite--> BOT  (invite to private room to allow bot to bridge) - Ignore.
+        * [7] MX  --invite--> MX   (matrix user inviting another matrix user)
         */
         req.log.info("onInvite: %s", JSON.stringify(event));
         this._onMemberEvent(req, event);
@@ -367,9 +397,11 @@ export class MatrixHandler {
         });
 
         // Check if this room is known to us.
-        const hasExistingRoom = (
-            await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id)
-        ).length > 0;
+        const rooms = await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
+        const hasExistingRoom= rooms.length > 1;
+
+        const inviteeIsVirtual = !!this.ircBridge.getServerForUserId(event.state_key);
+        const inviterIsVirtual = !!this.ircBridge.getServerForUserId(event.sender);
 
         // work out which flow we're dealing with and fork off asap
         // is the invitee the bot?
@@ -382,9 +414,14 @@ export class MatrixHandler {
             // case[6]
             // Drop through so the invite stays active, but do not join the room.
         }
+        else if (!inviterIsVirtual && rooms[0]?.getType() === "pm") {
+            // case[7]-pms
+            return this.handleInviteToPMRoom(req, event, inviter, invitee);
+        } // case[7]-groups falls through.
         // else is the invitee a real matrix user? If they are, there will be no IRC server
-        else if (!this.ircBridge.getServerForUserId(event.state_key)) {
-            // cases [4] and [5] : We cannot accept on behalf of real matrix users, so nop
+        else if (!inviteeIsVirtual) {
+            // If this is a PM, we need to disconnect it
+            // cases [4], [5]: We cannot accept on behalf of real matrix users, so nop
             return BridgeRequestErr.ERR_NOT_MAPPED;
         }
         else {
@@ -451,7 +488,6 @@ export class MatrixHandler {
             // get the virtual IRC user for this user
             promises.push((async () => {
                 let bridgedClient: BridgedClient|null = null;
-                let kickIntent;
                 try {
                     bridgedClient = await this.ircBridge.getBridgedClient(
                         room.server, user.getId(), (event.content || {}).displayname
@@ -459,30 +495,19 @@ export class MatrixHandler {
                 }
                 catch (e) {
                     // We need to kick on failure to get a client.
-                    req.log.info(`${user.getId()} failed to get a IRC connection. Kicking from room.`);
-                    kickIntent = this.ircBridge.getAppServiceBridge().getIntent();
+                    req.log.info(`${user.getId()} failed to get a IRC connection. Kicking from room: ${e}`);
+                    this.incrementMetric(room.server.domain, "connection_failure_kicks");
+                    const excluded = room.server.isExcludedUser(user.getId());
+                    await this.membershipQueue.leave(
+                        event.room_id,
+                        user.getId(),
+                        req,
+                        true,
+                        excluded && excluded.kickReason ? excluded.kickReason : `IRC connection failure.`,
+                        this.ircBridge.appServiceUserId,
+                    );
                 }
 
-                while (kickIntent) {
-                    try {
-                        // If they are known blacklisted, get a specific reason string.
-                        const excluded = room.server.isExcludedUser(user.getId());
-                        await kickIntent.kick(
-                            event.room_id, user.getId(),
-                            excluded && excluded.kickReason ? excluded.kickReason
-                            : `IRC connection failure.`,
-                        );
-                        this.incrementMetric(room.server.domain, "connection_failure_kicks");
-                        break;
-                    }
-                    catch (err) {
-                        const delay = KICK_RETRY_DELAY_MS + (Math.random() * KICK_DELAY_JITTER);
-                        req.log.warn(
-                            `User was not kicked. Retrying in ${delay}ms. ${err}`
-                        );
-                        await Bluebird.delay(delay);
-                    }
-                }
                 if (!bridgedClient || !bridgedClient.userId) {
                     // For types, drop out early if we don't have a bridgedClient
                     return;
@@ -825,9 +850,9 @@ export class MatrixHandler {
             }
             else {
                 // push each request so we don't block processing other rooms
-                messageSendPromiseSet.push((async () => {
-                    await this.sendIrcAction(req, ircRoom, bridgedClient, ircAction, event);
-                })());
+                messageSendPromiseSet.push(
+                    this.sendIrcAction(req, ircRoom, bridgedClient, ircAction, event),
+                );
             }
         });
         await Promise.all(fetchRoomsPromiseSet);
@@ -995,83 +1020,15 @@ export class MatrixHandler {
             channelInfo.server, channelInfo.channel
         );
         if (matrixRooms.length === 0) {
-            // ====== Track the IRC channel
-            // lower case the name to join (there's a bug in the IRC lib
-            // where the join callback never fires if you try to join
-            // #WithCaps in channels :/)
-            channelInfo.channel = toIrcLowerCase(channelInfo.channel);
-            req.log.info("Going to track IRC channel %s", channelInfo.channel);
-            // join the irc server + channel
-            await this.ircBridge.trackChannel(channelInfo.server, channelInfo.channel);
-            req.log.info("Bot is now tracking IRC channel.");
-
-            // ======== Create the Matrix room
-            let newRoomId = null;
-            const botIntent = this.ircBridge.getAppServiceBridge().getIntent();
-            try { // make the matrix room
-                const options: RoomCreationOpts = {
-                    room_alias_name: roomAlias.split(":")[0].substring(1), // localpart
-                    name: channelInfo.channel,
-                    visibility: "private",
-                    preset: "public_chat",
-                    creation_content: {
-                        "m.federate": channelInfo.server.shouldFederate()
-                    },
-                    initial_state: [],
-                    room_version: undefined,
-                };
-                if (channelInfo.server.areGroupsEnabled()) {
-                    options.initial_state.push({
-                        type: "m.room.related_groups",
-                        state_key: "",
-                        content: {
-                            groups: [channelInfo.server.getGroupId()]
-                        }
-                    });
-                }
-                if (this.ircBridge.stateSyncer) {
-                    options.initial_state.push(
-                        this.ircBridge.stateSyncer.createInitialState(
-                            channelInfo.server,
-                            channelInfo.channel,
-                        )
-                    )
-                }
-                if (channelInfo.server.forceRoomVersion()) {
-                    options.room_version = channelInfo.server.forceRoomVersion();
-                }
-                const res = await botIntent.createRoom({
-                    options,
-                });
-                newRoomId = res.room_id;
-            }
-            catch (e) {
-                req.log.error("Failed to create room: %s", e.stack);
-                throw e;
-            }
-
-            const matrixRoom = new MatrixRoom(newRoomId);
-            req.log.info("Matrix room %s created.", matrixRoom.getId());
-
-            // TODO set topic, add matrix members f.e. irc user(?) given
-            // they are cheap to do.
-
-            // ========= store the mapping and return OK
-            const ircRoom = new IrcRoom(channelInfo.server, channelInfo.channel);
-            await this.ircBridge.getStore().storeRoom(ircRoom, matrixRoom, 'alias');
-
-            // /mode the channel AFTER we have created the mapping so we process +s and +i correctly.
-            try {
-                await this.ircBridge.publicitySyncer.initModeForChannel(
-                    channelInfo.server, channelInfo.channel
-                );
-            }
-            catch (ex) {
-                log.error(
-                    `Could not init mode for channel ${channelInfo.channel} on ` +
-                    `${channelInfo.server.domain}`
-                );
-            }
+            await trackChannelAndCreateRoom(this.ircBridge, req, {
+                server: channelInfo.server,
+                // lower case the name to join (there's a bug in the IRC lib
+                // where the join callback never fires if you try to join
+                // #WithCaps in channels :/)
+                ircChannel:  toIrcLowerCase(channelInfo.channel),
+                roomAliasName: roomAlias.split(":")[0].substring(1), // localpart
+                origin: "alias",
+            })
         }
         else {
             // create an alias pointing to this room (take first)

@@ -55,6 +55,10 @@ properties:
                 properties:
                     enabled:
                         type: "boolean"
+                    port:
+                        type: "number"
+                    host:
+                        type: "string"
                     remoteUserAgeBuckets:
                         type: "array"
                         items:
@@ -105,6 +109,8 @@ properties:
                         type: "string"
                     enableReload:
                         type: "boolean"
+                    roomLimit:
+                        type: "number" 
             passwordEncryptionKeyPath:
                 type: "string"
             matrixHandler:

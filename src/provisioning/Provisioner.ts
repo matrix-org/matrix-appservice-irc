@@ -130,12 +130,19 @@ export class Provisioner {
             });
         }
 
-        // Deal with CORS (temporarily for s-web)
         app.use((req, res, next) => {
+            // Deal with CORS (temporarily for s-web)
             if (this.isProvisionRequest(req)) {
                 res.header("Access-Control-Allow-Origin", "*");
                 res.header("Access-Control-Allow-Headers",
                     "Origin, X-Requested-With, Content-Type, Accept");
+            }
+            if (!this.ircBridge.getAppServiceBridge().requestCheckToken(req)) {
+                res.status(403).send({
+                    errcode: "M_FORBIDDEN",
+                    error: "Bad token supplied"
+                });
+                return;
             }
             next();
         });
@@ -158,6 +165,10 @@ export class Provisioner {
 
         app.get("/_matrix/provision/querynetworks",
             this.createProvisionEndpoint(this.queryNetworks, 'queryNetworks')
+        );
+
+        app.get("/_matrix/provision/limits",
+            this.createProvisionEndpoint(this.getLimits, 'limits')
         );
 
         if (enabled) {
@@ -742,6 +753,10 @@ export class Provisioner {
             }
         }
 
+        if (await this.ircBridge.atBridgedRoomLimit()) {
+            throw new Error('At maximum number of bridged rooms');
+        }
+
         const ircDomain = options.remote_room_server;
         let ircChannel = options.remote_room_channel;
         const roomId = options.matrix_room_id;
@@ -1073,6 +1088,15 @@ export class Provisioner {
                     remote_room_server : entry.remote.get("domain"),
                 }
             }).filter((e) => e !== false);
+    }
+
+    private getLimits() {
+        const count = this.ircBridge.getStore().getRoomCount();
+        const limit = this.ircBridge.config.ircService.provisioning?.roomLimit || false;
+        return {
+            count,
+            limit,
+        };
     }
 
     // Using ISUPPORT rules supported by MatrixBridge bot, case map ircChannel

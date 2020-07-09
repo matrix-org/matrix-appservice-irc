@@ -27,6 +27,7 @@ export interface BridgeConfig {
             requestTimeoutSeconds: number;
             ruleFile: string;
             enableReload: boolean;
+            roomLimit?: number;
         };
         logging: LoggerConfig;
         debugApi: {
@@ -37,6 +38,8 @@ export interface BridgeConfig {
         databaseUri?: string;
         metrics: {
             enabled: boolean;
+            port?: number;
+            host?: string;
             remoteUserAgeBuckets: string[];
         };
         passwordEncryptionKeyPath?: string;
@@ -49,6 +52,7 @@ export interface BridgeConfig {
             enabled: boolean;
             initial: boolean;
         };
+        encodingFallback: string;
     };
     sentry?: {
         enabled: boolean;

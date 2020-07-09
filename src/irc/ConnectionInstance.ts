@@ -74,11 +74,12 @@ export interface ConnectionOpts {
     secure?: {
         ca?: string;
     };
+    encodingFallback: string;
 }
 
 export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|
                                        "toomanyconns"|"banned"|"killed"|"idle"|"limit_reached"|
-                                       "iwantoreconnect";
+                                       "iwanttoreconnect";
 
 export class ConnectionInstance {
     public dead = false;
@@ -245,30 +246,47 @@ export class ConnectionInstance {
                     "%s@%s: %s", this.nick, this.domain, JSON.stringify(msg)
                 );
                 let wasThrottled = false;
-                if (msg.args) {
-                    let errText = ("" + msg.args[0]) || "";
-                    errText = errText.toLowerCase();
-                    wasThrottled = errText.indexOf("throttl") !== -1;
-                    if (wasThrottled) {
-                        this.disconnect("throttled").catch(logError);
-                        return;
-                    }
-                    const wasBanned = errText.includes("banned") || errText.includes("k-lined");
-                    if (wasBanned) {
-                        this.disconnect("banned").catch(logError);
-                        return;
-                    }
-                    const tooManyHosts = CONN_LIMIT_MESSAGES.find((connLimitMsg) => {
-                       return errText.includes(connLimitMsg);
-                    }) !== undefined;
-                    if (tooManyHosts) {
-                        this.disconnect("toomanyconns").catch(logError);
-                        return;
-                    }
-                }
-                if (!wasThrottled) {
+                if (!msg.args) {
                     this.disconnect("raw_error").catch(logError);
+                    return;
                 }
+
+                // E.g. 'Closing Link: gateway/shell/matrix.org/session (Bad user info)'
+                // ircd-seven doc link: https://git.io/JvxEs
+                if (msg.args[0]?.match(/Closing Link: .+\(Bad user info\)/)) {
+                    log.error(
+                        `User ${this.nick} was X:LINED!`
+                    );
+                    this.disconnect("banned").catch(logError);
+                    return;
+                }
+
+                let errText = ("" + msg.args[0]) || "";
+                errText = errText.toLowerCase();
+                wasThrottled = errText.indexOf("throttl") !== -1;
+
+                if (wasThrottled) {
+                    this.disconnect("throttled").catch(logError);
+                    return;
+                }
+
+                const wasBanned = errText.includes("banned") || errText.includes("k-lined");
+
+                if (wasBanned) {
+                    this.disconnect("banned").catch(logError);
+                    return;
+                }
+
+                const tooManyHosts = CONN_LIMIT_MESSAGES.find((connLimitMsg) => {
+                    return errText.includes(connLimitMsg);
+                }) !== undefined;
+
+                if (tooManyHosts) {
+                    this.disconnect("toomanyconns").catch(logError);
+                    return;
+                }
+
+                this.disconnect("raw_error").catch(logError);
             }
         });
     }
@@ -312,7 +330,9 @@ export class ConnectionInstance {
 
     private listenForCTCPVersions() {
         this.client.addListener("ctcp-version", (from: string) => {
-           this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
+           if (from) { // Ensure the sender is valid before we try to respond
+               this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
+           }
         });
     }
 
@@ -366,6 +386,7 @@ export class ConnectionInstance {
             bustRfc3484: true,
             sasl: opts.password ? server.useSasl() : false,
             secure: server.useSsl() ? { ca: server.getCA() } : undefined,
+            encodingFallback: opts.encodingFallback
         };
 
         // Returns: A promise which resolves to a ConnectionInstance

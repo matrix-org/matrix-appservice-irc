@@ -16,7 +16,6 @@ limitations under the License.
 
 import { getLogger, newRequestLogger, RequestLogger } from "../logging";
 import { Request } from "matrix-appservice-bridge";
-import { LoggerInstance } from "winston";
 import * as Sentry from "@sentry/node";
 
 const log = getLogger("req");
@@ -25,7 +24,7 @@ export class BridgeRequest {
     log: RequestLogger;
     constructor(private req: Request) {
         const isFromIrc = req.getData() ? Boolean(req.getData().isFromIrc) : false;
-        this.log = newRequestLogger(log as LoggerInstance, req.getId(), isFromIrc);
+        this.log = newRequestLogger(log, req.getId(), isFromIrc);
     }
 
     getPromise() {

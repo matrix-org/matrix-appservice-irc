@@ -170,7 +170,7 @@ export class DebugApi {
                     promise = Promise.reject(new Error("Need user_id and reason"));
                 }
                 else {
-                    promise = this.killUser(body.user_id, body.reason);
+                    promise = this.killUser(body.user_id, body.reason, body.deactivate);
                 }
             }
             catch (err) {
@@ -199,13 +199,15 @@ export class DebugApi {
         };
         const server = query["server"] as string;
         const since = parseInt(query["since"] as string);
+        const limit = query["targetCount"] !== undefined ? parseInt(query["targetCount"] as string) : undefined;
         const reason = query["reason"] as string;
         const dry = query["dryrun"] !== undefined && query["dryrun"] !== "false";
         const defaultOnline = (query["defaultOnline"] ?? "true") === "true";
         const excludeRegex = query["excludeRegex"] as string;
         this.ircBridge.connectionReap(
-            msgCb, server, since, reason, dry, defaultOnline, excludeRegex
+            msgCb, server, since, reason, dry, defaultOnline, excludeRegex, limit,
         ).catch((err: Error) => {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             log.error(err.stack!);
             if (!response.headersSent) {
                 response.writeHead(500, {"Content-Type": "text/plain"});
@@ -232,8 +234,11 @@ export class DebugApi {
         return inspect(client, { colors:true, depth:7 });
     }
 
-    private killUser(userId: string, reason: string) {
+    private async killUser(userId: string, reason: string, deactivate: boolean) {
         const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
+        if (deactivate) {
+            await this.ircBridge.getStore().deactivateUser(userId);
+        }
         const clients = this.pool.getBridgedClientsForUserId(userId);
         return this.ircBridge.matrixHandler.quitUser(req, userId, clients, null, reason);
     }
