@@ -683,7 +683,7 @@ export class BridgedClient extends EventEmitter {
             // nicks can't be too long
             let maxNickLen = 9; // RFC 1459 default
             if (this.unsafeClient.supported &&
-                    typeof this.unsafeClient.supported.nicklength == "number") {
+                    typeof this.unsafeClient.supported.nicklength === "number") {
                 maxNickLen = this.unsafeClient.supported.nicklength;
             }
             if (n.length > maxNickLen) {
@@ -804,13 +804,13 @@ export class BridgedClient extends EventEmitter {
                 return;
             }
 
-            if (msgType == "action") {
+            if (msgType === "action") {
                 await this.unsafeClient.action(room.channel, text);
             }
-            else if (msgType == "notice") {
+            else if (msgType === "notice") {
                 await this.unsafeClient.notice(room.channel, text);
             }
-            else if (msgType == "message") {
+            else if (msgType === "message") {
                 await this.unsafeClient.say(room.channel, text);
             }
             defer.resolve();

@@ -689,7 +689,7 @@ export class IrcHandler {
                 server, kickee.nick
             );
             if (!bridgedIrcClient || bridgedIrcClient.isBot || !bridgedIrcClient.userId) {
-                return; // unexpected given isVirtual == true, but meh, bail.
+                return; // unexpected given isVirtual === true, but meh, bail.
             }
             const userId = bridgedIrcClient.userId;
             await Promise.all(matrixRooms.map((room) =>

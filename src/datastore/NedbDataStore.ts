@@ -449,7 +449,7 @@ export class NeDBDataStore implements DataStore {
      */
     public async getAdminRoomById(roomId: string): Promise<MatrixRoom|null> {
         const entries: Entry[] = await this.roomStore.getEntriesByMatrixId(roomId);
-        if (entries.length == 0) {
+        if (entries.length === 0) {
             return null;
         }
         if (entries.length > 1) {
