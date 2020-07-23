@@ -155,7 +155,7 @@ export class MatrixAction {
         }
     }
 
-    public static fromEvent(event: MatrixMessageEvent, mediaUrl: string) {
+    public static fromEvent(event: MatrixMessageEvent, mediaUrl: string, forceFilename?: string) {
         event.content = event.content || {};
         let type = EVENT_TO_TYPE[event.type] || "message"; // mx event type to action type
         let text = event.content.body;
@@ -179,7 +179,14 @@ export class MatrixAction {
                     fileSize = " (" + Math.round(event.content.info.size / 1024) + "KB)";
                 }
 
-                const url = ContentRepo.getHttpUriForMxc(mediaUrl, event.content.url);
+                let url = ContentRepo.getHttpUriForMxc(mediaUrl, event.content.url);
+                if (forceFilename) {
+                    url += `/${forceFilename}`;
+                }
+                else if (event.content.body?.match(/\.[\w\d]{2,4}$/)) {
+                    // Add filename to url if body is a filename.
+                    url += `/${event.content.body}`;
+                }
                 text = `${event.content.body}${fileSize} < ${url} >`;
             }
         }
