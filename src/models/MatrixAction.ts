@@ -176,14 +176,14 @@ export class MatrixAction {
                 let fileSize = "";
                 if (event.content.info && event.content.info.size &&
                         typeof event.content.info.size === "number") {
-                    fileSize = " (" + Math.round(event.content.info.size / 1024) + "KB)";
+                    fileSize = " (" + Math.round(event.content.info.size / 1024) + "KiB)";
                 }
 
                 let url = ContentRepo.getHttpUriForMxc(mediaUrl, event.content.url);
                 if (forceFilename) {
                     url += `/${forceFilename}`;
                 }
-                else if (event.content.body?.match(/\.[\w\d]{2,4}$/)) {
+                else if (/\.[\w\d]{2,4}$/.test(event.content.body)) {
                     // Add filename to url if body is a filename.
                     url += `/${event.content.body}`;
                 }
