@@ -91,6 +91,8 @@ import { ClientPool } from "./ClientPool";
 import { BridgedClient } from "./BridgedClient";
 import { IrcMessage, ConnectionInstance } from "./ConnectionInstance";
 import { IrcHandler } from "../bridge/IrcHandler";
+import { QuitDebouncer } from "../bridge/QuitDebouncer";
+import { IrcServer } from "./IrcServer";
 
 const log = getLogger("IrcEventBroker");
 
@@ -107,12 +109,15 @@ function complete(req: BridgeRequest, promise: Promise<BridgeRequestErr|void>) {
 export class IrcEventBroker {
     private processed: ProcessedDict;
     private channelReqBuffer: {[channel: string]: Promise<unknown>} = {};
+    private quitDebouncer: QuitDebouncer;
     constructor(
         private readonly appServiceBridge: Bridge,
         private readonly pool: ClientPool,
-        private readonly ircHandler: IrcHandler) {
+        private readonly ircHandler: IrcHandler,
+        private readonly servers: string[]) {
         this.processed = new ProcessedDict();
         this.processed.startCleaner(log);
+        this.quitDebouncer = new QuitDebouncer(servers, this.handleDebouncedQuit.bind(this));
     }
 
 
@@ -200,6 +205,32 @@ export class IrcEventBroker {
                 }
             }
         });
+    }
+
+    public async handleDebouncedQuit(item: {channel: string; server: IrcServer; nicks: string[]}) {
+        const createUser = (nick: string) => {
+            return new IrcUser(
+                item.server, nick,
+                this.pool.nickIsVirtual(item.server, nick)
+            );
+        };
+
+        const createRequest = () => {
+            return new BridgeRequest(
+                this.appServiceBridge.getRequestFactory().newRequest({
+                    data: {
+                        isFromIrc: true
+                    }
+                })
+            );
+        };
+        const req = createRequest();
+        log.info(`Sending delayed QUITs for ${item.channel} with nicks ${item.nicks}`)
+        for (const nick of item.nicks) {
+            complete(req, this.ircHandler.onPart(
+                req, item.server, createUser(nick), item.channel, "quit"
+            ));
+        }
     }
 
     public sendMetadata(client: BridgedClient, msg: string, force = false, err?: IrcMessage) {
@@ -302,12 +333,14 @@ export class IrcEventBroker {
         });
         this.hookIfClaimed(client, connInst, "quit", (nick: string, reason: string, chans: string[]) => {
             chans = chans || [];
-            chans.forEach((chan) => {
-                const req = createRequest();
-                complete(req, ircHandler.onPart(
-                    req, server, createUser(nick), chan, "quit"
-                ));
-            });
+            if (!server.shouldDebounceQuits() || this.quitDebouncer.debounceQuit(nick, server, chans)) {
+                chans.forEach((chan) => {
+                    const req = createRequest();
+                    complete(req, ircHandler.onPart(
+                        req, server, createUser(nick), chan, "quit"
+                    ));
+                });
+            }
         });
         this.hookIfClaimed(client, connInst, "kick", (chan: string, nick: string, by: string, reason: string) => {
             const req = createRequest();
@@ -317,6 +350,7 @@ export class IrcEventBroker {
         });
         this.hookIfClaimed(client, connInst, "join", (chan: string, nick: string) => {
             const req = createRequest();
+            this.quitDebouncer.onJoin(nick, chan, server);
             complete(req, ircHandler.onJoin(
                 req, server, createUser(nick), chan, "join"
             ));
