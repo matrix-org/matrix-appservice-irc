@@ -1101,7 +1101,7 @@ export class Provisioner {
 
     // Using ISUPPORT rules supported by MatrixBridge bot, case map ircChannel
     private static caseFold(cli: BridgedClient, channel: string) {
-        if (cli.state.status != BridgedClientStatus.CONNECTED) {
+        if (cli.state.status !== BridgedClientStatus.CONNECTED) {
             log.warn(`Could not case map ${channel} - BridgedClient has no IRC client`);
             return channel;
         }

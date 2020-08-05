@@ -50,7 +50,7 @@ export class PublicitySyncer {
     public initModeForChannel(server: IrcServer, chan: string) {
         return this.ircBridge.getBotClient(server).then(
             (client) => {
-                if (client.state.status != BridgedClientStatus.CONNECTED) {
+                if (client.state.status !== BridgedClientStatus.CONNECTED) {
                     throw Error("Can't request modes, bot client not connected")
                 }
                 log.info(`Bot requesting mode for ${chan} on ${server.domain}`);

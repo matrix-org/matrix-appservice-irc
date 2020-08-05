@@ -251,7 +251,7 @@ export class DebugApi {
                 "User " + user + " does not have a client on " + server.domain + "\n"
             );
         }
-        if (client.state.status != BridgedClientStatus.CONNECTED || !client.state.client.conn) {
+        if (client.state.status !== BridgedClientStatus.CONNECTED || !client.state.client.conn) {
             return Bluebird.resolve(
                 "There is no underlying client instance.\n"
             );
@@ -277,7 +277,7 @@ export class DebugApi {
         // wait 3s to pool responses
         return Bluebird.delay(3000).then(function() {
             // unhook listener to avoid leaking
-            if (client.state.status == BridgedClientStatus.CONNECTED) {
+            if (client.state.status === BridgedClientStatus.CONNECTED) {
                 client.state.client.removeListener("raw", listener);
             }
             return buffer.join("\n") + "\n";

@@ -287,7 +287,7 @@ export class AdminRoomHandler {
                 server, sender
             );
 
-            if (bridgedClient.state.status != BridgedClientStatus.CONNECTED) {
+            if (bridgedClient.state.status !== BridgedClientStatus.CONNECTED) {
                 throw new Error('Possibly disconnected');
             }
 

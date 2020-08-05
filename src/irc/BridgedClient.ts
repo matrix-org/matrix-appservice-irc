@@ -197,7 +197,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     public isDead() {
-        return this.state.status == BridgedClientStatus.DEAD || this.state.status == BridgedClientStatus.KILLED;
+        return this.state.status === BridgedClientStatus.DEAD || this.state.status === BridgedClientStatus.KILLED;
     }
 
     public toString() {
@@ -336,7 +336,7 @@ export class BridgedClient extends EventEmitter {
 
     private disconnectWithState(state: State, reason: InstanceDisconnectReason, textReason?: string, explicit = true) {
         this._explicitDisconnect = explicit;
-        if (state.status != BridgedClientStatus.CONNECTED) {
+        if (state.status !== BridgedClientStatus.CONNECTED) {
             return Promise.resolve();
         }
         return state.inst.disconnect(reason, textReason);
@@ -380,7 +380,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     private async sendNickCommand(nick: string): Promise<string> {
-        if (this.state.status != BridgedClientStatus.CONNECTED) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             throw Error("You are not connected to the network.");
         }
         const client = this.state.client;
@@ -434,7 +434,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     public leaveChannel(channel: string, reason = "User left") {
-        if (this.state.status != BridgedClientStatus.CONNECTED) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             return Promise.resolve(); // we were never connected to the network.
         }
         if (channel.indexOf("#") !== 0) {
@@ -460,7 +460,7 @@ export class BridgedClient extends EventEmitter {
 
     public kick(nick: string, channel: string, reason: string) {
         reason = reason || "User kicked";
-        if (this.state.status != BridgedClientStatus.CONNECTED) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             return Promise.resolve(); // we were never connected to the network.
         }
         if (Object.keys(this.state.client.chans).indexOf(channel) === -1) {
@@ -509,7 +509,7 @@ export class BridgedClient extends EventEmitter {
      * @param {string} nick : The nick to call /whois on
      */
     public async whois(nick: string): Promise<{ server: IrcServer; nick: string; msg: string}|null> {
-        if (this.state.status != BridgedClientStatus.CONNECTED) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             throw Error("unsafeClient not ready yet");
         }
         const client = this.state.client;
@@ -618,7 +618,7 @@ export class BridgedClient extends EventEmitter {
                 if (prefix === "@") {
                     return true;
                 }
-                if (this.state.status != BridgedClientStatus.CONNECTED) {
+                if (this.state.status !== BridgedClientStatus.CONNECTED) {
                     throw new Error("Missing client");
                 }
                 if (this.state.client.isUserPrefixMorePowerfulThan(prefix, "@")) {
@@ -650,7 +650,7 @@ export class BridgedClient extends EventEmitter {
      */
     public getNicks(channel: string): Bluebird<GetNicksResponse> {
         return new Bluebird((resolve, reject) => {
-            if (this.state.status != BridgedClientStatus.CONNECTED) {
+            if (this.state.status !== BridgedClientStatus.CONNECTED) {
                 reject(Error("unsafeClient not ready yet"));
                 return;
             }
@@ -711,7 +711,7 @@ export class BridgedClient extends EventEmitter {
             n = "M" + n;
         }
 
-        if (this.state.status == BridgedClientStatus.CONNECTED) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
             // nicks can't be too long
             let maxNickLen = 9; // RFC 1459 default
             if (this.state.client.supported &&
@@ -796,7 +796,7 @@ export class BridgedClient extends EventEmitter {
             }
 
             // make sure a killed connection stays killed
-            if (this.state.status != BridgedClientStatus.KILLED) {
+            if (this.state.status !== BridgedClientStatus.KILLED) {
                 this._state = {
                     status: BridgedClientStatus.DEAD,
                 }
@@ -817,7 +817,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     private async setTopic(room: IrcRoom, topic: string): Promise<void> {
-        if (this.state.status != BridgedClientStatus.CONNECTED) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             throw Error("unsafeClient not ready yet");
         }
         // join the room if we haven't already
@@ -840,7 +840,7 @@ export class BridgedClient extends EventEmitter {
                 return;
             }
 
-            if (this.state.status != BridgedClientStatus.CONNECTED) {
+            if (this.state.status !== BridgedClientStatus.CONNECTED) {
                 return;
             }
 
@@ -863,7 +863,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     public joinChannel(channel: string, key?: string, attemptCount = 1): Bluebird<IrcRoom> {
-        if (this.state.status != BridgedClientStatus.CONNECTED) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             // we may be trying to join before we've connected, so check and wait
             if (this.connectDefer && this.connectDefer.promise.isPending()) {
                 return this.connectDefer.promise.then(() => {
@@ -909,7 +909,7 @@ export class BridgedClient extends EventEmitter {
 
         // add a timeout to try joining again
         setTimeout(() => {
-            if (this.state.status != BridgedClientStatus.CONNECTED) {
+            if (this.state.status !== BridgedClientStatus.CONNECTED) {
                 log.error(
                     `Could not try to join: no client for ${this.nick}, channel = ${channel}`
                 );

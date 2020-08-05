@@ -354,7 +354,7 @@ export class IrcEventBroker {
             }
             // chain off an onMode after the onJoin has been processed.
             return promise.then(() => {
-                if (client.state.status != BridgedClientStatus.CONNECTED) {
+                if (client.state.status !== BridgedClientStatus.CONNECTED) {
                     req.log.error("No client exists to set onMode for " + name.nick);
                     return null;
                 }

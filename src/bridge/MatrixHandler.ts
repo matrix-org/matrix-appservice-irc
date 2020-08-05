@@ -906,7 +906,7 @@ export class MatrixHandler {
         }
 
         // Check for the existance of the getSplitMessages method.
-        if (!(ircClient.state.status == BridgedClientStatus.CONNECTED && ircClient.state.client.getSplitMessages)) {
+        if (!(ircClient.state.status === BridgedClientStatus.CONNECTED && ircClient.state.client.getSplitMessages)) {
             await this.ircBridge.sendIrcAction(ircRoom, ircClient, ircAction);
             return;
         }

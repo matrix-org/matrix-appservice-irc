@@ -513,7 +513,7 @@ export class ClientPool {
     private onClientConnected(bridgedClient: BridgedClient): void {
         const server = bridgedClient.server;
         const oldNick = bridgedClient.nick;
-        if (bridgedClient.state.status != BridgedClientStatus.CONNECTED) {
+        if (bridgedClient.state.status !== BridgedClientStatus.CONNECTED) {
             return;
         }
         const actualNick = bridgedClient.state.client.nick;
