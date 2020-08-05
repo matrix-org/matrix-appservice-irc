@@ -40,7 +40,7 @@ export class NeDBDataStore implements DataStore {
         private bridgeDomain: string,
         pkeyPath?: string) {
         const errLog = function(fieldName: string) {
-            return (err: Error) => {
+            return (err: Error|null) => {
                 if (err) {
                     log.error("Failed to ensure '%s' index on store: " + err, fieldName);
                     return;
@@ -107,7 +107,7 @@ export class NeDBDataStore implements DataStore {
             fieldName: "data.client_config." + domainKey + ".username",
             unique: true,
             sparse: true
-        }, (err: Error) => {
+        }, (err: Error|null) => {
             if (err) {
                 log.error("Failed to ensure ident username index on users database!");
                 return;
@@ -449,7 +449,7 @@ export class NeDBDataStore implements DataStore {
      */
     public async getAdminRoomById(roomId: string): Promise<MatrixRoom|null> {
         const entries: Entry[] = await this.roomStore.getEntriesByMatrixId(roomId);
-        if (entries.length == 0) {
+        if (entries.length === 0) {
             return null;
         }
         if (entries.length > 1) {

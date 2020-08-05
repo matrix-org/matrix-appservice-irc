@@ -619,7 +619,7 @@ export class Provisioner {
     }
 
     public async handlePm (server: IrcServer, fromUser: IrcUser, text: string) {
-        if (['y', 'yes'].indexOf(text.trim().toLowerCase()) == -1) {
+        if (!['y', 'yes'].includes(text.trim().toLowerCase())) {
             log.warn(`Provisioner only handles text 'yes'/'y' ` +
                     `(from ${fromUser.nick} on ${server.domain})`);
 
@@ -881,7 +881,7 @@ export class Provisioner {
             if (e.type === "m.room.member" && e.state_key === options.user_id) {
                 isJoined = e.content.membership === "join";
             }
-            else if (e.type == "m.room.power_levels" && e.state_key === "") {
+            else if (e.type === "m.room.power_levels" && e.state_key === "") {
                 let powerRequired = e.content.state_default;
                 if (e.content.events && e.content.events["m.room.power_levels"]) {
                     powerRequired = e.content.events["m.room.power_levels"];

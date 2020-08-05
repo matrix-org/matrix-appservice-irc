@@ -953,7 +953,7 @@ export class MatrixHandler {
             event.content.body = "sent a long message: ";
 
             // Create a file event to reflect the recent upload
-            const mAction = MatrixAction.fromEvent(event, this.mediaUrl);
+            const mAction = MatrixAction.fromEvent(event, this.mediaUrl, "message.txt");
             const bigFileIrcAction = IrcAction.fromMatrixAction(mAction);
             if (!bigFileIrcAction) {
                 return;

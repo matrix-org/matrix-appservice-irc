@@ -70,7 +70,7 @@ export interface MatrixMessageEvent {
 }
 
 const MentionRegex = function(matcher: string): RegExp {
-    const WORD_BOUNDARY = "^|\:|\#|```|\\s|$|,";
+    const WORD_BOUNDARY = "^|:|#|```|\\s|$|,";
     return new RegExp(
         `(${WORD_BOUNDARY})(@?(${matcher}))(?=${WORD_BOUNDARY})`,
         "igm"
@@ -155,7 +155,7 @@ export class MatrixAction {
         }
     }
 
-    public static fromEvent(event: MatrixMessageEvent, mediaUrl: string) {
+    public static fromEvent(event: MatrixMessageEvent, mediaUrl: string, filename?: string) {
         event.content = event.content || {};
         let type = EVENT_TO_TYPE[event.type] || "message"; // mx event type to action type
         let text = event.content.body;
@@ -176,10 +176,18 @@ export class MatrixAction {
                 let fileSize = "";
                 if (event.content.info && event.content.info.size &&
                         typeof event.content.info.size === "number") {
-                    fileSize = " (" + Math.round(event.content.info.size / 1024) + "KB)";
+                    fileSize = " (" + Math.round(event.content.info.size / 1024) + "KiB)";
                 }
 
-                const url = ContentRepo.getHttpUriForMxc(mediaUrl, event.content.url);
+                let url = ContentRepo.getHttpUriForMxc(mediaUrl, event.content.url);
+                if (!filename && event.content.body && /\S*\.[\w\d]{2,4}$/.test(event.content.body)) {
+                    // Add filename to url if body is a filename.
+                    filename = event.content.body;
+                }
+
+                if (filename) {
+                    url += `/${filename}`;
+                }
                 text = `${event.content.body}${fileSize} < ${url} >`;
             }
         }
@@ -190,7 +198,7 @@ export class MatrixAction {
         switch (ircAction.type) {
             case "message":
             case "emote":
-            case "notice":
+            case "notice": {
                 const htmlText = ircFormatting.ircToHtml(ircAction.text);
                 return new MatrixAction(
                     ircAction.type,
@@ -199,6 +207,7 @@ export class MatrixAction {
                     // will send everything as HTML and never text only.
                     ircAction.text !== htmlText ? htmlText : undefined
                 );
+            }
             case "topic":
                 return new MatrixAction("topic", ircAction.text);
             default:

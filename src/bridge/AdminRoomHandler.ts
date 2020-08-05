@@ -158,11 +158,11 @@ export class AdminRoomHandler {
             case "!help":
                 await this.showHelp(adminRoom);
                 break;
-            default:
+            default: {
                 const notice = new MatrixAction("notice",
                 "The command was not recognised. Available commands are listed by !help");
                 await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
-                break;
+            }
         }
     }
 
@@ -267,7 +267,7 @@ export class AdminRoomHandler {
             // keyword could be a failed server or a malformed command
             if (!keyword.match(/^[A-Z]+$/)) {
                 // if not a domain OR is only word (which implies command)
-                if (!keyword.match(/^[a-z0-9:\.-]+$/) || args.length == 1) {
+                if (!keyword.match(/^[a-z0-9:\.-]+$/) || args.length === 1) {
                     throw new Error(`Malformed command: ${keyword}`);
                 }
                 else {
@@ -275,7 +275,7 @@ export class AdminRoomHandler {
                 }
             }
 
-            if (blacklist.indexOf(keyword) != -1) {
+            if (blacklist.includes(keyword)) {
                 throw new Error(`Command blacklisted: ${keyword}`);
             }
 

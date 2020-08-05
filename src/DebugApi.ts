@@ -72,15 +72,15 @@ export class DebugApi {
             return;
         }
 
-        if (path == "/killUser") {
+        if (path === "/killUser") {
             this.onKillUser(req, response);
             return;
         }
-        else if (req.method === "POST" && path == "/reapUsers") {
+        else if (req.method === "POST" && path === "/reapUsers") {
             this.onReapUsers(query, response);
             return;
         }
-        else if (req.method === "POST" && path == "/killPortal") {
+        else if (req.method === "POST" && path === "/killPortal") {
             this.killPortal(req, response);
             return;
         }
@@ -320,7 +320,7 @@ export class DebugApi {
         // Should we tell the room about the deletion. Defaults to true.
         const notice = !(body["leave_notice"] === false);
         // Should we remove the alias from the room. Defaults to true.
-        const remove_alias = !(body["remove_alias"] === false);
+        const removeAlias = !(body["remove_alias"] === false);
 
         if (result.error.length > 0) {
             this.wrapJsonResponse(result.error, false, response);
@@ -332,7 +332,7 @@ export class DebugApi {
     Domain: ${domain}
     Channel: ${channel}
     Leave Notice: ${notice}
-    Remove Alias: ${remove_alias}`);
+    Remove Alias: ${removeAlias}`);
 
         // Find room
         const room = await store.getRoom(
@@ -377,7 +377,7 @@ export class DebugApi {
             }
         }
 
-        if (remove_alias) {
+        if (removeAlias) {
             const roomAlias = server.getAliasFromChannel(channel);
             try {
                 await this.ircBridge.getAppServiceBridge().getIntent().client.deleteAlias(roomAlias);

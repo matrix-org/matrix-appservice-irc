@@ -188,7 +188,6 @@ export class ConnectionInstance {
                 return;
             }
             // do the callback
-            // eslint is usually confused about IArguments
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fn.apply(fn, args as any);
         });
