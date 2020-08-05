@@ -309,7 +309,7 @@ export class NeDBDataStore implements DataStore {
                         return true;
                     }
                 }
-                return e.data && origin.indexOf(e.data.origin) !== -1;
+                return e.data && origin.includes(e.data.origin);
             });
         });
     }
