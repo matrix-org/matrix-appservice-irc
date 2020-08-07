@@ -63,10 +63,17 @@ export class PgDataStore implements DataStore {
     public async setServerFromConfig(server: IrcServer, serverConfig: IrcServerConfig): Promise<void> {
         this.serverMappings[server.domain] = server;
 
-        for (const channel of Object.keys(serverConfig.mappings)) {
+        for (const [channel, data] of Object.entries(serverConfig.mappings)) {
+            if (data.createRoom) {
+                // We don't want to map this.
+                return;
+            }
+            if (!data.roomIds) {
+                throw Error(`roomIds not given on ${channel} config entry`);
+            }
             const ircRoom = new IrcRoom(server, channel);
             ircRoom.set("type", "channel");
-            for (const roomId of serverConfig.mappings[channel].roomIds) {
+            for (const roomId of data.roomIds) {
                 const mxRoom = new MatrixRoom(roomId);
                 await this.storeRoom(ircRoom, mxRoom, "config");
             }
