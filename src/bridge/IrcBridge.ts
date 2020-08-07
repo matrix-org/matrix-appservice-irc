@@ -369,8 +369,6 @@ export class IrcBridge {
             throw Error("Incorrect database config");
         }
 
-        await this.dataStore.removeConfigMappings();
-
         this.clientPool = new ClientPool(this, this.dataStore);
 
         if (this.config.ircService.debugApi.enabled) {
@@ -634,7 +632,7 @@ export class IrcBridge {
                         server,
                         ircChannel: ircChannel.channel,
                         key: ircChannel.key,
-                        origin: "alias",
+                        origin: "config",
                         roomAliasName: roomAliasName,
                         roomVisibility: "public",
                     });

@@ -91,6 +91,12 @@ export class NeDBDataStore implements DataStore {
     public async setServerFromConfig(server: IrcServer, serverConfig: IrcServerConfig): Promise<void> {
         this.serverMappings[server.domain] = server;
 
+        if (server.getAutoCreateMappings().length > 0) {
+            throw Error('Cannot use autocreate feature with NeDB');
+        }
+
+        await this.removeConfigMappings();
+
         for (const channel of Object.keys(serverConfig.mappings)) {
             const ircRoom = new IrcRoom(server, channel);
             for (const roomId of serverConfig.mappings[channel].roomIds) {

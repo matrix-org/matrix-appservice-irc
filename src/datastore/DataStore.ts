@@ -128,7 +128,7 @@ export interface DataStore {
 
     getRoomIdsFromConfig(): Promise<string[]>;
 
-    removeConfigMappings(): Promise<void>;
+    removeConfigMappings(server: IrcServer): Promise<void>;
 
     getIpv6Counter(): Promise<number>;
 
