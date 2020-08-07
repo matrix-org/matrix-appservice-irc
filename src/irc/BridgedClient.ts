@@ -465,7 +465,7 @@ export class BridgedClient extends EventEmitter {
         if (this.state.status !== BridgedClientStatus.CONNECTED) {
             return Promise.resolve(); // we were never connected to the network.
         }
-        if (Object.keys(this.state.client.chans).includes(channel)) {
+        if (!Object.keys(this.state.client.chans).includes(channel)) {
             // we were never joined to it. We need to be joined to it to kick people.
             return Promise.resolve();
         }
