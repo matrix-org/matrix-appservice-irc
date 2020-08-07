@@ -12,7 +12,7 @@ import * as promiseutil from "../promiseutil";
 import * as express from "express";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcUser } from "../models/IrcUser";
-import { BridgedClient, GetNicksResponseOperators, BridgedClientStatus } from "../irc/BridgedClient";
+import { GetNicksResponseOperators } from "../irc/BridgedClient";
 import { BridgeStateSyncer } from "../bridge/BridgeStateSyncer";
 
 const log = logging("Provisioner");

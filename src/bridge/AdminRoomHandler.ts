@@ -19,7 +19,7 @@ import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import { IrcBridge } from "./IrcBridge";
 import { MatrixAction } from "../models/MatrixAction";
 import { IrcServer } from "../irc/IrcServer";
-import { BridgedClient, BridgedClientStatus } from "../irc/BridgedClient";
+import { BridgedClient } from "../irc/BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { MatrixHandler } from "./MatrixHandler";
 import logging from "../logging";

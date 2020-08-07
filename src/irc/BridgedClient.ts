@@ -795,7 +795,7 @@ export class BridgedClient extends EventEmitter {
             if (reason === "banned") {
                 // If we've been banned, this is intentional.
                 this._explicitDisconnect = true;
-            } else if (reason)
+            }
 
             this.emit("client-disconnected", this);
             this.eventBroker.sendMetadata(this,
@@ -983,8 +983,8 @@ export class BridgedClient extends EventEmitter {
     }
 
     public writeToConnection(buffer: string|Uint8Array) {
-        if (this.state.status === BridgedClientStatus.CONNECTED) {
-            this.state.client.conn?.write(buffer);
+        if (this.state.status === BridgedClientStatus.CONNECTED && this.state.client.conn) {
+            this.state.client.conn.write(buffer);
             return;
         }
         throw Error('Client is not connected');
@@ -1039,10 +1039,11 @@ export class BridgedClient extends EventEmitter {
         throw Error('Client is not connected');
     }
 
-    public async waitForConnected() {
+    public async waitForConnected(): Promise<void> {
         if (this.state.status === BridgedClientStatus.CONNECTED) {
-            return;
-        } else if (this.status !== BridgedClientStatus.CONNECTING) {
+            return Promise.resolve();
+        }
+        else if (this.status !== BridgedClientStatus.CONNECTING) {
             throw Error('Client is not connecting or connected');
         }
         return this.connectDefer.promise;

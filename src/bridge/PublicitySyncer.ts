@@ -1,7 +1,6 @@
 import logger from "../logging";
 import { IrcBridge } from "./IrcBridge";
 import { IrcServer } from "../irc/IrcServer";
-import { BridgedClientStatus } from "../irc/BridgedClient";
 
 const log = logger("PublicitySyncer");
 
@@ -52,7 +51,8 @@ export class PublicitySyncer {
             const botClient = await this.ircBridge.getBotClient(server);
             log.info(`Bot requesting mode for ${chan} on ${server.domain}`);
             await botClient.mode(chan);
-        } catch (err) {
+        }
+        catch (err) {
             log.error(`Could not request mode of ${chan} (${err.message})`);
         }
     }
