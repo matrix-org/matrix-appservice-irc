@@ -905,14 +905,11 @@ export class MatrixHandler {
             this.eventCache.delete(delKey);
         }
 
-        // Check for the existance of the getSplitMessages method.
-        if (!(ircClient.state.status === BridgedClientStatus.CONNECTED && ircClient.state.client.getSplitMessages)) {
-            await this.ircBridge.sendIrcAction(ircRoom, ircClient, ircAction);
-            return;
-        }
+        // The client might still be connected, for abundance of safety let's wait.
+        await ircClient.waitForConnected();
 
         // Generate an array of individual messages that would be sent
-        const potentialMessages = ircClient.state.client.getSplitMessages(ircRoom.channel, text);
+        const potentialMessages = ircClient.getSplitMessages(ircRoom.channel, text);
         const lineLimit = ircRoom.server.getLineLimit();
 
         if (potentialMessages.length <= lineLimit) {
