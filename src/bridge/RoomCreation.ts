@@ -12,6 +12,8 @@ interface TrackChannelOpts {
     origin: RoomOrigin;
     roomAliasName?: string;
     intent?: Intent;
+    roomVisibility?: "public"|"private";
+    historyVisiblity?: "joined"|"invited"|"shared"|"world_readable";
 }
 
 /**
@@ -35,7 +37,7 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
             type: "m.room.history_visibility",
             state_key: "",
             content: {
-                history_visibility: "joined"
+                history_visibility: opts.historyVisiblity || "joined"
             }
         }
     ];
@@ -64,7 +66,7 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
         const response = await intent.createRoom({
             options: {
                 name: ircChannel,
-                visibility: "private",
+                visibility: opts.roomVisibility || "private",
                 preset: "public_chat",
                 creation_content: {
                     "m.federate": server.shouldFederate()
