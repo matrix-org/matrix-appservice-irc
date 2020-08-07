@@ -378,9 +378,10 @@ export class PgDataStore implements DataStore {
         for (const mapping of server.getAutoCreateMappings()) {
             exclusionQuerys.push(`'${mapping.channel}'`);
         }
-        const query = `DELETE FROM rooms WHERE origin = 'config' AND irc_server = '${server.getNetworkId()}'`
-        + ` AND irc_channel NOT IN (${exclusionQuerys.join(",")})`;
-        console.log(query);
+        let query = `DELETE FROM rooms WHERE origin = 'config' AND irc_server = '${server.getNetworkId()}'`
+        if (exclusionQuerys.length) {
+            query += ` AND irc_channel NOT IN (${exclusionQuerys.join(",")})`;
+        }
         this.pgPool.query(query);
     }
 
