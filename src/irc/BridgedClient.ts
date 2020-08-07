@@ -94,7 +94,7 @@ export class BridgedClient extends EventEmitter {
     private cachedOperatorNicksInfo: {[channel: string]: GetNicksResponseOperators} = {};
     private idleTimeout: NodeJS.Timer|null = null;
     private whoisPendingNicks: Set<string> = new Set();
-    private _state: State = {
+    private state: State = {
         status: BridgedClientStatus.CREATED
     };
     /**
@@ -171,8 +171,8 @@ export class BridgedClient extends EventEmitter {
         return Array.from(this._chanList);
     }
 
-    public get state() {
-        return this._state;
+    public get status() {
+        return this.state.status;
     }
 
     public get nick(): string {

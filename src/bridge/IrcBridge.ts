@@ -984,7 +984,7 @@ export class IrcBridge {
     public sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction) {
         log.info(
             "Sending IRC message in %s as %s (connected=%s)",
-            ircRoom.channel, bridgedClient.nick, Boolean(bridgedClient.state.status === BridgedClientStatus.CONNECTED)
+            ircRoom.channel, bridgedClient.nick, Boolean(bridgedClient.status === BridgedClientStatus.CONNECTED)
         );
         return bridgedClient.sendAction(ircRoom, action);
     }

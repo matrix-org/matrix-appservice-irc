@@ -115,7 +115,7 @@ export class RoomAccessSyncer {
         let userId = null;
         if (nick !== null && bridgedClient) {
             userId = bridgedClient.userId;
-            if (bridgedClient.state.status !== BridgedClientStatus.CONNECTED) {
+            if (bridgedClient.status !== BridgedClientStatus.CONNECTED) {
                 req.log.info(`Bridged client for ${nick} has no IRC client.`);
                 return;
             }
