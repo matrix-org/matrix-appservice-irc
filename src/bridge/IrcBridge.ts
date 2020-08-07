@@ -636,7 +636,8 @@ export class IrcBridge {
                         roomAliasName: roomAliasName,
                         roomVisibility: "public",
                     });
-                } catch (ex) {
+                }
+                catch (ex) {
                     log.warn("Failed to create and track room from config:", ex);
                 }
             }

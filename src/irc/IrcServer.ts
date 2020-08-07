@@ -176,7 +176,7 @@ export class IrcServer {
 
     public getAutoCreateMappings() {
         return Object.entries(this.config.mappings)
-            .filter(([k,v]) => v.createRoom)
+            .filter(([, v]) => v.createRoom)
             .map(([k, v]) => ({ channel: k, key: v.key }));
     }
 
