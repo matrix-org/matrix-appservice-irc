@@ -58,16 +58,34 @@ export interface BridgedClientLogger {
 
 export const illegalCharactersRegex = /[^A-Za-z0-9\]\[\^\\\{\}\-`_\|]/g;
 
+export enum BridgedClientStatus {
+    CREATED,
+    CONNECTING,
+    CONNECTED,
+    DEAD,
+    KILLED,
+}
+
+interface NotConnected {
+    status: BridgedClientStatus.CREATED | BridgedClientStatus.CONNECTING |
+        BridgedClientStatus.DEAD | BridgedClientStatus.KILLED;
+}
+
+interface Connected {
+    status: BridgedClientStatus.CONNECTED;
+    client: Client;
+    inst: ConnectionInstance;
+}
+
+type State = Connected | NotConnected
+
 export class BridgedClient extends EventEmitter {
     public readonly userId: string|null;
     public readonly displayName: string|null;
     private _nick: string;
     public readonly id: string;
     private readonly password?: string;
-    private _unsafeClient: Client|null = null;
     private lastActionTs: number;
-    private inst: ConnectionInstance|null = null;
-    private instCreationFailed = false;
     private _explicitDisconnect = false;
     private _disconnectReason: string|null = null;
     private _chanList: Set<string> = new Set();
@@ -76,6 +94,9 @@ export class BridgedClient extends EventEmitter {
     private cachedOperatorNicksInfo: {[channel: string]: GetNicksResponseOperators} = {};
     private idleTimeout: NodeJS.Timer|null = null;
     private whoisPendingNicks: Set<string> = new Set();
+    private state: State = {
+        status: BridgedClientStatus.CREATED
+    };
     /**
      * Create a new bridged IRC client.
      * @constructor
@@ -150,35 +171,33 @@ export class BridgedClient extends EventEmitter {
         return Array.from(this._chanList);
     }
 
-    public get unsafeClient() {
-        return this._unsafeClient;
+    public get status() {
+        return this.state.status;
     }
 
     public get nick(): string {
         return this._nick;
     }
 
-
     public getClientConfig() {
         return this.clientConfig;
     }
 
     public kill(reason?: string) {
-        // Nullify so that no further commands can be issued
-        //  via unsafeClient, which should be null checked
-        //  anyway as it is not instantiated until a connection
-        //  has occurred.
-        this._unsafeClient = null;
-        // kill connection instance
         log.info('Killing client ', this.nick);
-        return this.disconnect("killed", reason);
+        const state = this.state;
+        // so that no further commands can be issued
+        log.debug("Client is now KILLED")
+        this.state = {
+            status: BridgedClientStatus.KILLED
+        }
+
+        // kill connection instance
+        return this.disconnectWithState(state, "killed", reason);
     }
 
     public isDead() {
-        if (this.instCreationFailed || (this.inst && this.inst.dead)) {
-            return true;
-        }
-        return false;
+        return this.state.status === BridgedClientStatus.DEAD || this.state.status === BridgedClientStatus.KILLED;
     }
 
     public toString() {
@@ -191,6 +210,11 @@ export class BridgedClient extends EventEmitter {
      */
     public async connect(): Promise<ConnectionInstance> {
         let identResolver: (() => void) | undefined;
+
+        this.log.debug("Client is now CONNECTING");
+        this.state = {
+            status: BridgedClientStatus.CONNECTING
+        }
 
         try {
             const nameInfo = await this.identGenerator.getIrcNames(
@@ -227,9 +251,12 @@ export class BridgedClient extends EventEmitter {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 this.onConnectionCreated(inst, nameInfo, identResolver!);
             });
-
-            this.inst = connInst;
-            this._unsafeClient = connInst.client;
+            this.log.info("Client is now CONNECTED");
+            this.state = {
+                status: BridgedClientStatus.CONNECTED,
+                inst: connInst,
+                client: connInst.client,
+            }
             this.emit("client-connected", this);
             // we may have been assigned a different nick, so update it from source
             this._nick = connInst.client.nick;
@@ -280,7 +307,10 @@ export class BridgedClient extends EventEmitter {
         }
         catch (err) {
             this.log.debug("Failed to connect.");
-            this.instCreationFailed = true;
+            this.log.info("Client is now DEAD")
+            this.state = {
+                status: BridgedClientStatus.DEAD
+            }
             if (identResolver) {
                 identResolver();
             }
@@ -303,11 +333,15 @@ export class BridgedClient extends EventEmitter {
     }
 
     public disconnect(reason: InstanceDisconnectReason, textReason?: string, explicit = true) {
+        return this.disconnectWithState(this.state, reason, textReason, explicit);
+    }
+
+    private disconnectWithState(state: State, reason: InstanceDisconnectReason, textReason?: string, explicit = true) {
         this._explicitDisconnect = explicit;
-        if (!this.inst || this.inst.dead) {
+        if (state.status !== BridgedClientStatus.CONNECTED) {
             return Promise.resolve();
         }
-        return this.inst.disconnect(reason, textReason);
+        return state.inst.disconnect(reason, textReason);
     }
 
     /**
@@ -348,10 +382,11 @@ export class BridgedClient extends EventEmitter {
     }
 
     private async sendNickCommand(nick: string): Promise<string> {
-        if (!this.unsafeClient) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             throw Error("You are not connected to the network.");
         }
-        const client = this.unsafeClient;
+        const client = this.state.client;
+
         return new Promise((resolve, reject) => {
             // These are nullified to prevent the linter from thinking these should be consts.
             let nickListener: ((old: string, n: string) => void) | null = null;
@@ -401,7 +436,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     public leaveChannel(channel: string, reason = "User left") {
-        if (!this.inst || this.inst.dead || !this.unsafeClient) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             return Promise.resolve(); // we were never connected to the network.
         }
         if (!channel.startsWith("#")) {
@@ -413,7 +448,7 @@ export class BridgedClient extends EventEmitter {
         const defer = promiseutil.defer();
         this.removeChannel(channel);
         this.log.debug("Leaving channel %s", channel);
-        this.unsafeClient.part(channel, reason, () => {
+        this.state.client.part(channel, reason, () => {
             this.log.debug("Left channel %s", channel);
             defer.resolve();
         });
@@ -427,10 +462,10 @@ export class BridgedClient extends EventEmitter {
 
     public kick(nick: string, channel: string, reason: string) {
         reason = reason || "User kicked";
-        if (!this.inst || this.inst.dead || !this.unsafeClient) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             return Promise.resolve(); // we were never connected to the network.
         }
-        if (!Object.keys(this.unsafeClient.chans).includes(channel)) {
+        if (!Object.keys(this.state.client.chans).includes(channel)) {
             // we were never joined to it. We need to be joined to it to kick people.
             return Promise.resolve();
         }
@@ -438,7 +473,7 @@ export class BridgedClient extends EventEmitter {
             return Promise.resolve(); // PM room
         }
 
-        const c = this.unsafeClient;
+        const c = this.state.client;
 
         return new Promise((resolve) => {
             this.log.debug("Kicking %s from channel %s", nick, channel);
@@ -476,10 +511,10 @@ export class BridgedClient extends EventEmitter {
      * @param {string} nick : The nick to call /whois on
      */
     public async whois(nick: string): Promise<{ server: IrcServer; nick: string; msg: string}|null> {
-        if (!this.unsafeClient) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             throw Error("unsafeClient not ready yet");
         }
-        const client = this.unsafeClient;
+        const client = this.state.client;
         let timeout: NodeJS.Timeout|null = null;
         let errorHandler!: (msg: IrcMessage) => void;
         try {
@@ -585,11 +620,10 @@ export class BridgedClient extends EventEmitter {
                 if (prefix === "@") {
                     return true;
                 }
-                const cli = this.unsafeClient;
-                if (!cli) {
+                if (this.state.status !== BridgedClientStatus.CONNECTED) {
                     throw new Error("Missing client");
                 }
-                if (cli.isUserPrefixMorePowerfulThan(prefix, "@")) {
+                if (this.state.client.isUserPrefixMorePowerfulThan(prefix, "@")) {
                     return true;
                 }
             }
@@ -618,11 +652,11 @@ export class BridgedClient extends EventEmitter {
      */
     public getNicks(channel: string): Bluebird<GetNicksResponse> {
         return new Bluebird((resolve, reject) => {
-            if (!this.unsafeClient) {
+            if (this.state.status !== BridgedClientStatus.CONNECTED) {
                 reject(Error("unsafeClient not ready yet"));
                 return;
             }
-            this.unsafeClient.names(channel, (channelName: string, names: {[nick: string]: string}) => {
+            this.state.client.names(channel, (channelName: string, names: {[nick: string]: string}) => {
                 // names maps nicks to chan op status, where '@' indicates chan op
                 // names = {'nick1' : '', 'nick2' : '@', ...}
                 resolve({
@@ -679,12 +713,12 @@ export class BridgedClient extends EventEmitter {
             n = "M" + n;
         }
 
-        if (this.unsafeClient) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
             // nicks can't be too long
             let maxNickLen = 9; // RFC 1459 default
-            if (this.unsafeClient.supported &&
-                    typeof this.unsafeClient.supported.nicklength === "number") {
-                maxNickLen = this.unsafeClient.supported.nicklength;
+            if (this.state.client.supported &&
+                    typeof this.state.client.supported.nicklength === "number") {
+                maxNickLen = this.state.client.supported.nicklength;
             }
             if (n.length > maxNickLen) {
                 if (throwOnInvalid) {
@@ -762,6 +796,13 @@ export class BridgedClient extends EventEmitter {
                 // If we've been banned, this is intentional.
                 this._explicitDisconnect = true;
             }
+
+            if (this.status !== BridgedClientStatus.KILLED) {
+                this.state = {
+                    status: BridgedClientStatus.DEAD
+                };
+            }
+
             this.emit("client-disconnected", this);
             this.eventBroker.sendMetadata(this,
                 "Your connection to the IRC network '" + this.server.domain +
@@ -777,13 +818,13 @@ export class BridgedClient extends EventEmitter {
     }
 
     private async setTopic(room: IrcRoom, topic: string): Promise<void> {
-        if (!this.unsafeClient) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             throw Error("unsafeClient not ready yet");
         }
         // join the room if we haven't already
         await this.joinChannel(room.channel)
         this.log.info("Setting topic to %s in channel %s", topic, room.channel);
-        return this.unsafeClient.send("TOPIC", room.channel, topic);
+        return this.state.client.send("TOPIC", room.channel, topic);
     }
 
     private async sendMessage(room: IrcRoom, msgType: string, text: string, expiryTs: number) {
@@ -800,18 +841,18 @@ export class BridgedClient extends EventEmitter {
                 return;
             }
 
-            if (!this.unsafeClient) {
+            if (this.state.status !== BridgedClientStatus.CONNECTED) {
                 return;
             }
 
             if (msgType === "action") {
-                await this.unsafeClient.action(room.channel, text);
+                await this.state.client.action(room.channel, text);
             }
             else if (msgType === "notice") {
-                await this.unsafeClient.notice(room.channel, text);
+                await this.state.client.notice(room.channel, text);
             }
             else if (msgType === "message") {
-                await this.unsafeClient.say(room.channel, text);
+                await this.state.client.say(room.channel, text);
             }
             defer.resolve();
         }
@@ -823,7 +864,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     public joinChannel(channel: string, key?: string, attemptCount = 1): Bluebird<IrcRoom> {
-        if (!this.unsafeClient) {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
             // we may be trying to join before we've connected, so check and wait
             if (this.connectDefer && this.connectDefer.promise.isPending()) {
                 return this.connectDefer.promise.then(() => {
@@ -832,7 +873,7 @@ export class BridgedClient extends EventEmitter {
             }
             return Bluebird.reject(new Error("No client"));
         }
-        if (Object.keys(this.unsafeClient.chans).includes(channel)) {
+        if (Object.keys(this.state.client.chans).includes(channel)) {
             return Bluebird.resolve(new IrcRoom(this.server, channel));
         }
         if (!channel.startsWith("#")) {
@@ -845,7 +886,7 @@ export class BridgedClient extends EventEmitter {
         const defer = promiseutil.defer() as promiseutil.Defer<IrcRoom>;
         this.log.debug("Joining channel %s", channel);
         this.addChannel(channel);
-        const client = this.unsafeClient;
+        const client = this.state.client;
         // listen for failures to join a channel (e.g. +i, +k)
         const failFn = (err: IrcMessage) => {
             if (!err || !err.args) { return; }
@@ -869,7 +910,7 @@ export class BridgedClient extends EventEmitter {
 
         // add a timeout to try joining again
         setTimeout(() => {
-            if (!this.unsafeClient) {
+            if (this.state.status !== BridgedClientStatus.CONNECTED) {
                 log.error(
                     `Could not try to join: no client for ${this.nick}, channel = ${channel}`
                 );
@@ -878,7 +919,7 @@ export class BridgedClient extends EventEmitter {
             // promise isn't resolved yet and we still want to join this channel
             if (defer.promise.isPending() && this._chanList.has(channel)) {
                 // we may have joined but didn't get the callback so check the client
-                if (Object.keys(this.unsafeClient.chans).includes(channel)) {
+                if (Object.keys(this.state.client.chans).includes(channel)) {
                     // we're joined
                     this.log.debug("Timed out joining %s - didn't get callback but " +
                         "are now joined. Resolving.", channel);
@@ -908,7 +949,7 @@ export class BridgedClient extends EventEmitter {
         }
 
         // send the JOIN with a key if it was specified.
-        this.unsafeClient.join(channel + (key ? " " + key : ""), () => {
+        this.state.client.join(channel + (key ? " " + key : ""), () => {
             this.log.debug("Joined channel %s", channel);
             client.removeListener("error", failFn);
             const room = new IrcRoom(this.server, channel);
@@ -916,5 +957,101 @@ export class BridgedClient extends EventEmitter {
         });
 
         return defer.promise;
+    }
+
+    public getSplitMessages(target: string, text: string) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.getSplitMessages(target, text);
+        }
+        throw Error('Client is not connected');
+    }
+
+    public getClientInternalNick() {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.nick;
+        }
+        throw Error('Client is not connected');
+    }
+
+    public async mode(channelOrNick: string) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.mode(channelOrNick);
+        }
+        throw Error('Client is not connected');
+    }
+
+    public sendCommands(...data: string[]) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            this.state.client.send(...data);
+            return;
+        }
+        throw Error('Client is not connected');
+    }
+
+    public writeToConnection(buffer: string|Uint8Array) {
+        if (this.state.status === BridgedClientStatus.CONNECTED && this.state.client.conn) {
+            this.state.client.conn.write(buffer);
+            return;
+        }
+        throw Error('Client is not connected');
+    }
+
+    public addClientListener(type: string, listener: (msg: unknown) => void) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            this.state.client.on(type, listener);
+            return;
+        }
+        throw Error('Client is not connected');
+    }
+
+    public removeClientListener(type: string, listener: (msg: unknown) => void) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            this.state.client.removeListener(type, listener);
+            return;
+        }
+        // no-op
+        this.log.info("Tried to unbind listener from client but client was not connected");
+    }
+
+    public caseFold(channel: string) {
+        // Using ISUPPORT rules supported by MatrixBridge bot, case map ircChannel
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
+            log.warn(`Could not case map ${channel} - BridgedClient has no IRC client`);
+            return channel;
+        }
+        return this.state.client._toLowerCase(channel);
+    }
+
+    public modeForPrefix(prefix: string) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.modeForPrefix[prefix];
+        }
+        this.log.error("Could not get mode for prefix, client not connected");
+        return null;
+    }
+
+    public isUserPrefixMorePowerfulThan(prefix: string, testPrefix: string) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.isUserPrefixMorePowerfulThan(prefix, testPrefix);
+        }
+        this.log.error("Could not call isUserPrefixMorePowerfulThan, client not connected");
+        return null;
+    }
+
+    public chanData(channel: string) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.chanData(channel, false);
+        }
+        throw Error('Client is not connected');
+    }
+
+    public async waitForConnected(): Promise<void> {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return Promise.resolve();
+        }
+        else if (this.status !== BridgedClientStatus.CONNECTING) {
+            throw Error('Client is not connecting or connected');
+        }
+        return this.connectDefer.promise;
     }
 }

@@ -46,19 +46,15 @@ export class PublicitySyncer {
     };
     constructor (private ircBridge: IrcBridge) { }
 
-    public initModeForChannel(server: IrcServer, chan: string) {
-        return this.ircBridge.getBotClient(server).then(
-            (client) => {
-                if (!client.unsafeClient) {
-                    throw Error("Can't request modes, bot client not connected")
-                }
-                log.info(`Bot requesting mode for ${chan} on ${server.domain}`);
-                client.unsafeClient.mode(chan);
-            },
-            (err) => {
-                log.error(`Could not request mode of ${chan} (${err.message})`);
-            }
-        );
+    public async initModeForChannel(server: IrcServer, chan: string) {
+        try {
+            const botClient = await this.ircBridge.getBotClient(server);
+            log.info(`Bot requesting mode for ${chan} on ${server.domain}`);
+            await botClient.mode(chan);
+        }
+        catch (err) {
+            log.error(`Could not request mode of ${chan} (${err.message})`);
+        }
     }
 
     public async initModes (server: IrcServer) {

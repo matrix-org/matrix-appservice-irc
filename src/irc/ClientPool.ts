@@ -21,7 +21,7 @@ import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer } from "../irc/IrcServer";
 import { PrometheusMetrics, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
-import { BridgedClient } from "./BridgedClient";
+import { BridgedClient, BridgedClientStatus } from "./BridgedClient";
 import { IrcBridge } from "../bridge/IrcBridge";
 import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
@@ -513,10 +513,10 @@ export class ClientPool {
     private onClientConnected(bridgedClient: BridgedClient): void {
         const server = bridgedClient.server;
         const oldNick = bridgedClient.nick;
-        if (!bridgedClient.unsafeClient) {
+        if (bridgedClient.status !== BridgedClientStatus.CONNECTED) {
             return;
         }
-        const actualNick = bridgedClient.unsafeClient.nick;
+        const actualNick = bridgedClient.getClientInternalNick();
 
         // remove the pending nick we had set for this user
         this.virtualClients[server.domain].pending.delete(oldNick);

@@ -287,11 +287,7 @@ export class AdminRoomHandler {
                 server, sender
             );
 
-            if (!bridgedClient.unsafeClient) {
-                throw new Error('Possibly disconnected');
-            }
-
-            bridgedClient.unsafeClient.send(...sendArgs);
+            bridgedClient.sendCommands(...sendArgs);
         }
         catch (err) {
             const notice = new MatrixAction("notice", `${err}\n` );
