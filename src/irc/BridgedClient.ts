@@ -797,6 +797,12 @@ export class BridgedClient extends EventEmitter {
                 this._explicitDisconnect = true;
             }
 
+            if (this.status !== BridgedClientStatus.KILLED) {
+                this.state = {
+                    status: BridgedClientStatus.DEAD
+                };
+            }
+
             this.emit("client-disconnected", this);
             this.eventBroker.sendMetadata(this,
                 "Your connection to the IRC network '" + this.server.domain +
