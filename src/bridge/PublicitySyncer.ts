@@ -169,7 +169,7 @@ export class PublicitySyncer {
             }
 
             // Filter out already checked channels
-            channels = channels.filter((c) => checkedChannels.indexOf(c) === -1);
+            channels = channels.filter((c) => !checkedChannels.includes(c));
 
             const anyAreSecret = channels.some((channel) => {
                 let channelIsSecret = this.visibilityMap.channelIsSecret[channel];

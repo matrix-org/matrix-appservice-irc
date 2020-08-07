@@ -720,7 +720,7 @@ export class IrcBridge {
             else if (event.content.membership === "join") {
                 await this.matrixHandler.onJoin(request, event, target);
             }
-            else if (["ban", "leave"].indexOf(event.content.membership) !== -1) {
+            else if (["ban", "leave"].includes(event.content.membership)) {
                 // Given a "self-kick" is a leave, and you can't ban yourself,
                 // if the 2 IDs are different then we know it is either a kick
                 // or a ban (or a rescinded invite)

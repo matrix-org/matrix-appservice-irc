@@ -383,7 +383,7 @@ export class BridgedClient extends EventEmitter {
                     "err_erroneusnickname", "err_nonicknamegiven", "err_eventnickchange",
                     "err_nicktoofast", "err_unavailresource"
                 ];
-                if (failCodes.indexOf(err.command) !== -1) {
+                if (failCodes.includes(err.command)) {
                     this.log.error("Nick change error : %s", err.command);
                     clearTimeout(timeoutId);
                     if (nickListener) {
@@ -404,7 +404,7 @@ export class BridgedClient extends EventEmitter {
         if (!this.inst || this.inst.dead || !this.unsafeClient) {
             return Promise.resolve(); // we were never connected to the network.
         }
-        if (channel.indexOf("#") !== 0) {
+        if (!channel.startsWith("#")) {
             return Promise.resolve(); // PM room
         }
         if (!this.inChannel(channel)) {
@@ -430,11 +430,11 @@ export class BridgedClient extends EventEmitter {
         if (!this.inst || this.inst.dead || !this.unsafeClient) {
             return Promise.resolve(); // we were never connected to the network.
         }
-        if (Object.keys(this.unsafeClient.chans).indexOf(channel) === -1) {
+        if (!Object.keys(this.unsafeClient.chans).includes(channel)) {
             // we were never joined to it. We need to be joined to it to kick people.
             return Promise.resolve();
         }
-        if (channel.indexOf("#") !== 0) {
+        if (!channel.startsWith("#")) {
             return Promise.resolve(); // PM room
         }
 
@@ -832,10 +832,10 @@ export class BridgedClient extends EventEmitter {
             }
             return Bluebird.reject(new Error("No client"));
         }
-        if (Object.keys(this.unsafeClient.chans).indexOf(channel) !== -1) {
+        if (Object.keys(this.unsafeClient.chans).includes(channel)) {
             return Bluebird.resolve(new IrcRoom(this.server, channel));
         }
-        if (channel.indexOf("#") !== 0) {
+        if (!channel.startsWith("#")) {
             // PM room
             return Bluebird.resolve(new IrcRoom(this.server, channel));
         }
@@ -878,7 +878,7 @@ export class BridgedClient extends EventEmitter {
             // promise isn't resolved yet and we still want to join this channel
             if (defer.promise.isPending() && this._chanList.has(channel)) {
                 // we may have joined but didn't get the callback so check the client
-                if (Object.keys(this.unsafeClient.chans).indexOf(channel) !== -1) {
+                if (Object.keys(this.unsafeClient.chans).includes(channel)) {
                     // we're joined
                     this.log.debug("Timed out joining %s - didn't get callback but " +
                         "are now joined. Resolving.", channel);

@@ -28,7 +28,7 @@ export class IrcAction {
         public readonly type: IrcActionType,
         public text: string,
         public readonly ts: number = 0 ) {
-        if (ACTION_TYPES.indexOf(type) === -1) {
+        if (!ACTION_TYPES.includes(type)) {
             throw new Error("Unknown IrcAction type: " + type);
         }
     }

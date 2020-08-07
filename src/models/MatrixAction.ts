@@ -85,7 +85,7 @@ export class MatrixAction {
         public htmlText: string|null = null,
         public readonly ts: number = 0
         ) {
-        if (ACTION_TYPES.indexOf(type) === -1) {
+        if (!ACTION_TYPES.includes(type)) {
             throw new Error("Unknown MatrixAction type: " + type);
         }
     }
