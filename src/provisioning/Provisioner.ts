@@ -347,11 +347,11 @@ export class Provisioner {
 
         const info = await botClient.getOperators(ircChannel, {key : key});
 
-        if (info.nicks.indexOf(opNick) === -1) {
+        if (!info.nicks.includes(opNick)) {
             throw new Error(`Provided user is not in channel ${ircChannel}.`);
         }
 
-        if (info.operatorNicks.indexOf(opNick) === -1) {
+        if (!info.operatorNicks.includes(opNick)) {
             throw new Error(`Provided user is not an op of ${ircChannel}.`);
         }
 
