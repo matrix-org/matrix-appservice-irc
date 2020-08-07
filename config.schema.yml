@@ -311,9 +311,13 @@ properties:
                                                     type: "string"
                                                 minItems: 1
                                                 uniqueItems: true
+                                            createRoom:
+                                                type: "boolean"
                                             key:
                                                 type: "string"
-                                        required: ["roomIds"]
+                                        oneOf: 
+                                            - required: ["roomIds"]
+                                            - required: ["createRoom"]
                                         # Legacy format
                                       - type: "array"
                                         items:

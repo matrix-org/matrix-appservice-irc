@@ -174,6 +174,12 @@ export class IrcServer {
         return Array.from(roomIds.keys());
     }
 
+    public getAutoCreateMappings() {
+        return Object.entries(this.config.mappings)
+            .filter(([k,v]) => v.createRoom)
+            .map(([k, v]) => ({ channel: k, key: v.key }));
+    }
+
     public getChannelKey(channel: string) {
         return this.config.mappings[channel]?.key;
     }
@@ -661,6 +667,7 @@ export interface IrcServerConfig {
     mappings: {
         [channel: string]: {
             roomIds: string[];
+            createRoom?: boolean;
             key?: string;
         };
     };
