@@ -179,20 +179,20 @@ export class BridgedClient extends EventEmitter {
         return this._nick;
     }
 
-
     public getClientConfig() {
         return this.clientConfig;
     }
 
     public kill(reason?: string) {
+        log.info('Killing client ', this.nick);
         const state = this.state;
         // so that no further commands can be issued
-        this._state = {
+        log.debug("Client is now KILLED")
+        this.state = {
             status: BridgedClientStatus.KILLED
         }
 
         // kill connection instance
-        log.info('Killing client ', this.nick);
         return this.disconnectWithState(state, "killed", reason);
     }
 
@@ -211,7 +211,8 @@ export class BridgedClient extends EventEmitter {
     public async connect(): Promise<ConnectionInstance> {
         let identResolver: (() => void) | undefined;
 
-        this._state = {
+        this.log.debug("Client is now CONNECTING");
+        this.state = {
             status: BridgedClientStatus.CONNECTING
         }
 
@@ -250,8 +251,8 @@ export class BridgedClient extends EventEmitter {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 this.onConnectionCreated(inst, nameInfo, identResolver!);
             });
-
-            this._state = {
+            this.log.info("Client is now CONNECTED");
+            this.state = {
                 status: BridgedClientStatus.CONNECTED,
                 inst: connInst,
                 client: connInst.client,
@@ -306,7 +307,8 @@ export class BridgedClient extends EventEmitter {
         }
         catch (err) {
             this.log.debug("Failed to connect.");
-            this._state = {
+            this.log.info("Client is now DEAD")
+            this.state = {
                 status: BridgedClientStatus.DEAD
             }
             if (identResolver) {
@@ -793,14 +795,7 @@ export class BridgedClient extends EventEmitter {
             if (reason === "banned") {
                 // If we've been banned, this is intentional.
                 this._explicitDisconnect = true;
-            }
-
-            // make sure a killed connection stays killed
-            if (this.state.status !== BridgedClientStatus.KILLED) {
-                this._state = {
-                    status: BridgedClientStatus.DEAD,
-                }
-            }
+            } else if (reason)
 
             this.emit("client-disconnected", this);
             this.eventBroker.sendMetadata(this,

@@ -119,8 +119,7 @@ export class RoomAccessSyncer {
                 req.log.info(`Bridged client for ${nick} has no IRC client.`);
                 return;
             }
-            const client = bridgedClient.state.client;
-            const chanData = client.chanData(channel);
+            const chanData = bridgedClient.chanData(channel);
             if (!(chanData && chanData.users)) {
                 req.log.error(`No channel data for ${channel}`);
                 return;
@@ -128,8 +127,8 @@ export class RoomAccessSyncer {
             const userPrefixes = chanData.users[nick] as string;
             userPrefixes.split('').forEach(
                 prefix => {
-                    const m = client.modeForPrefix[prefix];
-                    if (modeToPower[m] !== undefined) {
+                    const m = bridgedClient.modeForPrefix(prefix);
+                    if (m && modeToPower[m] !== undefined) {
                         userPowers.push(modeToPower[m]);
                     }
                 }

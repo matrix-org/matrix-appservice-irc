@@ -691,7 +691,7 @@ export class Provisioner {
 
         const botClient = await this.ircBridge.getBotClient(server);
 
-        ircChannel = Provisioner.caseFold(botClient, ircChannel);
+        ircChannel = botClient.caseFold(ircChannel);
 
         if (server.isExcludedChannel(ircChannel)) {
             throw new Error(`Server is configured to exclude channel ${ircChannel}`);
@@ -775,7 +775,7 @@ export class Provisioner {
 
         const botClient = await this.ircBridge.getBotClient(server);
 
-        ircChannel = Provisioner.caseFold(botClient, ircChannel);
+        ircChannel = botClient.caseFold(ircChannel);
 
         if (server.isExcludedChannel(ircChannel)) {
             throw new Error(`Server is configured to exclude given channel ('${ircChannel}')`);
@@ -1097,14 +1097,5 @@ export class Provisioner {
             count,
             limit,
         };
-    }
-
-    // Using ISUPPORT rules supported by MatrixBridge bot, case map ircChannel
-    private static caseFold(cli: BridgedClient, channel: string) {
-        if (cli.state.status !== BridgedClientStatus.CONNECTED) {
-            log.warn(`Could not case map ${channel} - BridgedClient has no IRC client`);
-            return channel;
-        }
-        return cli.state.client._toLowerCase(channel);
     }
 }

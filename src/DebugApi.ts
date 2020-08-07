@@ -251,35 +251,32 @@ export class DebugApi {
                 "User " + user + " does not have a client on " + server.domain + "\n"
             );
         }
-        if (client.state.status !== BridgedClientStatus.CONNECTED || !client.state.client.conn) {
+        if (client.status !== BridgedClientStatus.CONNECTED) {
             return Bluebird.resolve(
                 "There is no underlying client instance.\n"
             );
         }
-        const connection = client.state.client.conn;
 
         // store all received response strings
         const buffer: string[] = [];
         // "raw" can take many forms
-        const listener = (msg: object) => {
+        const listener = (msg: unknown) => {
             buffer.push(JSON.stringify(msg));
         }
 
-        client.state.client.on("raw", listener);
+        client.addClientListener("raw", listener);
         // turn rn to n so if there are any new lines they are all n.
         body = body.replace("\r\n", "\n");
         body.split("\n").forEach((c: string) => {
             // IRC protocol require rn
-            connection.write(c + "\r\n");
+            client.writeToConnection(c + "\r\n");
             buffer.push(c);
         });
 
         // wait 3s to pool responses
         return Bluebird.delay(3000).then(function() {
             // unhook listener to avoid leaking
-            if (client.state.status === BridgedClientStatus.CONNECTED) {
-                client.state.client.removeListener("raw", listener);
-            }
+            client.removeClientListener("raw", listener);
             return buffer.join("\n") + "\n";
         });
     }
