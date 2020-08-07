@@ -513,10 +513,10 @@ export class ClientPool {
     private onClientConnected(bridgedClient: BridgedClient): void {
         const server = bridgedClient.server;
         const oldNick = bridgedClient.nick;
-        if (bridgedClient.state.status !== BridgedClientStatus.CONNECTED) {
+        if (bridgedClient.status !== BridgedClientStatus.CONNECTED) {
             return;
         }
-        const actualNick = bridgedClient.state.client.nick;
+        const actualNick = bridgedClient.getClientInternalNick();
 
         // remove the pending nick we had set for this user
         this.virtualClients[server.domain].pending.delete(oldNick);

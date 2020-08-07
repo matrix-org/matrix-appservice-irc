@@ -957,4 +957,99 @@ export class BridgedClient extends EventEmitter {
 
         return defer.promise;
     }
+
+    public getSplitMessages(target: string, text: string) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.getSplitMessages(target, text);
+        }
+        throw Error('Client is not connected');
+    }
+
+    public getClientInternalNick() {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.nick;
+        }
+        throw Error('Client is not connected');
+    }
+
+    public async mode(channelOrNick: string) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.mode(channelOrNick);
+        }
+        throw Error('Client is not connected');
+    }
+
+    public sendCommands(...data: string[]) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            this.state.client.send(...data);
+            return;
+        }
+        throw Error('Client is not connected');
+    }
+
+    public writeToConnection(buffer: string|Uint8Array) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            this.state.client.conn?.write(buffer);
+            return;
+        }
+        throw Error('Client is not connected');
+    }
+
+    public addClientListener(type: string, listener: (msg: unknown) => void) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            this.state.client.on(type, listener);
+            return;
+        }
+        throw Error('Client is not connected');
+    }
+
+    public removeClientListener(type: string, listener: (msg: unknown) => void) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            this.state.client.removeListener(type, listener);
+            return;
+        }
+        // no-op
+        this.log.info("Tried to unbind listener from client but client was not connected");
+    }
+
+    public caseFold(channel: string) {
+        // Using ISUPPORT rules supported by MatrixBridge bot, case map ircChannel
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
+            log.warn(`Could not case map ${channel} - BridgedClient has no IRC client`);
+            return channel;
+        }
+        return this.state.client._toLowerCase(channel);
+    }
+
+    public modeForPrefix(prefix: string) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.modeForPrefix[prefix];
+        }
+        this.log.error("Could not get mode for prefix, client not connected");
+        return null;
+    }
+
+    public isUserPrefixMorePowerfulThan(prefix: string, testPrefix: string) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.isUserPrefixMorePowerfulThan(prefix, testPrefix);
+        }
+        this.log.error("Could not call isUserPrefixMorePowerfulThan, client not connected");
+        return null;
+    }
+
+    public chanData(channel: string) {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return this.state.client.chanData(channel, false);
+        }
+        throw Error('Client is not connected');
+    }
+
+    public async waitForConnected() {
+        if (this.state.status === BridgedClientStatus.CONNECTED) {
+            return;
+        } else if (this.status !== BridgedClientStatus.CONNECTING) {
+            throw Error('Client is not connecting or connected');
+        }
+        return this.connectDefer.promise;
+    }
 }
