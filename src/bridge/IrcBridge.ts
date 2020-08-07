@@ -38,6 +38,7 @@ import { BridgeStateSyncer } from "./BridgeStateSyncer";
 import { Registry } from "prom-client";
 import { spawnMetricsWorker } from "../workers/MetricsWorker";
 import { getBridgeVersion } from "../util/PackageInfo";
+import { trackChannelAndCreateRoom } from "./RoomCreation";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -505,6 +506,10 @@ export class IrcBridge {
         log.info("Connecting to IRC networks...");
         await this.connectToIrcNetworks();
 
+
+        log.info("Creating rooms for mappings with no roomIds");
+        await this.autocreateMappedChannels();
+
         promiseutil.allSettled(this.ircServers.map((server) => {
             // Call MODE on all known channels to get modes of all channels
             return Bluebird.cast(this.publicitySyncer.initModes(server));
@@ -611,6 +616,33 @@ export class IrcBridge {
             await this.bridge.getIntent().join(roomId);
         }).map(Bluebird.cast);
         await promiseutil.allSettled(promises);
+    }
+
+    private async autocreateMappedChannels() {
+        const req = new BridgeRequest(new Request());
+        for (const server of this.ircServers) {
+            for (const ircChannel of server.getAutoCreateMappings()) {
+                const existingRooms = await this.dataStore.getMatrixRoomsForChannel(server, ircChannel.channel);
+                if (existingRooms.length > 0) {
+                    // We don't autocreate for existing channels
+                    continue;
+                }
+                // Create a fresh room!
+                try {
+                    const roomAliasName = server.getAliasFromChannel(ircChannel.channel).split(":")[0].substring(1);
+                    await trackChannelAndCreateRoom(this, req, {
+                        server,
+                        ircChannel: ircChannel.channel,
+                        key: ircChannel.key,
+                        origin: "alias",
+                        roomAliasName: roomAliasName,
+                        roomVisibility: "public",
+                    });
+                } catch (ex) {
+                    log.warn("Failed to create and track room from config:", ex);
+                }
+            }
+        }
     }
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
