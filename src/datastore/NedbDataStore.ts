@@ -93,9 +93,13 @@ export class NeDBDataStore implements DataStore {
 
         await this.removeConfigMappings(server);
 
-        for (const channel of Object.keys(serverConfig.mappings)) {
+        for (const [channel, opts] of Object.entries(serverConfig.mappings)) {
+            if (opts.createRoom) {
+                return;
+            }
+            log.info(`Mapping channel ${channel} to ${opts.roomIds.join(",")}`);
             const ircRoom = new IrcRoom(server, channel);
-            for (const roomId of serverConfig.mappings[channel].roomIds) {
+            for (const roomId of opts.roomIds) {
                 const mxRoom = new MatrixRoom(roomId);
                 await this.storeRoom(ircRoom, mxRoom, "config");
             }
@@ -429,7 +433,7 @@ export class NeDBDataStore implements DataStore {
 
         // Remove just these entries.
         for (const entry of entries) {
-            await this.roomStore.removeEntriesByRemoteRoomId(entry.remote_id);
+            await this.roomStore.delete({id: entry.id, "data.origin": "config"});
         }
     }
 
