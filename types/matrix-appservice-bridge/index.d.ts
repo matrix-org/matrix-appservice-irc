@@ -1,23 +1,23 @@
-/*
-Copyright 2019 Huan LI
-Copyright 2019 The Matrix.org Foundation C.I.C.
+// /*
+// Copyright 2019 Huan LI
+// Copyright 2019,20 The Matrix.org Foundation C.I.C.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 
- http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-/**
- * This has been borrowed from https://github.com/huan/matrix-appservice-wechaty/blob/master/src/typings/matrix-appservice-bridge.d.ts
- * under the Apache2 licence.
- */
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// */
+// /**
+//  * This has been borrowed from https://github.com/huan/matrix-appservice-wechaty/blob/master/src/typings/matrix-appservice-bridge.d.ts
+//  * under the Apache2 licence.
+//  */
 
 declare module 'matrix-appservice-bridge' {
 
@@ -26,14 +26,6 @@ declare module 'matrix-appservice-bridge' {
             constructor(buckets?: string[]);
             bump (ageInSec: number): void;
         }
-    }
-
-    export class PrometheusMetrics {
-        addCollector(cb: () => void): void;
-        addCounter(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Counter<string>
-        addTimer(opts: { name: string; help: string; labels: string[]; }): import("prom-client").Histogram<string>;
-        addGauge(arg0: { name: string; help: string; labels: string[]; }): import("prom-client").Gauge<string>;
-        refresh(): void;
     }
 
     interface RoomMemberDict {
@@ -186,41 +178,6 @@ declare module 'matrix-appservice-bridge' {
         unlinkUsers (matrixUser: MatrixUser, remoteUser: RemoteUser): Promise<number>
     }
 
-    export class ContentRepo {
-        static getHttpUriForMxc(baseUrl: string, mxc: string): string;
-    }
-
-    export class Intent {
-        getEvent(room_id: string, eventId: string): Promise<any>;
-        invite(room_id: string, recipient: string): Promise<void>;
-        createRoom(opts: unknown): Promise<{room_id: string;}>;
-        roomState(room_id: string): Promise<any[]>;
-        leave(roomId: string): Promise<void>;
-        setPowerLevel(roomId: string, userId: string, level: number | undefined): Promise<void>;
-        getStateEvent(roomId: string, type: string, key?: string): Promise<any>;
-        getProfileInfo(userId: string, type?: "displayname"|"avatar_url", useCache?: boolean): Promise<{displayname: string|null, avatar_url: string|null}>;
-        setPresence(presence: string): Promise<void>;
-        sendMessage(roomId: string, content: any): Promise<void>;
-        sendStateEvent(roomId: string, type: string, stateKey: string, content: any): Promise<void>;
-        join(roomId: string): Promise<void>;
-        kick(roomId: string, userId: string, reason?: string): Promise<void>;
-        setRoomTopic(roomId: string, topic: string): Promise<void>;
-        readonly client: JsClient;
-        getClient(): JsClient;
-        setDisplayName(displayname: string): Promise<void>;
-    }
-
-
-    export class Request {
-        outcomeFrom(the: Promise<unknown>): void;
-        getData(): any;
-        getDuration(): number;
-        getPromise(): Promise<any>;
-        getId(): string;
-        resolve(item: unknown): void;
-        reject(err: unknown): void;
-    }
-
     export class JsClient {
         getStateEvent(roomId: string, type: string, skey?: string): Promise<any>;
         createAlias(roomAlias: string, roomId: string): Promise<void>;
@@ -257,37 +214,19 @@ declare module 'matrix-appservice-bridge' {
         getUserStore(): UserBridgeStore;
         getBot(): AppserviceBot;
         loadDatabases(): Promise<void>;
-        getRequestFactory(): RequestFactory;
+        getRequestFactory(): import("matrix-appservice-bridge").RequestFactory;
         getPrometheusMetrics(registerEndpoint?: boolean, registry?: unknown): PrometheusMetrics;
-        getIntent(userId?: string): Intent;
-        getIntentFromLocalpart(localpart: string): Intent;
+        getIntent(userId?: string): import("matrix-appservice-bridge").Intent;
+        getIntentFromLocalpart(localpart: string): import("matrix-appservice-bridge").Intent;
         requestCheckToken(req: Express.Request): boolean;
         run(port: number, config: undefined, appservice?: import("matrix-appservice").AppService, hostname?: string): void;
         registerBridgeGauges(cb: () => void): void;
-        getClientFactory(): ClientFactory;
+        getClientFactory(): import("matrix-appservice-bridge").ClientFactory;
         canProvisionRoom(roomId: string): Promise<boolean>;
-    }
-
-    export class ClientFactory {
-        getClientAs(): JsClient;
-    }
-
-    export class RequestFactory {
-        newRequest(opts?: {data: {}}): Request;
-        addDefaultResolveCallback(cb: (req: Request, result: unknown) => void): void;
-        addDefaultRejectCallback(cb: (req: Request) => void): void;
-        addDefaultTimeoutCallback(cb: (req: Request) => void, timeout: number): void;
     }
 
     export class Logging {
         static configure(opts: {console: string}): void;
-    }
-
-    export class StateLookup {
-        constructor(opts: {})
-        onEvent(event: unknown): void;
-        trackRoom(roomId: string): Promise<void>;
-        getState(roomId: string, type: string): any[];
     }
 
     export class MembershipCache {
