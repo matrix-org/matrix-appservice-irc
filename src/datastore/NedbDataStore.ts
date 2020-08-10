@@ -91,11 +91,7 @@ export class NeDBDataStore implements DataStore {
     public async setServerFromConfig(server: IrcServer, serverConfig: IrcServerConfig): Promise<void> {
         this.serverMappings[server.domain] = server;
 
-        if (server.getAutoCreateMappings().length > 0) {
-            throw Error('Cannot use autocreate feature with NeDB');
-        }
-
-        await this.removeConfigMappings();
+        await this.removeConfigMappings(server);
 
         for (const channel of Object.keys(serverConfig.mappings)) {
             const ircRoom = new IrcRoom(server, channel);
@@ -419,13 +415,22 @@ export class NeDBDataStore implements DataStore {
         }).filter((e) => e !== "");
     }
 
-    public async removeConfigMappings() {
+    public async removeConfigMappings(server: IrcServer) {
         await this.roomStore.removeEntriesByLinkData({
             from_config: true // for backwards compatibility
         });
-        await this.roomStore.removeEntriesByLinkData({
-            origin: 'config'
+        // Filter for config entries which are from this network and are NOT autocreated.
+        let entries = await this.roomStore.getEntriesByLinkData({
+            origin: 'config',
         });
+        const notChannels = server.getAutoCreateMappings().map((c) => c.channel);
+        entries = (await entries).filter((e) => e.remote?.get("domain") === server.domain &&
+            !notChannels.includes(e.remote?.get("channel") as string));
+
+        // Remove just these entries.
+        for (const entry of entries) {
+            await this.roomStore.removeEntriesByRemoteRoomId(entry.remote_id);
+        }
     }
 
     public async getIpv6Counter(): Promise<number> {
