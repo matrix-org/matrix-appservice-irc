@@ -15,7 +15,7 @@ interface TrackChannelOpts {
     intent?: Intent;
     roomVisibility?: "public"|"private";
     historyVisiblity?: "joined"|"invited"|"shared"|"world_readable";
-    shouldTrack?: boolean,
+    shouldTrack?: boolean;
 }
 
 /**
@@ -68,7 +68,8 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
         req.log.info("Going to track IRC channel %s", ircChannel);
         ircRoom = await ircBridge.trackChannel(server, ircChannel, key);
         req.log.info("Bot is now tracking IRC channel.");
-    } else {
+    }
+    else {
         ircRoom = new IrcRoom(server, ircChannel);
     }
     let roomId;
