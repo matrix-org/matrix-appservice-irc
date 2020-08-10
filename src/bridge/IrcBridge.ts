@@ -501,12 +501,14 @@ export class IrcBridge {
         const requestTimeoutSeconds = this.config.ircService.provisioning.requestTimeoutSeconds;
         this.provisioner = new Provisioner(this, provisioningEnabled, requestTimeoutSeconds);
 
+
+
         log.info("Connecting to IRC networks...");
         await this.connectToIrcNetworks();
 
-
         log.info("Creating rooms for mappings with no roomIds");
         await this.autocreateMappedChannels();
+
 
         promiseutil.allSettled(this.ircServers.map((server) => {
             // Call MODE on all known channels to get modes of all channels
@@ -635,6 +637,7 @@ export class IrcBridge {
                         origin: "config",
                         roomAliasName: roomAliasName,
                         roomVisibility: "public",
+                        shouldTrack: false, // wait for a user to join
                     });
                 }
                 catch (ex) {
