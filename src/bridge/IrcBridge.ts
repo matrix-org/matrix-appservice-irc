@@ -9,7 +9,7 @@ import { ClientPool } from "../irc/ClientPool";
 import { BridgedClient, BridgedClientStatus } from "../irc/BridgedClient";
 import { IrcUser } from "../models/IrcUser";
 import { IrcRoom } from "../models/IrcRoom";
-import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
+import { BridgeRequest, BridgeRequestErr, BridgeRequestData, BridgeRequestEvent } from "../models/BridgeRequest";
 import { NeDBDataStore } from "../datastore/NedbDataStore";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
 import { getLogger } from "../logging";
@@ -160,7 +160,7 @@ export class IrcBridge {
             membershipCache: this.membershipCache,
             migrateStoreEntries: false,
         });
-        this.membershipQueue = new MembershipQueue(this.bridge);
+        this.membershipQueue = new MembershipQueue(this.bridge, this.appServiceUserId);
         this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
         this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue);
 
@@ -487,8 +487,12 @@ export class IrcBridge {
                         room_id: roomId,
                         content: {
                             displayname: displayName,
+                            membership: "join",
                         },
                         _injected: true,
+                        state_key: joiningUserId,
+                        type: "m.room.member",
+                        event_id: "!injected",
                         _frontier: isFrontier
                     }, target);
                 }
@@ -524,7 +528,7 @@ export class IrcBridge {
         this.startedUp = true;
     }
 
-    private logMetric(req: Request, outcome: string) {
+    private logMetric(req: Request<BridgeRequestData>, outcome: string) {
         if (!this.timers) {
             return; // metrics are disabled
         }
@@ -538,7 +542,7 @@ export class IrcBridge {
     }
 
     private addRequestCallbacks() {
-        function logMessage(req: Request, msg: string) {
+        function logMessage(req: Request<BridgeRequestData>, msg: string) {
             const data = req.getData();
             const dir = data && data.isFromIrc ? "I->M" : "M->I";
             const duration = " (" + req.getDuration() + "ms)";
@@ -548,37 +552,40 @@ export class IrcBridge {
         // SUCCESS
         this.bridge.getRequestFactory().addDefaultResolveCallback((req, _res) => {
             const res = _res as BridgeRequestErr|null;
+            const bridgeRequest = req as Request<BridgeRequestData>;
             if (res === BridgeRequestErr.ERR_VIRTUAL_USER) {
-                logMessage(req, "IGNORE virtual user");
+                logMessage(bridgeRequest , "IGNORE virtual user");
                 return; // these aren't true successes so don't skew graphs
             }
             else if (res === BridgeRequestErr.ERR_NOT_MAPPED) {
-                logMessage(req, "IGNORE not mapped");
+                logMessage(bridgeRequest, "IGNORE not mapped");
                 return; // these aren't true successes so don't skew graphs
             }
             else if (res === BridgeRequestErr.ERR_DROPPED) {
-                logMessage(req, "IGNORE dropped");
-                this.logMetric(req, "dropped");
+                logMessage(bridgeRequest, "IGNORE dropped");
+                this.logMetric(bridgeRequest, "dropped");
                 return;
             }
-            logMessage(req, "SUCCESS");
-            this.logMetric(req, "success");
+            logMessage(bridgeRequest, "SUCCESS");
+            this.logMetric(bridgeRequest, "success");
         });
         // FAILURE
         this.bridge.getRequestFactory().addDefaultRejectCallback((req) => {
-            logMessage(req, "FAILED");
-            this.logMetric(req, "fail");
-            BridgeRequest.HandleExceptionForSentry(req, "fail");
+            const bridgeRequest = req as Request<BridgeRequestData>;
+            logMessage(bridgeRequest, "FAILED");
+            this.logMetric(bridgeRequest, "fail");
+            BridgeRequest.HandleExceptionForSentry(req as Request<BridgeRequestData>, "fail");
         });
         // DELAYED
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
-            logMessage(req, "DELAYED");
+            logMessage(req as Request<BridgeRequestData>, "DELAYED");
         }, DELAY_TIME_MS);
         // DEAD
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
-            logMessage(req, "DEAD");
-            this.logMetric(req, "dead");
-            BridgeRequest.HandleExceptionForSentry(req, "dead");
+            const bridgeRequest = req as Request<BridgeRequestData>;
+            logMessage(bridgeRequest, "DEAD");
+            this.logMetric(bridgeRequest, "dead");
+            BridgeRequest.HandleExceptionForSentry(req as Request<BridgeRequestData>, "dead");
         }, DEAD_TIME_MS);
     }
 
@@ -678,11 +685,11 @@ export class IrcBridge {
         return matrixUser;
     }
 
-    public onEvent(request: Request) {
+    public onEvent(request: BridgeRequestEvent) {
         request.outcomeFrom(this._onEvent(request));
     }
 
-    private async _onEvent (baseRequest: Request): Promise<BridgeRequestErr|undefined> {
+    private async _onEvent (baseRequest: BridgeRequestEvent): Promise<BridgeRequestErr|undefined> {
         const event = baseRequest.getData();
         let updatePromise: Promise<void>|null = null;
         if (event.sender && this.activityTracker) {
@@ -707,18 +714,20 @@ export class IrcBridge {
         else if (event.type === "m.room.topic" && event.state_key === "") {
             await this.matrixHandler.onMessage(request, event);
         }
-        else if (event.type === "m.room.member") {
+        else if (event.type === "m.room.member" && event.state_key) {
             if (!event.content || !event.content.membership) {
                 return BridgeRequestErr.ERR_NOT_MAPPED;
             }
-            this.ircHandler.onMatrixMemberEvent(event);
+            this.ircHandler.onMatrixMemberEvent({...event, state_key: event.state_key});
             const target = new MatrixUser(event.state_key);
             const sender = new MatrixUser(event.sender);
+            // We must define `state_key` explicitly again for TS to be happy.
+            const memberEvent = {...event, state_key: event.state_key};
             if (event.content.membership === "invite") {
-                await this.matrixHandler.onInvite(request, event, sender, target);
+                await this.matrixHandler.onInvite(request, memberEvent, sender, target);
             }
             else if (event.content.membership === "join") {
-                await this.matrixHandler.onJoin(request, event, target);
+                await this.matrixHandler.onJoin(request, memberEvent, target);
             }
             else if (["ban", "leave"].includes(event.content.membership)) {
                 // Given a "self-kick" is a leave, and you can't ban yourself,
@@ -726,10 +735,10 @@ export class IrcBridge {
                 // or a ban (or a rescinded invite)
                 const isKickOrBan = target.getId() !== sender.getId();
                 if (isKickOrBan) {
-                    await this.matrixHandler.onKick(request, event, sender, target);
+                    await this.matrixHandler.onKick(request, memberEvent, sender, target);
                 }
                 else {
-                    await this.matrixHandler.onLeave(request, event, target);
+                    await this.matrixHandler.onLeave(request, memberEvent, target);
                 }
             }
         }
@@ -747,7 +756,7 @@ export class IrcBridge {
     }
 
     public async onUserQuery(matrixUser: MatrixUser) {
-        const baseRequest = this.bridge.getRequestFactory().newRequest();
+        const baseRequest = this.bridge.getRequestFactory().newRequest<BridgeRequestData>();
         const request = new BridgeRequest(baseRequest);
         await this.matrixHandler.onUserQuery(request, matrixUser.getId());
         // TODO: Lean on the bridge lib more
@@ -755,7 +764,7 @@ export class IrcBridge {
     }
 
     public async onAliasQuery (alias: string) {
-        const baseRequest = this.bridge.getRequestFactory().newRequest();
+        const baseRequest = this.bridge.getRequestFactory().newRequest<BridgeRequestData>();
         const request = new BridgeRequest(baseRequest);
         await this.matrixHandler.onAliasQuery(request, alias);
         // TODO: Lean on the bridge lib more

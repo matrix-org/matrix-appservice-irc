@@ -1,6 +1,6 @@
 import { IrcBridge } from "./IrcBridge";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
-import { MatrixUser, MatrixRoom, StateLookup } from "matrix-appservice-bridge";
+import { MatrixUser, MatrixRoom, StateLookup, StateLookupEvent } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { IrcRoom } from "../models/IrcRoom";
@@ -38,14 +38,22 @@ interface MatrixEventInvite {
     sender: string;
     content: {
         is_direct?: boolean;
+        membership: "invite";
     };
+    type: string;
+    event_id: string;
 }
 
 interface MatrixEventKick {
     room_id: string;
+    sender: string;
+    state_key: string;
     content: {
         reason?: string;
+        membership: "leave";
     };
+    type: string;
+    event_id: string;
 }
 
 interface MatrixSimpleMessage {
@@ -55,18 +63,22 @@ interface MatrixSimpleMessage {
     };
 }
 
-interface MatrixEventJoin {
-    _frontier: boolean;
-    _injected: boolean;
-    room_id: string;
-    content?: {
-        displayname?: string;
-    };
-}
-
 interface MatrixEventLeave {
     room_id: string;
-    _injected: boolean;
+    _injected?: boolean;
+}
+
+interface OnMemberEventData {
+    _frontier?: boolean;
+    _injected?: boolean;
+    room_id: string;
+    state_key: string;
+    type: string;
+    event_id: string;
+    content: {
+        displayname?: string;
+        membership: string
+    };
 }
 
 export class MatrixHandler {
@@ -222,10 +234,12 @@ export class MatrixHandler {
             // First call begins tracking, subsequent calls do nothing
             await this.memberTracker.trackRoom(adminRoom.getId());
 
-            members = this.memberTracker.getState(
+            members = (this.memberTracker.getState(
                 adminRoom.getId(),
-                'm.room.member'
-            ).filter((m) => m.content.membership && m.content.membership === "join");
+                "m.room.member",
+            ) as Array<StateLookupEvent>).filter((m) => 
+                (m.content as {membership: string}).membership === "join"
+            );
         }
         else {
             req.log.warn('Member tracker not running');
@@ -324,7 +338,7 @@ export class MatrixHandler {
      * Called when the AS receives a new Matrix invite/join/leave event.
      * @param {Object} event : The Matrix member event.
      */
-    private async _onMemberEvent(req: BridgeRequest, event: unknown) {
+    private async _onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {
         if (!this.memberTracker) {
             const matrixClient = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
 
@@ -438,7 +452,7 @@ export class MatrixHandler {
         return null;
     }
 
-    private async _onJoin(req: BridgeRequest, event: MatrixEventJoin, user: MatrixUser):
+    private async _onJoin(req: BridgeRequest, event: OnMemberEventData, user: MatrixUser):
     Promise<BridgeRequestErr|null> {
         req.log.info("onJoin: %s", JSON.stringify(event));
         this._onMemberEvent(req, event);
@@ -1159,7 +1173,7 @@ export class MatrixHandler {
 
     // EXPORTS
 
-    public onMemberEvent(req: BridgeRequest, event: unknown) {
+    public onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {
         return reqHandler(req, this._onMemberEvent(req, event));
     }
 
@@ -1167,11 +1181,11 @@ export class MatrixHandler {
         return reqHandler(req, this._onInvite(req, event, inviter, invitee));
     }
 
-    public onJoin(req: BridgeRequest, event: MatrixEventJoin, user: MatrixUser) {
+    public onJoin(req: BridgeRequest, event: OnMemberEventData, user: MatrixUser) {
         return reqHandler(req, this._onJoin(req, event, user));
     }
 
-    public onLeave(req: BridgeRequest, event: { room_id: string; _injected: boolean }, user: MatrixUser) {
+    public onLeave(req: BridgeRequest, event: { room_id: string; _injected?: boolean }, user: MatrixUser) {
         return reqHandler(req, this._onLeave(req, event, user));
     }
 

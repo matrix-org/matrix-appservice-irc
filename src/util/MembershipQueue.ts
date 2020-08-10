@@ -15,7 +15,7 @@ interface QueueUserItem {
     reason?: string;
     attempts: number;
     roomId: string;
-    userId?: string;
+    userId: string;
     retry: boolean;
     req: BridgeRequest;
 }
@@ -26,7 +26,7 @@ interface QueueUserItem {
 export class MembershipQueue {
     private queuePool: QueuePool<QueueUserItem>;
 
-    constructor(private bridge: Bridge) {
+    constructor(private bridge: Bridge, private botUserId: string) {
         this.queuePool = new QueuePool(CONCURRENT_ROOM_LIMIT, this.serviceQueue.bind(this));
     }
 
@@ -40,7 +40,7 @@ export class MembershipQueue {
     public async join(roomId: string, userId: string|undefined, req: BridgeRequest, retry = true) {
         return this.queueMembership({
             roomId,
-            userId,
+            userId: userId || this.botUserId,
             retry,
             req,
             attempts: 0,
@@ -61,7 +61,7 @@ export class MembershipQueue {
                        retry = true, reason?: string, kickUser?: string) {
         return this.queueMembership({
             roomId,
-            userId,
+            userId: userId || this.botUserId,
             retry,
             req,
             attempts: 0,
@@ -94,7 +94,7 @@ export class MembershipQueue {
                 await intent.join(roomId);
             }
             else {
-                await intent[kickUser ? "kick" : "leave"](roomId, userId || "", reason);
+                await intent.kick(roomId, userId, reason);
             }
         }
         catch (ex) {

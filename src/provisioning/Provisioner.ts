@@ -5,7 +5,7 @@ import { ConfigValidator, MatrixRoom, MatrixUser } from "matrix-appservice-bridg
 import Bluebird from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcAction } from "../models/IrcAction";
-import { BridgeRequest } from "../models/BridgeRequest";
+import { BridgeRequest, BridgeRequestData } from "../models/BridgeRequest";
 import { ProvisionRequest } from "./ProvisionRequest";
 import logging, { RequestLogger } from "../logging";
 import * as promiseutil from "../promiseutil";
@@ -365,7 +365,7 @@ export class Provisioner {
         try {
             const roomState = await matrixClient.roomState(roomId);
             wholeBridgingState = roomState.find(
-                (e) => {
+                (e: {type: string, state_key: string}) => {
                     return e.type === 'm.room.bridging' && e.state_key === skey
                 }
             );
@@ -820,7 +820,7 @@ export class Provisioner {
         try {
             // Cause the provisioner to join the IRC channel
             const bridgeReq = new BridgeRequest(
-                this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest()
+                this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest<BridgeRequestData>()
             );
             const target = new MatrixUser(userId);
             // inject a fake join event which will do M->I connections and
@@ -828,7 +828,13 @@ export class Provisioner {
             await this.ircBridge.matrixHandler.onJoin(bridgeReq, {
                 room_id: roomId,
                 _injected: true,
-                _frontier: true
+                _frontier: true,
+                state_key: userId,
+                type: "m.room.member",
+                content: {
+                    membership: "join"
+                },
+                event_id: "!injected_provisioner",
             }, target);
         }
         catch (err) {
