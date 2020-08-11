@@ -1,4 +1,27 @@
- 0.19.0 (2020-07-06)
+ 0.20.0-rc1 (2020-08-11)
+========================
+
+Features
+--------
+
+- Media URLs now include the filename when sent to IRC. ([\#1087](https://github.com/matrix-org/matrix-appservice-irc/issues/1087))
+
+
+Bugfixes
+--------
+
+- Fix duplicate messages appearing if an IRC message is poorly decoded. ([\#1081](https://github.com/matrix-org/matrix-appservice-irc/issues/1081))
+- Make sure a killed BridgedClient is dead, even if connect was never called ([\#1098](https://github.com/matrix-org/matrix-appservice-irc/issues/1098))
+
+
+Internal Changes
+----------------
+
+- Enable many recommended ESLint rules to catch errors ([\#1078](https://github.com/matrix-org/matrix-appservice-irc/issues/1078))
+- Replace .indexOf with more specific methods ([\#1097](https://github.com/matrix-org/matrix-appservice-irc/issues/1097))
+
+
+0.19.0 (2020-07-06)
 ====================
 
 No significant changes.
