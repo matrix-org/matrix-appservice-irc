@@ -1,1 +1,0 @@
-Add metrics for tracking user activeness for matrix and irc users

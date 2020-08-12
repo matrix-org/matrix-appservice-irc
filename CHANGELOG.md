@@ -1,4 +1,19 @@
- 0.20.0-rc1 (2020-08-11)
+ 0.20.0-rc2 (2020-08-12)
+========================
+
+Features
+--------
+
+- Add metrics for tracking user activeness for matrix and irc users ([\#1105](https://github.com/matrix-org/matrix-appservice-irc/issues/1105))
+
+
+Bugfixes
+--------
+
+- Fix issue where /metrics would respond with no data ([\#1107](https://github.com/matrix-org/matrix-appservice-irc/issues/1107))
+
+
+0.20.0-rc1 (2020-08-11)
 ========================
 
 Features
