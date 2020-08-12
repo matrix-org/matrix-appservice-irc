@@ -56,6 +56,10 @@ function workerThread() {
             intervalCounter.set(time - lastDumpTs);
             lastDumpTs = time;
             const dump = msg.substr('metricsdump:'.length);
+            if (res.finished) {
+                // Sometimes a message will come in far too late because we've already
+                // sent an empty response. Drop it here.
+            }
             res.writeHead(200);
             writeAndEnd(res, `${dump}\n${registry.metrics()}`);
         });
