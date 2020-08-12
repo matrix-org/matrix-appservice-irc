@@ -315,9 +315,11 @@ export class IrcBridge {
                         const timeOffset = (currentTime - user.ts) / (60*60*1000); // Hours
                         if (timeOffset > userActivityThresholdHours) {
                             return;
-                        } else if (appserviceBot.isRemoteUser(user.user_id)) {
+                        }
+                        else if (appserviceBot.isRemoteUser(user.user_id)) {
                             remote++;
-                        } else {
+                        }
+                        else {
                             matrix++;
                         }
                     }
@@ -715,7 +717,8 @@ export class IrcBridge {
     private async _onEvent (baseRequest: Request): Promise<BridgeRequestErr|undefined> {
         const event = baseRequest.getData();
         let updatePromise: Promise<void>|null = null;
-        if (event.sender && (this.activityTracker || this.config.ircService.metrics.userActivityThresholdHours !== undefined)) {
+        if (event.sender && (this.activityTracker ||
+            this.config.ircService.metrics.userActivityThresholdHours !== undefined)) {
             updatePromise = this.dataStore.updateLastSeenTimeForUser(event.sender);
             if (this.activityTracker) {
                 this.activityTracker.bumpLastActiveTime(event.sender);
