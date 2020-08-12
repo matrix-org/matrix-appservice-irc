@@ -45,6 +45,7 @@ const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
 const TXN_SIZE_DEFAULT = 10000000 // 10MB
+export const METRIC_ACTIVE_USERS = "active_users";
 
 export class IrcBridge {
     public static readonly DEFAULT_LOCALPART = "appservice-irc";
@@ -266,6 +267,12 @@ export class IrcBridge {
             labels: ["server"]
         });
 
+        const activeUsers = metrics.addGauge({
+            name: METRIC_ACTIVE_USERS,
+            help: "Numer of users actively using the bridge.",
+            labels: ["remote"],
+        });
+
         const ircHandlerCalls = metrics.addCounter({
             name: "irchandler_calls",
             help: "Track calls made to the IRC Handler",
@@ -295,6 +302,29 @@ export class IrcBridge {
                     mxMetrics["connection_failure_kicks"] || 0
                 );
             });
+
+            const { userActivityThresholdHours } = this.config.ircService.metrics;
+            if (userActivityThresholdHours) {
+                // Only collect if defined
+                const currentTime = Date.now();
+                const appserviceBot = this.bridge.getBot();
+                this.dataStore.getLastSeenTimeForUsers().then((userSet) => {
+                    let remote = 0;
+                    let matrix = 0;
+                    for (const user of userSet) {
+                        const timeOffset = (currentTime - user.ts) / (60*60*1000); // Hours
+                        if (timeOffset > userActivityThresholdHours) {
+                            return;
+                        } else if (appserviceBot.isRemoteUser(user.user_id)) {
+                            remote++;
+                        } else {
+                            matrix++;
+                        }
+                    }
+                    activeUsers.set({remote: "true"}, remote);
+                    activeUsers.set({remote: "false"}, matrix);
+                });
+            }
 
             Object.keys(this.memberListSyncers).forEach((server) => {
                 memberListLeaveQueue.set(
@@ -685,9 +715,11 @@ export class IrcBridge {
     private async _onEvent (baseRequest: Request): Promise<BridgeRequestErr|undefined> {
         const event = baseRequest.getData();
         let updatePromise: Promise<void>|null = null;
-        if (event.sender && this.activityTracker) {
+        if (event.sender && (this.activityTracker || this.config.ircService.metrics.userActivityThresholdHours !== undefined)) {
             updatePromise = this.dataStore.updateLastSeenTimeForUser(event.sender);
-            this.activityTracker.bumpLastActiveTime(event.sender);
+            if (this.activityTracker) {
+                this.activityTracker.bumpLastActiveTime(event.sender);
+            }
         }
         const request = new BridgeRequest(baseRequest);
         if (event.type === "m.room.message") {
