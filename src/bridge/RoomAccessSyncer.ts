@@ -293,10 +293,10 @@ export class RoomAccessSyncer {
 
     public async onFailedMessage(req: BridgeRequest, server: IrcServer, channel: string) {
         const key = `${server.getNetworkId()}:${channel}`;
-        const currThreshold = this.accessRefreshCount.get(key) || 0;
-        if (currThreshold + 1 < ACCESS_REFRESH_THRESHOLD) {
-            req.log.debug(`Message failed to send in ${channel}, raising accesssRefresh count to ${currThreshold+1}`);
-            this.accessRefreshCount.set(key, currThreshold + 1);
+        const currRefreshCount = (this.accessRefreshCount.get(key) || 0) + 1;
+        if (currRefreshCount < ACCESS_REFRESH_THRESHOLD) {
+            req.log.debug(`Message failed to send in ${channel}, raising accesssRefresh count to ${currRefreshCount}`);
+            this.accessRefreshCount.set(key, currRefreshCount);
             return;
         }
         req.log.info(`Messages failed to send in ${channel} and hit the refresh threshold. Checking mode for channel`);
