@@ -59,6 +59,8 @@ properties:
                         type: "number"
                     host:
                         type: "string"
+                    userActivityThresholdHours:
+                        type: "number"
                     remoteUserAgeBuckets:
                         type: "array"
                         items:

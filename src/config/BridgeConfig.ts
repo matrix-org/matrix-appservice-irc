@@ -40,6 +40,7 @@ export interface BridgeConfig {
             enabled: boolean;
             port?: number;
             host?: string;
+            userActivityThresholdHours?: number;
             remoteUserAgeBuckets: string[];
         };
         passwordEncryptionKeyPath?: string;
