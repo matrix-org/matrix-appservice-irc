@@ -2,7 +2,7 @@ import { Worker, isMainThread, parentPort, workerData } from "worker_threads";
 import { createServer, ServerResponse } from "http";
 import { Registry, Gauge } from "prom-client";
 import getLog from "../logging";
-const METRICS_DUMP_TIMEOUT_MS = 5000;
+const METRICS_DUMP_TIMEOUT_MS = 20000;
 
 function writeLog(level: string, msg: string) {
     return parentPort?.postMessage(`log:${level}:${msg}`);
