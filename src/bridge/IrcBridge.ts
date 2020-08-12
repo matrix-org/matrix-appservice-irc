@@ -189,6 +189,12 @@ export class IrcBridge {
         const zeroAge = new PrometheusMetrics.AgeCounters();
         const registry = new Registry();
 
+        if (!this.config.ircService.metrics) {
+            return;
+        }
+
+        const { userActivityThresholdHours, remoteUserAgeBuckets } = this.config.ircService.metrics;
+
         const usingRemoteMetrics = !!this.config.ircService.metrics.port;
 
         const metrics = this.bridge.getPrometheusMetrics(!usingRemoteMetrics, registry);
@@ -209,7 +215,7 @@ export class IrcBridge {
 
         this.bridge.registerBridgeGauges(() => {
             const remoteUsersByAge = new PrometheusMetrics.AgeCounters(
-                this.config.ircService.metrics.remoteUserAgeBuckets || ["1h", "1d", "1w"]
+                remoteUserAgeBuckets || ["1h", "1d", "1w"]
             );
 
             this.ircServers.forEach((server) => {
@@ -303,7 +309,6 @@ export class IrcBridge {
                 );
             });
 
-            const { userActivityThresholdHours } = this.config.ircService.metrics;
             if (userActivityThresholdHours) {
                 // Only collect if defined
                 const currentTime = Date.now();
@@ -720,7 +725,7 @@ export class IrcBridge {
         const event = baseRequest.getData();
         let updatePromise: Promise<void>|null = null;
         if (event.sender && (this.activityTracker ||
-            this.config.ircService.metrics.userActivityThresholdHours !== undefined)) {
+            this.config.ircService.metrics?.userActivityThresholdHours !== undefined)) {
             updatePromise = this.dataStore.updateLastSeenTimeForUser(event.sender);
             if (this.activityTracker) {
                 this.activityTracker.bumpLastActiveTime(event.sender);

@@ -36,7 +36,7 @@ export interface BridgeConfig {
         };
         /** @deprecated Use `BridgeConfig.database` */
         databaseUri?: string;
-        metrics: {
+        metrics?: {
             enabled: boolean;
             port?: number;
             host?: string;
