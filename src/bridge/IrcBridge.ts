@@ -275,7 +275,7 @@ export class IrcBridge {
 
         const activeUsers = metrics.addGauge({
             name: METRIC_ACTIVE_USERS,
-            help: "Numer of users actively using the bridge.",
+            help: "Number of users actively using the bridge.",
             labels: ["remote"],
         });
 
