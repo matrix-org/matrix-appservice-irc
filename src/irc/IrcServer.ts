@@ -67,7 +67,7 @@ export class IrcServer {
 
         if (this.config.dynamicChannels.groupId !== undefined &&
             this.config.dynamicChannels.groupId.trim() !== "") {
-            this.groupIdValid = GROUP_ID_REGEX.exec(this.config.dynamicChannels.groupId) !== null;
+            this.groupIdValid = GROUP_ID_REGEX.test(this.config.dynamicChannels.groupId);
             if (!this.groupIdValid) {
                 log.warn(
     `${domain} has an incorrectly configured groupId for dynamicChannels and will not set groups.`
@@ -222,7 +222,7 @@ export class IrcServer {
     }
 
     public isInWhitelist(userId: string) {
-        return this.config.dynamicChannels.whitelist.indexOf(userId) !== -1;
+        return this.config.dynamicChannels.whitelist.includes(userId);
     }
 
     public getCA() {
@@ -297,7 +297,7 @@ export class IrcServer {
     }
 
     public isExcludedChannel(channel: string) {
-        return this.config.dynamicChannels.exclude.indexOf(channel) !== -1;
+        return this.config.dynamicChannels.exclude.includes(channel);
     }
 
     public isExcludedUser(userId: string) {
@@ -334,15 +334,15 @@ export class IrcServer {
     }
 
     public shouldSyncMembershipToIrc(kind: MembershipSyncKind, roomId?: string) {
-        return this._shouldSyncMembership(kind, roomId, true);
+        return this.shouldSyncMembership(kind, roomId, true);
     }
 
     public shouldSyncMembershipToMatrix(kind: MembershipSyncKind, channel: string) {
-        return this._shouldSyncMembership(kind, channel, false);
+        return this.shouldSyncMembership(kind, channel, false);
     }
 
-    public _shouldSyncMembership(kind: MembershipSyncKind, identifier: string|undefined, toIrc: boolean) {
-        if (["incremental", "initial"].indexOf(kind) === -1) {
+    private shouldSyncMembership(kind: MembershipSyncKind, identifier: string|undefined, toIrc: boolean) {
+        if (!["incremental", "initial"].includes(kind)) {
             throw new Error("Bad kind: " + kind);
         }
         if (!this.config.membershipLists.enabled) {

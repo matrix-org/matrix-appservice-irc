@@ -30,7 +30,7 @@ export class IrcRoom extends RemoteRoom {
         super(IrcRoom.createId(server, toIrcLowerCase(channel)), {
             domain: server.domain,
             channel: toIrcLowerCase(channel),
-            type: channel.indexOf("#") === 0 ? "channel" : "pm"
+            type: channel.startsWith("#") ? "channel" : "pm"
         });
         if (!server || !channel) {
             throw new Error("Server and channel are required.");

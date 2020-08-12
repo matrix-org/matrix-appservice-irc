@@ -1,7 +1,4 @@
-// XXX: https://github.com/matrix-org/matrix-appservice-irc/issues/1003
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const sanitizeHtml = require("sanitize-html");
-
+import sanitizeHtml from "sanitize-html";
 import he from "he";
 
 const htmlNamesToColorCodes: {[color: string]: string[]} = {
@@ -110,7 +107,7 @@ export function htmlTag(state: StyleState, name: string, open?: boolean): string
     let text = '';
 
     if (typeof open === 'undefined') {
-        open = (state.history.indexOf(name) === -1);
+        open = !state.history.includes(name);
     }
 
     if (open) {
@@ -152,7 +149,9 @@ export function htmlTag(state: StyleState, name: string, open?: boolean): string
 
 export function stripIrcFormatting(text: string) {
     return text
+        // eslint-disable-next-line no-control-regex
         .replace(/(\x03\d{0,2}(,\d{0,2})?|\u200B)/g, '') // strip colors
+        // eslint-disable-next-line no-control-regex
         .replace(/[\x0F\x02\x16\x1F\x1D]/g, ''); // styles too
 }
 
@@ -206,7 +205,7 @@ export function htmlToIrc(html?: string): string|null {
     let replacement;
     for (let i = 0; i < cleanHtml.length; i++) {
         const ch = cleanHtml[i];
-        if (STYLE_CODES.indexOf(ch) >= 0) {
+        if (STYLE_CODES.includes(ch)) {
             openStyleCodes.push(ch);
         }
         else if (ch === "<") {
@@ -262,6 +261,7 @@ export function ircToHtml(text: string): string {
     // - The colour formatting character (\x03) followed by 0 to 2 digits for
     //   the foreground colour and (optionally) a comma and 1-2 digits for the
     //   background colour.
+    // eslint-disable-next-line no-control-regex
     const colorRegex = /[\x02\x1d\x1f\x0f\x16]|\x03(\d{0,2})(?:,(\d{1,2}))?/g;
 
     // Maintain a small state machine of which tags are open so we can close the right
@@ -283,13 +283,14 @@ export function ircToHtml(text: string): string {
             case STYLE_UNDERLINE:
                 return htmlTag(state, 'u');
 
-            case REVERSE_CODE:
+            case REVERSE_CODE: {
                 // Swap the foreground and background colours.
                 const temp = state.color;
                 state.color = state.bcolor;
                 state.bcolor = temp;
                 // Close and re-open the font tag.
                 return htmlTag(state, 'font', false) + htmlTag(state, 'font', true);
+            }
 
             case RESET_CODE:
                 // Close tags

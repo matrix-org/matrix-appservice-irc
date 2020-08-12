@@ -9,9 +9,13 @@
   },
   "env": {
     "node": true,
+    "es6": true,
     "jasmine": true
   },
-  "extends": ["plugin:@typescript-eslint/recommended"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
   "rules": {
     "consistent-return": 2,
     "curly": 1,
@@ -55,6 +59,8 @@
     "no-unexpected-multiline": 2,
     "no-unused-expressions": 2,
     "no-use-before-define": [1, "nofunc"],
+    "no-useless-escape": 0,
+    "no-var": 2,
     "use-isnan": 2,
     "valid-typeof": 2,
     "array-bracket-spacing": [1, "never"],
@@ -78,6 +84,7 @@
     "@typescript-eslint/ban-ts-ignore": 0,
     "no-unused-vars": 0, // covered by @typescript-eslint/no-unused-vars
     "strict": ["error", "never" ],
-    "no-var": 2
+    "eqeqeq": 2,
+    "prefer-const": 2
   }
 }

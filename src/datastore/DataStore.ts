@@ -176,5 +176,7 @@ export interface DataStore {
 
     deactivateUser(userId: string): Promise<void>;
 
+    getRoomCount(): Promise<number>;
+
     destroy(): Promise<void>;
 }

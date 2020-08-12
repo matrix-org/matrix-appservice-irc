@@ -88,7 +88,7 @@ import { ProcessedDict } from "../util/ProcessedDict";
 import { getLogger } from "../logging";
 import { Bridge } from "matrix-appservice-bridge";
 import { ClientPool } from "./ClientPool";
-import { BridgedClient } from "./BridgedClient";
+import { BridgedClient, BridgedClientStatus } from "./BridgedClient";
 import { IrcMessage, ConnectionInstance } from "./ConnectionInstance";
 import { IrcHandler } from "../bridge/IrcHandler";
 
@@ -244,7 +244,7 @@ export class IrcEventBroker {
             // listen for PMs for clients. If you listen for rooms, you'll get
             // duplicates since the bot will also invoke the callback fn!
         connInst.addListener("message", (from: string, to: string, text: string) => {
-            if (to.indexOf("#") === 0) { return; }
+            if (to.startsWith("#")) { return; }
             const req = createRequest();
             complete(req, ircHandler.onPrivateMessage(
                 req,
@@ -253,7 +253,7 @@ export class IrcEventBroker {
             ));
         });
         connInst.addListener("notice", (from: string, to: string, text: string) => {
-            if (!from || to.indexOf("#") === 0) { return; }
+            if (!from || to.startsWith("#")) { return; }
             const req = createRequest();
             complete(req, ircHandler.onPrivateMessage(
                 req,
@@ -262,8 +262,8 @@ export class IrcEventBroker {
             ));
         });
         connInst.addListener("ctcp-privmsg", (from: string, to: string, text: string) => {
-            if (to.indexOf("#") === 0) { return; }
-            if (text.indexOf("ACTION ") === 0) {
+            if (to.startsWith("#")) { return; }
+            if (text.startsWith("ACTION ")) {
                 const req = createRequest();
                 complete(req, ircHandler.onPrivateMessage(
                     req,
@@ -354,7 +354,7 @@ export class IrcEventBroker {
             }
             // chain off an onMode after the onJoin has been processed.
             return promise.then(() => {
-                if (!client.unsafeClient) {
+                if (client.status !== BridgedClientStatus.CONNECTED) {
                     req.log.error("No client exists to set onMode for " + name.nick);
                     return null;
                 }
@@ -370,14 +370,14 @@ export class IrcEventBroker {
                         prefixLetter = prefix;
                         continue;
                     }
-                    if (client.unsafeClient.isUserPrefixMorePowerfulThan(prefixLetter, prefix)) {
+                    if (client.isUserPrefixMorePowerfulThan(prefixLetter, prefix)) {
                         prefixLetter = prefix;
                     }
                 }
                 if (!prefixLetter) {
                     return null;
                 }
-                const modeLetter = client.unsafeClient.modeForPrefix[prefixLetter];
+                const modeLetter = client.modeForPrefix(prefixLetter);
                 if (!modeLetter) {
                     return null;
                 }
@@ -430,7 +430,7 @@ export class IrcEventBroker {
             ));
         });
         this.hookIfClaimed(client, connInst, "message", (from: string, to: string, text: string) => {
-            if (to.indexOf("#") !== 0) { return; }
+            if (!to.startsWith("#")) { return; }
             const req = createRequest();
             this.bufferRequestToChannel(to, () => {
                 return complete(req, ircHandler.onMessage(
@@ -440,8 +440,8 @@ export class IrcEventBroker {
             }, req);
         });
         this.hookIfClaimed(client, connInst, "ctcp-privmsg", function(from: string, to: string, text: string) {
-            if (to.indexOf("#") !== 0) { return; }
-            if (text.indexOf("ACTION ") === 0) {
+            if (!to.startsWith("#")) { return; }
+            if (text.startsWith("ACTION ")) {
                 const req = createRequest();
                 complete(req, ircHandler.onMessage(
                     req, server, createUser(from), to,
@@ -450,7 +450,7 @@ export class IrcEventBroker {
             }
         });
         this.hookIfClaimed(client, connInst, "notice", (from: string, to: string, text: string) => {
-            if (to.indexOf("#") !== 0) { return; }
+            if (!to.startsWith("#")) { return; }
             if (!from) { // ignore server notices
                 return;
             }
@@ -462,9 +462,9 @@ export class IrcEventBroker {
             }, req);
         });
         this.hookIfClaimed(client, connInst, "topic", function(channel: string, topic: string, nick: string) {
-            if (channel.indexOf("#") !== 0) { return; }
+            if (!channel.startsWith("#")) { return; }
 
-            if (nick && nick.indexOf("@") !== -1) {
+            if (nick && nick.includes("@")) {
                 const match = nick.match(
                     // https://github.com/martynsmith/node-irc/blob/master/lib/parse_message.js#L26
                     /^([_a-zA-Z0-9\[\]\\`^{}|-]*)(!([^@]+)@(.*))?$/

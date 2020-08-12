@@ -3,6 +3,7 @@ import { IrcBridge } from "./IrcBridge";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcServer } from "../irc/IrcServer";
 import { MatrixRoom } from "matrix-appservice-bridge";
+import { BridgedClientStatus } from "../irc/BridgedClient";
 const log = getLogger("RoomAccessSyncer");
 
 const MODES_TO_WATCH = [
@@ -123,12 +124,11 @@ export class RoomAccessSyncer {
         let userId = null;
         if (nick !== null && bridgedClient) {
             userId = bridgedClient.userId;
-            if (!bridgedClient.unsafeClient) {
+            if (bridgedClient.status !== BridgedClientStatus.CONNECTED) {
                 req.log.info(`Bridged client for ${nick} has no IRC client.`);
                 return;
             }
-            const client = bridgedClient.unsafeClient;
-            const chanData = client.chanData(channel);
+            const chanData = bridgedClient.chanData(channel);
             if (!(chanData && chanData.users)) {
                 req.log.error(`No channel data for ${channel}`);
                 return;
@@ -136,8 +136,8 @@ export class RoomAccessSyncer {
             const userPrefixes = chanData.users[nick] as string;
             userPrefixes.split('').forEach(
                 prefix => {
-                    const m = client.modeForPrefix[prefix];
-                    if (modeToPower[m] !== undefined) {
+                    const m = bridgedClient.modeForPrefix(prefix);
+                    if (m && modeToPower[m] !== undefined) {
                         userPowers.push(modeToPower[m]);
                     }
                 }

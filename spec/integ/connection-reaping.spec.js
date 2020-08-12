@@ -57,9 +57,9 @@ describe("Connection reaping", function() {
             room_id: roomMapping.roomId,
             type: "foo.notamessage",
         });
-        const res = await env.ircBridge.activityTracker.isUserOnline(testUser.id, 1000);
+        const res = await env.ircBridge.activityTracker.isUserOnline(testUser.id, 10000);
         expect(res.online).toBeTruthy();
-        expect(res.inactiveMs).toBeLessThanOrEqual(50);
+        expect(res.inactiveMs).toBeLessThanOrEqual(5000);
     });
 
     it("users last active status should be stored in the database", async () => {

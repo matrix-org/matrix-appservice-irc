@@ -1,0 +1,1 @@
+Media URLs now include the filename when sent to IRC.
