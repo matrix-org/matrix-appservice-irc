@@ -325,6 +325,8 @@ export class IrcBridge {
                     }
                     activeUsers.set({remote: "true"}, remote);
                     activeUsers.set({remote: "false"}, matrix);
+                }).catch((ex) => {
+                    log.warn("Failed to scrape for user activity", ex);
                 });
             }
 
