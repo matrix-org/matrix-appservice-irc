@@ -168,9 +168,6 @@ export class IrcBridge {
         // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
         MatrixUser.ESCAPE_DEFAULT = false;
 
-        if (this.config.ircService.metrics && this.config.ircService.metrics.enabled) {
-            this.initialiseMetrics();
-        }
         this.publicitySyncer = new PublicitySyncer(this);
 
         const homeserverToken = this.registration.getHomeserverToken();
@@ -185,7 +182,7 @@ export class IrcBridge {
 
     }
 
-    private initialiseMetrics() {
+    private initialiseMetrics(bindPort: number) {
         const zeroAge = new PrometheusMetrics.AgeCounters();
         const registry = new Registry();
 
@@ -198,11 +195,10 @@ export class IrcBridge {
         const usingRemoteMetrics = !!this.config.ircService.metrics.port;
 
         const metrics = this.bridge.getPrometheusMetrics(!usingRemoteMetrics, registry);
-
+        let metricsUrl = `${this.config.homeserver.bindHostname || "0.0.0.0"}:${bindPort}`;
         if (this.config.ircService.metrics.port) {
-            log.info(
-            `Started metrics on http://${this.config.ircService.metrics.host}:${this.config.ircService.metrics.port}`
-            );
+            const hostname = this.config.ircService.metrics.host || this.config.homeserver.bindHostname || "0.0.0.0";
+            metricsUrl = `${hostname}:${this.config.ircService.metrics.port}`;
             spawnMetricsWorker(
                 this.config.ircService.metrics.port,
                 this.config.ircService.metrics.host,
@@ -212,6 +208,7 @@ export class IrcBridge {
                 },
             );
         }
+        log.info(`Started metrics on http://${metricsUrl}`);
 
         this.bridge.registerBridgeGauges(() => {
             const remoteUsersByAge = new PrometheusMetrics.AgeCounters(
@@ -386,6 +383,10 @@ export class IrcBridge {
         // cli port, then config port, then default port
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
+
+        if (this.config.ircService.metrics && this.config.ircService.metrics.enabled) {
+            this.initialiseMetrics(port);
+        }
 
         if (dbConfig.engine === "postgres") {
             log.info("Using PgDataStore for Datastore");
