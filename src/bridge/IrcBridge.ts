@@ -45,6 +45,7 @@ const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
 const TXN_SIZE_DEFAULT = 10000000 // 10MB
+export const METRIC_ACTIVE_USERS = "active_users";
 
 export class IrcBridge {
     public static readonly DEFAULT_LOCALPART = "appservice-irc";
@@ -167,9 +168,6 @@ export class IrcBridge {
         // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
         MatrixUser.ESCAPE_DEFAULT = false;
 
-        if (this.config.ircService.metrics && this.config.ircService.metrics.enabled) {
-            this.initialiseMetrics();
-        }
         this.publicitySyncer = new PublicitySyncer(this);
 
         const homeserverToken = this.registration.getHomeserverToken();
@@ -184,18 +182,23 @@ export class IrcBridge {
 
     }
 
-    private initialiseMetrics() {
+    private initialiseMetrics(bindPort: number) {
         const zeroAge = new PrometheusMetrics.AgeCounters();
         const registry = new Registry();
+
+        if (!this.config.ircService.metrics) {
+            return;
+        }
+
+        const { userActivityThresholdHours, remoteUserAgeBuckets } = this.config.ircService.metrics;
 
         const usingRemoteMetrics = !!this.config.ircService.metrics.port;
 
         const metrics = this.bridge.getPrometheusMetrics(!usingRemoteMetrics, registry);
-
+        let metricsUrl = `${this.config.homeserver.bindHostname || "0.0.0.0"}:${bindPort}`;
         if (this.config.ircService.metrics.port) {
-            log.info(
-            `Started metrics on http://${this.config.ircService.metrics.host}:${this.config.ircService.metrics.port}`
-            );
+            const hostname = this.config.ircService.metrics.host || this.config.homeserver.bindHostname || "0.0.0.0";
+            metricsUrl = `${hostname}:${this.config.ircService.metrics.port}`;
             spawnMetricsWorker(
                 this.config.ircService.metrics.port,
                 this.config.ircService.metrics.host,
@@ -205,10 +208,11 @@ export class IrcBridge {
                 },
             );
         }
+        log.info(`Started metrics on http://${metricsUrl}`);
 
         this.bridge.registerBridgeGauges(() => {
             const remoteUsersByAge = new PrometheusMetrics.AgeCounters(
-                this.config.ircService.metrics.remoteUserAgeBuckets || ["1h", "1d", "1w"]
+                remoteUserAgeBuckets || ["1h", "1d", "1w"]
             );
 
             this.ircServers.forEach((server) => {
@@ -266,6 +270,12 @@ export class IrcBridge {
             labels: ["server"]
         });
 
+        const activeUsers = metrics.addGauge({
+            name: METRIC_ACTIVE_USERS,
+            help: "Numer of users actively using the bridge.",
+            labels: ["remote"],
+        });
+
         const ircHandlerCalls = metrics.addCounter({
             name: "irchandler_calls",
             help: "Track calls made to the IRC Handler",
@@ -295,6 +305,32 @@ export class IrcBridge {
                     mxMetrics["connection_failure_kicks"] || 0
                 );
             });
+
+            if (userActivityThresholdHours) {
+                // Only collect if defined
+                const currentTime = Date.now();
+                const appserviceBot = this.bridge.getBot();
+                this.dataStore.getLastSeenTimeForUsers().then((userSet) => {
+                    let remote = 0;
+                    let matrix = 0;
+                    for (const user of userSet) {
+                        const timeOffset = (currentTime - user.ts) / (60*60*1000); // Hours
+                        if (timeOffset > userActivityThresholdHours) {
+                            return;
+                        }
+                        else if (appserviceBot.isRemoteUser(user.user_id)) {
+                            remote++;
+                        }
+                        else {
+                            matrix++;
+                        }
+                    }
+                    activeUsers.set({remote: "true"}, remote);
+                    activeUsers.set({remote: "false"}, matrix);
+                }).catch((ex) => {
+                    log.warn("Failed to scrape for user activity", ex);
+                });
+            }
 
             Object.keys(this.memberListSyncers).forEach((server) => {
                 memberListLeaveQueue.set(
@@ -347,6 +383,10 @@ export class IrcBridge {
         // cli port, then config port, then default port
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
+
+        if (this.config.ircService.metrics && this.config.ircService.metrics.enabled) {
+            this.initialiseMetrics(port);
+        }
 
         if (dbConfig.engine === "postgres") {
             log.info("Using PgDataStore for Datastore");
@@ -685,9 +725,12 @@ export class IrcBridge {
     private async _onEvent (baseRequest: Request): Promise<BridgeRequestErr|undefined> {
         const event = baseRequest.getData();
         let updatePromise: Promise<void>|null = null;
-        if (event.sender && this.activityTracker) {
+        if (event.sender && (this.activityTracker ||
+            this.config.ircService.metrics?.userActivityThresholdHours !== undefined)) {
             updatePromise = this.dataStore.updateLastSeenTimeForUser(event.sender);
-            this.activityTracker.bumpLastActiveTime(event.sender);
+            if (this.activityTracker) {
+                this.activityTracker.bumpLastActiveTime(event.sender);
+            }
         }
         const request = new BridgeRequest(baseRequest);
         if (event.type === "m.room.message") {
