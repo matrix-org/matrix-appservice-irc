@@ -198,11 +198,9 @@ export class IrcBridge {
         const usingRemoteMetrics = !!this.config.ircService.metrics.port;
 
         const metrics = this.bridge.getPrometheusMetrics(!usingRemoteMetrics, registry);
-
+        let metricsUrl = `${this.config.homeserver.bindHostname || "0.0.0.0"}:${this.config.homeserver.bindPort}`;
         if (this.config.ircService.metrics.port) {
-            log.info(
-            `Started metrics on http://${this.config.ircService.metrics.host}:${this.config.ircService.metrics.port}`
-            );
+            metricsUrl = `${this.config.ircService.metrics.host}:${this.config.ircService.metrics.port}`;
             spawnMetricsWorker(
                 this.config.ircService.metrics.port,
                 this.config.ircService.metrics.host,
@@ -212,6 +210,7 @@ export class IrcBridge {
                 },
             );
         }
+        log.info(`Started metrics on http://${metricsUrl}`);
 
         this.bridge.registerBridgeGauges(() => {
             const remoteUsersByAge = new PrometheusMetrics.AgeCounters(
