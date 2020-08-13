@@ -493,7 +493,19 @@ export class ClientPool {
         return [...users.userIds.keys()];
     }
 
-    private getNumberOfConnections(server: IrcServer): number {
+    public getConnectionStatesForAllServers() {
+        const stateSet: {[server: string]: {[clientState: string]: number}} = {};
+        for (const [domain, {userIds}] of Object.entries(this.virtualClients)) {
+            stateSet[domain] = {};
+            for (const client of userIds.values()) {
+                const stateName = BridgedClientStatus[client.status].toLowerCase();
+                stateSet[domain][stateName] = (stateSet[domain][stateName] || 0) + 1;
+            }
+        }
+        return stateSet;
+    }
+
+    private getNumberOfConnections(server?: IrcServer): number {
         if (!server || !this.virtualClients[server.domain]) { return 0; }
         return this.virtualClients[server.domain].userIds.size;
     }
