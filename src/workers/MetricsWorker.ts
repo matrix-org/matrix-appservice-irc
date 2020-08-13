@@ -59,6 +59,7 @@ function workerThread() {
             if (res.finished) {
                 // Sometimes a message will come in far too late because we've already
                 // sent an empty response. Drop it here.
+                return;
             }
             res.writeHead(200);
             writeAndEnd(res, `${dump}\n${registry.metrics()}`);
