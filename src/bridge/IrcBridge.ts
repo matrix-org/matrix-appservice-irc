@@ -410,8 +410,6 @@ export class IrcBridge {
 
         await this.dataStore.removeConfigMappings();
 
-        this.clientPool = new ClientPool(this, this.dataStore);
-
         if (this.config.ircService.debugApi.enabled) {
             this.debugApi = new DebugApi(
                 this,
@@ -453,6 +451,8 @@ export class IrcBridge {
             await this.dataStore.setServerFromConfig(server, completeConfig);
             this.ircServers.push(server);
         }
+
+        this.clientPool = new ClientPool(this, this.dataStore);
 
         if (this.ircServers.length === 0) {
             throw Error("No IRC servers specified.");

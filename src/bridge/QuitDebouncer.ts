@@ -16,7 +16,9 @@ export class QuitDebouncer {
 
     private quitProcessQueue: Queue<{channel: string; server: IrcServer}>;
 
-    constructor(domains: string[], private handleQuit: (item: {channel: string; server: IrcServer}) => Promise<void>) {
+    constructor(
+        servers: IrcServer[],
+        private handleQuit: (item: {channel: string; server: IrcServer}) => Promise<void>) {
         // Measure the probability of a net-split having just happened using QUIT frequency.
         // This is to smooth incoming PART spam from IRC clients that suffer from a
         // net-split (or other issues that lead to mass PART-ings)
@@ -26,7 +28,7 @@ export class QuitDebouncer {
         // Keep a track of the times at which debounceQuit was called, and use this to
         // determine the rate at which quits are being received. This can then be used
         // to detect net splits.
-        Object.keys(domains).forEach((domain) => {
+        Object.values(servers).forEach(({domain}) => {
             this.debouncerForServer[domain] = {
                 quitTimestampsMs: [],
                 splitChannelUsers: new Map(),
@@ -79,7 +81,7 @@ export class QuitDebouncer {
      */
     public debounceQuit (nick: string, server: IrcServer, channels: string[]): boolean {
         if (!server.shouldDebounceQuits()) {
-            return false;
+            return true;
         }
         // Maintain the last windowMs worth of timestamps corresponding with calls to this function.
         const debouncer = this.debouncerForServer[server.domain];
@@ -95,7 +97,7 @@ export class QuitDebouncer {
         );
 
         // Wait for a short time to allow other potential splitters to send QUITs
-        const isSplitOccuring = debouncer.quitTimestampsMs.length > threshold;
+        const isSplitOccuring = true || debouncer.quitTimestampsMs.length > threshold;
 
         // Bridge QUITs if a net split is not occurring. This is in the case where a QUIT is
         // received for reasons such as ping timeout or IRC client (G)UI being killed.
@@ -105,7 +107,7 @@ export class QuitDebouncer {
             return true;
         }
 
-        log.info(`Dropping QUIT for ${nick}`);
+        log.debug(`Dropping QUIT for ${nick}`);
         channels.forEach((channel) => {
             if (!debouncer.splitChannelUsers.has(channel)) {
                 debouncer.splitChannelUsers.set(channel, new Set());

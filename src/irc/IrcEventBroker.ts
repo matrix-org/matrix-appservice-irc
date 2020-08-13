@@ -114,7 +114,7 @@ export class IrcEventBroker {
         private readonly appServiceBridge: Bridge,
         private readonly pool: ClientPool,
         private readonly ircHandler: IrcHandler,
-        private readonly servers: string[]) {
+        servers: IrcServer[]) {
         this.processed = new ProcessedDict();
         this.processed.startCleaner(log);
         this.quitDebouncer = new QuitDebouncer(servers, this.handleDebouncedQuit.bind(this));
@@ -210,7 +210,7 @@ export class IrcEventBroker {
     /**
      * This function is called when the quit debouncer has deemed it safe to start sending
      * quits from users who were debounced.
-     * @param item 
+     * @param item The channel/server pair to send QUITs from
      */
     private async handleDebouncedQuit(item: {channel: string; server: IrcServer}) {
         const createUser = (nick: string) => {
