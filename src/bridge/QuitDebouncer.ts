@@ -14,9 +14,9 @@ export class QuitDebouncer {
         };
     };
 
-    private quitProcessQueue: Queue<{channel: string; server: IrcServer; nicks: string[]}>;
+    private quitProcessQueue: Queue<{channel: string; server: IrcServer}>;
 
-    constructor(domains: string[], private handleQuit: (item: {channel: string; server: IrcServer; nicks: string[]}) => Promise<void>) {
+    constructor(domains: string[], private handleQuit: (item: {channel: string; server: IrcServer}) => Promise<void>) {
         // Measure the probability of a net-split having just happened using QUIT frequency.
         // This is to smooth incoming PART spam from IRC clients that suffer from a
         // net-split (or other issues that lead to mass PART-ings)
@@ -44,16 +44,28 @@ export class QuitDebouncer {
         if (!this.debouncerForServer[server.domain]) {
             return;
         }
-        const map = this.debouncerForServer[server.domain].splitChannelUsers.get(channel);
-        if (!map) {
+        const set = this.debouncerForServer[server.domain].splitChannelUsers.get(channel);
+        if (!set) {
             return;
         }
-        map.delete(nick);
+        set.delete(nick);
 
-        if (map.size === 0) {
+        if (set.size === 0) {
             return;
         }
-        this.quitProcessQueue.enqueue(channel+server.domain, {channel, server, nicks: [...map.values()]});
+        this.quitProcessQueue.enqueue(channel+server.domain, {channel, server});
+    }
+
+    /**
+     * Get a list of nicknames that have been QUIT from a channel.
+     * @param channel The IRC channel
+     * @param server The IRC server
+     */
+    public getQuitNicksForChannel(channel: string, server: IrcServer) {
+        // A little hint on iterators here:
+        // You can return values() (an IterableIterator<string>) and if the Set gets modified,
+        // the iterator will skip the value that was deleted.
+        return this.debouncerForServer[server.domain].splitChannelUsers.get(channel)?.values() || [];
     }
 
     /**
@@ -66,6 +78,9 @@ export class QuitDebouncer {
      * @return {Promise} which resolves to true if a leave should be sent, false otherwise.
      */
     public debounceQuit (nick: string, server: IrcServer, channels: string[]): boolean {
+        if (!server.shouldDebounceQuits()) {
+            return false;
+        }
         // Maintain the last windowMs worth of timestamps corresponding with calls to this function.
         const debouncer = this.debouncerForServer[server.domain];
 
@@ -95,6 +110,7 @@ export class QuitDebouncer {
             if (!debouncer.splitChannelUsers.has(channel)) {
                 debouncer.splitChannelUsers.set(channel, new Set());
             }
+            // We've already checked above.
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             debouncer.splitChannelUsers.get(channel)!.add(nick);
         })

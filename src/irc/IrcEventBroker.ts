@@ -207,7 +207,12 @@ export class IrcEventBroker {
         });
     }
 
-    public async handleDebouncedQuit(item: {channel: string; server: IrcServer; nicks: string[]}) {
+    /**
+     * This function is called when the quit debouncer has deemed it safe to start sending
+     * quits from users who were debounced.
+     * @param item 
+     */
+    private async handleDebouncedQuit(item: {channel: string; server: IrcServer}) {
         const createUser = (nick: string) => {
             return new IrcUser(
                 item.server, nick,
@@ -225,9 +230,9 @@ export class IrcEventBroker {
             );
         };
         const req = createRequest();
-        log.info(`Sending delayed QUITs for ${item.channel} with nicks ${item.nicks}`)
-        for (const nick of item.nicks) {
-            complete(req, this.ircHandler.onPart(
+        log.info(`Sending delayed QUITs for ${item.channel}`);
+        for (const nick of this.quitDebouncer.getQuitNicksForChannel(item.channel, item.server)) {
+            await complete(req, this.ircHandler.onPart(
                 req, item.server, createUser(nick), item.channel, "quit"
             ));
         }
@@ -333,7 +338,8 @@ export class IrcEventBroker {
         });
         this.hookIfClaimed(client, connInst, "quit", (nick: string, reason: string, chans: string[]) => {
             chans = chans || [];
-            if (!server.shouldDebounceQuits() || this.quitDebouncer.debounceQuit(nick, server, chans)) {
+            // True if a leave should be sent, otherwise false.
+            if (this.quitDebouncer.debounceQuit(nick, server, chans)) {
                 chans.forEach((chan) => {
                     const req = createRequest();
                     complete(req, ircHandler.onPart(
