@@ -24,7 +24,7 @@ import { inspect } from "util";
 import { DataStore } from "./datastore/DataStore";
 import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
-import { BridgedClient } from "./irc/BridgedClient";
+import { BridgedClient, BridgedClientStatus } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { ProvisionRequest } from "./provisioning/ProvisionRequest";
 import { getBridgeVersion } from "./util/PackageInfo";
@@ -251,8 +251,7 @@ export class DebugApi {
                 "User " + user + " does not have a client on " + server.domain + "\n"
             );
         }
-        const connection = client.unsafeClient && client.unsafeClient.conn;
-        if (!client.unsafeClient || !connection) {
+        if (client.status !== BridgedClientStatus.CONNECTED) {
             return Bluebird.resolve(
                 "There is no underlying client instance.\n"
             );
@@ -261,25 +260,23 @@ export class DebugApi {
         // store all received response strings
         const buffer: string[] = [];
         // "raw" can take many forms
-        const listener = (msg: object) => {
+        const listener = (msg: unknown) => {
             buffer.push(JSON.stringify(msg));
         }
 
-        client.unsafeClient.on("raw", listener);
+        client.addClientListener("raw", listener);
         // turn rn to n so if there are any new lines they are all n.
         body = body.replace("\r\n", "\n");
         body.split("\n").forEach((c: string) => {
             // IRC protocol require rn
-            connection.write(c + "\r\n");
+            client.writeToConnection(c + "\r\n");
             buffer.push(c);
         });
 
         // wait 3s to pool responses
         return Bluebird.delay(3000).then(function() {
             // unhook listener to avoid leaking
-            if (client.unsafeClient) {
-                client.unsafeClient.removeListener("raw", listener);
-            }
+            client.removeClientListener("raw", listener);
             return buffer.join("\n") + "\n";
         });
     }

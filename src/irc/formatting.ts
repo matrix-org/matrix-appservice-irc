@@ -107,7 +107,7 @@ export function htmlTag(state: StyleState, name: string, open?: boolean): string
     let text = '';
 
     if (typeof open === 'undefined') {
-        open = (state.history.indexOf(name) === -1);
+        open = !state.history.includes(name);
     }
 
     if (open) {
@@ -205,7 +205,7 @@ export function htmlToIrc(html?: string): string|null {
     let replacement;
     for (let i = 0; i < cleanHtml.length; i++) {
         const ch = cleanHtml[i];
-        if (STYLE_CODES.indexOf(ch) >= 0) {
+        if (STYLE_CODES.includes(ch)) {
             openStyleCodes.push(ch);
         }
         else if (ch === "<") {

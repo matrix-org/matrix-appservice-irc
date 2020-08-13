@@ -171,7 +171,7 @@ export class AdminRoomHandler {
         const ircChannel = args[0];
         const key = args[1]; // keys can't have spaces in them, so we can just do this.
         let errText = null;
-        if (!ircChannel || ircChannel.indexOf("#") !== 0) {
+        if (!ircChannel || !ircChannel.startsWith("#")) {
             errText = "Format: '!join irc.example.com #channel [key]'";
         }
         else if (!server.canJoinRooms(sender)) {
@@ -287,11 +287,7 @@ export class AdminRoomHandler {
                 server, sender
             );
 
-            if (!bridgedClient.unsafeClient) {
-                throw new Error('Possibly disconnected');
-            }
-
-            bridgedClient.unsafeClient.send(...sendArgs);
+            bridgedClient.sendCommands(...sendArgs);
         }
         catch (err) {
             const notice = new MatrixAction("notice", `${err}\n` );
