@@ -356,12 +356,7 @@ export class IrcBridge {
         });
 
         metrics.addCollector(async () => {
-            clientStates.reset();
-            for (const [server, states] of Object.entries(this.clientPool.getConnectionStatesForAllServers())) {
-                for (const [state, value] of Object.entries(states)) {
-                    clientStates.set({server, state}, value);
-                }
-            }
+            this.clientPool.collectConnectionStatesForAllServers(clientStates);
         });
     }
 

@@ -27,6 +27,7 @@ import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
 import { DataStore } from "../datastore/DataStore";
+import { Gauge } from "prom-client";
 const log = getLogger("ClientPool");
 
 interface ReconnectionItem {
@@ -493,16 +494,14 @@ export class ClientPool {
         return [...users.userIds.keys()];
     }
 
-    public getConnectionStatesForAllServers() {
-        const stateSet: {[server: string]: {[clientState: string]: number}} = {};
+    public collectConnectionStatesForAllServers(gauge: Gauge<string>) {
+        gauge.reset();
         for (const [domain, {userIds}] of Object.entries(this.virtualClients)) {
-            stateSet[domain] = {};
             for (const client of userIds.values()) {
-                const stateName = BridgedClientStatus[client.status].toLowerCase();
-                stateSet[domain][stateName] = (stateSet[domain][stateName] || 0) + 1;
+                const state = BridgedClientStatus[client.status].toLowerCase();
+                gauge.inc({ server: domain, state});
             }
         }
-        return stateSet;
     }
 
     private getNumberOfConnections(server?: IrcServer): number {
