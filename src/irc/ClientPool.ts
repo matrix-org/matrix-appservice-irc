@@ -560,6 +560,7 @@ export class ClientPool {
             log.info(
                 `Dropping ${bridgedClient.id} (${bridgedClient.nick}) because they are not joined to any channels`
             );
+            (bridgedClient as unknown) = undefined;
             return;
         }
 
@@ -567,6 +568,9 @@ export class ClientPool {
             log.info(`Dropping ${bridgedClient.id} (${bridgedClient.nick}) because explicitDisconnect is true`);
             // don't reconnect users which explicitly disconnected e.g. client
             // cycling, idle timeouts, leaving rooms, etc.
+            // remove ref to the disconnected client so it can be GC'd. If we don't do this,
+            // the timeout below holds it in a closure, preventing it from being GC'd.
+            (bridgedClient as unknown) = undefined;
             return;
         }
         // Reconnect this user
