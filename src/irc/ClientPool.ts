@@ -215,7 +215,7 @@ export class ClientPool {
             return bridgedClient;
         }
 
-        log.debug(
+        log.info(
             "Creating virtual irc user with nick %s for %s (display name %s)",
             ircClientConfig.getDesiredNick(), userId, displayName
         );
@@ -320,7 +320,10 @@ export class ClientPool {
 
         // Does this server have a max clients limit? If so, check if the limit is
         // reached and start cycling based on oldest time.
-        this.checkClientLimit(server);
+        this.checkClientLimit(server).catch((ex) => {
+            // This will be run asyncronously
+            log.error("Failed to check limits: ", ex);
+        })  
         return bridgedClient;
     }
 
