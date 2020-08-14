@@ -323,7 +323,7 @@ export class ClientPool {
         this.checkClientLimit(server).catch((ex) => {
             // This will be run asyncronously
             log.error("Failed to check limits: ", ex);
-        })  
+        });
         return bridgedClient;
     }
 
@@ -537,17 +537,19 @@ export class ClientPool {
     private async onClientDisconnected(bridgedClient: BridgedClient) {
         this.removeBridgedClient(bridgedClient);
 
-        log.warn(`Client ${bridgedClient.id} disconnected with reason ${bridgedClient.disconnectReason}`);
+        const { userId, disconnectReason } = bridgedClient;
+
+        log.warn(`Client ${bridgedClient.id} (${userId}) disconnected with reason ${disconnectReason}`);
 
         // remove the pending nick we had set for this user
         if (this.virtualClients[bridgedClient.server.domain]) {
             this.virtualClients[bridgedClient.server.domain].pending.delete(bridgedClient.nick);
         }
 
-        if (bridgedClient.disconnectReason === "banned" && bridgedClient.userId) {
+        if (disconnectReason === "banned" && userId) {
             const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
             this.ircBridge.matrixHandler.quitUser(
-                req, bridgedClient.userId, [bridgedClient],
+                req, userId, [bridgedClient],
                 null, "User was banned from the network"
             );
         }
@@ -555,7 +557,7 @@ export class ClientPool {
         const isBot = bridgedClient.isBot;
         const chanList = bridgedClient.chanList;
 
-        if (chanList.length === 0 && !isBot && bridgedClient.disconnectReason !== "iwanttoreconnect") {
+        if (chanList.length === 0 && !isBot && disconnectReason !== "iwanttoreconnect") {
             // Never drop the bot, or users that really want to reconnect.
             log.info(
                 `Dropping ${bridgedClient.id} (${bridgedClient.nick}) because they are not joined to any channels`
@@ -578,9 +580,9 @@ export class ClientPool {
         // makes sure that the client attempts to reconnect with the *SAME* nick, and also draws
         // from the latest !nick change, as the client config here may be very very old.
         let cliConfig = bridgedClient.getClientConfig();
-        if (bridgedClient.userId) {
+        if (userId) {
             // We may have changed something between connections, so use the new config.
-            const newConfig = await this.store.getIrcClientConfig(bridgedClient.userId, bridgedClient.server.domain);
+            const newConfig = await this.store.getIrcClientConfig(userId, bridgedClient.server.domain);
             if (newConfig) {
                 cliConfig = newConfig;
             }
