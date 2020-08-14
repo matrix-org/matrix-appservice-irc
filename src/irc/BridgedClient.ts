@@ -157,6 +157,7 @@ export class BridgedClient extends EventEmitter {
                 log.error(`${prefix}${msg}`, ...args);
             }
         };
+        this.log.info(`Created client for ${this.userId || "bot"}`);
     }
 
     public get explicitDisconnect() {
