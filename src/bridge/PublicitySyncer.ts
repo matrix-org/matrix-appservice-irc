@@ -152,9 +152,12 @@ export class PublicitySyncer {
             ...await this.ircBridge.getStore().getRoomsVisibility(roomIds),
         };
 
-        const promises = roomIds.map(async (roomId) => {
+        const correctState = this.visibilityMap.channelIsSecret[channel] ? 'private' : 'public';
+
+        log.info(`Solved visibility rules for ${channel} (${server.getNetworkId()}): ${correctState}`);
+
+        return Promise.all(roomIds.map(async (roomId) => {
             const currentState = currentStates[roomId];
-            const correctState: "private"|"public" = this.visibilityMap.channelIsSecret[channel] ? 'private' : 'public';
 
             // Use the server network ID of the first mapping
             // 'funNetwork #channel1' => 'funNetwork'
@@ -171,8 +174,6 @@ export class PublicitySyncer {
                     log.error(`Failed to setRoomDirectoryVisibility (${ex.message})`);
                 }
             }
-        });
-
-        return Promise.all(promises);
+        }));
     }
 }
