@@ -140,52 +140,9 @@ export class PublicitySyncer {
             return key;
         });
 
-        const shouldBePrivate = (roomId: string, checkedChannels: string[]): boolean => {
-            // If any channel connected to this room is +s, stop early and call it private
-
-            // List first connected
-            let channels = this.visibilityMap.mappings[roomId];
-            //      = ['localhost #channel1', 'localhost #channel2', ... ]
-
-            // No channels mapped to this roomId
-            if (!channels) {
-                return false;
-            }
-
-            // Filter out already checked channels
-            channels = channels.filter((c) => !checkedChannels.includes(c));
-
-            const anyAreSecret = channels.some((channel) => {
-                let channelIsSecret = this.visibilityMap.channelIsSecret[channel];
-
-                // If a channel mode is unknown, assume it is secret
-                if (typeof channelIsSecret === 'undefined') {
-                    log.info('Assuming channel ' + channel + ' is secret');
-                    channelIsSecret = true;
-                }
-
-                return channelIsSecret;
-            });
-            if (anyAreSecret) {
-                return true;
-            }
-
-            // Otherwise, recurse with the rooms connected to each channel
-
-            // So get all the roomIds that this channel is mapped to and return whether any
-            //  are mapped to channels that are secret
-            return channels.map((channel) => {
-                return this.visibilityMap.networkToRooms[channel] || [];
-            }).some((roomIds2) => {
-                return roomIds2.some((roomId2) => {
-                    return shouldBePrivate(roomId2, checkedChannels.concat(channels));
-                });
-            });
-        }
-
         const cli = this.ircBridge.getAppServiceBridge().getBot().getClient();
         // Update rooms to correct visibilities
-        let currentStates: {[roomId: string]: string} = {};
+        let currentStates: {[roomId: string]: "public"|"private"} = {};
 
         // Assume private by default
         roomIds.forEach((r) => { currentStates[r] = "private" });
@@ -197,7 +154,7 @@ export class PublicitySyncer {
 
         const promises = roomIds.map(async (roomId) => {
             const currentState = currentStates[roomId];
-            const correctState: "private"|"public" = shouldBePrivate(roomId, []) ? 'private' : 'public';
+            const correctState: "private"|"public" = this.visibilityMap.channelIsSecret[channel] ? 'private' : 'public';
 
             // Use the server network ID of the first mapping
             // 'funNetwork #channel1' => 'funNetwork'
