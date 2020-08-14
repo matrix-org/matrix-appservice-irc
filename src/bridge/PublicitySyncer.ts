@@ -16,11 +16,6 @@ const log = logger("PublicitySyncer");
 
 export class PublicitySyncer {
 
-    // This is used so that any updates to the visibility map will cause the syncer to
-    // reset a timer and begin counting down again to the eventual call to solve any
-    // inconsistencies in the visibility map.
-    private solveVisibilityTimeoutId: NodeJS.Timer|null = null;
-
     // Cache the mode of each channel, the visibility of each room and the
     // known mappings between them. When any of these change, any inconsistencies
     // should be resolved by keeping the matrix side as private as necessary
@@ -45,6 +40,7 @@ export class PublicitySyncer {
         roomVisibilities: {},
     };
     constructor (private ircBridge: IrcBridge) { }
+
 
     public async initModeForChannel(server: IrcServer, chan: string) {
         try {
@@ -86,7 +82,7 @@ export class PublicitySyncer {
         return `${networkId} ${channel}`;
     }
 
-    public updateVisibilityMap(isMode: boolean, key: string, value: boolean) {
+    public updateVisibilityMap(isMode: boolean, key: string, value: boolean, channel: string, server: IrcServer) {
         let hasChanged = false;
         if (isMode) {
             if (typeof value !== 'boolean') {
@@ -109,15 +105,9 @@ export class PublicitySyncer {
         }
 
         if (hasChanged) {
-            if (this.solveVisibilityTimeoutId) {
-                clearTimeout(this.solveVisibilityTimeoutId);
-            }
-
-            this.solveVisibilityTimeoutId = setTimeout(() => {
-                this.solveVisibility().catch((err: Error) => {
-                    log.error("Failed to sync publicity: " + err.message);
-                });
-            }, 10000);
+            this.solveVisibility(channel, server).catch((err: Error) => {
+                log.error(`Failed to sync publicity for ${channel}: ` + err.message);
+            });
         }
     }
 
@@ -129,27 +119,25 @@ export class PublicitySyncer {
        then the room is assumed secret (+s).
 
        The bare minimum is done to make sure no private channels are leaked into public
-       matrix channels. If ANY +s channel is somehow being bridged into a room, that room
+       matrix rooms. If ANY +s channel is somehow being bridged into a room, that room
        is updated to private. If ALL channels somehow being bridged into a room are NOT +s,
        that room is allowed to be public.
     */
-    private async solveVisibility () {
+    private async solveVisibility (channel: string, server: IrcServer) {
         // For each room, do a big OR on all of the channels that are linked in any way
-        const mappings = await this.ircBridge.getStore().getAllChannelMappings();
-        const roomIds = Object.keys(mappings);
+        const mappings = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
+        const roomIds = mappings.map((m) => m.getId());
 
         this.visibilityMap.mappings = {};
 
         roomIds.forEach((roomId) => {
-            this.visibilityMap.mappings[roomId] = mappings[roomId].map((mapping) => {
-                const key = this.getIRCVisMapKey(mapping.networkId, mapping.channel);
-                // also assign reverse mapping for lookup speed later
-                if (!this.visibilityMap.networkToRooms[key]) {
-                    this.visibilityMap.networkToRooms[key] = [];
-                }
-                this.visibilityMap.networkToRooms[key].push(roomId);
-                return key;
-            });
+            const key = this.getIRCVisMapKey(server.getNetworkId(), channel);
+            // also assign reverse mapping for lookup speed later
+            if (!this.visibilityMap.networkToRooms[key]) {
+                this.visibilityMap.networkToRooms[key] = [];
+            }
+            this.visibilityMap.networkToRooms[key].push(roomId);
+            return key;
         });
 
         const shouldBePrivate = (roomId: string, checkedChannels: string[]): boolean => {
