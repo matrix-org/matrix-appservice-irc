@@ -1,6 +1,7 @@
 import logger from "../logging";
 import { IrcBridge } from "./IrcBridge";
 import { IrcServer } from "../irc/IrcServer";
+import { Queue } from "../util/Queue";
 
 const log = logger("PublicitySyncer");
 
@@ -39,17 +40,18 @@ export class PublicitySyncer {
         channelIsSecret: {},
         roomVisibilities: {},
     };
+    private initModeQueue: Queue<{server: IrcServer, channel: string}> = new Queue(this.initModeForChannel.bind(this));
     constructor (private ircBridge: IrcBridge) { }
 
 
-    public async initModeForChannel(server: IrcServer, chan: string) {
+    public async initModeForChannel(opts: {server: IrcServer, channel: string}) {
         try {
-            const botClient = await this.ircBridge.getBotClient(server);
-            log.info(`Bot requesting mode for ${chan} on ${server.domain}`);
-            await botClient.mode(chan);
+            const botClient = await this.ircBridge.getBotClient(opts.server);
+            log.info(`Bot requesting mode for ${opts.channel} on ${opts.server.domain}`);
+            await botClient.mode(opts.channel);
         }
         catch (err) {
-            log.error(`Could not request mode of ${chan} (${err.message})`);
+            log.error(`Could not request mode of ${opts.channel} (${err.message})`);
         }
     }
 
@@ -57,13 +59,12 @@ export class PublicitySyncer {
         //Get all channels and call modes for each one
 
         const channels = await this.ircBridge.getStore().getTrackedChannelsForServer(server.domain);
-
-        await Promise.all([...new Set(channels)].map((chan) => {
-            // Request mode for channel
-            return this.initModeForChannel(server, chan).catch((err) => {
-                log.error(err.stack);
-            });
-        }));
+        await Promise.all(channels.map((channel) => 
+            this.initModeQueue.enqueue(`${channel}@${server.domain}`, {
+                channel,
+                server,
+            })
+        ));
     }
 
     /**
