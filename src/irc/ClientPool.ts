@@ -65,6 +65,7 @@ export class ClientPool {
             this.ircBridge.getAppServiceBridge(),
             this,
             this.ircBridge.ircHandler,
+            this.ircBridge.getServers(),
         );
     }
 

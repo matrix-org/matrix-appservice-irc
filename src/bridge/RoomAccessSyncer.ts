@@ -311,7 +311,7 @@ export class RoomAccessSyncer {
             });
             // Update the visibility for all rooms connected to this channel
             this.ircBridge.publicitySyncer.updateVisibilityMap(
-                true, key, enabled
+                true, key, enabled, channel, server,
             );
         }
         // "k" and "i"

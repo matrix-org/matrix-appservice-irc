@@ -1,38 +1,37 @@
-import Bluebird from "bluebird";
 import { IrcServer } from "../irc/IrcServer";
-import { BridgeRequest } from "../models/BridgeRequest";
-import { MatrixUser } from "matrix-appservice-bridge";
-import { IrcBridge } from "../bridge/IrcBridge";
+import Log from "../logging";
+import { Queue } from "../util/Queue";
 
-const QUIT_WAIT_DELAY_MS = 100;
+const log = Log("QuitDebouncer");
+
 const QUIT_WINDOW_MS = 1000;
-const QUIT_PRESENCE = "offline";
 
 export class QuitDebouncer {
     private debouncerForServer: {
         [domain: string]: {
-            rejoinPromises: {
-                [nick: string]: {
-                    resolve: () => void;
-                };
-            };
             quitTimestampsMs: number[];
+            splitChannelUsers: Map<string, Set<string>>; //"$channel $nick"
         };
     };
 
-    constructor(private ircBridge: IrcBridge) {
+    private quitProcessQueue: Queue<{channel: string; server: IrcServer}>;
+
+    constructor(
+        servers: IrcServer[],
+        private handleQuit: (item: {channel: string; server: IrcServer}) => Promise<void>) {
         // Measure the probability of a net-split having just happened using QUIT frequency.
         // This is to smooth incoming PART spam from IRC clients that suffer from a
         // net-split (or other issues that lead to mass PART-ings)
         this.debouncerForServer = {};
+        this.quitProcessQueue = new Queue(this.handleQuit);
 
         // Keep a track of the times at which debounceQuit was called, and use this to
         // determine the rate at which quits are being received. This can then be used
         // to detect net splits.
-        Object.keys(this.ircBridge.config.ircService.servers).forEach((domain) => {
+        Object.values(servers).forEach(({domain}) => {
             this.debouncerForServer[domain] = {
-                rejoinPromises: {},
-                quitTimestampsMs: []
+                quitTimestampsMs: [],
+                splitChannelUsers: new Map(),
             };
         });
     }
@@ -43,14 +42,32 @@ export class QuitDebouncer {
      * @param {string} nick The nick of the IRC user joining.
      * @param {IrcServer} server The sending IRC server.
      */
-    public onJoin(nick: string, server: IrcServer) {
+    public onJoin(nick: string, channel: string, server: IrcServer) {
         if (!this.debouncerForServer[server.domain]) {
             return;
         }
-        const rejoin = this.debouncerForServer[server.domain].rejoinPromises[nick];
-        if (rejoin) {
-            rejoin.resolve();
+        const set = this.debouncerForServer[server.domain].splitChannelUsers.get(channel);
+        if (!set) {
+            return;
         }
+        set.delete(nick);
+
+        if (set.size === 0) {
+            return;
+        }
+        this.quitProcessQueue.enqueue(channel+server.domain, {channel, server});
+    }
+
+    /**
+     * Get a list of nicknames that have been QUIT from a channel.
+     * @param channel The IRC channel
+     * @param server The IRC server
+     */
+    public getQuitNicksForChannel(channel: string, server: IrcServer) {
+        // A little hint on iterators here:
+        // You can return values() (an IterableIterator<string>) and if the Set gets modified,
+        // the iterator will skip the value that was deleted.
+        return this.debouncerForServer[server.domain].splitChannelUsers.get(channel)?.values() || [];
     }
 
     /**
@@ -62,7 +79,10 @@ export class QuitDebouncer {
      * @param {string} nick The nick of the IRC user quiting.
      * @return {Promise} which resolves to true if a leave should be sent, false otherwise.
      */
-    public async debounceQuit (req: BridgeRequest, server: IrcServer, matrixUser: MatrixUser, nick: string) {
+    public debounceQuit (nick: string, server: IrcServer, channels: string[]): boolean {
+        if (!server.shouldDebounceQuits()) {
+            return true;
+        }
         // Maintain the last windowMs worth of timestamps corresponding with calls to this function.
         const debouncer = this.debouncerForServer[server.domain];
 
@@ -77,22 +97,7 @@ export class QuitDebouncer {
         );
 
         // Wait for a short time to allow other potential splitters to send QUITs
-        await Bluebird.delay(QUIT_WAIT_DELAY_MS);
-        const isSplitOccuring = debouncer.quitTimestampsMs.length > threshold;
-
-        // TODO: This should be replaced with "disconnected" as per matrix-appservice-irc#222
-        try {
-            await this.ircBridge.getAppServiceBridge().getIntent(
-                matrixUser.getId()
-            ).setPresence(QUIT_PRESENCE);
-        }
-        catch (err) {
-            req.log.error(
-                `QuitDebouncer Failed to set presence to ${QUIT_PRESENCE} for user %s: %s`,
-                matrixUser.getId(),
-                err.message
-            );
-        }
+        const isSplitOccuring = true || debouncer.quitTimestampsMs.length > threshold;
 
         // Bridge QUITs if a net split is not occurring. This is in the case where a QUIT is
         // received for reasons such as ping timeout or IRC client (G)UI being killed.
@@ -102,32 +107,15 @@ export class QuitDebouncer {
             return true;
         }
 
-        const debounceDelayMinMs = server.getQuitDebounceDelayMinMs();
-        const debounceDelayMaxMs = server.getQuitDebounceDelayMaxMs();
-
-        const debounceMs = debounceDelayMinMs + Math.random() * (
-            debounceDelayMaxMs - debounceDelayMinMs
-        );
-
-        // We do want to immediately bridge a leave if <= 0
-        if (debounceMs <= 0) {
-            return true;
-        }
-
-        req.log.info('Debouncing for ' + debounceMs + 'ms');
-        const promise = new Bluebird((resolve) => {
-            debouncer.rejoinPromises[nick] = {resolve};
-        }).timeout(debounceMs);
-
-        // Return whether the part should be bridged as a leave
-        try {
-            await promise;
-            // User has joined a channel, presence has been set to online, do not leave rooms
-            return false;
-        }
-        catch (err) {
-            req.log.info("User did not rejoin (%s)", err.message);
-            return true;
-        }
+        log.debug(`Dropping QUIT for ${nick}`);
+        channels.forEach((channel) => {
+            if (!debouncer.splitChannelUsers.has(channel)) {
+                debouncer.splitChannelUsers.set(channel, new Set());
+            }
+            // We've already checked above.
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            debouncer.splitChannelUsers.get(channel)!.add(nick);
+        })
+        return false;
     }
 }
