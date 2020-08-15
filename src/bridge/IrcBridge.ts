@@ -38,6 +38,7 @@ import { BridgeStateSyncer } from "./BridgeStateSyncer";
 import { Registry } from "prom-client";
 import { spawnMetricsWorker } from "../workers/MetricsWorker";
 import { getBridgeVersion } from "../util/PackageInfo";
+import { trackChannelAndCreateRoom } from "./RoomCreation";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -408,8 +409,6 @@ export class IrcBridge {
             throw Error("Incorrect database config");
         }
 
-        await this.dataStore.removeConfigMappings();
-
         this.clientPool = new ClientPool(this, this.dataStore);
 
         if (this.config.ircService.debugApi.enabled) {
@@ -542,8 +541,14 @@ export class IrcBridge {
         const requestTimeoutSeconds = this.config.ircService.provisioning.requestTimeoutSeconds;
         this.provisioner = new Provisioner(this, provisioningEnabled, requestTimeoutSeconds);
 
+
+
         log.info("Connecting to IRC networks...");
         await this.connectToIrcNetworks();
+
+        log.info("Creating rooms for mappings with no roomIds");
+        await this.autocreateMappedChannels();
+
 
         promiseutil.allSettled(this.ircServers.map((server) => {
             // Call MODE on all known channels to get modes of all channels
@@ -651,6 +656,35 @@ export class IrcBridge {
             await this.bridge.getIntent().join(roomId);
         }).map(Bluebird.cast);
         await promiseutil.allSettled(promises);
+    }
+
+    private async autocreateMappedChannels() {
+        const req = new BridgeRequest(new Request());
+        for (const server of this.ircServers) {
+            for (const ircChannel of server.getAutoCreateMappings()) {
+                const existingRooms = await this.dataStore.getMatrixRoomsForChannel(server, ircChannel.channel);
+                if (existingRooms.length > 0) {
+                    // We don't autocreate for existing channels
+                    continue;
+                }
+                // Create a fresh room!
+                try {
+                    const roomAliasName = server.getAliasFromChannel(ircChannel.channel).split(":")[0].substring(1);
+                    await trackChannelAndCreateRoom(this, req, {
+                        server,
+                        ircChannel: ircChannel.channel,
+                        key: ircChannel.key,
+                        origin: "config",
+                        roomAliasName: roomAliasName,
+                        roomVisibility: "public",
+                        shouldTrack: false, // wait for a user to join
+                    });
+                }
+                catch (ex) {
+                    log.warn("Failed to create and track room from config:", ex);
+                }
+            }
+        }
     }
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
