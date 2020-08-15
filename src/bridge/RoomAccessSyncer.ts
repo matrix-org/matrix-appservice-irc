@@ -237,7 +237,7 @@ export class RoomAccessSyncer {
             return Promise.resolve();
         }));
 
-        await Promise.all(promises);
+        return Promise.all(promises);
     }
 
     /**
@@ -303,6 +303,7 @@ export class RoomAccessSyncer {
             return;
         }
 
+        // Forcibly solve visiblity if we've just got a set of state from onModeIs
         if (mode === "s") {
             if (!server.shouldPublishRooms()) {
                 req.log.info("Not syncing publicity: shouldPublishRooms is false");

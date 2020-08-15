@@ -36,11 +36,12 @@ export class PublicitySyncer {
         channelIsSecret: {},
         roomVisibilities: {},
     };
-    private initModeQueue: Queue<{server: IrcServer, channel: string}> = new Queue(this.initModeForChannel.bind(this));
-    constructor (private ircBridge: IrcBridge) { }
+    private initModeQueue: Queue<{server: IrcServer; channel: string}>;
+    constructor (private ircBridge: IrcBridge) {
+        this.initModeQueue = new Queue(this.initModeForChannel.bind(this));
+    }
 
-
-    public async initModeForChannel(opts: {server: IrcServer, channel: string}) {
+    public async initModeForChannel(opts: {server: IrcServer; channel: string}) {
         try {
             const botClient = await this.ircBridge.getBotClient(opts.server);
             log.info(`Bot requesting mode for ${opts.channel} on ${opts.server.domain}`);
@@ -55,7 +56,7 @@ export class PublicitySyncer {
         //Get all channels and call modes for each one
 
         const channels = await this.ircBridge.getStore().getTrackedChannelsForServer(server.domain);
-        await Promise.all(channels.map((channel) => 
+        await Promise.all(channels.map((channel) =>
             this.initModeQueue.enqueue(`${channel}@${server.domain}`, {
                 channel,
                 server,
@@ -80,7 +81,7 @@ export class PublicitySyncer {
     }
 
     public updateVisibilityMap(isMode: boolean, key: string, value: boolean, channel: string, server: IrcServer) {
-        log.debug(`updateVisibilityMap: isMode:${isMode} key:${key} value:${value} channel:${channel} server:${server.domain}`);
+        log.debug(`updateVisibilityMap: isMode:${isMode} k:${key} v:${value} chan:${channel} srv:${server.domain}`);
         let hasChanged = false;
         if (isMode) {
             if (typeof value !== 'boolean') {
