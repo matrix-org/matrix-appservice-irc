@@ -258,6 +258,12 @@ export class IrcBridge {
             labels: ["server"]
         });
 
+        const clientStates = metrics.addGauge({
+            name: "clientpool_client_states",
+            help: "Number of clients in different states of connectedness.",
+            labels: ["server", "state"]
+        });
+
         const memberListLeaveQueue = metrics.addGauge({
             name: "user_leave_queue",
             help: "Number of leave requests queued up for virtual users on the bridge.",
@@ -347,6 +353,10 @@ export class IrcBridge {
             Object.entries(ircMetrics).forEach((kv) => {
                 ircHandlerCalls.inc({method: kv[0]}, kv[1]);
             });
+        });
+
+        metrics.addCollector(async () => {
+            this.clientPool.collectConnectionStatesForAllServers(clientStates);
         });
     }
 
