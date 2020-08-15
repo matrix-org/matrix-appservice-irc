@@ -384,7 +384,7 @@ export class NeDBDataStore implements DataStore {
 
     public async getTrackedChannelsForServer(domain: string) {
         const entries: Entry[] = await this.roomStore.getEntriesByRemoteRoomData({ domain });
-        const channels: string[] = [];
+        const channels = new Set<string>();
         entries.forEach((e) => {
             if (!e.remote) {
                 return;
@@ -395,10 +395,10 @@ export class NeDBDataStore implements DataStore {
             }
             const ircRoom = IrcRoom.fromRemoteRoom(server, e.remote);
             if (ircRoom.getType() === "channel") {
-                channels.push(ircRoom.getChannel());
+                channels.add(ircRoom.getChannel());
             }
         });
-        return channels;
+        return [...channels];
     }
 
     public async getRoomIdsFromConfig() {
