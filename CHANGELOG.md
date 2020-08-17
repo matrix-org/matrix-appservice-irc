@@ -1,4 +1,31 @@
- 0.20.0-rc2 (2020-08-12)
+0.20.1 (2020-08-17)
+========================
+
+*There were enough changes during the RC period to warrant a new release, so `0.20.0`  was dropped in favour of `0.20.1`.*
+
+Features
+--------
+
+- The quit debouncer has been rewritten to be more performant, dropping QUITs entirely until the bridge is able to cope with them. ([\#1091](https://github.com/matrix-org/matrix-appservice-irc/issues/1091))
+- Track connection state in metrics ([\#1110](https://github.com/matrix-org/matrix-appservice-irc/issues/1110))
+
+
+Bugfixes
+--------
+
+- Fix metrics worker dying and crashing after high load ([\#1109](https://github.com/matrix-org/matrix-appservice-irc/issues/1109))
+- Speed up operations on the publicity syncer for IRC -> Matrix ([\#1111](https://github.com/matrix-org/matrix-appservice-irc/issues/1111))
+- Fix issue where all irc bridged rooms would be marked as public ([\#1113](https://github.com/matrix-org/matrix-appservice-irc/issues/1113))
+- Allow nicknames to start with a special character or number according to RFC 2812 § 2.3.1 ([\#1114](https://github.com/matrix-org/matrix-appservice-irc/issues/1114))
+
+
+Internal Changes
+----------------
+
+- Improve logging around ClientPool ([\#1112](https://github.com/matrix-org/matrix-appservice-irc/issues/1112))
+
+
+0.20.0-rc2 (2020-08-12)
 ========================
 
 Features
