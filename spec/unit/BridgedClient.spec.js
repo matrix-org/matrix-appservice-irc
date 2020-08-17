@@ -27,7 +27,7 @@ describe("BridgedClient", function() {
         it("should remove invalid characters", function() {
             expect(BridgedClient.getValidNick("f+/\u3052oobar", false, STATE_DISC)).toBe("foobar");
         });
-        it("nick must start with letter of special character", function() {
+        it("will allow nicks that start with a special character", function() {
             expect(BridgedClient.getValidNick("foo-bar", false, STATE_DISC)).toBe("foo-bar");
             expect(BridgedClient.getValidNick("[foobar]", false, STATE_DISC)).toBe("[foobar]");
             expect(BridgedClient.getValidNick("{foobar}", false, STATE_DISC)).toBe("{foobar}");
