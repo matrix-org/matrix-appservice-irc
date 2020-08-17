@@ -34,7 +34,7 @@ describe("BridgedClient", function() {
             expect(BridgedClient.getValidNick("-foobar", false, STATE_DISC)).toBe("M-foobar");
             expect(BridgedClient.getValidNick("12345", false, STATE_DISC)).toBe("M12345");
         });
-        it("throw if nick invalid", function() {
+        it("will throw if the nick is invalid", function() {
             expect(() => BridgedClient.getValidNick("f+/\u3052oobar", true, STATE_DISC)).toThrowError();
             expect(() => BridgedClient.getValidNick("a".repeat(20), true, STATE_CONN)).toThrowError();
             expect(() => BridgedClient.getValidNick("-foobar", true, STATE_CONN)).toThrowError();
