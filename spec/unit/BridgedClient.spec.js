@@ -22,15 +22,15 @@ const STATE_CONN_MAX5 = {
 describe("BridgedClient", function() {
     describe("getValidNick", function() {
         it("should not change a valid nick", function() {
-            expect(BridgedClient.getValidNick("foobar", true, STATE_DISC)).toBe("foobar");
+            const nicks = ["foobar", "foo-bar`", "[foobar]", "{foobar}", "|foobar", "`foobar", "foobar\\", "f1|23_45"];
+            for (const nick of nicks) {
+                expect(BridgedClient.getValidNick(nick, true, STATE_DISC)).toBe(nick);
+            }
         });
         it("should remove invalid characters", function() {
             expect(BridgedClient.getValidNick("f+/\u3052oobar", false, STATE_DISC)).toBe("foobar");
         });
-        it("will allow nicks that start with a special character", function() {
-            expect(BridgedClient.getValidNick("foo-bar", false, STATE_DISC)).toBe("foo-bar");
-            expect(BridgedClient.getValidNick("[foobar]", false, STATE_DISC)).toBe("[foobar]");
-            expect(BridgedClient.getValidNick("{foobar}", false, STATE_DISC)).toBe("{foobar}");
+        it("will ensure nicks start with a letter or special character", function() {
             expect(BridgedClient.getValidNick("-foobar", false, STATE_DISC)).toBe("M-foobar");
             expect(BridgedClient.getValidNick("12345", false, STATE_DISC)).toBe("M12345");
         });
