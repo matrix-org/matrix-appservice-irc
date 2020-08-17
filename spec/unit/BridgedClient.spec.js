@@ -45,7 +45,7 @@ describe("BridgedClient", function() {
         it("will truncate nick", function() {
             expect(BridgedClient.getValidNick("a".repeat(20), false, STATE_CONN)).toBe("a".repeat(9));
         });
-        it("truncate nick with custom max", function() {
+        it("will truncate a nick with a custom max character limit", function() {
             expect(BridgedClient.getValidNick("a".repeat(20), false, STATE_CONN_MAX5)).toBe("a".repeat(5));
         });
     });
