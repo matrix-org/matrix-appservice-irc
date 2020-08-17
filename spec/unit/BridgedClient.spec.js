@@ -27,9 +27,17 @@ describe("BridgedClient", function() {
         it("remove invalid character", function() {
             expect(BridgedClient.getValidNick("f+/\u3052oobar", false, STATE_DISC)).toBe("foobar");
         });
+        it("nick must start with letter of special character", function() {
+            expect(BridgedClient.getValidNick("foo-bar", false, STATE_DISC)).toBe("foo-bar");
+            expect(BridgedClient.getValidNick("[foobar]", false, STATE_DISC)).toBe("[foobar]");
+            expect(BridgedClient.getValidNick("{foobar}", false, STATE_DISC)).toBe("{foobar}");
+            expect(BridgedClient.getValidNick("-foobar", false, STATE_DISC)).toBe("M-foobar");
+            expect(BridgedClient.getValidNick("12345", false, STATE_DISC)).toBe("M12345");
+        });
         it("throw if nick invalid", function() {
             expect(() => BridgedClient.getValidNick("f+/\u3052oobar", true, STATE_DISC)).toThrowError();
             expect(() => BridgedClient.getValidNick("a".repeat(20), true, STATE_CONN)).toThrowError();
+            expect(() => BridgedClient.getValidNick("-foobar", true, STATE_CONN)).toThrowError();
         });
         it("don't truncate nick if disconnected", function() {
             expect(BridgedClient.getValidNick("a".repeat(20), false, STATE_DISC)).toBe("a".repeat(20));

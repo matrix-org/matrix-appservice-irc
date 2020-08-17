@@ -704,9 +704,11 @@ export class BridgedClient extends EventEmitter {
         }
 
         // nicks must start with a letter
-        if (!/^[A-Za-z]/.test(n)) {
+        if (!/^[A-Za-z\[\]\\`_^\{\|\}]/.test(n)) {
             if (throwOnInvalid) {
-                throw new Error(`Nick '${nick}' must start with a letter.`);
+                throw new Error(
+                    `Nick '${nick}' must start with a letter or special character (dash is not a special character).`
+                );
             }
             // Add arbitrary letter prefix. This is important for guest user
             // IDs which are all numbers.
