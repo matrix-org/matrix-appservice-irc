@@ -39,7 +39,7 @@ describe("BridgedClient", function() {
             expect(() => BridgedClient.getValidNick("a".repeat(20), true, STATE_CONN)).toThrowError();
             expect(() => BridgedClient.getValidNick("-foobar", true, STATE_CONN)).toThrowError();
         });
-        it("don't truncate nick if disconnected", function() {
+        it("will not truncate a nick if disconnected", function() {
             expect(BridgedClient.getValidNick("a".repeat(20), false, STATE_DISC)).toBe("a".repeat(20));
         });
         it("truncate nick", function() {
