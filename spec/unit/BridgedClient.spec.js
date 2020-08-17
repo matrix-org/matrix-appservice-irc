@@ -21,7 +21,7 @@ const STATE_CONN_MAX5 = {
 
 describe("BridgedClient", function() {
     describe("getValidNick", function() {
-        it("valid nick unchanged", function() {
+        it("should not change a valid nick", function() {
             expect(BridgedClient.getValidNick("foobar", true, STATE_DISC)).toBe("foobar");
         });
         it("remove invalid character", function() {
