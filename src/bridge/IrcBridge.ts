@@ -258,6 +258,12 @@ export class IrcBridge {
             labels: ["server"]
         });
 
+        const clientStates = metrics.addGauge({
+            name: "clientpool_client_states",
+            help: "Number of clients in different states of connectedness.",
+            labels: ["server", "state"]
+        });
+
         const memberListLeaveQueue = metrics.addGauge({
             name: "user_leave_queue",
             help: "Number of leave requests queued up for virtual users on the bridge.",
@@ -272,7 +278,7 @@ export class IrcBridge {
 
         const activeUsers = metrics.addGauge({
             name: METRIC_ACTIVE_USERS,
-            help: "Numer of users actively using the bridge.",
+            help: "Number of users actively using the bridge.",
             labels: ["remote"],
         });
 
@@ -348,6 +354,10 @@ export class IrcBridge {
                 ircHandlerCalls.inc({method: kv[0]}, kv[1]);
             });
         });
+
+        metrics.addCollector(async () => {
+            this.clientPool.collectConnectionStatesForAllServers(clientStates);
+        });
     }
 
     public get appServiceUserId() {
@@ -410,8 +420,6 @@ export class IrcBridge {
 
         await this.dataStore.removeConfigMappings();
 
-        this.clientPool = new ClientPool(this, this.dataStore);
-
         if (this.config.ircService.debugApi.enabled) {
             this.debugApi = new DebugApi(
                 this,
@@ -453,6 +461,8 @@ export class IrcBridge {
             await this.dataStore.setServerFromConfig(server, completeConfig);
             this.ircServers.push(server);
         }
+
+        this.clientPool = new ClientPool(this, this.dataStore);
 
         if (this.ircServers.length === 0) {
             throw Error("No IRC servers specified.");

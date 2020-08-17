@@ -206,7 +206,7 @@ export function newRequestLogger(baseLogger: Logger, requestId: string, isFromIr
         // add a piece of metadata to the log line, with the request ID.
         newArgs[args.length] = {
             reqId: requestId,
-            dir: (isFromIrc ? "[I->M] " : "[M->I] ")
+            dir: (isFromIrc ? "[I->M]" : "[M->I]")
         };
         fn.apply(baseLogger, newArgs as any);
     };
