@@ -1,7 +1,1 @@
-Correct nick validation
-
-According to RFC 2812 § 2.3.1 is allowed to start with either a letter or a
-special character. Previously, this followed the older RFC 1459 that only
-allowed letters (but the rest of the logic follows RFC 2812).
-
-Fixes #467
+Allow nicknames to start with a special character or number according to RFC 2812 § 2.3.1
