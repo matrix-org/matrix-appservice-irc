@@ -97,7 +97,7 @@ export class QuitDebouncer {
         );
 
         // Wait for a short time to allow other potential splitters to send QUITs
-        const isSplitOccuring = true || debouncer.quitTimestampsMs.length > threshold;
+        const isSplitOccuring = debouncer.quitTimestampsMs.length > threshold;
 
         // Bridge QUITs if a net split is not occurring. This is in the case where a QUIT is
         // received for reasons such as ping timeout or IRC client (G)UI being killed.
