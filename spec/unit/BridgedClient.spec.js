@@ -42,7 +42,7 @@ describe("BridgedClient", function() {
         it("will not truncate a nick if disconnected", function() {
             expect(BridgedClient.getValidNick("a".repeat(20), false, STATE_DISC)).toBe("a".repeat(20));
         });
-        it("truncate nick", function() {
+        it("will truncate nick", function() {
             expect(BridgedClient.getValidNick("a".repeat(20), false, STATE_CONN)).toBe("a".repeat(9));
         });
         it("truncate nick with custom max", function() {
