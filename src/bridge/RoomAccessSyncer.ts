@@ -199,7 +199,8 @@ export class RoomAccessSyncer {
      */
     public async onModeIs(req: BridgeRequest, server: IrcServer, channel: string, mode: string) {
         // Delegate to this.onMode
-        const promises = mode.split('').map(
+        const modes = mode.split('');
+        const promises = modes.map(
             (modeChar) => {
                 if (modeChar === '+') {
                     return Promise.resolve();
@@ -207,6 +208,11 @@ export class RoomAccessSyncer {
                 return this.onMode(req, server, channel, 'onModeIs function', modeChar, true, null);
             }
         );
+
+        if (!mode.includes('s')) {
+            // If the room isn't secret, ensure that we solve visibilty for it's lack of secrecy.
+            return this.onMode(req, server, channel, 'onModeIs function', 's', false, null);
+        }
 
         // We cache modes per room, so extract the set of modes for all these rooms.
         const roomModeMap = await this.ircBridge.getStore().getModesForChannel(server, channel);
@@ -231,7 +237,7 @@ export class RoomAccessSyncer {
             return Promise.resolve();
         }));
 
-        await Promise.all(promises);
+        return Promise.all(promises);
     }
 
     /**
@@ -297,6 +303,7 @@ export class RoomAccessSyncer {
             return;
         }
 
+        // Forcibly solve visiblity if we've just got a set of state from onModeIs
         if (mode === "s") {
             if (!server.shouldPublishRooms()) {
                 req.log.info("Not syncing publicity: shouldPublishRooms is false");

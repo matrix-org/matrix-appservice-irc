@@ -1,6 +1,7 @@
 import logger from "../logging";
 import { IrcBridge } from "./IrcBridge";
 import { IrcServer } from "../irc/IrcServer";
+import { Queue } from "../util/Queue";
 
 const log = logger("PublicitySyncer");
 
@@ -23,11 +24,8 @@ export class PublicitySyncer {
         mappings: {
             [roomId: string]: string[];
         };
-        networkToRooms: {
-            [networkId: string]: string[];
-        };
         channelIsSecret: {
-            [networkId: string]: boolean;
+            [networkIdChannel: string]: boolean;
             // '$networkId $channel': true | false
         };
         roomVisibilities: {
@@ -35,21 +33,22 @@ export class PublicitySyncer {
         };
     } = {
         mappings: {},
-        networkToRooms: {},
         channelIsSecret: {},
         roomVisibilities: {},
     };
-    constructor (private ircBridge: IrcBridge) { }
+    private initModeQueue: Queue<{server: IrcServer; channel: string}>;
+    constructor (private ircBridge: IrcBridge) {
+        this.initModeQueue = new Queue(this.initModeForChannel.bind(this));
+    }
 
-
-    public async initModeForChannel(server: IrcServer, chan: string) {
+    public async initModeForChannel(opts: {server: IrcServer; channel: string}) {
         try {
-            const botClient = await this.ircBridge.getBotClient(server);
-            log.info(`Bot requesting mode for ${chan} on ${server.domain}`);
-            await botClient.mode(chan);
+            const botClient = await this.ircBridge.getBotClient(opts.server);
+            log.info(`Bot requesting mode for ${opts.channel} on ${opts.server.domain}`);
+            await botClient.mode(opts.channel);
         }
         catch (err) {
-            log.error(`Could not request mode of ${chan} (${err.message})`);
+            log.error(`Could not request mode of ${opts.channel} (${err.message})`);
         }
     }
 
@@ -57,13 +56,12 @@ export class PublicitySyncer {
         //Get all channels and call modes for each one
 
         const channels = await this.ircBridge.getStore().getTrackedChannelsForServer(server.domain);
-
-        await Promise.all([...new Set(channels)].map((chan) => {
-            // Request mode for channel
-            return this.initModeForChannel(server, chan).catch((err) => {
-                log.error(err.stack);
-            });
-        }));
+        await Promise.all(channels.map((channel) =>
+            this.initModeQueue.enqueue(`${channel}@${server.domain}`, {
+                channel,
+                server,
+            })
+        ));
     }
 
     /**
@@ -83,6 +81,7 @@ export class PublicitySyncer {
     }
 
     public updateVisibilityMap(isMode: boolean, key: string, value: boolean, channel: string, server: IrcServer) {
+        log.debug(`updateVisibilityMap: isMode:${isMode} k:${key} v:${value} chan:${channel} srv:${server.domain}`);
         let hasChanged = false;
         if (isMode) {
             if (typeof value !== 'boolean') {
@@ -124,21 +123,13 @@ export class PublicitySyncer {
        that room is allowed to be public.
     */
     private async solveVisibility (channel: string, server: IrcServer) {
+        log.debug(`Solving visibility for ${channel} ${server.domain}`);
+        const visKey = this.getIRCVisMapKey(server.getNetworkId(), channel);
         // For each room, do a big OR on all of the channels that are linked in any way
         const mappings = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
         const roomIds = mappings.map((m) => m.getId());
 
         this.visibilityMap.mappings = {};
-
-        roomIds.forEach((roomId) => {
-            const key = this.getIRCVisMapKey(server.getNetworkId(), channel);
-            // also assign reverse mapping for lookup speed later
-            if (!this.visibilityMap.networkToRooms[key]) {
-                this.visibilityMap.networkToRooms[key] = [];
-            }
-            this.visibilityMap.networkToRooms[key].push(roomId);
-            return key;
-        });
 
         const cli = this.ircBridge.getAppServiceBridge().getBot().getClient();
         // Update rooms to correct visibilities
@@ -152,27 +143,27 @@ export class PublicitySyncer {
             ...await this.ircBridge.getStore().getRoomsVisibility(roomIds),
         };
 
-        const correctState = this.visibilityMap.channelIsSecret[channel] ? 'private' : 'public';
+        const correctState = this.visibilityMap.channelIsSecret[visKey] ? 'private' : 'public';
 
-        log.info(`Solved visibility rules for ${channel} (${server.getNetworkId()}): ${correctState}`);
+        log.info(`Solved visibility rules for ${channel} (${server.domain}): ${correctState}`);
 
         return Promise.all(roomIds.map(async (roomId) => {
             const currentState = currentStates[roomId];
 
             // Use the server network ID of the first mapping
             // 'funNetwork #channel1' => 'funNetwork'
-            const networkId = this.visibilityMap.mappings[roomId][0].split(' ')[0];
 
-            if (currentState !== correctState) {
-                try {
-                    await cli.setRoomDirectoryVisibilityAppService(networkId, roomId, correctState);
-                    await this.ircBridge.getStore().setRoomVisibility(roomId, correctState);
-                    // Update cache
-                    this.visibilityMap.roomVisibilities[roomId] = correctState;
-                }
-                catch (ex) {
-                    log.error(`Failed to setRoomDirectoryVisibility (${ex.message})`);
-                }
+            if (currentState === correctState) {
+                return;
+            }
+            try {
+                await cli.setRoomDirectoryVisibilityAppService(server.getNetworkId(), roomId, correctState);
+                await this.ircBridge.getStore().setRoomVisibility(roomId, correctState);
+                // Update cache
+                this.visibilityMap.roomVisibilities[roomId] = correctState;
+            }
+            catch (ex) {
+                log.error(`Failed to setRoomDirectoryVisibility (${ex.message})`);
             }
         }));
     }
