@@ -27,7 +27,7 @@ describe("IPV6 Generator", function() {
         expect(newConfig.config.ipv6).toEqual('2001:0db8:85a3::1');
     });
 
-    it("should NOT an IPv6 address for an existing config", async function() {
+    it("should NOT generate an IPv6 address for an existing config", async function() {
         const generator = new Ipv6Generator(datastore);
         const config = new IrcClientConfig('@foo:example.com', 'irc.example.com', {
             ipv6: '2001:0db8:85a3::1a16'
