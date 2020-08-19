@@ -608,7 +608,7 @@ export class NeDBDataStore implements DataStore {
         const domainKey = domain.replace(/\./g, "_");
         const rows = await this.userStore.select({
             type: "matrix",
-            ["client_config." + domainKey + ".username"]: {
+            ["data.client_config." + domainKey + ".username"]: {
                 $regex: new RegExp(`${usernamePrefix}.+`),
             }
         });

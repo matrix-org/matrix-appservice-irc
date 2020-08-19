@@ -3,10 +3,11 @@ const Promise = require("bluebird");
 const { IdentGenerator } = require("../../lib/irc/IdentGenerator");
 const { IrcClientConfig } = require("../../lib/models/IrcClientConfig");
 
+const IRC_DOMAIN = "somedomain.com";
+
 describe("Username generation", function() {
     let identGenerator;
     let storeMock;
-    let existingUsernames;
     let ircClientConfig;
     let ircClientConfigs;
     let ircClientConfigsUsername;
@@ -20,7 +21,6 @@ describe("Username generation", function() {
     };
 
     beforeEach(function() {
-        existingUsernames = {};
         ircClientConfigs = { };
         ircClientConfigsUsername = { };
         ircClientConfigsUsernames = [];
@@ -28,7 +28,7 @@ describe("Username generation", function() {
         var _uname;
         ircClientConfig = {
             getDesiredNick: () => { return "MyCrazyNick"; },
-            getDomain: () => { return "somedomain.com"; },
+            getDomain: () => IRC_DOMAIN,
             getUsername: () => {
                 return _uname;
             },
@@ -44,11 +44,7 @@ describe("Username generation", function() {
         }
         storeMock.getMatrixUserByUsername = async function(domain, uname) {
             var obj;
-            if (existingUsernames[uname]) {
-                obj = {
-                    getId: function() { return existingUsernames[uname]; }
-                };
-            } else if (ircClientConfigsUsername[uname+domain]) {
+            if (ircClientConfigsUsername[uname+domain]) {
                 return mkMatrixUser(ircClientConfigsUsername[uname+domain].getUserId());
             }
             return obj;
@@ -74,7 +70,7 @@ describe("Username generation", function() {
     it("should start with '_1' on an occupied user ID", async function() {
         const userId = "@myreallylonguseridhere:localhost";
         const uname = "myreal_1";
-        existingUsernames.myreally = "@someone:else";
+        storeMock.storeIrcClientConfig(new IrcClientConfig("@someone:else", IRC_DOMAIN, { username: "myreally" }));
         const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
         expect(info.username).toEqual(uname);
     });
@@ -82,9 +78,9 @@ describe("Username generation", function() {
     it("should loop from '_9' to '_10' and keep the same total length", async function() {
         const userId = "@myreallylonguseridhere:localhost";
         const uname = "myrea_10";
-        existingUsernames.myreally = "@someone:else";
+        storeMock.storeIrcClientConfig(new IrcClientConfig("@someone:else", IRC_DOMAIN, { username: "myreally" }));
         for (let i = 1; i < 10; i++) {
-            existingUsernames["myreal_" + i] = "@someone:else";
+            storeMock.storeIrcClientConfig(new IrcClientConfig(`@someone${i}:else`, IRC_DOMAIN, { username: "myreal_" + i }));
         }
         const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
         expect(info.username).toEqual(uname);
@@ -93,10 +89,8 @@ describe("Username generation", function() {
     it("should loop from '_1' to '_2' and keep the same total length", async function() {
         const userId = "@myreallylonguseridhere:localhost";
         const uname = "myreal_2";
-        existingUsernames = {
-            myreally: "@someone:else",
-            myreal_1: "@someone:else"
-        };
+        storeMock.storeIrcClientConfig(new IrcClientConfig("@someone:else", IRC_DOMAIN, { username: "myreally" }));
+        storeMock.storeIrcClientConfig(new IrcClientConfig("@someone1:else", IRC_DOMAIN, { username: "myreal_1" }));
         const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
         expect(info.username).toEqual(uname);
     });
@@ -133,7 +127,7 @@ describe("Username generation", function() {
                 expect(result.username).toBe("longpref");
             } else {
                 // longpref_1, _2, _3 etc
-                expect(result.username).toBe(`${"longprefix".substr(0, 8 - 1 - (i+1).toString().length)}_${i+1}`);
+                expect(result.username).toBe(`${"longprefix".substr(0, 8 - 1 - (i).toString().length)}_${i}`);
             }
         }
     });

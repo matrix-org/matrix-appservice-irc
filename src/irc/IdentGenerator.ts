@@ -191,11 +191,11 @@ export class IdentGenerator {
             // myusername becomes myuserna
                 0, username.length - IdentGenerator.USER_NAME_DELIMITER.length - suffixLength);
             // Look for all usernames starting with myuserna
-            const countForSuffix = await this.dataStore.getCountForUsernamePrefix(domain, prefix);
+            const countForPrefix = await this.dataStore.getCountForUsernamePrefix(domain, prefix);
             // is there myuserna_1 to myuserna_9
-            if (countForSuffix < Math.pow(10, suffixLength) - 1) {
+            if (countForPrefix < Math.pow(10, suffixLength) - 1) {
                 // Take the next available suffix.
-                return countForSuffix + 1;
+                return countForPrefix;
             }
             suffixLength++;
         }
