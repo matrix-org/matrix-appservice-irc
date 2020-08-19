@@ -521,7 +521,7 @@ export class PgDataStore implements DataStore {
 
     public async getCountForUsernamePrefix(domain: string, usernamePrefix: string): Promise<number> {
         const res = await this.pgPool.query("SELECT COUNT(*) FROM client_config " +
-            "WHERE config->>'username' LIKE $1; AND domain = $2",
+            "WHERE domain = $2 AND config->>'username' LIKE $1 ",
         [`${usernamePrefix}%`, domain]);
         return res.rows[0];
     }
