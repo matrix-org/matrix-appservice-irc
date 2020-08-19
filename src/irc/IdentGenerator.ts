@@ -52,7 +52,8 @@ export class IdentGenerator {
      *   realname: 'realname_to_use'
      * }
      */
-    public async getIrcNames(ircClientConfig: IrcClientConfig, matrixUser?: MatrixUser): Promise<{username: string, realname: string}> {
+    public async getIrcNames(ircClientConfig: IrcClientConfig, matrixUser?: MatrixUser):
+        Promise<{username: string; realname: string}> {
         const username = ircClientConfig.getUsername();
         const realname = (matrixUser ?
             IdentGenerator.sanitiseRealname(matrixUser.getId()) :
@@ -99,7 +100,8 @@ export class IdentGenerator {
 
         return {
             username: IdentGenerator.sanitiseUsername(
-                username! // the bridge won't have a matrix user. Username is always defined for the bot.
+                // the bridge bot won't have a matrix user. Username is *always* defined for the bot.
+                username as string
             ),
             realname,
         };
@@ -185,7 +187,7 @@ export class IdentGenerator {
     private async getSuffixForUsername(username: string, domain: string) {
         let suffixLength = 1;
         let suffix = 0;
-        while(suffixLength < IdentGenerator.MAX_USER_NAME_SUFFIX.toString().length) {
+        while (suffixLength < IdentGenerator.MAX_USER_NAME_SUFFIX.toString().length) {
             const prefix = username.substr(
             // myusername becomes myuserna
                 0, username.length - IdentGenerator.USER_NAME_DELIMITER.length - suffixLength);
@@ -228,7 +230,7 @@ export class IdentGenerator {
         return realname.replace(/[^\x00-\x7F]/g, "");
     }
 
-    private static modifyUsername(uname: string, suffix: number): { result: boolean, uname: string} {
+    private static modifyUsername(uname: string, suffix: number): { result: boolean; uname: string} {
         const suffixString = `${this.USER_NAME_DELIMITER}${suffix}`;
         uname = `${uname.substr(0, this.MAX_USER_NAME_LENGTH - suffixString.length)}${suffixString}`;
         return { result: suffix <= this.MAX_USER_NAME_SUFFIX, uname }; // break out if '~10000'

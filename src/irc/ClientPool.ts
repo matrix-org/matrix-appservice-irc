@@ -120,7 +120,6 @@ export class ClientPool {
     }
 
     public async loginToServer(server: IrcServer): Promise<BridgedClient> {
-        const uname = "matrixirc";
         let bridgedClient = this.getBot(server);
         if (!bridgedClient) {
             const botIrcConfig = server.createBotIrcClientConfig();
