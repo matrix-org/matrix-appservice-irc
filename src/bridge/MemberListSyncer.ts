@@ -133,7 +133,7 @@ export class MemberListSyncer {
     // map irc channel to a list of room IDs. If all of those
     // room IDs have no real users in them, then part the bridge bot too.
     public async checkBotPartRoom(ircRoom: IrcRoom, req: BridgeRequest) {
-        if (ircRoom.channel.indexOf("#") !== 0) {
+        if (!ircRoom.channel.startsWith("#")) {
             return; // don't leave PM rooms
         }
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
@@ -312,7 +312,7 @@ export class MemberListSyncer {
                 d.resolve();
                 return;
             }
-            if (entry.userId.indexOf("@-") === 0) {
+            if (entry.userId.startsWith("@-")) {
                 joinNextUser();
                 return;
             }
@@ -474,7 +474,7 @@ export class MemberListSyncer {
             if (server.claimsUserId(userId)) {
                 data.virtuals.push(userId);
             }
-            else if (userId.indexOf("@-") === 0) {
+            else if (userId.startsWith("@-")) {
                 // Ignore guest user IDs -- TODO: Do this properly by passing them through
             }
             else {

@@ -3,6 +3,7 @@ import { IrcBridge } from "./IrcBridge";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcServer } from "../irc/IrcServer";
 import { MatrixRoom } from "matrix-appservice-bridge";
+import { BridgedClientStatus } from "../irc/BridgedClient";
 const log = getLogger("RoomAccessSyncer");
 
 const MODES_TO_WATCH = [
@@ -114,12 +115,11 @@ export class RoomAccessSyncer {
         let userId = null;
         if (nick !== null && bridgedClient) {
             userId = bridgedClient.userId;
-            if (!bridgedClient.unsafeClient) {
+            if (bridgedClient.status !== BridgedClientStatus.CONNECTED) {
                 req.log.info(`Bridged client for ${nick} has no IRC client.`);
                 return;
             }
-            const client = bridgedClient.unsafeClient;
-            const chanData = client.chanData(channel);
+            const chanData = bridgedClient.chanData(channel);
             if (!(chanData && chanData.users)) {
                 req.log.error(`No channel data for ${channel}`);
                 return;
@@ -127,8 +127,8 @@ export class RoomAccessSyncer {
             const userPrefixes = chanData.users[nick] as string;
             userPrefixes.split('').forEach(
                 prefix => {
-                    const m = client.modeForPrefix[prefix];
-                    if (modeToPower[m] !== undefined) {
+                    const m = bridgedClient.modeForPrefix(prefix);
+                    if (m && modeToPower[m] !== undefined) {
                         userPowers.push(modeToPower[m]);
                     }
                 }
@@ -199,7 +199,8 @@ export class RoomAccessSyncer {
      */
     public async onModeIs(req: BridgeRequest, server: IrcServer, channel: string, mode: string) {
         // Delegate to this.onMode
-        const promises = mode.split('').map(
+        const modes = mode.split('');
+        const promises = modes.map(
             (modeChar) => {
                 if (modeChar === '+') {
                     return Promise.resolve();
@@ -207,6 +208,11 @@ export class RoomAccessSyncer {
                 return this.onMode(req, server, channel, 'onModeIs function', modeChar, true, null);
             }
         );
+
+        if (!mode.includes('s')) {
+            // If the room isn't secret, ensure that we solve visibilty for it's lack of secrecy.
+            return this.onMode(req, server, channel, 'onModeIs function', 's', false, null);
+        }
 
         // We cache modes per room, so extract the set of modes for all these rooms.
         const roomModeMap = await this.ircBridge.getStore().getModesForChannel(server, channel);
@@ -231,7 +237,7 @@ export class RoomAccessSyncer {
             return Promise.resolve();
         }));
 
-        await Promise.all(promises);
+        return Promise.all(promises);
     }
 
     /**
@@ -297,6 +303,7 @@ export class RoomAccessSyncer {
             return;
         }
 
+        // Forcibly solve visiblity if we've just got a set of state from onModeIs
         if (mode === "s") {
             if (!server.shouldPublishRooms()) {
                 req.log.info("Not syncing publicity: shouldPublishRooms is false");
@@ -311,7 +318,7 @@ export class RoomAccessSyncer {
             });
             // Update the visibility for all rooms connected to this channel
             this.ircBridge.publicitySyncer.updateVisibilityMap(
-                true, key, enabled
+                true, key, enabled, channel, server,
             );
         }
         // "k" and "i"

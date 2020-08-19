@@ -222,7 +222,7 @@ export class IrcServer {
     }
 
     public isInWhitelist(userId: string) {
-        return this.config.dynamicChannels.whitelist.indexOf(userId) !== -1;
+        return this.config.dynamicChannels.whitelist.includes(userId);
     }
 
     public getCA() {
@@ -297,7 +297,7 @@ export class IrcServer {
     }
 
     public isExcludedChannel(channel: string) {
-        return this.config.dynamicChannels.exclude.indexOf(channel) !== -1;
+        return this.config.dynamicChannels.exclude.includes(channel);
     }
 
     public isExcludedUser(userId: string) {
@@ -342,7 +342,7 @@ export class IrcServer {
     }
 
     private shouldSyncMembership(kind: MembershipSyncKind, identifier: string|undefined, toIrc: boolean) {
-        if (["incremental", "initial"].indexOf(kind) === -1) {
+        if (!["incremental", "initial"].includes(kind)) {
             throw new Error("Bad kind: " + kind);
         }
         if (!this.config.membershipLists.enabled) {
