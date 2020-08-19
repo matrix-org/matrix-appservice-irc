@@ -161,7 +161,7 @@ export class IdentGenerator {
         */
         const delim = "_";
         const modifyUsername = () => {
-            if (uname.indexOf(delim) === -1) {
+            if (!uname.includes(delim)) {
                 uname = uname.substring(0, uname.length - 2) + delim + "1";
                 return true;
             }
@@ -174,7 +174,7 @@ export class IdentGenerator {
             else {
                 uname = segments[0] + delim + num;
             }
-            return uname.indexOf(delim) !== 0; // break out if '~10000'
+            return !uname.startsWith(delim); // break out if '~10000'
         }
 
         // TODO: This isn't efficient currently; since this will be called worst
@@ -226,6 +226,7 @@ export class IdentGenerator {
 
     private static sanitiseRealname(realname: string) {
         // real name can be any old ASCII
+        // eslint-disable-next-line no-control-regex
         return realname.replace(/[^\x00-\x7F]/g, "");
     }
 }

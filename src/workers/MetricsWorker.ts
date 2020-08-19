@@ -1,5 +1,5 @@
 import { Worker, isMainThread, parentPort, workerData } from "worker_threads";
-import { createServer } from "http";
+import { createServer, ServerResponse } from "http";
 import { Registry, Gauge } from "prom-client";
 import getLog from "../logging";
 const METRICS_DUMP_TIMEOUT_MS = 20000;
@@ -22,6 +22,15 @@ function workerThread() {
         throw Error("Missing parentPort");
     }
 
+    const writeAndEnd = (res: ServerResponse, data: string) => {
+        if (res.writable) {
+            res.write(data);
+        }
+        if (!res.finished) {
+            res.end();
+        }
+    }
+
     createServer((req, res) => {
         res.setHeader("Content-Type", "text/plain");
         if (!req.url || req.url !== "/metrics" || req.method !== "GET") {
@@ -34,8 +43,8 @@ function workerThread() {
         const timeout = setTimeout(() => {
             intervalCounter.inc(METRICS_DUMP_TIMEOUT_MS);
             res.statusCode = 200;
-            res.write(`${registry.metrics()}`);
-            res.end();
+            res.writeHead(200);
+            writeAndEnd(res, registry.metrics());
         }, METRICS_DUMP_TIMEOUT_MS)
 
         // We've checked for the existence of parentPort above.
@@ -47,9 +56,13 @@ function workerThread() {
             intervalCounter.set(time - lastDumpTs);
             lastDumpTs = time;
             const dump = msg.substr('metricsdump:'.length);
-            res.statusCode = 200;
-            res.write(`${dump}\n${registry.metrics()}`);
-            res.end();
+            if (res.finished) {
+                // Sometimes a message will come in far too late because we've already
+                // sent an empty response. Drop it here.
+                return;
+            }
+            res.writeHead(200);
+            writeAndEnd(res, `${dump}\n${registry.metrics()}`);
         });
 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

@@ -96,7 +96,7 @@ describe("Provisioning API", function() {
                     if (content.status === "failure") {
                         env.isFailed.resolve();
                     }
-                    else if (content.status == "success") {
+                    else if (content.status === "success") {
                         env.isSuccess.resolve();
                     }
                 }
@@ -472,7 +472,7 @@ describe("Provisioning API", function() {
                         if (content.status === "failure") {
                             env.isFailed.resolve();
                         }
-                        else if (content.status == "success") {
+                        else if (content.status === "success") {
                             env.isSuccess.resolve();
                         }
                     }

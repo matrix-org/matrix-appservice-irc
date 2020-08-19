@@ -1,5 +1,6 @@
 "$schema": "http://json-schema.org/draft-04/schema#"
 type: "object"
+required: ["homeserver", "ircService"]
 properties:
     advanced:
         type: "object"
@@ -59,6 +60,8 @@ properties:
                         type: "number"
                     host:
                         type: "string"
+                    userActivityThresholdHours:
+                        type: "number"
                     remoteUserAgeBuckets:
                         type: "array"
                         items:

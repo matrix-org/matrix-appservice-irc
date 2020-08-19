@@ -40,7 +40,7 @@ export class NeDBDataStore implements DataStore {
         private bridgeDomain: string,
         pkeyPath?: string) {
         const errLog = function(fieldName: string) {
-            return (err: Error) => {
+            return (err: Error|null) => {
                 if (err) {
                     log.error("Failed to ensure '%s' index on store: " + err, fieldName);
                     return;
@@ -107,7 +107,7 @@ export class NeDBDataStore implements DataStore {
             fieldName: "data.client_config." + domainKey + ".username",
             unique: true,
             sparse: true
-        }, (err: Error) => {
+        }, (err: Error|null) => {
             if (err) {
                 log.error("Failed to ensure ident username index on users database!");
                 return;
@@ -309,7 +309,7 @@ export class NeDBDataStore implements DataStore {
                         return true;
                     }
                 }
-                return e.data && origin.indexOf(e.data.origin) !== -1;
+                return e.data && origin.includes(e.data.origin);
             });
         });
     }
@@ -384,7 +384,7 @@ export class NeDBDataStore implements DataStore {
 
     public async getTrackedChannelsForServer(domain: string) {
         const entries: Entry[] = await this.roomStore.getEntriesByRemoteRoomData({ domain });
-        const channels: string[] = [];
+        const channels = new Set<string>();
         entries.forEach((e) => {
             if (!e.remote) {
                 return;
@@ -395,10 +395,10 @@ export class NeDBDataStore implements DataStore {
             }
             const ircRoom = IrcRoom.fromRemoteRoom(server, e.remote);
             if (ircRoom.getType() === "channel") {
-                channels.push(ircRoom.getChannel());
+                channels.add(ircRoom.getChannel());
             }
         });
-        return channels;
+        return [...channels];
     }
 
     public async getRoomIdsFromConfig() {
@@ -449,7 +449,7 @@ export class NeDBDataStore implements DataStore {
      */
     public async getAdminRoomById(roomId: string): Promise<MatrixRoom|null> {
         const entries: Entry[] = await this.roomStore.getEntriesByMatrixId(roomId);
-        if (entries.length == 0) {
+        if (entries.length === 0) {
             return null;
         }
         if (entries.length > 1) {

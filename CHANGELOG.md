@@ -1,4 +1,69 @@
- 0.19.0 (2020-07-06)
+0.20.1 (2020-08-17)
+========================
+
+*There were enough changes during the RC period to warrant a new release, so `0.20.0`  was dropped in favour of `0.20.1`.*
+
+Features
+--------
+
+- The quit debouncer has been rewritten to be more performant, dropping QUITs entirely until the bridge is able to cope with them. ([\#1091](https://github.com/matrix-org/matrix-appservice-irc/issues/1091))
+- Track connection state in metrics ([\#1110](https://github.com/matrix-org/matrix-appservice-irc/issues/1110))
+
+
+Bugfixes
+--------
+
+- Fix metrics worker dying and crashing after high load ([\#1109](https://github.com/matrix-org/matrix-appservice-irc/issues/1109))
+- Speed up operations on the publicity syncer for IRC -> Matrix ([\#1111](https://github.com/matrix-org/matrix-appservice-irc/issues/1111))
+- Fix issue where all irc bridged rooms would be marked as public ([\#1113](https://github.com/matrix-org/matrix-appservice-irc/issues/1113))
+- Allow nicknames to start with a special character or number according to RFC 2812 § 2.3.1 ([\#1114](https://github.com/matrix-org/matrix-appservice-irc/issues/1114))
+
+
+Internal Changes
+----------------
+
+- Improve logging around ClientPool ([\#1112](https://github.com/matrix-org/matrix-appservice-irc/issues/1112))
+
+
+0.20.0-rc2 (2020-08-12)
+========================
+
+Features
+--------
+
+- Add metrics for tracking user activeness for matrix and irc users ([\#1105](https://github.com/matrix-org/matrix-appservice-irc/issues/1105))
+
+
+Bugfixes
+--------
+
+- Fix issue where /metrics would respond with no data ([\#1107](https://github.com/matrix-org/matrix-appservice-irc/issues/1107))
+
+
+0.20.0-rc1 (2020-08-11)
+========================
+
+Features
+--------
+
+- Media URLs now include the filename when sent to IRC. ([\#1087](https://github.com/matrix-org/matrix-appservice-irc/issues/1087))
+
+
+Bugfixes
+--------
+
+- Fix duplicate messages appearing if an IRC message is poorly decoded. ([\#1081](https://github.com/matrix-org/matrix-appservice-irc/issues/1081))
+- Make sure a killed BridgedClient is dead, even if connect was never called ([\#1098](https://github.com/matrix-org/matrix-appservice-irc/issues/1098))
+
+
+Internal Changes
+----------------
+
+- Enable many recommended ESLint rules to catch errors ([\#1078](https://github.com/matrix-org/matrix-appservice-irc/issues/1078))
+- Replace .indexOf with more specific methods ([\#1097](https://github.com/matrix-org/matrix-appservice-irc/issues/1097))
+
+
+0.19.0 (2020-07-06)
 ====================
 
 No significant changes.

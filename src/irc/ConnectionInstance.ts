@@ -188,7 +188,6 @@ export class ConnectionInstance {
                 return;
             }
             // do the callback
-            // eslint is usually confused about IArguments
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fn.apply(fn, args as any);
         });
@@ -212,7 +211,7 @@ export class ConnectionInstance {
                 "err_umodeunknownflag", "err_nononreg"
             ];
             if (err && err.command) {
-                if (failCodes.indexOf(err.command) !== -1) {
+                if (failCodes.includes(err.command)) {
                     return; // don't disconnect for these error codes.
                 }
             }
@@ -263,7 +262,7 @@ export class ConnectionInstance {
 
                 let errText = ("" + msg.args[0]) || "";
                 errText = errText.toLowerCase();
-                wasThrottled = errText.indexOf("throttl") !== -1;
+                wasThrottled = errText.includes("throttl");
 
                 if (wasThrottled) {
                     this.disconnect("throttled").catch(logError);

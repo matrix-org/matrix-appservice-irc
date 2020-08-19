@@ -87,7 +87,7 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
     await ircBridge.getStore().storeRoom(ircRoom, mxRoom, origin);
     // /mode the channel AFTER we have created the mapping so we process
     // +s and +i correctly. This is done asyncronously.
-    ircBridge.publicitySyncer.initModeForChannel(server, ircChannel).catch(() => {
+    ircBridge.publicitySyncer.initModeForChannel({server, channel: ircChannel}).catch(() => {
         req.log.error(
             `Could not init mode for channel ${ircChannel} on ${server.domain}`
         );

@@ -50,6 +50,7 @@ export default {
     // Returns a promise that will be resolved when retryConnection returns a promise that
     //  resolves, in other words, when the connection is made. The promise will reject if the
     //  promise returned from retryConnection is rejected.
+    // eslint-disable-next-line require-yield
     reschedule: Bluebird.coroutine(function*(
         server: IrcServer,
         addedDelayMs: number,

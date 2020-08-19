@@ -407,6 +407,12 @@ ircService:
   metrics:
     # Whether to actually enable the metric endpoint. Default: false
     enabled: true
+    # Which port to listen on (omit to listen on the bindPort)
+    port: 7001
+    # Which hostname to listen on (omit to listen on 127.0.0.1), requires port to be set
+    host: 127.0.0.1
+    # When determining activeness of remote and matrix users, cut off at this number of hours.
+    userActivityThresholdHours: 72 # 3 days
     # When collecting remote user active times, which "buckets" should be used. Defaults are given below.
     # The bucket name is formed of a duration and a period. (h=hours,d=days,w=weeks).
     remoteUserAgeBuckets:
