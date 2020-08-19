@@ -186,7 +186,6 @@ export class IdentGenerator {
      */
     private async getSuffixForUsername(username: string, domain: string) {
         let suffixLength = 1;
-        let suffix = 0;
         while (suffixLength < IdentGenerator.MAX_USER_NAME_SUFFIX.toString().length) {
             const prefix = username.substr(
             // myusername becomes myuserna
@@ -196,16 +195,11 @@ export class IdentGenerator {
             // is there myuserna_1 to myuserna_9
             if (countForSuffix < Math.pow(10, suffixLength) - 1) {
                 // Take the next available suffix.
-                suffix = countForSuffix + 1;
-                break;
+                return countForSuffix + 1;
             }
             suffixLength++;
         }
-
-        if (suffixLength === IdentGenerator.MAX_USER_NAME_SUFFIX.toString().length) {
-            throw Error("Ran out of entries: " + username);
-        }
-        return suffix;
+        throw Error("Ran out of entries: " + username);
     }
 
     private static sanitiseUsername(username: string, replacementChar = "") {
