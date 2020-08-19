@@ -139,6 +139,8 @@ ircService:
         enabled: true
         # The nickname to give the AS bot.
         nick: "MatrixBot"
+        # The username to give to the AS bot. Defaults to "matrixbot"
+        username: "matrixbot"
         # The password to give to NickServ or IRC Server for this nick. Optional.
         # password: "helloworld"
         #

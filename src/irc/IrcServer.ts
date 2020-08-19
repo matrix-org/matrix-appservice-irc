@@ -273,9 +273,9 @@ export class IrcServer {
         return this.config.botConfig.nick;
     }
 
-    public createBotIrcClientConfig(username: string) {
+    public createBotIrcClientConfig() {
         return IrcClientConfig.newConfig(
-            null, this.domain, this.config.botConfig.nick, username,
+            null, this.domain, this.config.botConfig.nick, this.config.botConfig.username,
             this.config.botConfig.password
         );
     }
@@ -535,6 +535,7 @@ export class IrcServer {
             },
             botConfig: {
                 nick: "appservicebot",
+                username: "matrixbot",
                 joinChannelsIfNoUsers: true,
                 enabled: true
             },
@@ -671,6 +672,7 @@ export interface IrcServerConfig {
         joinChannelsIfNoUsers: boolean;
         enabled: boolean;
         password?: string;
+        username: string;
     };
     privateMessages: {
         enabled: boolean;

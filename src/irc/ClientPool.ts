@@ -121,9 +121,9 @@ export class ClientPool {
 
     public async loginToServer(server: IrcServer): Promise<BridgedClient> {
         const uname = "matrixirc";
-        let bridgedClient = this.getBridgedClientByNick(server, uname);
+        let bridgedClient = this.getBot(server);
         if (!bridgedClient) {
-            const botIrcConfig = server.createBotIrcClientConfig(uname);
+            const botIrcConfig = server.createBotIrcClientConfig();
             bridgedClient = this.createIrcClient(botIrcConfig, null, true);
             log.debug(
                 "Created new bot client for %s : %s (bot enabled=%s)",

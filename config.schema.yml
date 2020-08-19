@@ -198,6 +198,8 @@ properties:
                                     type: "boolean"
                                 nick:
                                     type: "string"
+                                username:
+                                    type: "string"
                                 password:
                                     type: "string"
                                 joinChannelsIfNoUsers:
