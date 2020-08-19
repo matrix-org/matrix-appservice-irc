@@ -27,6 +27,10 @@ export class IdentGenerator {
     private static readonly MAX_REAL_NAME_LENGTH = 48;
     // The max length of <username> in USER commands
     private static readonly MAX_USER_NAME_LENGTH = 10;
+    // The delimiter ofthe username.
+    private static readonly USER_NAME_DELIMITER = "_";
+    // The delimiter ofthe username.
+    private static readonly MAX_USER_NAME_SUFFIX = 10000;
 
     private queue: Queue<{ matrixUser: MatrixUser; ircClientConfig: IrcClientConfig}>;
     constructor (private readonly dataStore: DataStore) {
@@ -48,56 +52,57 @@ export class IdentGenerator {
      *   realname: 'realname_to_use'
      * }
      */
-    public async getIrcNames(ircClientConfig: IrcClientConfig, matrixUser?: MatrixUser) {
+    public async getIrcNames(ircClientConfig: IrcClientConfig, matrixUser?: MatrixUser): Promise<{username: string, realname: string}> {
         const username = ircClientConfig.getUsername();
-        const info: {username?: string; realname: string} = {
-            username: undefined,
-            realname: (matrixUser ?
-                IdentGenerator.sanitiseRealname(matrixUser.getId()) :
-                IdentGenerator.sanitiseRealname(username || "")
-                    ).substring(
-                            0, IdentGenerator.MAX_REAL_NAME_LENGTH
-                    ),
-        };
+        const realname = (matrixUser ?
+            IdentGenerator.sanitiseRealname(matrixUser.getId()) :
+            IdentGenerator.sanitiseRealname(username || "")
+                ).substring(
+                    0, IdentGenerator.MAX_REAL_NAME_LENGTH
+        );
         if (matrixUser) {
             if (username) {
                 log.debug(
                     "Using cached ident username %s for %s on %s",
                     ircClientConfig.getUsername(), matrixUser.getId(), ircClientConfig.getDomain()
                 );
-                info.username = IdentGenerator.sanitiseUsername(username);
-                info.username = info.username.substring(
-                    0, IdentGenerator.MAX_USER_NAME_LENGTH
-                );
+                return {
+                    username:IdentGenerator.sanitiseUsername(username).substring(
+                        0, IdentGenerator.MAX_USER_NAME_LENGTH
+                    ),
+                    realname: realname,
+                };
             }
-            else {
-                try {
-                    log.debug(
-                        "Pushing username generation request for %s on %s to the queue...",
-                        matrixUser.getId(), ircClientConfig.getDomain()
-                    )
-                    const uname = await this.queue.enqueue(matrixUser.getId(), {
-                        matrixUser: matrixUser,
-                        ircClientConfig: ircClientConfig
-                    })
-                    info.username = uname as string;
-                }
-                catch (err) {
-                    log.error(
-                        "Failed to generate ident username for %s on %s",
-                        matrixUser.getId(), ircClientConfig.getDomain()
-                    )
-                    log.error(err.stack);
-                    throw err;
-                }
+            try {
+                log.debug(
+                    "Pushing username generation request for %s on %s to the queue...",
+                    matrixUser.getId(), ircClientConfig.getDomain()
+                )
+                const uname = await this.queue.enqueue(matrixUser.getId(), {
+                    matrixUser: matrixUser,
+                    ircClientConfig: ircClientConfig
+                }) as string;
+                return {
+                    username: uname,
+                    realname: realname,
+                };
+            }
+            catch (err) {
+                log.error(
+                    "Failed to generate ident username for %s on %s",
+                    matrixUser.getId(), ircClientConfig.getDomain()
+                )
+                log.error(err.stack);
+                throw err;
             }
         }
-        else if (username) {
-            info.username = IdentGenerator.sanitiseUsername(
-                username // the bridge won't have a matrix user
-            )
-        }
-        return info;
+
+        return {
+            username: IdentGenerator.sanitiseUsername(
+                username! // the bridge won't have a matrix user. Username is always defined for the bot.
+            ),
+            realname,
+        };
     }
 
     // debugging: util.inspect()
@@ -134,59 +139,21 @@ export class IdentGenerator {
         /* LONGNAM~1 ing algorithm:
         * foobar => foob~1 => foob~2 => ... => foob~9 => foo~10 => foo~11 => ...
         * f~9999 => FAIL.
-        *
-        * Ideal data structure (Tries): TODO
-        * (each level from the root node increases digit count by 1)
-        *    .---[f]---.            Translation:
-        * 123[o]       [a]743       Up to fo~123 is taken
-        *    |                      Up to fa~743 is taken
-        * 34[o]                     Up to foo~34 is taken
-        *    |                      Up to foot~9 is taken (re-search as can't increment)
-        *  9[t]
-        *
-        * while not_free(uname):
-        *   if ~ not in uname:
-        *     uname = uname[0:-2] + "~1"               // foobar => foob~1
-        *     continue
-        *   [name, num] = uname.split(~)               // foob~9 => ['foob', '9']
-        *   old_digits_len = len(str(num))             // '9' => 1
-        *   num += 1
-        *   new_digits_len = len(str(num))             // '10' => 2
-        *   if new_digits_len > old_digits_len:
-        *     uname = name[:-1] + "~" + num            // foob,10 => foo~10
-        *   else:
-        *     uname = name + "~" + num                 // foob,8 => foob~8
-        *
-        * return uname
         */
-        const delim = "_";
-        const modifyUsername = () => {
-            if (!uname.includes(delim)) {
-                uname = uname.substring(0, uname.length - 2) + delim + "1";
-                return true;
-            }
-            const segments = uname.split(delim);
-            const oldLen = segments[1].length;
-            const num = parseInt(segments[1]) + 1;
-            if (("" + num).length > oldLen) {
-                uname = segments[0].substring(0, segments[0].length - 1) + delim + num;
-            }
-            else {
-                uname = segments[0] + delim + num;
-            }
-            return !uname.startsWith(delim); // break out if '~10000'
-        }
 
-        // TODO: This isn't efficient currently; since this will be called worst
-        // case 10^[num chars in string] => 10^10
-        // We should instead be querying to extract the max occupied number for
-        // that char string (which is worst case [num chars in string]), e.g.
-        // fooba => 9, foob => 99, foo => 999, fo => 4523 = fo~4524
+        const originalUname = uname;
+        let suffix = await this.getSuffixForUsername(uname, domain);
+
         while (true) {
+            // getSuffixForUsername should have ensured that this suffix isn't taken,
+            // but just to be sure.
             const usr = await this.dataStore.getMatrixUserByUsername(domain, uname);
             if (usr && usr.getId() !== userId) { // occupied username!
-                if (!modifyUsername()) {
-                    throw new Error("Ran out of entries: " + uname);
+                const res = IdentGenerator.modifyUsername(originalUname, suffix);
+                uname = res.uname;
+                suffix++;
+                if (!res.result) {
+                    throw Error("Ran out of entries: " + res.uname);
                 }
             }
             else {
@@ -206,6 +173,37 @@ export class IdentGenerator {
             }
         }
         return uname;
+    }
+
+    /**
+     * Get the next available suffix for a given complete username.
+     * This function will find the correct suffix for a user in as fewest
+     * DB calls as possible.
+     * @param uname The IRC username
+     * @param domain The IRC domain.
+     */
+    private async getSuffixForUsername(username: string, domain: string) {
+        let suffixLength = 1;
+        let suffix = 0;
+        while(suffixLength < IdentGenerator.MAX_USER_NAME_SUFFIX.toString().length) {
+            const prefix = username.substr(
+            // myusername becomes myuserna
+                0, username.length - IdentGenerator.USER_NAME_DELIMITER.length - suffixLength);
+            // Look for all usernames starting with myuserna
+            const countForSuffix = await this.dataStore.getCountForUsernamePrefix(domain, prefix);
+            // is there myuserna_1 to myuserna_9
+            if (countForSuffix < Math.pow(10, suffixLength) - 1) {
+                // Take the next available suffix.
+                suffix = countForSuffix + 1;
+                break;
+            }
+            suffixLength++;
+        }
+
+        if (suffixLength === IdentGenerator.MAX_USER_NAME_SUFFIX.toString().length) {
+            throw Error("Ran out of entries: " + username);
+        }
+        return suffix;
     }
 
     private static sanitiseUsername(username: string, replacementChar = "") {
@@ -228,5 +226,11 @@ export class IdentGenerator {
         // real name can be any old ASCII
         // eslint-disable-next-line no-control-regex
         return realname.replace(/[^\x00-\x7F]/g, "");
+    }
+
+    private static modifyUsername(uname: string, suffix: number): { result: boolean, uname: string} {
+        const suffixString = `${this.USER_NAME_DELIMITER}${suffix}`;
+        uname = `${uname.substr(0, this.MAX_USER_NAME_LENGTH - suffixString.length)}${suffixString}`;
+        return { result: suffix <= this.MAX_USER_NAME_SUFFIX, uname }; // break out if '~10000'
     }
 }
