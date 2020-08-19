@@ -125,7 +125,7 @@ describe("Username generation", function() {
 
     it("should be able to handle many similar userids", async function() {
         const userIdPrefix = "@_longprefix_";
-        for (let i = 0; i < 5000; i++) {
+        for (let i = 0; i < 1000; i++) {
             const userId = `${userIdPrefix}${i}:localhost`;
             const config = new IrcClientConfig(userId, 'irc.example.com');
             const result = await identGenerator.getIrcNames(config, mkMatrixUser(userId));
