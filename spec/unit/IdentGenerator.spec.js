@@ -1,12 +1,16 @@
 "use strict";
 const Promise = require("bluebird");
-const { IdentGenerator } = require("../../lib/irc/IdentGenerator.js");
+const { IdentGenerator } = require("../../lib/irc/IdentGenerator");
+const { IrcClientConfig } = require("../../lib/models/IrcClientConfig");
 
 describe("Username generation", function() {
-    var identGenerator;
-    var storeMock = {};
-    var existingUsernames = {};
-    var ircClientConfig;
+    let identGenerator;
+    let storeMock;
+    let existingUsernames;
+    let ircClientConfig;
+    let ircClientConfigs;
+    let ircClientConfigsUsername;
+    let ircClientConfigsUsernames;
 
     var mkMatrixUser = function(uid) {
         return {
@@ -17,6 +21,10 @@ describe("Username generation", function() {
 
     beforeEach(function() {
         existingUsernames = {};
+        ircClientConfigs = { };
+        ircClientConfigsUsername = { };
+        ircClientConfigsUsernames = [];
+        storeMock = {};
         var _uname;
         ircClientConfig = {
             getDesiredNick: () => { return "MyCrazyNick"; },
@@ -29,21 +37,28 @@ describe("Username generation", function() {
                 _uname = u;
             }
         };
-        storeMock.getMatrixUserByUsername = function(domain, uname) {
+        storeMock.getCountForUsernamePrefix = async function (domain, usernamePrefix) {
+            return ircClientConfigsUsernames.filter((uname) =>
+                uname.startsWith(usernamePrefix)
+            ).length;
+        }
+        storeMock.getMatrixUserByUsername = async function(domain, uname) {
             var obj;
             if (existingUsernames[uname]) {
                 obj = {
                     getId: function() { return existingUsernames[uname]; }
                 };
+            } else if (ircClientConfigsUsername[uname+domain]) {
+                return mkMatrixUser(ircClientConfigsUsername[uname+domain].getUserId());
             }
-            return Promise.resolve(obj);
+            return obj;
         };
-        storeMock.storeIrcClientConfig = function() {
-            return Promise.resolve();
-        };
-        storeMock.getIrcClientConfig = function() {
-            return Promise.resolve();
-        };
+        storeMock.getIrcClientConfig = async (sender, domain) => ircClientConfigs[sender+domain];
+        storeMock.storeIrcClientConfig = async (config) => { 
+            ircClientConfigs[config.userId+config.domain] = config;
+            ircClientConfigsUsername[config.getUsername()+config.domain] = config;
+            ircClientConfigsUsernames.push(config.getUsername());
+        }
 
         identGenerator = new IdentGenerator(storeMock);
         IdentGenerator.MAX_USER_NAME_LENGTH = 8;
@@ -106,5 +121,20 @@ describe("Username generation", function() {
         const uname = "M-myname";
         const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
         expect(info.username).toEqual(uname);
+    });
+
+    it("should be able to handle many similar userids", async function() {
+        const userIdPrefix = "@_longprefix_";
+        for (let i = 0; i < 5000; i++) {
+            const userId = `${userIdPrefix}${i}:localhost`;
+            const config = new IrcClientConfig(userId, 'irc.example.com');
+            const result = await identGenerator.getIrcNames(config, mkMatrixUser(userId));
+            if (i === 0) {
+                expect(result.username).toBe("longpref");
+            } else {
+                // longpref_1, _2, _3 etc
+                expect(result.username).toBe(`${"longprefix".substr(0, 8 - 1 - (i+1).toString().length)}_${i+1}`);
+            }
+        }
     });
 });
