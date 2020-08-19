@@ -1,0 +1,1 @@
+Add Grafana dashboard sample
