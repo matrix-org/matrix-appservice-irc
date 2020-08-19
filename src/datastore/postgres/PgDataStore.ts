@@ -519,6 +519,13 @@ export class PgDataStore implements DataStore {
         return new MatrixUser(res.rows[0].user_id, res.rows[0].data);
     }
 
+    public async getCountForUsernamePrefix(domain: string, usernamePrefix: string): Promise<number> {
+        const res = await this.pgPool.query("SELECT COUNT(*) FROM client_config " +
+            "WHERE config->>'username' LIKE $1; AND domain = $2",
+        [`${usernamePrefix}%`, domain]);
+        return res.rows[0];
+    }
+
     public async roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string) {
         await this.pgPool.query("UPDATE rooms SET room_id = $1 WHERE room_id = $2", [newRoomId, oldRoomId]);
     }
