@@ -138,6 +138,7 @@ properties:
                         type: "boolean"
             servers:
                 type: "object"
+                minProperties: 1
                 # all properties must follow the following
                 additionalProperties:
                     type: "object"
