@@ -30,7 +30,7 @@ export class IdentGenerator {
     // The delimiter of the username.
     private static readonly USER_NAME_DELIMITER = "_";
     // The delimiter of the username.
-    private static readonly MAX_USER_NAME_SUFFIX = 10000;
+    private static readonly MAX_USER_NAME_SUFFIX = 9999;
 
     private queue: Queue<{ matrixUser: MatrixUser; ircClientConfig: IrcClientConfig}>;
     constructor (private readonly dataStore: DataStore) {
@@ -186,7 +186,7 @@ export class IdentGenerator {
      */
     private async getSuffixForUsername(username: string, domain: string) {
         let suffixLength = 1;
-        while (suffixLength < Math.log10(IdentGenerator.MAX_USER_NAME_SUFFIX) + 1) {
+        while (suffixLength < Math.log10(IdentGenerator.MAX_USER_NAME_SUFFIX + 1)) {
             const prefix = username.substring(
             // myusername becomes myuserna
                 0, username.length - IdentGenerator.USER_NAME_DELIMITER.length - suffixLength);
