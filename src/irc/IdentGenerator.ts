@@ -27,9 +27,9 @@ export class IdentGenerator {
     private static readonly MAX_REAL_NAME_LENGTH = 48;
     // The max length of <username> in USER commands
     private static readonly MAX_USER_NAME_LENGTH = 10;
-    // The delimiter ofthe username.
+    // The delimiter of the username.
     private static readonly USER_NAME_DELIMITER = "_";
-    // The delimiter ofthe username.
+    // The delimiter of the username.
     private static readonly MAX_USER_NAME_SUFFIX = 10000;
 
     private queue: Queue<{ matrixUser: MatrixUser; ircClientConfig: IrcClientConfig}>;
@@ -186,8 +186,8 @@ export class IdentGenerator {
      */
     private async getSuffixForUsername(username: string, domain: string) {
         let suffixLength = 1;
-        while (suffixLength < IdentGenerator.MAX_USER_NAME_SUFFIX.toString().length) {
-            const prefix = username.substr(
+        while (suffixLength < Math.log10(IdentGenerator.MAX_USER_NAME_SUFFIX) + 1) {
+            const prefix = username.substring(
             // myusername becomes myuserna
                 0, username.length - IdentGenerator.USER_NAME_DELIMITER.length - suffixLength);
             // Look for all usernames starting with myuserna
