@@ -603,6 +603,18 @@ export class NeDBDataStore implements DataStore {
         return matrixUsers[0];
     }
 
+
+    public async getCountForUsernamePrefix(domain: string, usernamePrefix: string): Promise<number> {
+        const domainKey = domain.replace(/\./g, "_");
+        const rows = await this.userStore.select({
+            type: "matrix",
+            ["data.client_config." + domainKey + ".username"]: {
+                $regex: new RegExp(`${usernamePrefix}.+`),
+            }
+        });
+        return rows.length;
+    }
+
     public async updateLastSeenTimeForUser(userId: string) {
         let user = await this.userStore.getMatrixUser(userId);
         if (!user) {

@@ -160,6 +160,8 @@ export interface DataStore {
 
     getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined>;
 
+    getCountForUsernamePrefix(domain: string, usernamePrefix: string): Promise<number>;
+
     roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string): Promise<void>;
 
     updateLastSeenTimeForUser(userId: string): Promise<void>;
