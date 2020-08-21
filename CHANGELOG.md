@@ -1,3 +1,19 @@
+ 0.20.2 (2020-08-21)
+====================
+
+Features
+--------
+
+- Add Grafana dashboard sample ([\#1122](https://github.com/matrix-org/matrix-appservice-irc/issues/1122))
+
+
+Bugfixes
+--------
+
+- Reconnect to the correct domain on passsword changes. Thanks to @palmer-dabbelt ([\#1000](https://github.com/matrix-org/matrix-appservice-irc/issues/1000))
+- Improve performance of generating a username ([\#1121](https://github.com/matrix-org/matrix-appservice-irc/issues/1121))
+
+
 0.20.1 (2020-08-17)
 ========================
 
