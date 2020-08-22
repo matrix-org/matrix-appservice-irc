@@ -515,6 +515,7 @@ export class MatrixHandler {
 
                 // Check for a displayname change and update nick accordingly.
                 if (event.content && event.content.displayname !== bridgedClient.displayName) {
+                    bridgedClient.displayName = event.content.displayname || null;
                     // Changing the nick requires that:
                     // - the server allows nick changes
                     // - the nick is not custom
@@ -526,7 +527,7 @@ export class MatrixHandler {
                     ) {
                         try {
                             const newNick = room.server.getNick(
-                                bridgedClient.userId, event.content.displayname
+                                bridgedClient.userId, bridgedClient.displayName || undefined
                             );
                             bridgedClient.changeNick(newNick, false);
                         }
