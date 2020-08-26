@@ -580,6 +580,11 @@ export class NeDBDataStore implements DataStore {
         await this.storeIrcClientConfig(config);
     }
 
+
+    public async storeCert(user: string, domain: string, certificateBody: string): Promise<void> {
+        throw Error('Not implemented');
+    }
+
     public async removePass(userId: string, domain: string) {
         const config = await this.getIrcClientConfig(userId, domain);
         if (config) {

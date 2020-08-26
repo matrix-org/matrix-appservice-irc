@@ -21,7 +21,8 @@ import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
 
 export type RoomOrigin = "config"|"provision"|"alias"|"join";
-
+export const CertRegex = 
+    /^(-----BEGIN PRIVATE KEY-----(?:\n[A-Za-z0-9/+]+)+\n-----END PRIVATE KEY-----\n)(-----BEGIN CERTIFICATE-----(?:\n[A-Za-z0-9/+]+)+\n-----END CERTIFICATE-----\n?)$/;
 
 export interface ChannelMappings {
     [roomId: string]: Array<{networkId: string; channel: string}>;
@@ -155,6 +156,8 @@ export interface DataStore {
     storeUserFeatures(userId: string, features: UserFeatures): Promise<void>;
 
     storePass(userId: string, domain: string, pass: string): Promise<void>;
+
+    storeCert(sender: string, network: string, certificateBody: string): Promise<void>;
 
     removePass(userId: string, domain: string): Promise<void>;
 

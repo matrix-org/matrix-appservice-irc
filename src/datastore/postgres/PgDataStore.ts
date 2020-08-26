@@ -17,7 +17,7 @@ limitations under the License.
 import { Pool } from "pg";
 
 import { MatrixUser, MatrixRoom, RemoteRoom, Entry } from "matrix-appservice-bridge";
-import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
+import { DataStore, RoomOrigin, ChannelMappings, UserFeatures, CertRegex } from "../DataStore";
 import { IrcRoom } from "../../models/IrcRoom";
 import { IrcClientConfig } from "../../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../../irc/IrcServer";
@@ -33,7 +33,7 @@ const log = getLogger("PgDatastore");
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 4;
+    public static readonly LATEST_SCHEMA = 5;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -426,7 +426,8 @@ export class PgDataStore implements DataStore {
         if (row.password && this.cryptoStore) {
             config.password = this.cryptoStore.decrypt(row.password);
         }
-        return new IrcClientConfig(userId, domain, config);
+        let cert = this.cryptoStore && await this.getCert(userId, domain);
+        return new IrcClientConfig(userId, domain, config, cert);
     }
 
     public async storeIrcClientConfig(config: IrcClientConfig): Promise<void> {
@@ -497,6 +498,50 @@ export class PgDataStore implements DataStore {
         };
         const statement = PgDataStore.BuildUpsertStatement("client_config", "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
         await this.pgPool.query(statement, Object.values(parameters));
+    }
+
+    public async storeCert(user: string, domain: string, certificateBody: string): Promise<void> {
+        if (!this.cryptoStore) {
+            throw Error("Password encryption is not configured.")
+        }
+        // Verify cert looks like the right shape
+        const result = CertRegex.exec(certificateBody.trim());
+        if (!result) {
+            throw Error("Certificate was in an unrecognised format.");
+        }
+        result.shift();
+        const cert = result.find((s) => s.includes("BEGIN CERTIFICATE"));
+        const key = result.find((s) => s.includes("BEGIN PRIVATE KEY"));
+        if (!cert) {
+            throw Error("Missing BEGIN CERTIFICATE.");
+        }
+        if (!key) {
+            throw Error("Missing PRIVATE KEY.");
+        }
+        const parameters = {
+            user_id: user,
+            domain,
+            cert,
+            key,
+        };
+        const statement = PgDataStore.BuildUpsertStatement("client_cert", "ON CONSTRAINT cons_client_cert_unique", Object.keys(parameters));
+        await this.pgPool.query(statement, Object.values(parameters));
+    }
+
+    public async getCert(user: string, domain: string): Promise<{key: string, cert: string}|undefined> {
+        if (!this.cryptoStore) {
+            throw Error("Password encryption is not configured.")
+        }
+        const res = await this.pgPool.query("SELECT cert, key FROM client_cert WHERE user_id = $1 AND domain = $2", [
+            user, domain
+        ]);
+        if (res.rowCount === 0) {
+            return undefined;
+        }
+        return {
+            key: /*this.cryptoStore.decrypt(*/ res.rows[0].key,
+            cert: res.rows[0].cert,
+        }
     }
 
     public async removePass(userId: string, domain: string): Promise<void> {
