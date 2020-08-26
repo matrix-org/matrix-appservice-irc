@@ -47,6 +47,10 @@ const COMMANDS = {
         example: `!storepass [irc.example.net] passw0rd`,
         summary: `Store a NickServ password (server password)`,
     },
+    "!storecert": {
+        example: `!storecert [irc.example.net]`,
+        summary: `Store a certificate for authentication`,
+    },
     "!removepass": {
         example: `!removepass [irc.example.net]`,
         summary: `Remove a previously stored NickServ password`,
@@ -87,6 +91,7 @@ interface MatrixSimpleMessage {
 
 export class AdminRoomHandler {
     private readonly botUser: MatrixUser;
+    private readonly storeCertWaiting: Map<string, string> = new Map(); // user_id -> network
     constructor(private ircBridge: IrcBridge, private matrixHandler: MatrixHandler) {
         this.botUser = new MatrixUser(ircBridge.appServiceUserId, undefined, false);
 
@@ -94,6 +99,29 @@ export class AdminRoomHandler {
 
     public async onAdminMessage(req: BridgeRequest, event: MatrixSimpleMessage, adminRoom: MatrixRoom) {
         req.log.info("Handling command from %s", event.sender);
+        const networkForStoreCert = this.storeCertWaiting.get(event.sender);
+        if (networkForStoreCert) {
+            // This might be a cert.
+            try {
+                await this.ircBridge.getStore().storeCert(event.sender, networkForStoreCert, event.content.body);
+                const notice = new MatrixAction("notice", "Stored certificate. Will reconnect to authenticate.");
+                await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+                const client = this.ircBridge.getBridgedClientsForUserId(event.sender).find((b) => b.server.domain === networkForStoreCert);
+                if (client) {
+                    await client.disconnect("iwanttoreconnect", "authenticating", false);
+                }
+
+            } catch (ex) {
+                log.warn("Failed to store certificate:", ex);
+                const notice = new MatrixAction("notice", "Could not store certificate.");
+                await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+            } finally {
+                // Always revert back.
+                this.storeCertWaiting.delete(event.sender);
+            }
+            return;
+        }
+
         // Assumes all commands have the form "!wxyz [irc.server] [args...]"
         const segments = event.content.body.split(" ");
         const cmd = segments.shift();
@@ -136,6 +164,9 @@ export class AdminRoomHandler {
                 break;
             case "!storepass":
                 await this.handleStorePass(req, args, ircServer, adminRoom, event.sender, clientList);
+                break;
+            case "!storecert":
+                await this.handleStoreCert(adminRoom, ircServer, event.sender);
                 break;
             case "!removepass":
                 await this.handleRemovePass(ircServer, adminRoom, event.sender);
@@ -399,6 +430,24 @@ export class AdminRoomHandler {
             );
         }
 
+        await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+    }
+
+    private async handleStoreCert(adminRoom: MatrixRoom, ircServer: IrcServer, userId: string) {
+        const domain = ircServer.domain;
+        let notice;
+
+        if (this.storeCertWaiting.has(userId)) {
+            notice = new MatrixAction(
+                "notice", `Was already waiting for a certificate. Will store certificate for ${domain}`
+            );
+        } else {
+            notice = new MatrixAction(
+                "notice", `Please paste your certificate file contents into your client for ${domain}.` +
+                        " You must paste the contents unformatted as text, not a file",
+            );
+        }
+        this.storeCertWaiting.set(userId, ircServer.domain);
         await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
     }
 

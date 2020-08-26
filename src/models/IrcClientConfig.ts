@@ -29,6 +29,7 @@ export interface IrcClientConfigSeralized {
  */
 export class IrcClientConfig {
 
+
     /**
      * Construct an IRC Client Config.
      * @param {string} userId The user ID who is configuring this config.
@@ -38,7 +39,8 @@ export class IrcClientConfig {
     constructor(
         public userId: string|null,
         public domain: string,
-        private config: IrcClientConfigSeralized = {}) {
+        private config: IrcClientConfigSeralized = {},
+        private authCertificate?: {key: string, cert: string},) {
 
     }
 
@@ -64,6 +66,10 @@ export class IrcClientConfig {
 
     public getPassword(): string|undefined {
         return this.config.password;
+    }
+
+    public getAuthCert(): {key: string, cert: string}|undefined {
+        return this.authCertificate;
     }
 
     public setDesiredNick(nick: string) {
@@ -97,16 +103,18 @@ export class IrcClientConfig {
             nick: this.config.nick,
             ipv6: this.config.ipv6,
             password: this.config.password ? '<REDACTED>' : undefined,
+            authCertificate: this.authCertificate ? '<REDACTED>' : undefined,
         };
         return this.userId + "=>" + this.domain + "=" + JSON.stringify(redactedConfig);
     }
 
     public static newConfig(matrixUser: MatrixUser|null, domain: string,
-                            nick?: string, username?: string, password?: string) {
+                            nick?: string, username?: string, password?: string,
+                            authCert?: {key: string, cert: string}) {
         return new IrcClientConfig(matrixUser ? matrixUser.getId() : null, domain, {
             nick: nick,
             username: username,
             password: password
-        });
+        }, authCert);
     }
 }
