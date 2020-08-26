@@ -68,11 +68,14 @@ function logError(err: Error) {
 export interface ConnectionOpts {
     localAddress?: string;
     password?: string;
+    certfp?: string;
     realname: string;
     username?: string;
     nick: string;
     secure?: {
         ca?: string;
+        cert?: string;
+        key?: string;
     };
     encodingFallback: string;
 }
@@ -368,6 +371,7 @@ export class ConnectionInstance {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
         }
+        const usingCert = !!(opts.secure?.cert && opts.secure.key);
         const connectionOpts = {
             userName: opts.username,
             realName: opts.realname,
@@ -381,11 +385,13 @@ export class ConnectionInstance {
             selfSigned: server.useSslSelfSigned(),
             certExpired: server.allowExpiredCerts(),
             retryCount: 0,
-            family: server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null,
+            family: 4,
             bustRfc3484: true,
-            sasl: opts.password ? server.useSasl() : false,
-            secure: server.useSsl() ? { ca: server.getCA() } : undefined,
-            encodingFallback: opts.encodingFallback
+            sasl: usingCert || (opts.password ? server.useSasl() : false),
+            secure: server.useSsl() ? { ca: server.getCA(), ...opts.secure } : undefined,
+            encodingFallback: opts.encodingFallback,
+            // If we supply a cert & key, expect this to be external.
+            saslType: usingCert ? 'EXTERNAL' : 'PLAIN',
         };
 
         // Returns: A promise which resolves to a ConnectionInstance

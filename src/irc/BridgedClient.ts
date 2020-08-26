@@ -134,9 +134,13 @@ export class BridgedClient extends EventEmitter {
             throw Error("Could not determine nick for user");
         }
         this._nick = BridgedClient.getValidNick(chosenNick, false, this.state);
-        this.password = (
-            clientConfig.getPassword() ? clientConfig.getPassword() : server.config.password
-        );
+
+        if (!this.clientConfig.getAuthCert()) {
+            // Only use password if we don't have an auth cert in place.
+            this.password = (
+                clientConfig.getPassword() ? clientConfig.getPassword() : server.config.password
+            );
+        }
 
         this.lastActionTs = Date.now();
         this.connectDefer = promiseutil.defer();
@@ -242,6 +246,9 @@ export class BridgedClient extends EventEmitter {
                 username: nameInfo.username,
                 realname: nameInfo.realname,
                 password: this.password,
+                // If the cert exists, it will populate the field.
+                secure: this.clientConfig.getAuthCert(),
+                
                 // Don't use stored IPv6 addresses unless they have a prefix else they
                 // won't be able to turn off IPv6!
                 localAddress: (
