@@ -27,6 +27,7 @@ import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
 import { DataStore } from "../datastore/DataStore";
+import { Gauge } from "prom-client";
 const log = getLogger("ClientPool");
 
 interface ReconnectionItem {
@@ -64,6 +65,7 @@ export class ClientPool {
             this.ircBridge.getAppServiceBridge(),
             this,
             this.ircBridge.ircHandler,
+            this.ircBridge.getServers(),
         );
     }
 
@@ -118,10 +120,9 @@ export class ClientPool {
     }
 
     public async loginToServer(server: IrcServer): Promise<BridgedClient> {
-        const uname = "matrixirc";
-        let bridgedClient = this.getBridgedClientByNick(server, uname);
+        let bridgedClient = this.getBot(server);
         if (!bridgedClient) {
-            const botIrcConfig = server.createBotIrcClientConfig(uname);
+            const botIrcConfig = server.createBotIrcClientConfig();
             bridgedClient = this.createIrcClient(botIrcConfig, null, true);
             log.debug(
                 "Created new bot client for %s : %s (bot enabled=%s)",
@@ -215,7 +216,7 @@ export class ClientPool {
             return bridgedClient;
         }
 
-        log.debug(
+        log.info(
             "Creating virtual irc user with nick %s for %s (display name %s)",
             ircClientConfig.getDesiredNick(), userId, displayName
         );
@@ -320,7 +321,10 @@ export class ClientPool {
 
         // Does this server have a max clients limit? If so, check if the limit is
         // reached and start cycling based on oldest time.
-        this.checkClientLimit(server);
+        this.checkClientLimit(server).catch((ex) => {
+            // This will be run asyncronously
+            log.error("Failed to check limits: ", ex);
+        });
         return bridgedClient;
     }
 
@@ -493,7 +497,17 @@ export class ClientPool {
         return [...users.userIds.keys()];
     }
 
-    private getNumberOfConnections(server: IrcServer): number {
+    public collectConnectionStatesForAllServers(gauge: Gauge<string>) {
+        gauge.reset();
+        for (const [domain, {userIds}] of Object.entries(this.virtualClients)) {
+            for (const client of userIds.values()) {
+                const state = BridgedClientStatus[client.status].toLowerCase();
+                gauge.inc({ server: domain, state});
+            }
+        }
+    }
+
+    private getNumberOfConnections(server?: IrcServer): number {
         if (!server || !this.virtualClients[server.domain]) { return 0; }
         return this.virtualClients[server.domain].userIds.size;
     }
@@ -534,17 +548,19 @@ export class ClientPool {
     private async onClientDisconnected(bridgedClient: BridgedClient) {
         this.removeBridgedClient(bridgedClient);
 
-        log.warn(`Client ${bridgedClient.id} disconnected with reason ${bridgedClient.disconnectReason}`);
+        const { userId, disconnectReason } = bridgedClient;
+
+        log.warn(`Client ${bridgedClient.id} (${userId}) disconnected with reason ${disconnectReason}`);
 
         // remove the pending nick we had set for this user
         if (this.virtualClients[bridgedClient.server.domain]) {
             this.virtualClients[bridgedClient.server.domain].pending.delete(bridgedClient.nick);
         }
 
-        if (bridgedClient.disconnectReason === "banned" && bridgedClient.userId) {
+        if (disconnectReason === "banned" && userId) {
             const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
             this.ircBridge.matrixHandler.quitUser(
-                req, bridgedClient.userId, [bridgedClient],
+                req, userId, [bridgedClient],
                 null, "User was banned from the network"
             );
         }
@@ -552,11 +568,12 @@ export class ClientPool {
         const isBot = bridgedClient.isBot;
         const chanList = bridgedClient.chanList;
 
-        if (chanList.length === 0 && !isBot && bridgedClient.disconnectReason !== "iwanttoreconnect") {
+        if (chanList.length === 0 && !isBot && disconnectReason !== "iwanttoreconnect") {
             // Never drop the bot, or users that really want to reconnect.
             log.info(
                 `Dropping ${bridgedClient.id} (${bridgedClient.nick}) because they are not joined to any channels`
             );
+            (bridgedClient as unknown) = undefined;
             return;
         }
 
@@ -564,6 +581,9 @@ export class ClientPool {
             log.info(`Dropping ${bridgedClient.id} (${bridgedClient.nick}) because explicitDisconnect is true`);
             // don't reconnect users which explicitly disconnected e.g. client
             // cycling, idle timeouts, leaving rooms, etc.
+            // remove ref to the disconnected client so it can be GC'd. If we don't do this,
+            // the timeout below holds it in a closure, preventing it from being GC'd.
+            (bridgedClient as unknown) = undefined;
             return;
         }
         // Reconnect this user
@@ -571,9 +591,9 @@ export class ClientPool {
         // makes sure that the client attempts to reconnect with the *SAME* nick, and also draws
         // from the latest !nick change, as the client config here may be very very old.
         let cliConfig = bridgedClient.getClientConfig();
-        if (bridgedClient.userId) {
+        if (userId) {
             // We may have changed something between connections, so use the new config.
-            const newConfig = await this.store.getIrcClientConfig(bridgedClient.userId, bridgedClient.server.domain);
+            const newConfig = await this.store.getIrcClientConfig(userId, bridgedClient.server.domain);
             if (newConfig) {
                 cliConfig = newConfig;
             }

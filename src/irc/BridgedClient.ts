@@ -133,7 +133,7 @@ export class BridgedClient extends EventEmitter {
         else {
             throw Error("Could not determine nick for user");
         }
-        this._nick = this.getValidNick(chosenNick, false);
+        this._nick = BridgedClient.getValidNick(chosenNick, false, this.state);
         this.password = (
             clientConfig.getPassword() ? clientConfig.getPassword() : server.config.password
         );
@@ -157,6 +157,7 @@ export class BridgedClient extends EventEmitter {
                 log.error(`${prefix}${msg}`, ...args);
             }
         };
+        this.log.info(`Created client for ${this.userId || "bot"}`);
     }
 
     public get explicitDisconnect() {
@@ -362,7 +363,7 @@ export class BridgedClient extends EventEmitter {
      */
     public async changeNick(newNick: string, throwOnInvalid: boolean): Promise<string> {
         this.log.info(`Trying to change nick from ${this.nick} to ${newNick}`);
-        const validNick = this.getValidNick(newNick, throwOnInvalid);
+        const validNick = BridgedClient.getValidNick(newNick, throwOnInvalid, this.state);
         if (validNick === this.nick) {
             throw Error(`Your nick is already '${validNick}'.`);
         }
@@ -692,7 +693,7 @@ export class BridgedClient extends EventEmitter {
      * The error message will contain a human-readable message which can be sent
      * back to a user.
      */
-    private getValidNick(nick: string, throwOnInvalid: boolean): string {
+    static getValidNick(nick: string, throwOnInvalid: boolean, state: State): string {
         // Apply a series of transformations to the nick, and check after each
         // stage for mismatches to the input (and throw if appropriate).
 
@@ -704,21 +705,23 @@ export class BridgedClient extends EventEmitter {
         }
 
         // nicks must start with a letter
-        if (!/^[A-Za-z]/.test(n)) {
+        if (!/^[A-Za-z\[\]\\`_^\{\|\}]/.test(n)) {
             if (throwOnInvalid) {
-                throw new Error(`Nick '${nick}' must start with a letter.`);
+                throw new Error(
+                    `Nick '${nick}' must start with a letter or special character (dash is not a special character).`
+                );
             }
             // Add arbitrary letter prefix. This is important for guest user
             // IDs which are all numbers.
             n = "M" + n;
         }
 
-        if (this.state.status === BridgedClientStatus.CONNECTED) {
+        if (state.status === BridgedClientStatus.CONNECTED) {
             // nicks can't be too long
             let maxNickLen = 9; // RFC 1459 default
-            if (this.state.client.supported &&
-                    typeof this.state.client.supported.nicklength === "number") {
-                maxNickLen = this.state.client.supported.nicklength;
+            if (state.client.supported &&
+                    typeof state.client.supported.nicklength === "number") {
+                maxNickLen = state.client.supported.nicklength;
             }
             if (n.length > maxNickLen) {
                 if (throwOnInvalid) {

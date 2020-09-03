@@ -363,7 +363,7 @@ export class PgDataStore implements DataStore {
 
     public async getIpv6Counter(): Promise<number> {
         const res = await this.pgPool.query("SELECT count FROM ipv6_counter");
-        return res ? res.rows[0].count : 0;
+        return res ? parseInt(res.rows[0].count, 10) : 0;
     }
 
     public async setIpv6Counter(counter: number): Promise<void> {
@@ -517,6 +517,14 @@ export class PgDataStore implements DataStore {
             log.error("getMatrixUserByUsername returned %s results for %s on %s", res.rowCount, username, domain);
         }
         return new MatrixUser(res.rows[0].user_id, res.rows[0].data);
+    }
+
+    public async getCountForUsernamePrefix(domain: string, usernamePrefix: string): Promise<number> {
+        const res = await this.pgPool.query("SELECT COUNT(*) FROM client_config " +
+            "WHERE domain = $2 AND config->>'username' LIKE $1 || '%'",
+        [usernamePrefix, domain]);
+        const count = parseInt(res.rows[0].count, 10);
+        return count;
     }
 
     public async roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string) {
