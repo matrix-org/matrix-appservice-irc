@@ -16,7 +16,7 @@ limitations under the License.
 
 import { Pool } from "pg";
 
-import { MatrixUser, MatrixRoom, RemoteRoom, Entry } from "matrix-appservice-bridge";
+import { MatrixUser, MatrixRoom, RemoteRoom, RoomBridgeStoreEntry as Entry } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
 import { IrcRoom } from "../../models/IrcRoom";
 import { IrcClientConfig } from "../../models/IrcClientConfig";
@@ -126,8 +126,6 @@ export class PgDataStore implements DataStore {
                 domain: pgEntry.irc_domain,
                 type: pgEntry.type,
             }),
-            matrix_id: pgEntry.room_id,
-            remote_id: "foobar",
             data: {
                 origin: pgEntry.origin,
             },

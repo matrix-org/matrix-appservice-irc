@@ -28,6 +28,7 @@ import {
     Request,
     PrometheusMetrics,
     MembershipCache,
+    AgeCounters,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -121,7 +122,7 @@ export class IrcBridge {
                 onUserQuery: this.onUserQuery.bind(this),
                 onAliasQuery: this.onAliasQuery.bind(this),
                 onAliasQueried: this.onAliasQueried ?
-                    this.onAliasQueried.bind(this) : null,
+                    this.onAliasQueried.bind(this) : undefined,
                 onLog: this.onLog.bind(this),
 
                 thirdPartyLookup: {
@@ -159,7 +160,6 @@ export class IrcBridge {
                 migrateStoreEntries: false, // Only NeDB supports this.
             },
             membershipCache: this.membershipCache,
-            migrateStoreEntries: false,
         });
         this.membershipQueue = new MembershipQueue(this.bridge, this.appServiceUserId);
         this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
@@ -183,7 +183,7 @@ export class IrcBridge {
     }
 
     private initialiseMetrics(bindPort: number) {
-        const zeroAge = new PrometheusMetrics.AgeCounters();
+        const zeroAge = new AgeCounters();
         const registry = new Registry();
 
         if (!this.config.ircService.metrics) {
@@ -316,6 +316,10 @@ export class IrcBridge {
                 // Only collect if defined
                 const currentTime = Date.now();
                 const appserviceBot = this.bridge.getBot();
+                if (!appserviceBot) {
+                    // Not ready yet.
+                    return;
+                }
                 this.dataStore.getLastSeenTimeForUsers().then((userSet) => {
                     let remote = 0;
                     let matrix = 0;
@@ -406,13 +410,26 @@ export class IrcBridge {
         }
         else if (dbConfig.engine === "nedb") {
             await this.bridge.loadDatabases();
+            const userStore = this.bridge.getUserStore();
+            const roomStore = this.bridge.getRoomStore();
             log.info("Using NeDBDataStore for Datastore");
+            if (!userStore || !roomStore) {
+                throw Error('Could not load userStore or roomStore');
+            }
             this.dataStore = new NeDBDataStore(
-                this.bridge.getUserStore(),
-                this.bridge.getRoomStore(),
+                userStore,
+                roomStore,
                 this.config.homeserver.domain,
                 pkeyPath,
             );
+            if (this.config.ircService.debugApi.enabled) {
+                // monkey patch inspect() values to avoid useless NeDB
+                // struct spam on the debug API.
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (userStore as any).inspect = () => "UserStore";
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (roomStore as any).inspect = () => "RoomStore";
+            }
         }
         else {
             throw Error("Incorrect database config");
@@ -428,12 +445,6 @@ export class IrcBridge {
                 this.clientPool,
                 this.registration.getAppServiceToken() as string
             );
-            if (this.dataStore instanceof NeDBDataStore) {
-                // monkey patch inspect() values to avoid useless NeDB
-                // struct spam on the debug API.
-                this.bridge.getUserStore().inspect = () => "UserStore";
-                this.bridge.getRoomStore().inspect = () => "RoomStore";
-            }
             this.debugApi.run();
         }
 
@@ -604,7 +615,7 @@ export class IrcBridge {
             const res = _res as BridgeRequestErr|null;
             const bridgeRequest = req as Request<BridgeRequestData>;
             if (res === BridgeRequestErr.ERR_VIRTUAL_USER) {
-                logMessage(bridgeRequest , "IGNORE virtual user");
+                logMessage(bridgeRequest, "IGNORE virtual user");
                 return; // these aren't true successes so don't skew graphs
             }
             else if (res === BridgeRequestErr.ERR_NOT_MAPPED) {
@@ -833,10 +844,10 @@ export class IrcBridge {
         }
     }
 
-    public getThirdPartyProtocol() {
+    public async getThirdPartyProtocol() {
         const servers = this.getServers();
 
-        return Bluebird.resolve({
+        return {
             user_fields: ["domain", "nick"],
             location_fields: ["domain", "channel"],
             field_types: {
@@ -855,6 +866,9 @@ export class IrcBridge {
                     placeholder: "#channel",
                 },
             },
+            // TODO: The spec requires we return an icon, but we don't have support
+            // for one yet.
+            icon: "",
             instances: servers.map((server: IrcServer) => {
                 return {
                     network_id: server.getNetworkId(),
@@ -866,7 +880,7 @@ export class IrcBridge {
                     },
                 };
             }),
-        });
+        };
     }
 
     public async getThirdPartyLocation(protocol: string, fields: {domain?: string; channel?: string}) {
@@ -1067,6 +1081,9 @@ export class IrcBridge {
          * so it will block indefinitely.
          */
         const bot = this.bridge.getBot();
+        if (!bot) {
+            throw Error('AppserviceBot is not ready');
+        }
         let gotRooms = false;
         while (!gotRooms) {
             try {
@@ -1090,10 +1107,12 @@ export class IrcBridge {
         const rooms = await this.getStore().getIrcChannelsForRoomId(newRoomId);
         // Get users who we wish to leave.
         const asBot = this.bridge.getBot();
+        if (!asBot) {
+            throw Error('AppserviceBot is not ready');
+        }
         log.info("Migrating state");
         const stateEvents = await asBot.getClient().roomState(oldRoomId);
-        //TODO:  _getRoomInfo is a private func and should be replaced.
-        const roomInfo = asBot._getRoomInfo(oldRoomId, {
+        const roomInfo = await asBot.getRoomInfo(oldRoomId, {
             state: {
                 events: stateEvents
             }

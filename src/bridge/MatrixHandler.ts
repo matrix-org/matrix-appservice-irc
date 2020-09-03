@@ -77,7 +77,7 @@ interface OnMemberEventData {
     event_id: string;
     content: {
         displayname?: string;
-        membership: string
+        membership: string;
     };
 }
 
@@ -237,7 +237,7 @@ export class MatrixHandler {
             members = (this.memberTracker.getState(
                 adminRoom.getId(),
                 "m.room.member",
-            ) as Array<StateLookupEvent>).filter((m) => 
+            ) as Array<StateLookupEvent>).filter((m) =>
                 (m.content as {membership: string}).membership === "join"
             );
         }
@@ -340,7 +340,12 @@ export class MatrixHandler {
      */
     private async _onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {
         if (!this.memberTracker) {
-            const matrixClient = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
+            const clientFactory = this.ircBridge.getAppServiceBridge().getClientFactory();
+            if (!clientFactory) {
+                // Client factory isn't ready...yet.
+                return;
+            }
+            const matrixClient = clientFactory.getClientAs();
 
             this.memberTracker = new StateLookup({
                 client : matrixClient,

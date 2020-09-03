@@ -20,7 +20,7 @@ import Bluebird from "bluebird";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer } from "../irc/IrcServer";
-import { PrometheusMetrics, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
+import { AgeCounters, MatrixUser, MatrixRoom } from "matrix-appservice-bridge";
 import { BridgedClient, BridgedClientStatus } from "./BridgedClient";
 import { IrcBridge } from "../bridge/IrcBridge";
 import { IdentGenerator } from "./IdentGenerator";
@@ -463,7 +463,7 @@ export class ClientPool {
         return 0;
     }
 
-    public updateActiveConnectionMetrics(serverDomain: string, ageCounter: PrometheusMetrics.AgeCounters): void {
+    public updateActiveConnectionMetrics(serverDomain: string, ageCounter: AgeCounters): void {
         if (this.virtualClients[serverDomain] === undefined) {
             return;
         }

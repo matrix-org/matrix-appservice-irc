@@ -26,7 +26,7 @@ export type BridgeRequestEvent = Request<{
     type: string;
     state_key?: string;
     room_id: string;
-    content: any;
+    content: Record<string, unknown>;
     origin_server_ts: number;
 }>;
 

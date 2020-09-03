@@ -365,7 +365,7 @@ export class Provisioner {
         try {
             const roomState = await matrixClient.roomState(roomId);
             wholeBridgingState = roomState.find(
-                (e: {type: string, state_key: string}) => {
+                (e: {type: string; state_key: string}) => {
                     return e.type === 'm.room.bridging' && e.state_key === skey
                 }
             );
@@ -883,16 +883,23 @@ export class Provisioner {
         // user_id must be JOINED and must have permission to modify power levels
         let isJoined = false;
         let hasPower = false;
-        stateEvents.forEach((e) => {
+        stateEvents.forEach((e: { type: string; state_key: string; content: {
+            state_default?: number;
+            users_default?: number;
+            membership: string;
+            users?: Record<string, number>;
+            events?: Record<string, number>;
+        };}) => {
             if (e.type === "m.room.member" && e.state_key === options.user_id) {
                 isJoined = e.content.membership === "join";
             }
             else if (e.type === "m.room.power_levels" && e.state_key === "") {
-                let powerRequired = e.content.state_default;
+                // https://matrix.org/docs/spec/client_server/r0.6.0#m-room-power-levels
+                let powerRequired = e.content.state_default || 50; // Can be empty. Assume 50 as per spec.
                 if (e.content.events && e.content.events["m.room.power_levels"]) {
                     powerRequired = e.content.events["m.room.power_levels"];
                 }
-                let power = e.content.users_default;
+                let power = e.content.users_default || 0; // Can be empty. Assume 0 as per spec.
                 if (e.content.users && e.content.users[options.user_id]) {
                     power = e.content.users[options.user_id];
                 }
@@ -992,7 +999,7 @@ export class Provisioner {
                     events: stateEvents
                 }
             }
-            const roomInfo = asBot._getRoomInfo(matrixRooms[i].getId(), joinedRoom);
+            const roomInfo = await asBot.getRoomInfo(matrixRooms[i].getId(), joinedRoom);
             for (let j = 0; j < roomInfo.realJoinedUsers.length; j++) {
                 const userId: string = roomInfo.realJoinedUsers[j];
                 if (!joinedUserCounts[userId]) {
@@ -1037,7 +1044,7 @@ export class Provisioner {
             return;
         }
         const stateEvents = await asBot.getClient().roomState(roomId);
-        const roomInfo = asBot._getRoomInfo(roomId, {
+        const roomInfo = await asBot.getRoomInfo(roomId, {
             state: {
                 events: stateEvents
             }
