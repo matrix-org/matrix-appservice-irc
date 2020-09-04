@@ -86,15 +86,22 @@ export class MembershipQueue {
     }
 
     private async serviceQueue(item: QueueUserItem): Promise<void> {
-        log.debug(`${item.userId}@${item.roomId} -> ${item.type}`);
-        const { req, roomId, userId, reason, kickUser, attempts } = item;
+        const { req, roomId, userId, reason, kickUser, attempts, type } = item;
+        log.debug(`${userId}@${roomId} -> ${type} (reason: ${reason || "none"}, kicker: ${kickUser})`);
         const intent = this.bridge.getIntent(kickUser || userId);
         try {
-            if (item.type === "join") {
-                await intent.join(roomId);
+            if (type === "join") {
+                return await intent.join(roomId);
             }
             else {
-                await intent.kick(roomId, userId, reason);
+                if (kickUser) {
+                    return await intent.kick(roomId, kickUser, reason);
+                } else if (reason) {
+                    // Self kick to add a reason
+                    return await intent.kick(roomId, userId, reason);
+                } else {
+                    return await intent.leave(roomId);
+                }
             }
         }
         catch (ex) {

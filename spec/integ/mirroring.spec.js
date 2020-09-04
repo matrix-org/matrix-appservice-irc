@@ -255,17 +255,17 @@ describe("Mirroring", function() {
             });
         });
 
-        it("should leave the matrix room when the IRC user parts", function(done) {
-            sdk.leave.and.callFake(function(roomId) {
+        it("should leave the matrix room when the IRC user parts", async function() {
+            const leavePromise = new Promise(r => sdk.kick.and.callFake(async (roomId, userId, reason) => {
+                expect(userId).toEqual(ircUser.id);
+                expect(reason).toEqual("Client PARTed from channel");
                 expect(roomId).toEqual(roomMapping.roomId);
-                done();
-                return Promise.resolve();
-            });
+                r();
+            }));
 
-            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
-            function(client) {
-                client.emit("part", roomMapping.channel, ircUser.nick);
-            });
+            const client = await env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
+            client.emit("part", roomMapping.channel, ircUser.nick);
+            await leavePromise;
         });
     });
 });
