@@ -32,7 +32,7 @@ const DEFAULT_EVENT_CACHE_SIZE = 4096;
 /* Length of the source text in a formatted reply message */
 const REPLY_SOURCE_MAX_LENGTH = 32;
 
-interface MatrixEventInvite {
+export interface MatrixEventInvite {
     room_id: string;
     state_key: string;
     sender: string;
@@ -44,7 +44,7 @@ interface MatrixEventInvite {
     event_id: string;
 }
 
-interface MatrixEventKick {
+export interface MatrixEventKick {
     room_id: string;
     sender: string;
     state_key: string;
@@ -68,7 +68,7 @@ interface MatrixEventLeave {
     _injected?: boolean;
 }
 
-interface OnMemberEventData {
+export interface OnMemberEventData {
     _frontier?: boolean;
     _injected?: boolean;
     room_id: string;

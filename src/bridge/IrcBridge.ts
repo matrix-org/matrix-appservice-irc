@@ -1,8 +1,8 @@
 import Bluebird from "bluebird";
 import extend from "extend";
 import * as promiseutil from "../promiseutil";
-import { IrcHandler } from "./IrcHandler";
-import { MatrixHandler } from "./MatrixHandler";
+import { IrcHandler, MatrixMembership } from "./IrcHandler";
+import { MatrixHandler, MatrixEventInvite, OnMemberEventData, MatrixEventKick } from "./MatrixHandler";
 import { MemberListSyncer } from "./MemberListSyncer";
 import { IrcServer } from "../irc/IrcServer";
 import { ClientPool } from "../irc/ClientPool";
@@ -29,10 +29,11 @@ import {
     PrometheusMetrics,
     MembershipCache,
     AgeCounters,
+    UserMembership,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
-import { MatrixAction } from "../models/MatrixAction";
+import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
 import { MembershipQueue } from "../util/MembershipQueue";
 import { BridgeStateSyncer } from "./BridgeStateSyncer";
@@ -773,33 +774,37 @@ export class IrcBridge {
                     return BridgeRequestErr.ERR_DROPPED;
                 }
             }
-            await this.matrixHandler.onMessage(request, event);
+            // Cheeky crafting event into MatrixMessageEvent
+            await this.matrixHandler.onMessage(request, event as unknown as MatrixMessageEvent);
         }
         else if (event.type === "m.room.topic" && event.state_key === "") {
-            await this.matrixHandler.onMessage(request, event);
+            await this.matrixHandler.onMessage(request, event as unknown as MatrixMessageEvent);
         }
         else if (event.type === "m.room.member" && event.state_key) {
             if (!event.content || !event.content.membership) {
                 return BridgeRequestErr.ERR_NOT_MAPPED;
             }
-            this.ircHandler.onMatrixMemberEvent({...event, state_key: event.state_key});
+            this.ircHandler.onMatrixMemberEvent({...event, state_key: event.state_key, content: {
+                membership: event.content.membership as MatrixMembership,
+            }});
             const target = new MatrixUser(event.state_key);
             const sender = new MatrixUser(event.sender);
             // We must define `state_key` explicitly again for TS to be happy.
             const memberEvent = {...event, state_key: event.state_key};
             if (event.content.membership === "invite") {
-                await this.matrixHandler.onInvite(request, memberEvent, sender, target);
+                await this.matrixHandler.onInvite(request,
+                    memberEvent as unknown as MatrixEventInvite, sender, target);
             }
             else if (event.content.membership === "join") {
-                await this.matrixHandler.onJoin(request, memberEvent, target);
+                await this.matrixHandler.onJoin(request, memberEvent as unknown as OnMemberEventData, target);
             }
-            else if (["ban", "leave"].includes(event.content.membership)) {
+            else if (["ban", "leave"].includes(event.content.membership as string)) {
                 // Given a "self-kick" is a leave, and you can't ban yourself,
                 // if the 2 IDs are different then we know it is either a kick
                 // or a ban (or a rescinded invite)
                 const isKickOrBan = target.getId() !== sender.getId();
                 if (isKickOrBan) {
-                    await this.matrixHandler.onKick(request, memberEvent, sender, target);
+                    await this.matrixHandler.onKick(request, memberEvent as unknown as MatrixEventKick, sender, target);
                 }
                 else {
                     await this.matrixHandler.onLeave(request, memberEvent, target);
