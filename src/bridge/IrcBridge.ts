@@ -29,7 +29,6 @@ import {
     PrometheusMetrics,
     MembershipCache,
     AgeCounters,
-    UserMembership,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";

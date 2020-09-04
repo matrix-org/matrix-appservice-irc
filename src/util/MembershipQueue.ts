@@ -85,24 +85,23 @@ export class MembershipQueue {
         return Array.from(roomId).map((s) => s.charCodeAt(0)).reduce((a, b) => a + b, 0) % CONCURRENT_ROOM_LIMIT;
     }
 
-    private async serviceQueue(item: QueueUserItem): Promise<void> {
+    private async serviceQueue(item: QueueUserItem) {
         const { req, roomId, userId, reason, kickUser, attempts, type } = item;
         log.debug(`${userId}@${roomId} -> ${type} (reason: ${reason || "none"}, kicker: ${kickUser})`);
         const intent = this.bridge.getIntent(kickUser || userId);
         try {
             if (type === "join") {
-                return await intent.join(roomId);
+                await intent.join(roomId);
             }
-            else {
-                if (kickUser) {
-                    return await intent.kick(roomId, kickUser, reason);
-                } else if (reason) {
-                    // Self kick to add a reason
-                    return await intent.kick(roomId, userId, reason);
-                } else {
-                    return await intent.leave(roomId);
-                }
+
+            if (kickUser) {
+                await intent.kick(roomId, kickUser, reason);
             }
+            else if (reason) {
+                // Self kick to add a reason
+                await intent.kick(roomId, userId, reason);
+            }
+            await intent.leave(roomId);
         }
         catch (ex) {
             if (!this.shouldRetry(ex, attempts)) {
