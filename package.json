@@ -37,7 +37,7 @@
     "logform": "^2.1.2",
     "matrix-appservice": "^0.4.1",
     "matrix-appservice-bridge": "^1.14.0-rc2",
-    "matrix-lastactive": "^0.1.3",
+    "matrix-lastactive": "^0.1.5",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
     "p-queue": "^6.6.1",

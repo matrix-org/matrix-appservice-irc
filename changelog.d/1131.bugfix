@@ -1,0 +1,1 @@
+Fix a bug where connection reaping would not work sometimes if the bridge could not use the synapse whois admin endpoint
