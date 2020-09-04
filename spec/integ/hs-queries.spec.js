@@ -47,9 +47,7 @@ describe("Homeserver user queries", function() {
             returnUserId: testUserId
         });
 
-        env.mockAppService._queryUser(testUserId).done(function(res) {
-            done();
-        });
+        env.mockAppService._queryUser(testUserId).then(done);
     });
 });
 
@@ -109,7 +107,7 @@ describe("Homeserver alias queries", function() {
             }
         });
 
-        env.mockAppService._queryAlias(testAlias).done(function() {
+        env.mockAppService._queryAlias(testAlias).then(function() {
             expect(botJoined).toBe(true, "Bot didn't join " + testChannel);
             done();
         }, function(err) {

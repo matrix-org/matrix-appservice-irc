@@ -76,7 +76,7 @@ describe("Mirroring", function() {
                 state_key: testUser.id,
                 room_id: roomMapping.roomId,
                 type: "m.room.member"
-            }).done(function() {
+            }).then(function() {
                 expect(joined).toBe(true, "Didn't join");
                 done();
             });
@@ -114,7 +114,7 @@ describe("Mirroring", function() {
                     room_id: roomMapping.roomId,
                     type: "m.room.member"
                 });
-            }).done(function() {
+            }).then(function() {
                 expect(parted).toBe(true, "Didn't part");
                 done();
             });
@@ -139,7 +139,7 @@ describe("Mirroring", function() {
                 state_key: testUser.id,
                 room_id: "!bogusroom:id",
                 type: "m.room.member"
-            }).done(function() {
+            }).then(function() {
                 done();
             });
         });
@@ -163,7 +163,7 @@ describe("Mirroring", function() {
                 state_key: testUser.id,
                 room_id: roomMapping.roomId,
                 type: "m.room.member"
-            }).done(function() {
+            }).then(function() {
                 done();
             });
         });
@@ -249,7 +249,7 @@ describe("Mirroring", function() {
                 return Promise.resolve();
             });
 
-            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
             function(client) {
                 client.emit("join", roomMapping.channel, ircUser.nick);
             });

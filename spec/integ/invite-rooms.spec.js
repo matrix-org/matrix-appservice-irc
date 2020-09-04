@@ -62,7 +62,7 @@ describe("Invite-only rooms", function() {
                 room_id: adminRoomId,
                 type: "m.room.member"
             });
-        }).done(function() {
+        }).then(function() {
             expect(joinRoomCount).toEqual(2, "Failed to join admin room again");
             done();
         }, function(err) {
