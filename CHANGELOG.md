@@ -1,4 +1,13 @@
- 0.20.2 (2020-08-21)
+ 0.20.3 (2020-09-04)
+====================
+
+Bugfixes
+--------
+
+- Fix a bug where connection reaping would not work sometimes if the bridge could not use the synapse whois admin endpoint ([\#1131](https://github.com/matrix-org/matrix-appservice-irc/issues/1131))
+
+
+0.20.2 (2020-08-21)
 ====================
 
 Features
