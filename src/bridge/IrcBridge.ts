@@ -668,6 +668,7 @@ export class IrcBridge {
         if (this.dataStore) {
             await this.dataStore.destroy();
         }
+        await this.appservice.close();
     }
 
     public get isStartedUp() {
