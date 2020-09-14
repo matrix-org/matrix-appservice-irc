@@ -111,7 +111,8 @@ export class IrcBridge {
                 roomStore: `${dirPath}/rooms.db`,
                 userStore: `${dirPath}/users.db`,
             };
-        } else {
+        }
+        else {
             bridgeStoreConfig = {
                 disableStores: true,
             };
