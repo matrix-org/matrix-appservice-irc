@@ -36,7 +36,7 @@
     "js-yaml": "^3.2.7",
     "logform": "^2.1.2",
     "matrix-appservice": "^0.4.1",
-    "matrix-appservice-bridge": "matrix-org/matrix-appservice-bridge#develop",
+    "matrix-appservice-bridge": "2.0.0-rc1",
     "matrix-lastactive": "^0.1.5",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
