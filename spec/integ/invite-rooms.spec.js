@@ -100,7 +100,7 @@ describe("Invite-only rooms", function() {
         });
 
         let leftRoom = false;
-        sdk.leave.and.callFake(function(roomId) {
+        sdk.kick.and.callFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             leftRoom = true;
             return Promise.resolve({});

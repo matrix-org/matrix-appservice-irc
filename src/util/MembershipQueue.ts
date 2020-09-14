@@ -95,13 +95,14 @@ export class MembershipQueue {
             }
 
             if (kickUser) {
-                await intent.kick(roomId, kickUser, reason);
+                await intent.kick(roomId, userId, reason);
             }
             else if (reason) {
                 // Self kick to add a reason
                 await intent.kick(roomId, userId, reason);
+            } else {
+                await intent.leave(roomId);
             }
-            await intent.leave(roomId);
         }
         catch (ex) {
             if (!this.shouldRetry(ex, attempts)) {
