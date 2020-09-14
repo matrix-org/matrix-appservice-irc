@@ -35,7 +35,7 @@
     "irc": "matrix-org/node-irc#9028c2197c216dd8e6fc2cb3cc07ce2d6bf741a7",
     "js-yaml": "^3.2.7",
     "logform": "^2.1.2",
-    "matrix-appservice": "^0.4.1",
+    "matrix-appservice": "^0.5.0",
     "matrix-appservice-bridge": "2.0.0-rc1",
     "matrix-lastactive": "^0.1.5",
     "nedb": "^1.1.2",

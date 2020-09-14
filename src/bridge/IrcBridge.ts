@@ -111,6 +111,10 @@ export class IrcBridge {
                 roomStore: `${dirPath}/rooms.db`,
                 userStore: `${dirPath}/users.db`,
             };
+        } else {
+            bridgeStoreConfig = {
+                disableStores: true,
+            };
         }
         this.membershipCache = new MembershipCache();
         this.bridge = new Bridge({

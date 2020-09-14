@@ -110,9 +110,7 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
         ircBridge.getAppServiceBridge().opts.userStore = new UserBridgeStore(new Datastore());
     }
     else if (engine === "postgres") {
-        // Enforce these not to be created
-        ircBridge.getAppServiceBridge().opts.roomStore = undefined;
-        ircBridge.getAppServiceBridge().opts.userStore = undefined;
+        // Do nothing
     }
     else if (engine !== "nedb") {
         throw Error("Invalid database configuration");
