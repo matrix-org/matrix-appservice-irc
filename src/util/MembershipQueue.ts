@@ -100,7 +100,8 @@ export class MembershipQueue {
             else if (reason) {
                 // Self kick to add a reason
                 await intent.kick(roomId, userId, reason);
-            } else {
+            }
+            else {
                 await intent.leave(roomId);
             }
         }
