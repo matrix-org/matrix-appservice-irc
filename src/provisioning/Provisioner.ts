@@ -106,28 +106,29 @@ export class Provisioner {
         }
 
         const appservice = this.ircBridge.getAppServiceBridge().appService;
-        // TODO: Make app public
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const app = ((appservice as any).app as express.Router);
-
-        if (enabled && !(app.use && app.get && app.post)) {
-            throw new Error('Could not start provisioning API');
-        }
+        const app = appservice?.expressApp;
 
         // Disable all provision endpoints by not calling 'next' and returning an error instead
         if (!enabled) {
-            app.use((req, res, next) => {
-                if (this.isProvisionRequest(req)) {
-                    res.header("Access-Control-Allow-Origin", "*");
-                    res.header("Access-Control-Allow-Headers",
-                        "Origin, X-Requested-With, Content-Type, Accept");
-                    res.status(500);
-                    res.json({error : 'Provisioning is not enabled.'});
-                }
-                else {
-                    next();
-                }
-            });
+            if (app) {
+                app.use((req, res, next) => {
+                    if (this.isProvisionRequest(req)) {
+                        res.header("Access-Control-Allow-Origin", "*");
+                        res.header("Access-Control-Allow-Headers",
+                            "Origin, X-Requested-With, Content-Type, Accept");
+                        res.status(500);
+                        res.json({error : 'Provisioning is not enabled.'});
+                    }
+                    else {
+                        next();
+                    }
+                });
+            }
+            return;
+        }
+
+        if (!app) {
+            throw new Error('Could not start provisioning API');
         }
 
         app.use((req, res, next) => {
@@ -171,9 +172,7 @@ export class Provisioner {
             this.createProvisionEndpoint(this.getLimits, 'limits')
         );
 
-        if (enabled) {
-            log.info("Provisioning started");
-        }
+        log.info("Provisioning started");
     }
 
     private createProvisionEndpoint(fn: (req: ProvisionRequest) => unknown, fnName: string) {
