@@ -121,6 +121,8 @@ MockAppService.prototype._queryUser = function(user) {
     });
 };
 
+MockAppService.prototype.close = async function() { /* No-op */ };
+
 function MockAppServiceProxy() {
     if (!instance) {
         instance = new MockAppService();
