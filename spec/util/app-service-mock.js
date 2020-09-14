@@ -6,7 +6,7 @@ var instance = null;
 function MockAppService() {
     let self = this;
 
-    this.app = {
+    this.expressApp = {
         post: function(path, handler) {
             if (path === '/_matrix/provision/link') {
                 self.link = handler;
