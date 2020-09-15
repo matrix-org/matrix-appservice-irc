@@ -127,9 +127,8 @@ describe("Kicking", function() {
     });
 
     describe("Matrix users on IRC", function() {
-        it("should make the AS bot kick the Matrix user from the Matrix room",
-        test.coroutine(function*() {
-            let userKickedPromise = new Promise(function(resolve, reject) {
+        it("should make the AS bot kick the Matrix user from the Matrix room", async () => {
+            let userKickedPromise = new Promise(function(resolve) {
                 // assert function call when the bot attempts to kick
                 let botSdk = env.clientMock._client(config._botUserId);
                 botSdk.kick.and.callFake(function(roomId, userId, reason) {
@@ -143,12 +142,12 @@ describe("Kicking", function() {
             });
 
             // send the KICK command
-            let botCli = yield env.ircMock._findClientAsync(
+            let botCli = await env.ircMock._findClientAsync(
                 config._server, config._botnick
             );
             botCli.emit("kick", config._chan, mxUser.nick, "KickerNick", "Reasons");
-            yield userKickedPromise;
-        }));
+            await userKickedPromise;
+        });
     });
 
     describe("IRC users on Matrix", function() {

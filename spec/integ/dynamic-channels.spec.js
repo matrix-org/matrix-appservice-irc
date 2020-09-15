@@ -64,7 +64,7 @@ describe("Dynamic channels", function() {
             return Promise.resolve({});
         });
 
-        env.mockAppService._queryAlias(tAlias).done(function() {
+        env.mockAppService._queryAlias(tAlias).then(function() {
             if (joinedIrcChannel) {
                 done();
             }
@@ -112,7 +112,7 @@ describe("Dynamic channels", function() {
             return Promise.resolve({});
         });
 
-        env.mockAppService._queryAlias(tAlias).done(function() {
+        env.mockAppService._queryAlias(tAlias).then(function() {
             expect(joinedIrcChannel).toBe(true, "Failed to join irc channel");
             done();
         }, function(e) {
@@ -163,7 +163,7 @@ describe("Dynamic channels", function() {
 
         env.mockAppService._queryAlias(tAlias).then(function() {
             return env.mockAppService._queryAlias(tCapsAlias);
-        }).done(function() {
+        }).then(function() {
             expect(madeAlias).toBe(true, "Failed to create alias");
             done();
         });
@@ -204,7 +204,7 @@ describe("Dynamic channels", function() {
             return Promise.resolve({});
         });
 
-        env.mockAppService._queryAlias(tAlias).done(function() {
+        env.mockAppService._queryAlias(tAlias).then(function() {
             expect(joinedIrcChannel).toBe(true, "Failed to join irc channel");
             done();
         }, function(e) {
@@ -280,7 +280,7 @@ describe("Dynamic channels (federation disabled)", function() {
             return Promise.resolve({});
         });
 
-        env.mockAppService._queryAlias(tAlias).done(function() {
+        env.mockAppService._queryAlias(tAlias).then(function() {
             expect(joinedIrcChannel).toBe(true, "Failed to join irc channel");
             done();
         }, function(e) {
@@ -352,7 +352,7 @@ describe("Dynamic channels (disabled)", function() {
             return Promise.resolve({});
         });
 
-        env.mockAppService._queryAlias(tAlias).done(function() {
+        env.mockAppService._queryAlias(tAlias).then(function() {
             expect(joinedIrcChannel).toBe(false, "Joined channel by alias");
             done();
         });

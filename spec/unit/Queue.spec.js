@@ -48,7 +48,7 @@ describe("Queue", function() {
             expect(thing).toEqual(theThing);
             return thePromise;
         });
-        queue.enqueue("id", theThing).done((res) => {
+        queue.enqueue("id", theThing).then((res) => {
             expect(res).toEqual("flibble");
             done();
         });
@@ -108,7 +108,7 @@ describe("Queue", function() {
         var promise1 = queue.enqueue("id", theThing);
         var promise2 = queue.enqueue("id", theThing);
         expect(promise1).toEqual(promise2);
-        promise1.done((res) => {
+        promise1.then((res) => {
             expect(promise2.isPending()).toBe(false);
             expect(res).toEqual("flibble");
             expect(callCount).toEqual(1);

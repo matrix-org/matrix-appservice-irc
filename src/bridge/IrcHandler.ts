@@ -19,7 +19,7 @@ const NICK_USERID_CACHE_MAX = 512;
 const PM_POWERLEVEL_MATRIXUSER = 10;
 const PM_POWERLEVEL_IRCUSER = 100;
 
-type MatrixMembership = "join"|"invite"|"leave"|"ban";
+export type MatrixMembership = "join"|"invite"|"leave"|"ban";
 
 interface RoomIdtoPrivateMember {
     [roomId: string]: {

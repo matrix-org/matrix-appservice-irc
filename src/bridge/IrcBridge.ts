@@ -1,15 +1,15 @@
 import Bluebird from "bluebird";
 import extend from "extend";
 import * as promiseutil from "../promiseutil";
-import { IrcHandler } from "./IrcHandler";
-import { MatrixHandler } from "./MatrixHandler";
+import { IrcHandler, MatrixMembership } from "./IrcHandler";
+import { MatrixHandler, MatrixEventInvite, OnMemberEventData, MatrixEventKick } from "./MatrixHandler";
 import { MemberListSyncer } from "./MemberListSyncer";
 import { IrcServer } from "../irc/IrcServer";
 import { ClientPool } from "../irc/ClientPool";
 import { BridgedClient, BridgedClientStatus } from "../irc/BridgedClient";
 import { IrcUser } from "../models/IrcUser";
 import { IrcRoom } from "../models/IrcRoom";
-import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
+import { BridgeRequest, BridgeRequestErr, BridgeRequestData, BridgeRequestEvent } from "../models/BridgeRequest";
 import { NeDBDataStore } from "../datastore/NedbDataStore";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
 import { getLogger } from "../logging";
@@ -28,10 +28,11 @@ import {
     Request,
     PrometheusMetrics,
     MembershipCache,
+    AgeCounters,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
-import { MatrixAction } from "../models/MatrixAction";
+import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
 import { MembershipQueue } from "../util/MembershipQueue";
 import { BridgeStateSyncer } from "./BridgeStateSyncer";
@@ -111,6 +112,11 @@ export class IrcBridge {
                 userStore: `${dirPath}/users.db`,
             };
         }
+        else {
+            bridgeStoreConfig = {
+                disableStores: true,
+            };
+        }
         this.membershipCache = new MembershipCache();
         this.bridge = new Bridge({
             registration: this.registration,
@@ -121,7 +127,7 @@ export class IrcBridge {
                 onUserQuery: this.onUserQuery.bind(this),
                 onAliasQuery: this.onAliasQuery.bind(this),
                 onAliasQueried: this.onAliasQueried ?
-                    this.onAliasQueried.bind(this) : null,
+                    this.onAliasQueried.bind(this) : undefined,
                 onLog: this.onLog.bind(this),
 
                 thirdPartyLookup: {
@@ -159,9 +165,8 @@ export class IrcBridge {
                 migrateStoreEntries: false, // Only NeDB supports this.
             },
             membershipCache: this.membershipCache,
-            migrateStoreEntries: false,
         });
-        this.membershipQueue = new MembershipQueue(this.bridge);
+        this.membershipQueue = new MembershipQueue(this.bridge, this.appServiceUserId);
         this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
         this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue);
 
@@ -183,7 +188,7 @@ export class IrcBridge {
     }
 
     private initialiseMetrics(bindPort: number) {
-        const zeroAge = new PrometheusMetrics.AgeCounters();
+        const zeroAge = new AgeCounters();
         const registry = new Registry();
 
         if (!this.config.ircService.metrics) {
@@ -316,6 +321,10 @@ export class IrcBridge {
                 // Only collect if defined
                 const currentTime = Date.now();
                 const appserviceBot = this.bridge.getBot();
+                if (!appserviceBot) {
+                    // Not ready yet.
+                    return;
+                }
                 this.dataStore.getLastSeenTimeForUsers().then((userSet) => {
                     let remote = 0;
                     let matrix = 0;
@@ -406,13 +415,26 @@ export class IrcBridge {
         }
         else if (dbConfig.engine === "nedb") {
             await this.bridge.loadDatabases();
+            const userStore = this.bridge.getUserStore();
+            const roomStore = this.bridge.getRoomStore();
             log.info("Using NeDBDataStore for Datastore");
+            if (!userStore || !roomStore) {
+                throw Error('Could not load userStore or roomStore');
+            }
             this.dataStore = new NeDBDataStore(
-                this.bridge.getUserStore(),
-                this.bridge.getRoomStore(),
+                userStore,
+                roomStore,
                 this.config.homeserver.domain,
                 pkeyPath,
             );
+            if (this.config.ircService.debugApi.enabled) {
+                // monkey patch inspect() values to avoid useless NeDB
+                // struct spam on the debug API.
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (userStore as any).inspect = () => "UserStore";
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (roomStore as any).inspect = () => "RoomStore";
+            }
         }
         else {
             throw Error("Incorrect database config");
@@ -428,12 +450,6 @@ export class IrcBridge {
                 this.clientPool,
                 this.registration.getAppServiceToken() as string
             );
-            if (this.dataStore instanceof NeDBDataStore) {
-                // monkey patch inspect() values to avoid useless NeDB
-                // struct spam on the debug API.
-                this.bridge.getUserStore().inspect = () => "UserStore";
-                this.bridge.getRoomStore().inspect = () => "RoomStore";
-            }
             this.debugApi.run();
         }
 
@@ -537,8 +553,12 @@ export class IrcBridge {
                         room_id: roomId,
                         content: {
                             displayname: displayName,
+                            membership: "join",
                         },
                         _injected: true,
+                        state_key: joiningUserId,
+                        type: "m.room.member",
+                        event_id: "!injected",
                         _frontier: isFrontier
                     }, target);
                 }
@@ -574,7 +594,7 @@ export class IrcBridge {
         this.startedUp = true;
     }
 
-    private logMetric(req: Request, outcome: string) {
+    private logMetric(req: Request<BridgeRequestData>, outcome: string) {
         if (!this.timers) {
             return; // metrics are disabled
         }
@@ -588,7 +608,7 @@ export class IrcBridge {
     }
 
     private addRequestCallbacks() {
-        function logMessage(req: Request, msg: string) {
+        function logMessage(req: Request<BridgeRequestData>, msg: string) {
             const data = req.getData();
             const dir = data && data.isFromIrc ? "I->M" : "M->I";
             const duration = " (" + req.getDuration() + "ms)";
@@ -598,37 +618,40 @@ export class IrcBridge {
         // SUCCESS
         this.bridge.getRequestFactory().addDefaultResolveCallback((req, _res) => {
             const res = _res as BridgeRequestErr|null;
+            const bridgeRequest = req as Request<BridgeRequestData>;
             if (res === BridgeRequestErr.ERR_VIRTUAL_USER) {
-                logMessage(req, "IGNORE virtual user");
+                logMessage(bridgeRequest, "IGNORE virtual user");
                 return; // these aren't true successes so don't skew graphs
             }
             else if (res === BridgeRequestErr.ERR_NOT_MAPPED) {
-                logMessage(req, "IGNORE not mapped");
+                logMessage(bridgeRequest, "IGNORE not mapped");
                 return; // these aren't true successes so don't skew graphs
             }
             else if (res === BridgeRequestErr.ERR_DROPPED) {
-                logMessage(req, "IGNORE dropped");
-                this.logMetric(req, "dropped");
+                logMessage(bridgeRequest, "IGNORE dropped");
+                this.logMetric(bridgeRequest, "dropped");
                 return;
             }
-            logMessage(req, "SUCCESS");
-            this.logMetric(req, "success");
+            logMessage(bridgeRequest, "SUCCESS");
+            this.logMetric(bridgeRequest, "success");
         });
         // FAILURE
         this.bridge.getRequestFactory().addDefaultRejectCallback((req) => {
-            logMessage(req, "FAILED");
-            this.logMetric(req, "fail");
-            BridgeRequest.HandleExceptionForSentry(req, "fail");
+            const bridgeRequest = req as Request<BridgeRequestData>;
+            logMessage(bridgeRequest, "FAILED");
+            this.logMetric(bridgeRequest, "fail");
+            BridgeRequest.HandleExceptionForSentry(req as Request<BridgeRequestData>, "fail");
         });
         // DELAYED
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
-            logMessage(req, "DELAYED");
+            logMessage(req as Request<BridgeRequestData>, "DELAYED");
         }, DELAY_TIME_MS);
         // DEAD
         this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
-            logMessage(req, "DEAD");
-            this.logMetric(req, "dead");
-            BridgeRequest.HandleExceptionForSentry(req, "dead");
+            const bridgeRequest = req as Request<BridgeRequestData>;
+            logMessage(bridgeRequest, "DEAD");
+            this.logMetric(bridgeRequest, "dead");
+            BridgeRequest.HandleExceptionForSentry(req as Request<BridgeRequestData>, "dead");
         }, DEAD_TIME_MS);
     }
 
@@ -645,6 +668,7 @@ export class IrcBridge {
         if (this.dataStore) {
             await this.dataStore.destroy();
         }
+        await this.appservice.close();
     }
 
     public get isStartedUp() {
@@ -728,11 +752,11 @@ export class IrcBridge {
         return matrixUser;
     }
 
-    public onEvent(request: Request) {
+    public onEvent(request: BridgeRequestEvent) {
         request.outcomeFrom(this._onEvent(request));
     }
 
-    private async _onEvent (baseRequest: Request): Promise<BridgeRequestErr|undefined> {
+    private async _onEvent (baseRequest: BridgeRequestEvent): Promise<BridgeRequestErr|undefined> {
         const event = baseRequest.getData();
         let updatePromise: Promise<void>|null = null;
         if (event.sender && (this.activityTracker ||
@@ -755,34 +779,40 @@ export class IrcBridge {
                     return BridgeRequestErr.ERR_DROPPED;
                 }
             }
-            await this.matrixHandler.onMessage(request, event);
+            // Cheeky crafting event into MatrixMessageEvent
+            await this.matrixHandler.onMessage(request, event as unknown as MatrixMessageEvent);
         }
         else if (event.type === "m.room.topic" && event.state_key === "") {
-            await this.matrixHandler.onMessage(request, event);
+            await this.matrixHandler.onMessage(request, event as unknown as MatrixMessageEvent);
         }
-        else if (event.type === "m.room.member") {
+        else if (event.type === "m.room.member" && event.state_key) {
             if (!event.content || !event.content.membership) {
                 return BridgeRequestErr.ERR_NOT_MAPPED;
             }
-            this.ircHandler.onMatrixMemberEvent(event);
+            this.ircHandler.onMatrixMemberEvent({...event, state_key: event.state_key, content: {
+                membership: event.content.membership as MatrixMembership,
+            }});
             const target = new MatrixUser(event.state_key);
             const sender = new MatrixUser(event.sender);
+            // We must define `state_key` explicitly again for TS to be happy.
+            const memberEvent = {...event, state_key: event.state_key};
             if (event.content.membership === "invite") {
-                await this.matrixHandler.onInvite(request, event, sender, target);
+                await this.matrixHandler.onInvite(request,
+                    memberEvent as unknown as MatrixEventInvite, sender, target);
             }
             else if (event.content.membership === "join") {
-                await this.matrixHandler.onJoin(request, event, target);
+                await this.matrixHandler.onJoin(request, memberEvent as unknown as OnMemberEventData, target);
             }
-            else if (["ban", "leave"].includes(event.content.membership)) {
+            else if (["ban", "leave"].includes(event.content.membership as string)) {
                 // Given a "self-kick" is a leave, and you can't ban yourself,
                 // if the 2 IDs are different then we know it is either a kick
                 // or a ban (or a rescinded invite)
                 const isKickOrBan = target.getId() !== sender.getId();
                 if (isKickOrBan) {
-                    await this.matrixHandler.onKick(request, event, sender, target);
+                    await this.matrixHandler.onKick(request, memberEvent as unknown as MatrixEventKick, sender, target);
                 }
                 else {
-                    await this.matrixHandler.onLeave(request, event, target);
+                    await this.matrixHandler.onLeave(request, memberEvent, target);
                 }
             }
         }
@@ -800,7 +830,7 @@ export class IrcBridge {
     }
 
     public async onUserQuery(matrixUser: MatrixUser) {
-        const baseRequest = this.bridge.getRequestFactory().newRequest();
+        const baseRequest = this.bridge.getRequestFactory().newRequest<BridgeRequestData>();
         const request = new BridgeRequest(baseRequest);
         await this.matrixHandler.onUserQuery(request, matrixUser.getId());
         // TODO: Lean on the bridge lib more
@@ -808,7 +838,7 @@ export class IrcBridge {
     }
 
     public async onAliasQuery (alias: string) {
-        const baseRequest = this.bridge.getRequestFactory().newRequest();
+        const baseRequest = this.bridge.getRequestFactory().newRequest<BridgeRequestData>();
         const request = new BridgeRequest(baseRequest);
         await this.matrixHandler.onAliasQuery(request, alias);
         // TODO: Lean on the bridge lib more
@@ -824,10 +854,10 @@ export class IrcBridge {
         }
     }
 
-    public getThirdPartyProtocol() {
+    public async getThirdPartyProtocol() {
         const servers = this.getServers();
 
-        return Bluebird.resolve({
+        return {
             user_fields: ["domain", "nick"],
             location_fields: ["domain", "channel"],
             field_types: {
@@ -846,6 +876,9 @@ export class IrcBridge {
                     placeholder: "#channel",
                 },
             },
+            // TODO: The spec requires we return an icon, but we don't have support
+            // for one yet.
+            icon: "",
             instances: servers.map((server: IrcServer) => {
                 return {
                     network_id: server.getNetworkId(),
@@ -857,7 +890,7 @@ export class IrcBridge {
                     },
                 };
             }),
-        });
+        };
     }
 
     public async getThirdPartyLocation(protocol: string, fields: {domain?: string; channel?: string}) {
@@ -1058,6 +1091,9 @@ export class IrcBridge {
          * so it will block indefinitely.
          */
         const bot = this.bridge.getBot();
+        if (!bot) {
+            throw Error('AppserviceBot is not ready');
+        }
         let gotRooms = false;
         while (!gotRooms) {
             try {
@@ -1081,10 +1117,12 @@ export class IrcBridge {
         const rooms = await this.getStore().getIrcChannelsForRoomId(newRoomId);
         // Get users who we wish to leave.
         const asBot = this.bridge.getBot();
+        if (!asBot) {
+            throw Error('AppserviceBot is not ready');
+        }
         log.info("Migrating state");
         const stateEvents = await asBot.getClient().roomState(oldRoomId);
-        //TODO:  _getRoomInfo is a private func and should be replaced.
-        const roomInfo = asBot._getRoomInfo(oldRoomId, {
+        const roomInfo = await asBot.getRoomInfo(oldRoomId, {
             state: {
                 events: stateEvents
             }
