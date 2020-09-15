@@ -16,7 +16,6 @@ WORKDIR /build
 RUN apt-get update && apt-get install -y git python3 libicu-dev build-essential
 
 COPY src/ /build/src/ 
-COPY types/ /build/types/
 COPY .eslintrc *json /build/
 
 RUN npm ci
