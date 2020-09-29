@@ -533,7 +533,10 @@ export class MatrixHandler {
                 }
 
                 // Check for a displayname change and update nick accordingly.
-                if (event.content && event.content.displayname !== bridgedClient.displayName) {
+                if (event.content &&
+                    event.content.displayname &&
+                    event.content.displayname !== bridgedClient.displayName) {
+                    bridgedClient.displayName = event.content.displayname;
                     // Changing the nick requires that:
                     // - the server allows nick changes
                     // - the nick is not custom

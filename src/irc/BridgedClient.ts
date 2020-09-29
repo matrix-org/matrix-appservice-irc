@@ -81,7 +81,7 @@ type State = Connected | NotConnected
 
 export class BridgedClient extends EventEmitter {
     public readonly userId: string|null;
-    public readonly displayName: string|null;
+    public displayName: string|null;
     private _nick: string;
     public readonly id: string;
     private readonly password?: string;
