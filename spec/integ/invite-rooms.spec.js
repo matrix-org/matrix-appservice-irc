@@ -62,7 +62,7 @@ describe("Invite-only rooms", function() {
                 room_id: adminRoomId,
                 type: "m.room.member"
             });
-        }).done(function() {
+        }).then(function() {
             expect(joinRoomCount).toEqual(2, "Failed to join admin room again");
             done();
         }, function(err) {
@@ -100,7 +100,7 @@ describe("Invite-only rooms", function() {
         });
 
         let leftRoom = false;
-        sdk.leave.and.callFake(function(roomId) {
+        sdk.kick.and.callFake(function(roomId) {
             expect(roomId).toEqual(roomMapping.roomId);
             leftRoom = true;
             return Promise.resolve({});

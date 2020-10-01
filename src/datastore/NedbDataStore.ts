@@ -20,7 +20,7 @@ import { IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientCo
 import { getLogger } from "../logging";
 
 import { MatrixRoom, MatrixUser, RemoteUser, RemoteRoom,
-    UserBridgeStore, RoomBridgeStore, Entry } from "matrix-appservice-bridge";
+    UserBridgeStore, RoomBridgeStore, RoomBridgeStoreEntry as Entry } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "./DataStore";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
 import { StringCrypto } from "./StringCrypto";
@@ -171,7 +171,9 @@ export class NeDBDataStore implements DataStore {
      *      $roomId => [{networkId: 'server #channel1', channel: '#channel2'} , ...]
      */
     public async getAllChannelMappings(): Promise<ChannelMappings> {
-        const entries = await this.roomStore.select(
+        const entries = await this.roomStore.select<
+            unknown,
+            { remote: { domain: string; channel: string}; matrix_id: string}>(
             {
                 matrix_id: {$exists: true},
                 remote_id: {$exists: true},
@@ -181,7 +183,7 @@ export class NeDBDataStore implements DataStore {
 
         const mappings: ChannelMappings = {};
 
-        entries.forEach((e: { remote: { domain: string; channel: string}; matrix_id: string}) => {
+        entries.forEach(e => {
             const domain = e.remote.domain;
             const channel = e.remote.channel;
             // drop unknown irc networks in the database
@@ -230,7 +232,7 @@ export class NeDBDataStore implements DataStore {
             throw new Error('Origin must be a string = "config"|"provision"|"alias"|"join"');
         }
 
-        return await this.roomStore.delete({
+        await this.roomStore.delete({
             id: NeDBDataStore.createMappingId(roomId, ircDomain, ircChannel),
             'data.origin': origin
         });
@@ -309,7 +311,7 @@ export class NeDBDataStore implements DataStore {
                         return true;
                     }
                 }
-                return e.data && origin.includes(e.data.origin);
+                return e.data && origin.includes(e.data.origin as RoomOrigin);
             });
         });
     }
@@ -379,12 +381,12 @@ export class NeDBDataStore implements DataStore {
         if (!entry) {
             return null;
         }
-        return entry.matrix;
+        return entry.matrix || null;
     }
 
     public async getTrackedChannelsForServer(domain: string) {
         const entries: Entry[] = await this.roomStore.getEntriesByRemoteRoomData({ domain });
-        const channels: string[] = [];
+        const channels = new Set<string>();
         entries.forEach((e) => {
             if (!e.remote) {
                 return;
@@ -395,10 +397,10 @@ export class NeDBDataStore implements DataStore {
             }
             const ircRoom = IrcRoom.fromRemoteRoom(server, e.remote);
             if (ircRoom.getType() === "channel") {
-                channels.push(ircRoom.getChannel());
+                channels.add(ircRoom.getChannel());
             }
         });
-        return channels;
+        return [...channels];
     }
 
     public async getRoomIdsFromConfig() {
@@ -473,6 +475,8 @@ export class NeDBDataStore implements DataStore {
         await this.roomStore.upsertEntry({
             id: NeDBDataStore.createAdminId(userId),
             matrix: room,
+            remote: undefined,
+            data: {},
         });
     }
 
@@ -482,10 +486,7 @@ export class NeDBDataStore implements DataStore {
 
     public async getAdminRoomByUserId(userId: string): Promise<MatrixRoom|null> {
         const entry = await this.roomStore.getEntryById(NeDBDataStore.createAdminId(userId));
-        if (!entry) {
-            return null;
-        }
-        return entry.matrix;
+        return entry?.matrix || null;
     }
 
     public async storeMatrixUser(matrixUser: MatrixUser): Promise<void> {
@@ -603,6 +604,18 @@ export class NeDBDataStore implements DataStore {
         return matrixUsers[0];
     }
 
+
+    public async getCountForUsernamePrefix(domain: string, usernamePrefix: string): Promise<number> {
+        const domainKey = domain.replace(/\./g, "_");
+        const rows = await this.userStore.select({
+            type: "matrix",
+            ["data.client_config." + domainKey + ".username"]: {
+                $regex: new RegExp(`${usernamePrefix}.+`),
+            }
+        });
+        return rows.length;
+    }
+
     public async updateLastSeenTimeForUser(userId: string) {
         let user = await this.userStore.getMatrixUser(userId);
         if (!user) {
@@ -613,19 +626,19 @@ export class NeDBDataStore implements DataStore {
     }
 
     public async getLastSeenTimeForUsers() {
-        const docs = await this.userStore.select({
+        const docs = await this.userStore.select<unknown, {id: string; data: { last_seen_ts: number }}>({
             type: "matrix",
             "data.last_seen_ts": {$exists: true},
         });
-        return docs.map((doc: {id: string; data: { last_seen_ts: number }}) => ({
+        return docs.map(doc => ({
           user_id: doc.id,
           ts: doc.data.last_seen_ts,
         }));
     }
 
     public async getAllUserIds() {
-        const docs = await this.userStore.select({ type: "matrix" });
-        return docs.map((e: {id: string}) => e.id);
+        const docs = await this.userStore.select<unknown, {id: string}>({ type: "matrix" });
+        return docs.map(e => e.id);
     }
 
     public async getRoomVisibility(roomId: string) {
@@ -689,7 +702,7 @@ export class NeDBDataStore implements DataStore {
                 log.info("Not migrating room, room doesn't exist in datastore");
                 continue;
             }
-            const origin = room.data.origin;
+            const origin = room.data.origin as RoomOrigin;
             await this.removeRoom(oldRoomId, ircRoom.server.domain, ircRoom.channel, origin);
             log.debug(`Removed old room ${oldRoomId}`);
             await this.storeRoom(ircRoom, new MatrixRoom(newRoomId), origin);

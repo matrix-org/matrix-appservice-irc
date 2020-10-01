@@ -1,5 +1,4 @@
 import { IrcBridge } from "./IrcBridge";
-import { QuitDebouncer } from "./QuitDebouncer";
 import { Queue } from "../util/Queue";
 import { RoomAccessSyncer } from "./RoomAccessSyncer";
 import { IrcServer, MembershipSyncKind } from "../irc/IrcServer";
@@ -20,7 +19,7 @@ const NICK_USERID_CACHE_MAX = 512;
 const PM_POWERLEVEL_MATRIXUSER = 10;
 const PM_POWERLEVEL_IRCUSER = 100;
 
-type MatrixMembership = "join"|"invite"|"leave"|"ban";
+export type MatrixMembership = "join"|"invite"|"leave"|"ban";
 
 interface RoomIdtoPrivateMember {
     [roomId: string]: {
@@ -47,8 +46,6 @@ export class IrcHandler {
     // maintain a map of which user ID is in which PM room, so we know if we
     // need to re-invite them if they bail.
     private readonly roomIdToPrivateMember: RoomIdtoPrivateMember = {};
-
-    private readonly quitDebouncer: QuitDebouncer;
 
     // Use per-channel queues to keep the setting of topics in rooms atomic in
     // order to prevent races involving several topics being received from IRC
@@ -85,7 +82,6 @@ export class IrcHandler {
         private readonly ircBridge: IrcBridge,
         config: IrcHandlerConfig = {},
         private readonly membershipQueue: MembershipQueue) {
-        this.quitDebouncer = new QuitDebouncer(ircBridge);
         this.roomAccessSyncer = new RoomAccessSyncer(ircBridge);
         this.mentionMode = config.mapIrcMentionsToMatrix || "on";
         this.getMetrics();
@@ -627,8 +623,6 @@ export class IrcHandler {
             return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
 
-        this.quitDebouncer.onJoin(nick, server);
-
         // get virtual matrix user
         const matrixUser = await this.ircBridge.getMatrixUser(joiningUser);
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, chan);
@@ -796,18 +790,6 @@ export class IrcHandler {
         }
         else {
             const matrixUser = await this.ircBridge.getMatrixUser(leavingUser);
-            // Presence syncing and Quit Debouncing
-            //  When an IRC user quits, debounce before leaving them from matrix rooms. In the meantime,
-            //  update presence to "offline". If the user rejoins a channel before timeout, do not part
-            //  user from the room. Otherwise timeout and leave rooms.
-            if (kind === "quit" && server.shouldDebounceQuits()) {
-                const shouldBridgePart = await this.quitDebouncer.debounceQuit(
-                    req, server, matrixUser, nick
-                );
-                if (!shouldBridgePart) {
-                    return undefined;
-                }
-            }
             userId = matrixUser.userId;
         }
 

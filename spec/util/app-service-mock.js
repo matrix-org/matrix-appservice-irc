@@ -6,7 +6,7 @@ var instance = null;
 function MockAppService() {
     let self = this;
 
-    this.app = {
+    this.expressApp = {
         post: function(path, handler) {
             if (path === '/_matrix/provision/link') {
                 self.link = handler;
@@ -120,6 +120,8 @@ MockAppService.prototype._queryUser = function(user) {
         console.error("onUserQuery threw => %s", err);
     });
 };
+
+MockAppService.prototype.close = async function() { /* No-op */ };
 
 function MockAppServiceProxy() {
     if (!instance) {

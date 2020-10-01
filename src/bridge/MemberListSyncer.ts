@@ -3,7 +3,7 @@
 
 import Bluebird from "bluebird";
 import { IrcBridge } from "./IrcBridge";
-import { AppserviceBot } from "matrix-appservice-bridge";
+import { AppServiceBot } from "matrix-appservice-bridge";
 import { IrcServer } from "../irc/IrcServer";
 import { QueuePool } from "../util/QueuePool";
 import logging from "../logging";
@@ -50,7 +50,7 @@ export class MemberListSyncer {
         matrix: {},
     }
     private leaveQueuePool: QueuePool<LeaveQueueItem>;
-    constructor(private ircBridge: IrcBridge, private appServiceBot: AppserviceBot, private server: IrcServer,
+    constructor(private ircBridge: IrcBridge, private appServiceBot: AppServiceBot, private server: IrcServer,
                 private appServiceUserId: string, private injectJoinFn: InjectJoinFn) {
         // A queue which controls the rate at which leaves are sent to Matrix. We need this queue
         // because Synapse is slow. Synapse locks based on the room ID, so there is no benefit to
@@ -195,7 +195,7 @@ export class MemberListSyncer {
             // fetch joined members allowing 50 in-flight reqs at a time
             const pool = new QueuePool(50, async (_roomId) => {
                 const roomId = _roomId as string;
-                let userMap = null;
+                let userMap: Record<string, {display_name: string; avatar: string}>|undefined;
                 while (!userMap) {
                     try {
                         userMap = await this.appServiceBot.getJoinedMembers(roomId);
