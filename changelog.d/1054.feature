@@ -1,0 +1,1 @@
+Implement mechanisms to fix powerlevels in rooms if messages fail to bridge

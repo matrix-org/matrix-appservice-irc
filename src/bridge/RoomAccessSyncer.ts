@@ -21,11 +21,20 @@ const PRIVATE_MODES = [
 ];
 
 /**
+ * The number of failed messages due to permissions before
+ * the bridge will check to see if powerlevels in the room are wrong.
+ */
+const ACCESS_REFRESH_THRESHOLD = 1;
+
+/**
  * This class is supplimentary to the IrcHandler class. This
  * class handles incoming mode changes as well as computing the new
  * power level state.
  */
 export class RoomAccessSyncer {
+
+    private accessRefreshCount: Map<string, number> = new Map();
+
     // Warning: This cache is currently unbounded.
     private powerLevelsForRoom: {
         [roomId: string]: unknown;
@@ -186,6 +195,23 @@ export class RoomAccessSyncer {
             }
             catch (ex) {
                 req.log.warn(`Failed to apply PL${level} to ${userId}`, ex);
+                if (ex.errcode === "M_TOO_LARGE") {
+                    req.log.warn(`The powerlevel event is too large, attempting to flush out left users`);
+                    /**
+                     * We have so many custom power levels that the event is too large.
+                     * This can happen for channels with extremely large numbers of members,
+                     * but there *are* things we can do about this.
+                     * One trick is to flush out any users that aren't present in the room.
+                     */
+                    const joinedMembers = Object.keys(
+                        await this.ircBridge.getAppServiceBridge().getBot().getJoinedMembers(room.getId())
+                    );
+                    const customPLs = Object.keys(
+                        (await intent.getStateEvent(room.getId(), 'm.room.power_levels')).users
+                    );
+                    const leftUsers = new Set(customPLs.filter((u) => !joinedMembers.includes(u)));
+                    await this.removePowerLevels(room.getId(), [...leftUsers]);
+                }
             }
         }
 
@@ -269,6 +295,26 @@ export class RoomAccessSyncer {
         }
         const botClient = this.ircBridge.getAppServiceBridge().getIntent().getClient();
         await botClient.sendStateEvent(roomId, "m.room.power_levels", plContent, "");
+    }
+
+    public async onFailedMessage(req: BridgeRequest, server: IrcServer, channel: string) {
+        const key = `${server.getNetworkId()}:${channel}`;
+        const currRefreshCount = (this.accessRefreshCount.get(key) || 0) + 1;
+        if (currRefreshCount < ACCESS_REFRESH_THRESHOLD) {
+            req.log.debug(`Message failed to send in ${channel}, raising accesssRefresh count to ${currRefreshCount}`);
+            this.accessRefreshCount.set(key, currRefreshCount);
+            return;
+        }
+        req.log.info(`Messages failed to send in ${channel} and hit the refresh threshold. Checking mode for channel`);
+        this.accessRefreshCount.delete(key);
+        try {
+            const botClient = await this.ircBridge.getBotClient(server);
+            await botClient.mode(channel);
+        }
+        catch (ex) {
+            log.warn("Couldn't issue MODE for room:", ex);
+        }
+
     }
 
     /**
