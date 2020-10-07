@@ -1,4 +1,28 @@
- 0.20.2 (2020-08-21)
+ 0.21.0-rc1 (2020-10-07)
+========================
+
+Features
+--------
+
+- Implement mechanisms to fix powerlevels in rooms if messages fail to bridge ([\#1054](https://github.com/matrix-org/matrix-appservice-irc/issues/1054))
+
+
+Bugfixes
+--------
+
+- Fix a bug where connection reaping would not work sometimes if the bridge could not use the synapse whois admin endpoint ([\#1131](https://github.com/matrix-org/matrix-appservice-irc/issues/1131))
+- Fixes Matrix displayName not being updated properly. Thanks to @BernardZhao ([\#1137](https://github.com/matrix-org/matrix-appservice-irc/issues/1137))
+
+
+Internal Changes
+----------------
+
+- Use types from `matrix-appservice-bridge` rather than local definitions. ([\#1101](https://github.com/matrix-org/matrix-appservice-irc/issues/1101))
+- Fix attribution link in CONTRIBUTING.md ([\#1132](https://github.com/matrix-org/matrix-appservice-irc/issues/1132))
+- The deprecated remove-idle-users.py has been removed. Bridge admins should use the /reapUsers Debug API endpoint instead ([\#1139](https://github.com/matrix-org/matrix-appservice-irc/issues/1139))
+
+
+0.20.2 (2020-08-21)
 ====================
 
 Features

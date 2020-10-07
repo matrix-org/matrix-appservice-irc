@@ -1,1 +1,0 @@
-The deprecated remove-idle-users.py has been removed. Bridge admins should use the /reapUsers Debug API endpoint instead
