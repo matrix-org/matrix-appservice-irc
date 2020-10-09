@@ -114,7 +114,7 @@ export class MembershipQueue {
                 (JOIN_DELAY_MS * attempts) + (Math.random() * 500),
                 JOIN_DELAY_CAP_MS
             );
-            req.log.warn(`Failed to join ${roomId}, delaying for ${delay}ms`);
+            req.log.warn(`Failed to ${type} ${roomId}, delaying for ${delay}ms`);
             req.log.debug(`Failed with: ${ex.errcode} ${ex.message}`);
             await new Promise((r) => setTimeout(r, delay));
             this.queueMembership({...item, attempts: item.attempts + 1});
