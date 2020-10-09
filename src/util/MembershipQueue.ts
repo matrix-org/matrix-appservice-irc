@@ -92,6 +92,7 @@ export class MembershipQueue {
         try {
             if (type === "join") {
                 await intent.join(roomId);
+                return;
             }
 
             if (kickUser) {
