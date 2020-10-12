@@ -6,7 +6,7 @@ export interface BridgeConfig {
     matrixHandler: {
 
     };
-    ircHandler: IrcHandlerConfig;
+    ircHandler?: IrcHandlerConfig;
     database: {
         engine: string;
         connectionString: string;

@@ -208,7 +208,7 @@ export class IrcBridge {
             log.info(`Adjusted media_url to ${newConfig.homeserver.dropMatrixMessagesAfterSecs}`);
         }
 
-        this.ircHandler.onConfigChanged(newConfig.ircHandler);
+        this.ircHandler.onConfigChanged(newConfig.ircHandler || {});
 
         const hasLoggingChanged = JSON.stringify(oldConfig.ircService.logging)
             !== JSON.stringify(newConfig.ircService.logging);
@@ -217,11 +217,12 @@ export class IrcBridge {
         }
 
         this.ircServers.forEach((server) => {
-            const newServerConfig = newConfig.ircService.servers[server.domain];
+            let newServerConfig = newConfig.ircService.servers[server.domain];
             if (!newServerConfig) {
                 log.warn(`Server ${server.domain} removed from config. Bridge will need to be restarted`);
                 // Server removed
             }
+            newServerConfig = {...IrcServer.DEFAULT_CONFIG, ...newServerConfig};
             server.reconfigure(newServerConfig, newConfig.homeserver.dropMatrixMessagesAfterSecs);
         });
     }
