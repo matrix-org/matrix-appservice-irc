@@ -77,7 +77,7 @@ export class ClientPool {
             return false;
         }
 
-        if (this.getBridgedClientByNick(server, nick)) {
+        if (this.getBridgedClientByNick(server, nick, true)) {
             return true;
         }
 
@@ -88,7 +88,6 @@ export class ClientPool {
     public killAllClients() {
         return Bluebird.all(Object.keys(this.virtualClients).map((domain) =>
             [
-                ...this.virtualClients[domain].nicks.values(),
                 ...this.virtualClients[domain].userIds.values(),
                 this.botClients.get(domain),
             ]
@@ -342,7 +341,7 @@ export class ClientPool {
         return cli;
     }
 
-    public getBridgedClientByNick(server: IrcServer, nick: string) {
+    public getBridgedClientByNick(server: IrcServer, nick: string, allowDead = false) {
         const bot = this.getBot(server);
         if (bot && bot.nick === nick) {
             return bot;
@@ -363,6 +362,7 @@ export class ClientPool {
             serverSet.nicks.set(cli.nick, cli);
         }
 
+        if (!allowDead && cli.isDead()) {
             return undefined;
         }
         return cli;
