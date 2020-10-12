@@ -187,6 +187,7 @@ export class IrcBridge {
     }
 
     public onConfigChanged(newConfig: BridgeConfig) {
+        log.info(`Bridge config was reloaded, applying changes`);
         const oldConfig = this.config;
 
         if (oldConfig.advanced.maxHttpSockets !== newConfig.advanced.maxHttpSockets) {

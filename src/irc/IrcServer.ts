@@ -48,7 +48,7 @@ export class IrcServer {
         this.groupIdValid = false;
         this.excludedUsers = [];
 
-        this.reconfigure(config);
+        this.reconfigure(config, expiryTimeSeconds);
     }
 
     /**
@@ -565,6 +565,7 @@ export class IrcServer {
     }
 
     public reconfigure(config: IrcServerConfig, expiryTimeSeconds = 0) {
+        log.info(`Reconfiguring ${this.domain}`);
         this.config = config;
         this.expiryTimeSeconds = expiryTimeSeconds;
         // This ensures that legacy mappings still work, but we prod the user to update.
