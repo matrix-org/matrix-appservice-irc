@@ -186,7 +186,7 @@ export class IrcBridge {
         });
     }
 
-    public onConfigChanged(newConfig: BridgeConfig) {
+    public async onConfigChanged(newConfig: BridgeConfig) {
         log.info(`Bridge config was reloaded, applying changes`);
         const oldConfig = this.config;
 
@@ -216,15 +216,25 @@ export class IrcBridge {
             Logging.configure(newConfig.ircService.logging);
         }
 
-        this.ircServers.forEach((server) => {
+        await this.dataStore.removeConfigMappings();
+
+        // All config mapped channels will be briefly unavailable
+        await Promise.all(this.ircServers.map(async (server) => {
             let newServerConfig = newConfig.ircService.servers[server.domain];
             if (!newServerConfig) {
                 log.warn(`Server ${server.domain} removed from config. Bridge will need to be restarted`);
                 // Server removed
             }
-            newServerConfig = {...IrcServer.DEFAULT_CONFIG, ...newServerConfig};
+            newServerConfig = extend(
+                true, {}, IrcServer.DEFAULT_CONFIG, newConfig.ircService.servers[server.domain]
+            );
             server.reconfigure(newServerConfig, newConfig.homeserver.dropMatrixMessagesAfterSecs);
-        });
+            await this.dataStore.setServerFromConfig(server, newServerConfig);
+        }));
+
+        await this.fetchJoinedRooms();
+        await this.joinMappedMatrixRooms();
+
     }
 
     private initialiseMetrics(bindPort: number) {
