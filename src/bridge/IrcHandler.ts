@@ -37,7 +37,6 @@ interface TopicQueueItem {
 
 export interface IrcHandlerConfig {
     mapIrcMentionsToMatrix?: "on"|"off"|"force-off";
-    leaveConcurrency?: number;
 }
 
 type MetricNames = "join.names"|"join"|"part"|"pm"|"invite"|"topic"|"message"|"kick"|"mode";

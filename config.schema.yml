@@ -124,8 +124,6 @@ properties:
             ircHandler:
                 type: "object"
                 properties:
-                    leaveConcurrency:
-                        type: "integer"
                     mapIrcMentionsToMatrix:
                         type: "string"
                         enum: ["on", "off", "force-off"]
