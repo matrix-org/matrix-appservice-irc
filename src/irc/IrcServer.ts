@@ -43,40 +43,12 @@ export class IrcServer {
      */
     constructor(public domain: string, public config: IrcServerConfig,
                 private homeserverDomain: string, private expiryTimeSeconds: number = 0) {
-        // This ensures that legacy mappings still work, but we prod the user to update.
-        const stringMappings = Object.entries(config.mappings || {}).filter(([, data]) => {
-            return Array.isArray(data);
-        }) as unknown as [string, string[]][];
+        // These are set in reconfigure
+        this.addresses = [];
+        this.groupIdValid = false;
+        this.excludedUsers = [];
 
-        if (stringMappings.length) {
-            log.warn("** The IrcServer.mappings config schema has changed, allowing legacy format for now. **");
-            log.warn("See https://github.com/matrix-org/matrix-appservice-irc/blob/master/CHANGELOG.md for details");
-            for (const [channelId, roomIds] of stringMappings) {
-                config.mappings[channelId] = { roomIds: roomIds }
-            }
-        }
-
-        this.addresses = config.additionalAddresses || [];
-        this.addresses.push(domain);
-        this.excludedUsers = config.excludedUsers.map((excluded) => {
-            return {
-                ...excluded,
-                regex: new RegExp(excluded.regex)
-            }
-        })
-
-        if (this.config.dynamicChannels.groupId !== undefined &&
-            this.config.dynamicChannels.groupId.trim() !== "") {
-            this.groupIdValid = GROUP_ID_REGEX.test(this.config.dynamicChannels.groupId);
-            if (!this.groupIdValid) {
-                log.warn(
-    `${domain} has an incorrectly configured groupId for dynamicChannels and will not set groups.`
-                );
-            }
-        }
-        else {
-            this.groupIdValid = false;
-        }
+        this.reconfigure(config);
     }
 
     /**
@@ -589,6 +561,45 @@ export class IrcServer {
                 channels: [],
                 rooms: []
             }
+        }
+    }
+
+    public reconfigure(config: IrcServerConfig, expiryTimeSeconds = 0) {
+        this.config = config;
+        this.expiryTimeSeconds = expiryTimeSeconds;
+        // This ensures that legacy mappings still work, but we prod the user to update.
+        const stringMappings = Object.entries(config.mappings || {}).filter(([, data]) => {
+            return Array.isArray(data);
+        }) as unknown as [string, string[]][];
+
+        if (stringMappings.length) {
+            log.warn("** The IrcServer.mappings config schema has changed, allowing legacy format for now. **");
+            log.warn("See https://github.com/matrix-org/matrix-appservice-irc/blob/master/CHANGELOG.md for details");
+            for (const [channelId, roomIds] of stringMappings) {
+                config.mappings[channelId] = { roomIds: roomIds }
+            }
+        }
+
+        this.addresses = config.additionalAddresses || [];
+        this.addresses.push(this.domain);
+        this.excludedUsers = config.excludedUsers.map((excluded) => {
+            return {
+                ...excluded,
+                regex: new RegExp(excluded.regex)
+            }
+        });
+
+        if (config.dynamicChannels.groupId !== undefined &&
+            config.dynamicChannels.groupId.trim() !== "") {
+            this.groupIdValid = GROUP_ID_REGEX.test(config.dynamicChannels.groupId);
+            if (!this.groupIdValid) {
+                log.warn(
+    `${this.domain} has an incorrectly configured groupId for dynamicChannels and will not set groups.`
+                );
+            }
+        }
+        else {
+            this.groupIdValid = false;
         }
     }
 

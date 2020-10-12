@@ -184,7 +184,45 @@ export class IrcBridge {
             homeserverToken,
             httpMaxSizeBytes: (this.config.advanced || { }).maxTxnSize || TXN_SIZE_DEFAULT,
         });
+    }
 
+    public onConfigChanged(newConfig: BridgeConfig) {
+        const oldConfig = this.config;
+
+        if (oldConfig.advanced.maxHttpSockets !== newConfig.advanced.maxHttpSockets) {
+            const maxSockets = (newConfig.advanced || {maxHttpSockets: 1000}).maxHttpSockets;
+            require("http").globalAgent.maxSockets = maxSockets;
+            require("https").globalAgent.maxSockets = maxSockets;
+            log.info(`Adjusted max sockets to ${maxSockets}`);
+        }
+
+        // We can't modify the httpMaxSizeBytes after start
+        if (oldConfig.homeserver.dropMatrixMessagesAfterSecs !== newConfig.homeserver.dropMatrixMessagesAfterSecs) {
+            oldConfig.homeserver.dropMatrixMessagesAfterSecs = newConfig.homeserver.dropMatrixMessagesAfterSecs;
+            log.info(`Adjusted dropMatrixMessagesAfterSecs to ${newConfig.homeserver.dropMatrixMessagesAfterSecs}`);
+        }
+
+        if (oldConfig.homeserver.media_url !== newConfig.homeserver.media_url) {
+            oldConfig.homeserver.media_url = newConfig.homeserver.media_url;
+            log.info(`Adjusted media_url to ${newConfig.homeserver.dropMatrixMessagesAfterSecs}`);
+        }
+
+        this.ircHandler.onConfigChanged(newConfig.ircHandler);
+
+        const hasLoggingChanged = JSON.stringify(oldConfig.ircService.logging)
+            !== JSON.stringify(newConfig.ircService.logging);
+        if (hasLoggingChanged) {
+            Logging.configure(newConfig.ircService.logging);
+        }
+
+        this.ircServers.forEach((server) => {
+            const newServerConfig = newConfig.ircService.servers[server.domain];
+            if (!newServerConfig) {
+                log.warn(`Server ${server.domain} removed from config. Bridge will need to be restarted`);
+                // Server removed
+            }
+            server.reconfigure(newServerConfig, newConfig.homeserver.dropMatrixMessagesAfterSecs);
+        });
     }
 
     private initialiseMetrics(bindPort: number) {

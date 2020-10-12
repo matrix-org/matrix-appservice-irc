@@ -68,7 +68,7 @@ export class IrcHandler {
     "off" - Defaults to disabled, users can choose to enable.
     "force-off" - Disabled, cannot be enabled.
     */
-    private readonly mentionMode: "on"|"off"|"force-off";
+    private mentionMode: "on"|"off"|"force-off";
 
     public readonly roomAccessSyncer: RoomAccessSyncer;
 
@@ -953,6 +953,13 @@ export class IrcHandler {
             "mode": 0,
         };
         return metrics;
+    }
+
+    public onConfigChanged(config: IrcHandlerConfig) {
+        const newMentionMode = config.mapIrcMentionsToMatrix || "on";
+        if (this.mentionMode !== newMentionMode) {
+            this.mentionMode = newMentionMode;
+        }
     }
 
     private invalidateNickUserIdMap(server: IrcServer, channel: string) {
