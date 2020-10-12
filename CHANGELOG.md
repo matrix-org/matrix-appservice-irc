@@ -1,4 +1,13 @@
- 0.21.0-rc1 (2020-10-07)
+ 0.21.0-rc2 (2020-10-09)
+========================
+
+Bugfixes
+--------
+
+- Fix a bug where the bridge would leave a user after joining ([\#1143](https://github.com/matrix-org/matrix-appservice-irc/issues/1143))
+
+
+0.21.0-rc1 (2020-10-07)
 ========================
 
 Features
