@@ -29,6 +29,7 @@ import {
     PrometheusMetrics,
     MembershipCache,
     AgeCounters,
+    EphemeralEvent,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -129,7 +130,7 @@ export class IrcBridge {
                 onAliasQueried: this.onAliasQueried ?
                     this.onAliasQueried.bind(this) : undefined,
                 onLog: this.onLog.bind(this),
-
+                onEphemeralEvent: this.activityTracker ? this.onEphemeralEvent.bind(this) : undefined,
                 thirdPartyLookup: {
                     protocols: ["irc"],
                     getProtocol: this.getThirdPartyProtocol.bind(this),
@@ -801,6 +802,34 @@ export class IrcBridge {
 
     public onEvent(request: BridgeRequestEvent) {
         request.outcomeFrom(this._onEvent(request));
+    }
+
+    private onEphemeralEvent(request: Request<EphemeralEvent>) {
+        // If we see one of these events over federation, bump the
+        // last active time for those users.
+        const event = request.getData();
+        let userIds: string[]|undefined = undefined;
+        if (!this.activityTracker) {
+            return;
+        }
+        if (event.type === "m.presence" && event.content.presence === "online") {
+            userIds = [event.sender];
+        }
+        else if (event.type === "m.receipt") {
+            userIds = Object.keys(Object.values(event.content).map((v) => v["m.read"]));
+        }
+        else if (event.type === "m.typing") {
+            userIds = event.content.user_ids;
+        }
+
+        if (userIds) {
+            for (const userId of userIds) {
+                this.activityTracker.bumpLastActiveTime(userId);
+                this.dataStore.updateLastSeenTimeForUser(userId).catch((ex) => {
+                    log.warn(`Failed to bump last active time for ${userId} in database`, ex);
+                });
+            }
+        }
     }
 
     private async _onEvent (baseRequest: BridgeRequestEvent): Promise<BridgeRequestErr|undefined> {
