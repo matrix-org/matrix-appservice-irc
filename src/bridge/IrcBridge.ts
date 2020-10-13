@@ -119,6 +119,10 @@ export class IrcBridge {
             };
         }
         this.membershipCache = new MembershipCache();
+        if (!this.registration.pushEphemeral) {
+            log.info("Sending ephemeral events to the bridge is currently disabled in the registration file," +
+               " so user activity will not be captured");
+        }
         this.bridge = new Bridge({
             registration: this.registration,
             homeserverUrl: this.config.homeserver.url,
