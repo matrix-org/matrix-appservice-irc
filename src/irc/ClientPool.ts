@@ -28,7 +28,10 @@ import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
 import { DataStore } from "../datastore/DataStore";
 import { Gauge } from "prom-client";
+import QuickLRU from "quick-lru";
 const log = getLogger("ClientPool");
+
+const NICK_CACHE_SIZE = 256;
 
 interface ReconnectionItem {
     cli: BridgedClient;
@@ -42,7 +45,7 @@ interface ReconnectionItem {
 export class ClientPool {
     private botClients: Map<string, BridgedClient>;
     private virtualClients: { [serverDomain: string]: {
-        nicks: Map<string, BridgedClient>;
+        nicks: QuickLRU<string, BridgedClient>;
         userIds: Map<string, BridgedClient>;
         pending: Map<string, BridgedClient>;
     };};
@@ -74,7 +77,7 @@ export class ClientPool {
             return false;
         }
 
-        if (this.getBridgedClientByNick(server, nick)) {
+        if (this.getBridgedClientByNick(server, nick, true)) {
             return true;
         }
 
@@ -85,7 +88,6 @@ export class ClientPool {
     public killAllClients() {
         return Bluebird.all(Object.keys(this.virtualClients).map((domain) =>
             [
-                ...this.virtualClients[domain].nicks.values(),
                 ...this.virtualClients[domain].userIds.values(),
                 this.botClients.get(domain),
             ]
@@ -279,7 +281,7 @@ export class ClientPool {
 
         if (this.virtualClients[server.domain] === undefined) {
             this.virtualClients[server.domain] = {
-                nicks: new Map(),
+                nicks: new QuickLRU({maxSize: NICK_CACHE_SIZE}),
                 userIds: new Map(),
                 pending: new Map(),
             };
@@ -339,17 +341,28 @@ export class ClientPool {
         return cli;
     }
 
-    public getBridgedClientByNick(server: IrcServer, nick: string) {
+    public getBridgedClientByNick(server: IrcServer, nick: string, allowDead = false) {
         const bot = this.getBot(server);
         if (bot && bot.nick === nick) {
             return bot;
         }
 
-        if (!this.virtualClients[server.domain]) {
+        const serverSet = this.virtualClients[server.domain];
+
+        if (!serverSet) {
             return undefined;
         }
-        const cli = this.virtualClients[server.domain].nicks.get(nick);
-        if (cli?.isDead()) {
+
+        let cli = serverSet.nicks.get(nick);
+        if (!cli) {
+            cli = [...serverSet.userIds.values()].find(c => c.nick === nick);
+            if (!cli) {
+                return undefined;
+            }
+            serverSet.nicks.set(cli.nick, cli);
+        }
+
+        if (!allowDead && cli.isDead()) {
             return undefined;
         }
         return cli;
@@ -412,13 +425,16 @@ export class ClientPool {
 
         // find the oldest client to kill.
         let oldest: BridgedClient|null = null;
-        for (const client of this.virtualClients[server.domain].nicks.values()) {
+        for (const client of this.virtualClients[server.domain].userIds.values()) {
             if (!client) {
                 // possible since undefined/null values can be present from culled entries
                 continue;
             }
             if (client.isBot) {
                 continue; // don't ever kick the bot off.
+            }
+            if (client.status !== BridgedClientStatus.CONNECTED) {
+                continue; // Don't kick clients that aren't connected.
             }
             if (oldest === null) {
                 oldest = client;
