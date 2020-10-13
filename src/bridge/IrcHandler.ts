@@ -37,7 +37,6 @@ interface TopicQueueItem {
 
 export interface IrcHandlerConfig {
     mapIrcMentionsToMatrix?: "on"|"off"|"force-off";
-    leaveConcurrency?: number;
 }
 
 type MetricNames = "join.names"|"join"|"part"|"pm"|"invite"|"topic"|"message"|"kick"|"mode";
@@ -69,7 +68,7 @@ export class IrcHandler {
     "off" - Defaults to disabled, users can choose to enable.
     "force-off" - Disabled, cannot be enabled.
     */
-    private readonly mentionMode: "on"|"off"|"force-off";
+    private mentionMode: "on"|"off"|"force-off";
 
     public readonly roomAccessSyncer: RoomAccessSyncer;
 
@@ -954,6 +953,10 @@ export class IrcHandler {
             "mode": 0,
         };
         return metrics;
+    }
+
+    public onConfigChanged(config: IrcHandlerConfig) {
+        this.mentionMode = config.mapIrcMentionsToMatrix || "on";
     }
 
     private invalidateNickUserIdMap(server: IrcServer, channel: string) {

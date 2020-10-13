@@ -479,10 +479,6 @@ ircService:
     eventCacheSize: 4096
 
   ircHandler:
-    # How many /leave requests can be ongoing at a time.
-    # This is used to stem the flow of requests in case of a mass quit/leave, which might
-    # slow down the homeserver.
-    leaveConcurrency: 10
     # Should we attempt to match an IRC side mention (nickaname match)
     # with the nickname's owner's matrixId, if we are bridging them?
     # "on" - Defaults to enabled, users can choose to disable.
