@@ -195,7 +195,7 @@ export class MemberListSyncer {
             // fetch joined members allowing 50 in-flight reqs at a time
             const pool = new QueuePool(50, async (_roomId) => {
                 const roomId = _roomId as string;
-                let userMap: Record<string, {display_name: string; avatar: string}>|undefined;
+                let userMap: Record<string, {display_name: string}>|undefined;
                 while (!userMap) {
                     try {
                         userMap = await this.appServiceBot.getJoinedMembers(roomId);

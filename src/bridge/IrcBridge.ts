@@ -184,7 +184,58 @@ export class IrcBridge {
             homeserverToken,
             httpMaxSizeBytes: (this.config.advanced || { }).maxTxnSize || TXN_SIZE_DEFAULT,
         });
+    }
 
+    public async onConfigChanged(newConfig: BridgeConfig) {
+        log.info(`Bridge config was reloaded, applying changes`);
+        const oldConfig = this.config;
+
+        if (oldConfig.advanced.maxHttpSockets !== newConfig.advanced.maxHttpSockets) {
+            const maxSockets = (newConfig.advanced || {maxHttpSockets: 1000}).maxHttpSockets;
+            require("http").globalAgent.maxSockets = maxSockets;
+            require("https").globalAgent.maxSockets = maxSockets;
+            log.info(`Adjusted max sockets to ${maxSockets}`);
+        }
+
+        // We can't modify the maximum payload size after starting the http listener for the bridge, so
+        // newConfig.advanced.maxTxnSize is ignored.
+
+        if (oldConfig.homeserver.dropMatrixMessagesAfterSecs !== newConfig.homeserver.dropMatrixMessagesAfterSecs) {
+            oldConfig.homeserver.dropMatrixMessagesAfterSecs = newConfig.homeserver.dropMatrixMessagesAfterSecs;
+            log.info(`Adjusted dropMatrixMessagesAfterSecs to ${newConfig.homeserver.dropMatrixMessagesAfterSecs}`);
+        }
+
+        if (oldConfig.homeserver.media_url !== newConfig.homeserver.media_url) {
+            oldConfig.homeserver.media_url = newConfig.homeserver.media_url;
+            log.info(`Adjusted media_url to ${newConfig.homeserver.media_url}`);
+        }
+
+        this.ircHandler.onConfigChanged(newConfig.ircHandler || {});
+
+        const hasLoggingChanged = JSON.stringify(oldConfig.ircService.logging)
+            !== JSON.stringify(newConfig.ircService.logging);
+        if (hasLoggingChanged) {
+            Logging.configure(newConfig.ircService.logging);
+        }
+
+        await this.dataStore.removeConfigMappings();
+
+        // All config mapped channels will be briefly unavailable
+        await Promise.all(this.ircServers.map(async (server) => {
+            let newServerConfig = newConfig.ircService.servers[server.domain];
+            if (!newServerConfig) {
+                log.warn(`Server ${server.domain} removed from config. Bridge will need to be restarted`);
+                return;
+            }
+            newServerConfig = extend(
+                true, {}, IrcServer.DEFAULT_CONFIG, newConfig.ircService.servers[server.domain]
+            );
+            server.reconfigure(newServerConfig, newConfig.homeserver.dropMatrixMessagesAfterSecs);
+            await this.dataStore.setServerFromConfig(server, newServerConfig);
+        }));
+
+        await this.fetchJoinedRooms();
+        await this.joinMappedMatrixRooms();
     }
 
     private initialiseMetrics(bindPort: number) {
@@ -499,15 +550,11 @@ export class IrcBridge {
         const allUsers = await this.dataStore.getAllUserIds();
         const bot = this.bridge.getBot();
         allUsers.filter((u) => bot.isRemoteUser(u))
-            .forEach((u) => this.membershipCache.setMemberEntry("", u, "join"));
+            .forEach((u) => this.membershipCache.setMemberEntry("", u, "join", {}));
 
 
         log.info("Fetching Matrix rooms that are already joined to...");
         await this.fetchJoinedRooms();
-
-        for (const roomId of this.joinedRoomList) {
-            this.membershipCache.setMemberEntry(roomId, this.appServiceUserId, "join");
-        }
 
         if (this.config.ircService.bridgeInfoState?.enabled) {
             this.bridgeStateSyncer = new BridgeStateSyncer(this.dataStore, this.bridge, this);

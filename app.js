@@ -5,6 +5,7 @@ const main = require("./lib/main");
 const path = require("path");
 
 const REG_PATH = "appservice-registration-irc.yaml";
+let bridge;
 new Cli({
     registrationPath: REG_PATH,
     enableRegistration: true,
@@ -33,7 +34,10 @@ new Cli({
                     requestTimeoutSeconds: 60 * 5
                 }
             }
-        }
+        },
+    },
+    onConfigChanged: function(config) {
+        bridge.onConfigChanged(config);
     },
     generateRegistration: function(reg, callback) {
         try {
@@ -49,7 +53,9 @@ new Cli({
         if (port === -1) {
             port = null;
         }
-        const bridge = main.runBridge(port, config, reg).catch(function(err) {
+        main.runBridge(port, config, reg).then((resultBridge) => {
+            bridge = resultBridge;
+        }).catch(function(err) {
             log.error("Failed to run bridge.");
             log.error(err);
             process.exit(1);
@@ -58,7 +64,7 @@ new Cli({
         process.on("SIGTERM", async () => {
             log.info("SIGTERM recieved, killing bridge");
             try {
-                await main.killBridge(await bridge);
+                await main.killBridge(bridge);
             }
             catch (ex) {
                 log.error("Failed to killBridge");

@@ -33,7 +33,7 @@ const log = getLogger("PgDatastore");
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 4;
+    public static readonly LATEST_SCHEMA = 5;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
