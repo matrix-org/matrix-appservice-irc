@@ -550,15 +550,11 @@ export class IrcBridge {
         const allUsers = await this.dataStore.getAllUserIds();
         const bot = this.bridge.getBot();
         allUsers.filter((u) => bot.isRemoteUser(u))
-            .forEach((u) => this.membershipCache.setMemberEntry("", u, "join"));
+            .forEach((u) => this.membershipCache.setMemberEntry("", u, "join", {}));
 
 
         log.info("Fetching Matrix rooms that are already joined to...");
         await this.fetchJoinedRooms();
-
-        for (const roomId of this.joinedRoomList) {
-            this.membershipCache.setMemberEntry(roomId, this.appServiceUserId, "join");
-        }
 
         if (this.config.ircService.bridgeInfoState?.enabled) {
             this.bridgeStateSyncer = new BridgeStateSyncer(this.dataStore, this.bridge, this);
