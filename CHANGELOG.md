@@ -1,4 +1,50 @@
- 0.21.0-rc2 (2020-10-09)
+0.21.0-rc3 (2020-10-13)
+========================
+
+Features
+--------
+
+- Add support for reconfiguring the bridge at runtime by sending a `SIGHUP` ([\#1145](https://github.com/matrix-org/matrix-appservice-irc/issues/1145))
+
+
+Bugfixes
+--------
+
+- Fix a bug where the bridge would leave a user after joining ([\#1143](https://github.com/matrix-org/matrix-appservice-irc/issues/1143))
+- Fix more cases of double bridged users ([\#1146](https://github.com/matrix-org/matrix-appservice-irc/issues/1146))
+- Fix a bug where a user leaving with a reason would cause them to join then leave ([\#1151](https://github.com/matrix-org/matrix-appservice-irc/issues/1151))
+
+
+Internal Changes
+----------------
+
+- Add index to client_config for `config->>username` to speed up username lookups ([\#1148](https://github.com/matrix-org/matrix-appservice-irc/issues/1148))
+
+
+0.21.0-rc2 (2020-10-13)
+========================
+
+Features
+--------
+
+- Add support for reconfiguring the bridge at runtime by sending a `SIGHUP` ([\#1145](https://github.com/matrix-org/matrix-appservice-irc/issues/1145))
+
+
+Bugfixes
+--------
+
+- Fix a bug where the bridge would leave a user after joining ([\#1143](https://github.com/matrix-org/matrix-appservice-irc/issues/1143))
+- Fix more cases of double bridged users ([\#1146](https://github.com/matrix-org/matrix-appservice-irc/issues/1146))
+- Fix a bug where a user leaving with a reason would cause them to join then leave ([\#1151](https://github.com/matrix-org/matrix-appservice-irc/issues/1151))
+
+
+Internal Changes
+----------------
+
+- Add index to client_config for `config->>username` to speed up username lookups ([\#1148](https://github.com/matrix-org/matrix-appservice-irc/issues/1148))
+
+
+0.21.0-rc2 (2020-10-09)
 ========================
 
 Bugfixes
