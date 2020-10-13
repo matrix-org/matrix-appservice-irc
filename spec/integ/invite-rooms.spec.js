@@ -3,36 +3,35 @@ const envBundle = require("../util/env-bundle");
 
 describe("Invite-only rooms", function() {
     const {env, config, roomMapping, botUserId, test} = envBundle();
-    let testUser = {
+    const testUser = {
         id: "@flibble:wibble",
         nick: "flibble"
     };
-    let testIrcUser = {
+    const testIrcUser = {
         localpart: roomMapping.server + "_foobar",
         id: "@" + roomMapping.server + "_foobar:" + config.homeserver.domain,
         nick: "foobar"
     };
 
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
         // do the init
-        yield test.initEnv(env);
-    }));
+        await test.initEnv(env);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => {
+        await test.afterEach(env);
+    });
 
-    it("should be joined by the bot if the AS does know the room ID",
-    function(done) {
-        let adminRoomId = "!adminroom:id";
-        let sdk = env.clientMock._client(botUserId);
+    it("should be joined by the bot if the AS does know the room ID", async() => {
+        const adminRoomId = "!adminroom:id";
+        const sdk = env.clientMock._client(botUserId);
         let joinRoomCount = 0;
         sdk.joinRoom.and.callFake(async (roomId) => {
             expect(roomId).toEqual(adminRoomId);
@@ -40,7 +39,7 @@ describe("Invite-only rooms", function() {
             return {room_id: roomId};
         });
 
-        env.mockAppService._trigger("type:m.room.member", {
+        await env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
                 is_direct: true,
@@ -49,26 +48,20 @@ describe("Invite-only rooms", function() {
             user_id: testUser.id,
             room_id: adminRoomId,
             type: "m.room.member"
-        }).then(function() {
-            expect(joinRoomCount).toEqual(1, "Failed to join admin room");
-            // inviting them AGAIN to an existing known ADMIN room should trigger a join
-            return env.mockAppService._trigger("type:m.room.member", {
-                content: {
-                    membership: "invite",
-                    is_direct: true,
-                },
-                state_key: botUserId,
-                user_id: testUser.id,
-                room_id: adminRoomId,
-                type: "m.room.member"
-            });
-        }).then(function() {
-            expect(joinRoomCount).toEqual(2, "Failed to join admin room again");
-            done();
-        }, function(err) {
-            expect(true).toBe(false, "Failed to join admin room again: " + err);
-            done();
         });
+        expect(joinRoomCount).toEqual(1, "Failed to join admin room");
+        // inviting them AGAIN to an existing known ADMIN room should trigger a join
+        await env.mockAppService._trigger("type:m.room.member", {
+            content: {
+                membership: "invite",
+                is_direct: true,
+            },
+            state_key: botUserId,
+            user_id: testUser.id,
+            room_id: adminRoomId,
+            type: "m.room.member"
+        });
+        expect(joinRoomCount).toEqual(2, "Failed to join admin room again");
     });
 
     it("should be joined by a virtual IRC user if the bot invited them, " +
