@@ -197,7 +197,9 @@ export class IrcBridge {
             log.info(`Adjusted max sockets to ${maxSockets}`);
         }
 
-        // We can't modify the httpMaxSizeBytes after start
+        // We can't modify the maximum payload size after starting the http listener for the bridge, so
+        // newConfig.advanced.maxTxnSize is ignored.
+
         if (oldConfig.homeserver.dropMatrixMessagesAfterSecs !== newConfig.homeserver.dropMatrixMessagesAfterSecs) {
             oldConfig.homeserver.dropMatrixMessagesAfterSecs = newConfig.homeserver.dropMatrixMessagesAfterSecs;
             log.info(`Adjusted dropMatrixMessagesAfterSecs to ${newConfig.homeserver.dropMatrixMessagesAfterSecs}`);
@@ -205,7 +207,7 @@ export class IrcBridge {
 
         if (oldConfig.homeserver.media_url !== newConfig.homeserver.media_url) {
             oldConfig.homeserver.media_url = newConfig.homeserver.media_url;
-            log.info(`Adjusted media_url to ${newConfig.homeserver.dropMatrixMessagesAfterSecs}`);
+            log.info(`Adjusted media_url to ${newConfig.homeserver.media_url}`);
         }
 
         this.ircHandler.onConfigChanged(newConfig.ircHandler || {});
@@ -223,7 +225,7 @@ export class IrcBridge {
             let newServerConfig = newConfig.ircService.servers[server.domain];
             if (!newServerConfig) {
                 log.warn(`Server ${server.domain} removed from config. Bridge will need to be restarted`);
-                // Server removed
+                return;
             }
             newServerConfig = extend(
                 true, {}, IrcServer.DEFAULT_CONFIG, newConfig.ircService.servers[server.domain]
@@ -234,7 +236,6 @@ export class IrcBridge {
 
         await this.fetchJoinedRooms();
         await this.joinMappedMatrixRooms();
-
     }
 
     private initialiseMetrics(bindPort: number) {

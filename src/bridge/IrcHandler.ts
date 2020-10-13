@@ -956,10 +956,7 @@ export class IrcHandler {
     }
 
     public onConfigChanged(config: IrcHandlerConfig) {
-        const newMentionMode = config.mapIrcMentionsToMatrix || "on";
-        if (this.mentionMode !== newMentionMode) {
-            this.mentionMode = newMentionMode;
-        }
+        this.mentionMode = config.mapIrcMentionsToMatrix || "on";
     }
 
     private invalidateNickUserIdMap(server: IrcServer, channel: string) {
