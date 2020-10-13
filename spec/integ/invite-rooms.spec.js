@@ -34,10 +34,10 @@ describe("Invite-only rooms", function() {
         let adminRoomId = "!adminroom:id";
         let sdk = env.clientMock._client(botUserId);
         let joinRoomCount = 0;
-        sdk.joinRoom.and.callFake(function(roomId) {
+        sdk.joinRoom.and.callFake(async (roomId) => {
             expect(roomId).toEqual(adminRoomId);
             joinRoomCount += 1;
-            return Promise.resolve({});
+            return {room_id: roomId};
         });
 
         env.mockAppService._trigger("type:m.room.member", {
