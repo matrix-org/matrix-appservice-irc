@@ -53,6 +53,9 @@ export function generateRegistration(reg: AppServiceRegistration, config: Bridge
     // connect, for example on startup.
     reg.setRateLimited(false);
 
+    // Needed to detect activity of users on the bridge.
+    reg.pushEphemeral = true;
+
     // Set protocols to IRC, so that the bridge appears in the list of
     // thirdparty protocols
     reg.setProtocols(["irc"]);

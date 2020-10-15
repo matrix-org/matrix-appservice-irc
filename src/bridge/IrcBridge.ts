@@ -29,6 +29,7 @@ import {
     PrometheusMetrics,
     MembershipCache,
     AgeCounters,
+    EphemeralEvent,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -46,6 +47,12 @@ const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
 const TXN_SIZE_DEFAULT = 10000000 // 10MB
+
+/**
+ * How old can a receipt be before we treat
+ * it as stale.
+ */
+const RECEIPT_CUTOFF_TIME_MS = 60000;
 export const METRIC_ACTIVE_USERS = "active_users";
 
 export class IrcBridge {
@@ -118,6 +125,10 @@ export class IrcBridge {
             };
         }
         this.membershipCache = new MembershipCache();
+        if (!this.registration.pushEphemeral) {
+            log.info("Sending ephemeral events to the bridge is currently disabled in the registration file," +
+               " so user activity will not be captured");
+        }
         this.bridge = new Bridge({
             registration: this.registration,
             homeserverUrl: this.config.homeserver.url,
@@ -129,7 +140,7 @@ export class IrcBridge {
                 onAliasQueried: this.onAliasQueried ?
                     this.onAliasQueried.bind(this) : undefined,
                 onLog: this.onLog.bind(this),
-
+                onEphemeralEvent: this.activityTracker ? this.onEphemeralEvent.bind(this) : undefined,
                 thirdPartyLookup: {
                     protocols: ["irc"],
                     getProtocol: this.getThirdPartyProtocol.bind(this),
@@ -801,6 +812,44 @@ export class IrcBridge {
 
     public onEvent(request: BridgeRequestEvent) {
         request.outcomeFrom(this._onEvent(request));
+    }
+
+    private onEphemeralEvent(request: Request<EphemeralEvent>) {
+        // If we see one of these events over federation, bump the
+        // last active time for those users.
+        const event = request.getData();
+        let userIds: string[]|undefined = undefined;
+        if (!this.activityTracker) {
+            return;
+        }
+        if (event.type === "m.presence" && event.content.presence === "online") {
+            userIds = [event.sender];
+        }
+        else if (event.type === "m.receipt") {
+            userIds = [];
+            const currentTime = Date.now();
+            // The homeserver will send us a map of all userIDs => ts for each event.
+            // We are only interested in recent receipts though.
+            for (const eventData of Object.values(event.content).map((v) => v["m.read"])) {
+                for (const [userId, { ts }] of Object.entries(eventData)) {
+                    if (currentTime - ts <= RECEIPT_CUTOFF_TIME_MS) {
+                        userIds.push(userId);
+                    }
+                }
+            }
+        }
+        else if (event.type === "m.typing") {
+            userIds = event.content.user_ids;
+        }
+
+        if (userIds) {
+            for (const userId of userIds) {
+                this.activityTracker.bumpLastActiveTime(userId);
+                this.dataStore.updateLastSeenTimeForUser(userId).catch((ex) => {
+                    log.warn(`Failed to bump last active time for ${userId} in database`, ex);
+                });
+            }
+        }
     }
 
     private async _onEvent (baseRequest: BridgeRequestEvent): Promise<BridgeRequestErr|undefined> {
