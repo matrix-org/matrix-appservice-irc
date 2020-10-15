@@ -303,7 +303,8 @@ export class MatrixHandler {
                     // flatten to a single unqiue set
                 )).forEach((rSet) => rSet.forEach((r) => uniqueRoomIds.add(r.getId())));
 
-                await Promise.all([...uniqueRoomIds].map(async (roomId) => {
+                // Don't wait for these to complete
+                Promise.all([...uniqueRoomIds].map(async (roomId) => {
                     try {
                         await this.membershipQueue.leave(
                             roomId,
