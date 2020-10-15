@@ -1,0 +1,1 @@
+Fix bug where m.audio files would not be forwarded to IRC

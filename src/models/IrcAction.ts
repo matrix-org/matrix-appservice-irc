@@ -59,6 +59,10 @@ export class IrcAction {
                 return new IrcAction(
                     "emote", "uploaded a video: " + matrixAction.text, matrixAction.ts
                 );
+            case "audio":
+                return new IrcAction(
+                    "emote", "uploaded an audio file: " + matrixAction.text, matrixAction.ts
+            );
             case "file":
                 return new IrcAction("emote", "posted a file: " + matrixAction.text, matrixAction.ts);
             case "topic":
