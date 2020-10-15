@@ -47,6 +47,12 @@ const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
 const TXN_SIZE_DEFAULT = 10000000 // 10MB
+
+/**
+ * How old can a receipt be before we treat
+ * it as stale.
+ */
+const RECEIPT_CUTOFF_TIME_MS = 60000;
 export const METRIC_ACTIVE_USERS = "active_users";
 
 export class IrcBridge {
@@ -820,7 +826,17 @@ export class IrcBridge {
             userIds = [event.sender];
         }
         else if (event.type === "m.receipt") {
-            userIds = Object.keys(Object.values(event.content).map((v) => v["m.read"]));
+            userIds = [];
+            const currentTime = Date.now();
+            // The homeserver will send us a map of all userIDs => ts for each event.
+            // We are only interested in recent receipts though.
+            for (const eventData of Object.values(event.content).map((v) => v["m.read"])) {
+                for (const [userId, { ts }] of Object.entries(eventData)) {
+                    if (currentTime - ts <= RECEIPT_CUTOFF_TIME_MS) {
+                        userIds.push(userId);
+                    }
+                }
+            }
         }
         else if (event.type === "m.typing") {
             userIds = event.content.user_ids;
