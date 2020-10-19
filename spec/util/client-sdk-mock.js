@@ -22,6 +22,7 @@ function MockClient(config) {
     this.setRoomTopic = jasmine.createSpy("sdk.setRoomTopic(roomId, topic)");
     this.setDisplayName = jasmine.createSpy("sdk.setDisplayName(name)");
     this.getStateEvent = jasmine.createSpy("sdk.getStateEvent(room,type,key)");
+    this.getProfileInfo = jasmine.createSpy("sdk.getProfileInfo(userId,type)");
     this.fetchRoomEvent = jasmine.createSpy("sdk.fetchRoomEvent(room,event_id)");
     this.sendStateEvent = jasmine.createSpy("sdk.sendStateEvent(room,type,content,key)");
     this.sendEvent = jasmine.createSpy("sdk.sendEvent(roomId,type,content)");
@@ -64,6 +65,10 @@ function MockClient(config) {
     this.fetchRoomEvent.and.callFake(() => {
         return Promise.resolve({});
     });
+
+    this.getProfileInfo.and.callFake(async () => {
+        return {};
+    })
 
     // mock up getStateEvent immediately since it is called for every new IRC
     // connection.

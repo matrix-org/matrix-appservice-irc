@@ -544,7 +544,14 @@ describe("Admin rooms", function() {
 
     it("should propagate a display name change as a nick change when no custom nick is set",
     test.coroutine(function*() {
-        let newNick = "Blurple";
+        const newNick = "Blurple";
+
+        const sdk = env.clientMock._client(botUserId);
+        sdk.getProfileInfo.and.callFake(async (reqUserId, type) => {
+            expect(reqUserId).toEqual(userId);
+            expect(type).toEqual("displayname");
+            return {displayname: newNick};
+        });
 
         // make sure that the nick command is sent
         let sentNickCommand = false;

@@ -547,14 +547,20 @@ export class MatrixHandler {
                     if (config && room.server.allowsNickChanges() &&
                         !config.getDesiredNick()
                     ) {
-                        try {
-                            const newNick = room.server.getNick(
-                                bridgedClient.userId, event.content.displayname
-                            );
-                            bridgedClient.changeNick(newNick, false);
-                        }
-                        catch (e) {
-                            req.log.warn(`Didn't change nick on the IRC side: ${e}`);
+                        const intent = this.ircBridge.getAppServiceBridge().getIntent();
+                        // Check that the /profile matches the displayname.
+                        const userProfile = await intent.getProfileInfo(event.state_key, "displayname");
+                        // We only want to update the nickname if the profile contains the displayname
+                        if (userProfile.displayname === event.content.displayname) {
+                            try {
+                                const newNick = room.server.getNick(
+                                    bridgedClient.userId, event.content.displayname
+                                );
+                                bridgedClient.changeNick(newNick, false);
+                            }
+                            catch (e) {
+                                req.log.warn(`Didn't change nick on the IRC side: ${e}`);
+                            }
                         }
                     }
                 }
