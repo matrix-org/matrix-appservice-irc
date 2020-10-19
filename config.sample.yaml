@@ -263,6 +263,16 @@ ircService:
               initial: false
               incremental: false
 
+        # Should the bridge ignore users which are not considered active on the bridge
+        # during startup
+        ignoreIdleUsersOnStartup:
+          enabled: true
+          # How many hours can a user be considered idle for before they are considered
+          # ignoreable
+          idleForHours: 720
+          # A regex which will exclude matching MXIDs from this check.
+          exclude: "foobar"
+
       mappings:
         # 1:many mappings from IRC channels to room IDs on this IRC server.
         # The matrix room must already exist. Your matrix client should expose

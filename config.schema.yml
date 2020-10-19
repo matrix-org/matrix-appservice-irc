@@ -220,6 +220,15 @@ properties:
                                     type: "boolean"
                                 floodDelayMs:
                                     type: "integer"
+                                ignoreIdleUsersOnStartup:
+                                    type: "object"
+                                    properties:
+                                        enabled:
+                                            type: "boolean"
+                                        idleForHours:
+                                            type: "integer"
+                                        exclude:
+                                            type: "string"
                                 global:
                                     type: "object"
                                     properties:
