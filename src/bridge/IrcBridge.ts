@@ -61,11 +61,11 @@ export class IrcBridge {
     public readonly matrixHandler: MatrixHandler;
     public readonly ircHandler: IrcHandler;
     public readonly publicitySyncer: PublicitySyncer;
+    public readonly activityTracker: MatrixActivityTracker|null = null;
     private clientPool!: ClientPool; // This gets defined in the `run` function
     private ircServers: IrcServer[] = [];
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
-    private activityTracker: MatrixActivityTracker|null = null;
     private dataStore!: DataStore;
     private startedUp = false;
     private debugApi: DebugApi|null = null;

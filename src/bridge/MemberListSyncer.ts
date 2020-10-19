@@ -250,8 +250,7 @@ export class MemberListSyncer {
         return this.syncableRoomsPromise;
     }
 
-    private joinMatrixUsersToChannels(rooms: RoomInfo[], injectJoinFn: InjectJoinFn) {
-        const d = promiseutil.defer();
+    private async joinMatrixUsersToChannels(rooms: RoomInfo[], injectJoinFn: InjectJoinFn) {
 
         // filter out rooms listed in the rules
         const filteredRooms: RoomInfo[] = [];
@@ -278,8 +277,17 @@ export class MemberListSyncer {
         // map the filtered rooms to a list of users to join
         // [Room:{reals:[uid,uid]}, ...] => [{uid,roomid}, ...]
         const entries: { roomId: string; displayName: string; userId: string; frontier: boolean}[] = [];
-        filteredRooms.forEach((roomInfo) => {
-            roomInfo.realJoinedUsers.forEach((uid, index) => {
+        const idleRegex = this.server.ignoreIdleUsersOnStartupExcludeRegex;
+        for (const roomInfo of filteredRooms) {
+            for (const uid of roomInfo.realJoinedUsers) {
+                if (this.server.ignoreIdleUsersOnStartup) {
+                    const idle = await this.ircBridge.activityTracker?.isUserOnline(
+                        uid, this.server.ignoreIdleUsersOnStartupAfterMs, false
+                    );
+                    if (!(idle?.online) && !idleRegex?.exec(uid)) {
+                        continue;
+                    }
+                }
                 entries.push({
                     roomId: roomInfo.id,
                     displayName: roomInfo.displayNames[uid],
@@ -287,10 +295,10 @@ export class MemberListSyncer {
                     // Mark the first real matrix user f.e room so we can inject
                     // them first to get back up and running more quickly when there
                     // is no bot.
-                    frontier: (index === 0)
+                    frontier: !entries.find((ent) => ent.roomId === roomInfo.id),
                 });
-            });
-        });
+            }
+        }
         // sort frontier markers to the front of the array
         entries.sort((a, b) => {
             if (a.frontier && !b.frontier) {
@@ -304,6 +312,7 @@ export class MemberListSyncer {
 
         log.debug("Got %s matrix join events to inject.", entries.length);
         this.usersToJoin = entries.length;
+        const d = promiseutil.defer();
         // take the first entry and inject a join event
         const joinNextUser = () => {
             this.usersToJoin--;
