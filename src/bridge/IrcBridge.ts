@@ -720,9 +720,9 @@ export class IrcBridge {
     //  usefull once this has been called.
     //
     //  See (BridgedClient.prototype.kill)
-    public async kill() {
+    public async kill(reason?: string) {
         log.info("Killing all clients");
-        await this.clientPool.killAllClients();
+        await this.clientPool.killAllClients(reason);
         if (this.dataStore) {
             await this.dataStore.destroy();
         }

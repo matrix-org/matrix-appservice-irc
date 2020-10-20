@@ -88,7 +88,7 @@ class TestEnv {
         }
         // If there was a previous bridge running, kill it
         // This prevents IRC clients spamming the logs
-        await this.main.killBridge(this.ircBridge);
+        await this.main.killBridge(this.ircBridge, "test teardown");
         if (global.gc) {
             global.gc();
         }
