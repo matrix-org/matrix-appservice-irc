@@ -23,6 +23,7 @@ import { BridgedClient } from "../irc/BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { MatrixHandler } from "./MatrixHandler";
 import logging from "../logging";
+import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "../util/PackageInfo";
 
 const log = logging("AdminRoomHandler");
@@ -134,7 +135,7 @@ export class AdminRoomHandler {
                 await this.handleWhois(req, args, ircServer, adminRoom, event.sender);
                 break;
             case "!storepass":
-                await this.handleStorePass(req, args, ircServer, adminRoom, event.sender, clientList[0]);
+                await this.handleStorePass(req, args, ircServer, adminRoom, event.sender, clientList);
                 break;
             case "!removepass":
                 await this.handleRemovePass(ircServer, adminRoom, event.sender);
@@ -157,11 +158,11 @@ export class AdminRoomHandler {
             case "!help":
                 await this.showHelp(adminRoom);
                 break;
-            default:
+            default: {
                 const notice = new MatrixAction("notice",
                 "The command was not recognised. Available commands are listed by !help");
                 await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
-                break;
+            }
         }
     }
 
@@ -170,7 +171,7 @@ export class AdminRoomHandler {
         const ircChannel = args[0];
         const key = args[1]; // keys can't have spaces in them, so we can just do this.
         let errText = null;
-        if (!ircChannel || ircChannel.indexOf("#") !== 0) {
+        if (!ircChannel || !ircChannel.startsWith("#")) {
             errText = "Format: '!join irc.example.com #channel [key]'";
         }
         else if (!server.canJoinRooms(sender)) {
@@ -205,61 +206,12 @@ export class AdminRoomHandler {
 
         if (matrixRooms.length === 0) {
             // track the channel then invite them.
-            // TODO: Dupes onAliasQuery a lot
-            const initialState: unknown[] = [
-                {
-                    type: "m.room.join_rules",
-                    state_key: "",
-                    content: {
-                        join_rule: server.getJoinRule()
-                    }
-                },
-                {
-                    type: "m.room.history_visibility",
-                    state_key: "",
-                    content: {
-                        history_visibility: "joined"
-                    }
-                }
-            ];
-            if (server.areGroupsEnabled()) {
-                initialState.push({
-                    type: "m.room.related_groups",
-                    state_key: "",
-                    content: {
-                        groups: [server.getGroupId() as string]
-                    }
-                });
-            }
-            if (this.ircBridge.stateSyncer) {
-                initialState.push(
-                    this.ircBridge.stateSyncer.createInitialState(
-                        server,
-                        ircChannel,
-                    )
-                )
-            }
-            const ircRoom = await this.ircBridge.trackChannel(server, ircChannel, key);
-            const response = await this.ircBridge.getAppServiceBridge().getIntent().createRoom({
-                options: {
-                    name: ircChannel,
-                    visibility: "private",
-                    preset: "public_chat",
-                    creation_content: {
-                        "m.federate": server.shouldFederate()
-                    },
-                    initial_state: initialState,
-                    invite: [sender],
-                }
-            });
-            const mxRoom = new MatrixRoom(response.room_id);
-            await this.ircBridge.getStore().storeRoom(ircRoom, mxRoom, 'join');
-            // /mode the channel AFTER we have created the mapping so we process
-            // +s and +i correctly.
-            this.ircBridge.publicitySyncer.initModeForChannel(server, ircChannel).catch(() => {
-                log.error(
-                    `Could not init mode for channel ${ircChannel} on ${server.domain}`
-                );
+            const { ircRoom, mxRoom } = await RoomCreation.trackChannelAndCreateRoom(this.ircBridge, req, {
+                origin: "join",
+                server: server,
+                ircChannel,
+                key,
+                inviteList: [sender],
             });
             req.log.info(
                 "Created a room to track %s on %s and invited %s",
@@ -315,7 +267,7 @@ export class AdminRoomHandler {
             // keyword could be a failed server or a malformed command
             if (!keyword.match(/^[A-Z]+$/)) {
                 // if not a domain OR is only word (which implies command)
-                if (!keyword.match(/^[a-z0-9:\.-]+$/) || args.length == 1) {
+                if (!keyword.match(/^[a-z0-9:\.-]+$/) || args.length === 1) {
                     throw new Error(`Malformed command: ${keyword}`);
                 }
                 else {
@@ -323,7 +275,7 @@ export class AdminRoomHandler {
                 }
             }
 
-            if (blacklist.indexOf(keyword) != -1) {
+            if (blacklist.includes(keyword)) {
                 throw new Error(`Command blacklisted: ${keyword}`);
             }
 
@@ -335,11 +287,7 @@ export class AdminRoomHandler {
                 server, sender
             );
 
-            if (!bridgedClient.unsafeClient) {
-                throw new Error('Possibly disconnected');
-            }
-
-            bridgedClient.unsafeClient.send(...sendArgs);
+            bridgedClient.sendCommands(...sendArgs);
         }
         catch (err) {
             const notice = new MatrixAction("notice", `${err}\n` );
@@ -387,7 +335,7 @@ export class AdminRoomHandler {
         const bridgedClient = await this.ircBridge.getBridgedClient(server, sender);
         try {
             const response = await bridgedClient.whois(whoisNick);
-            const noticeRes = new MatrixAction("notice", response.msg);
+            const noticeRes = new MatrixAction("notice", response?.msg || "User not found");
             await this.ircBridge.sendMatrixAction(room, this.botUser, noticeRes);
         }
         catch (err) {
@@ -400,7 +348,7 @@ export class AdminRoomHandler {
     }
 
     private async handleStorePass(req: BridgeRequest, args: string[], server: IrcServer,
-        room: MatrixRoom, userId: string, client: BridgedClient) {
+        room: MatrixRoom, userId: string, clientList: BridgedClient[]) {
         const domain = server.domain;
         let notice;
 
@@ -419,8 +367,9 @@ export class AdminRoomHandler {
                 notice = new MatrixAction(
                     "notice", `Successfully stored password for ${domain}. You will now be reconnected to IRC.`
                 );
+                const client = clientList.find((c) => c.server.domain === server.domain);
                 if (client) {
-                    await client.disconnect("iwantoreconnect", "authenticating", false);
+                    await client.disconnect("iwanttoreconnect", "authenticating", false);
                 }
             }
         }

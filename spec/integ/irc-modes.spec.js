@@ -59,7 +59,7 @@ describe("IRC-to-Matrix mode bridging", function() {
             return Promise.resolve();
         });
 
-        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
         function(client) {
             client.emit("+mode", roomMapping.channel, "anIrcUser", "k");
         });
@@ -78,7 +78,7 @@ describe("IRC-to-Matrix mode bridging", function() {
             return Promise.resolve();
         });
 
-        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
         function(client) {
             client.emit("+mode", roomMapping.channel, "anIrcUser", "i");
         });
@@ -97,7 +97,7 @@ describe("IRC-to-Matrix mode bridging", function() {
             return Promise.resolve();
         });
 
-        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
         function(client) {
             client.emit("-mode", roomMapping.channel, "anIrcUser", "i");
         });
@@ -116,7 +116,7 @@ describe("IRC-to-Matrix mode bridging", function() {
             return Promise.resolve();
         });
 
-        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
         function(client) {
             client.emit("-mode", roomMapping.channel, "anIrcUser", "k");
         });

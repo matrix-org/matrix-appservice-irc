@@ -50,6 +50,7 @@
                 "botConfig": {
                     "enabled": true,
                     "nick": "ro_bot_nick",
+                    "username": "matrixbot",
                     "joinChannelsIfNoUsers": true
                 },
                 "privateMessages": {

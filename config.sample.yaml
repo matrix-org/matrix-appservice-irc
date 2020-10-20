@@ -148,6 +148,8 @@ ircService:
         enabled: true
         # The nickname to give the AS bot.
         nick: "MatrixBot"
+        # The username to give to the AS bot. Defaults to "matrixbot"
+        username: "matrixbot"
         # The password to give to NickServ or IRC Server for this nick. Optional.
         # password: "helloworld"
         #
@@ -328,7 +330,8 @@ ircService:
           # connected user. If not specified, all users will connect from the same
           # (default) address. This may require additional OS-specific work to allow
           # for the node process to bind to multiple different source addresses
-          # e.g IP_FREEBIND on Linux, which requires an LD_PRELOAD with the library
+          # Linux kernels 4.3+ support sysctl net.ipv6.ip_nonlocal_bind=1
+          # Older kernels will need IP_FREEBIND, which requires an LD_PRELOAD with the library
           # https://github.com/matrix-org/freebindfree as Node does not expose setsockopt.
           # prefix: "2001:0db8:85a3::"  # modify appropriately
         #
@@ -391,6 +394,10 @@ ircService:
     # Default: 0.0.0.0
     address: "::"
 
+  # Encoding fallback - which text encoding to try if text is not UTF-8. Default: not set.
+  # List of supported encodings: https://www.npmjs.com/package/iconv#supported-encodings
+  # encodingFallback: "ISO-8859-15"
+
   # Configuration for logging. Optional. Default: console debug level logging
   # only.
   logging:
@@ -411,6 +418,12 @@ ircService:
   metrics:
     # Whether to actually enable the metric endpoint. Default: false
     enabled: true
+    # Which port to listen on (omit to listen on the bindPort)
+    port: 7001
+    # Which hostname to listen on (omit to listen on 127.0.0.1), requires port to be set
+    host: 127.0.0.1
+    # When determining activeness of remote and matrix users, cut off at this number of hours.
+    userActivityThresholdHours: 72 # 3 days
     # When collecting remote user active times, which "buckets" should be used. Defaults are given below.
     # The bucket name is formed of a duration and a period. (h=hours,d=days,w=weeks).
     remoteUserAgeBuckets:
@@ -453,6 +466,8 @@ ircService:
     ruleFile: "./provisioning.rules.yaml"
     # Watch the file for changes, and apply the rules. Default: false
     enableReload: true
+    # Number of channels allowed to be bridged
+    roomLimit: 50
 
   # WARNING: The bridge needs to send plaintext passwords to the IRC server, it cannot
   # send a password hash. As a result, passwords (NOT hashes) are stored encrypted in
@@ -473,10 +488,6 @@ ircService:
     eventCacheSize: 4096
 
   ircHandler:
-    # How many /leave requests can be ongoing at a time.
-    # This is used to stem the flow of requests in case of a mass quit/leave, which might
-    # slow down the homeserver.
-    leaveConcurrency: 10
     # Should we attempt to match an IRC side mention (nickaname match)
     # with the nickname's owner's matrixId, if we are bridging them?
     # "on" - Defaults to enabled, users can choose to disable.

@@ -37,9 +37,11 @@ This project follows "git flow" semantics. In practice, this means:
  - Make sure your new code passes all the code checks (tests and linting). Do this by running
    `npm run check`.
  - Create a pull request. If this PR fixes an issue, link to it by referring to its number.
- - PRs from community members must be signed off as per Synapse's [Attribution section](https://github.com/matrix-org/synapse/blob/master/CONTRIBUTING.rst#attribution)
- - Create a changelog entry in `changelog.d`. A changelog filename should be `${GithubIssueNumber}.{bugfix|misc|feature|doc|removal}`
+ - PRs from community members must be signed off as per Synapse's [Sign off section](https://github.com/matrix-org/synapse/blob/master/CONTRIBUTING.md#sign-off)
+ - Create a changelog entry in `changelog.d`. A changelog filename should be `${GithubPRNumber}.{bugfix|misc|feature|doc|removal}`
    The change should include information that is useful to the user rather than the developer.
+   You can choose to sign your changelog entry to be credited by appending something like "Thanks to @Half-Shot"
+   at the end of the file, on the same line.
 
 ## Coding notes
 The IRC bridge is compatible on Node.js v10+. Buildkite is used to ensure that tests will run on
@@ -54,4 +56,4 @@ new code.
  - Each formal release corresponds to a branch which is of the form `vX.Y.Z` where `X.Y.Z` maps
    directly onto the `package.json` (NPM) version.
  - Releases are also tagged so they are present on the Releases page on Github.
- - Releases should always be signed by the maintainers key
+ - Releases should be signed by the maintainer's key.

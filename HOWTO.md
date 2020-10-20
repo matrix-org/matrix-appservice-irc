@@ -273,3 +273,28 @@ ircService:
 Logging is configurable in the yaml, but there is also an extra verbose setting
 you can enable. This is done by passing ``--verbose`` or ``-v`` to 
 ``node app.js``.
+
+Allow IRC bot to join channels with registered nicks requirement
+----------------------------------------------------------------
+
+When starting the bridge with the IRC bot enabled, the bot might have some issues to join channels where nick registration is required. As a result, the bot cannot join the IRC channel and will not bridge it to Matrix.
+
+### Register the bot nickname
+1. Stop your IRC bridge
+2. Make sure you change the default nickname in your config to something unique.
+3. Add the password to the config file that the bot must use to claim its nickname:
+```yaml
+ircService:
+  servers:    
+    # The address of the server to connect to.
+    irc.example.com:
+      botConfig:
+        # The nickname to give the AS bot.
+        nick: "MyUniqueNicknameForMyIRCBot"
+        # The password to give to NickServ or IRC Server for this nick. Optional.
+        password: "myS3cr3tPassW0rd"
+```
+3. Use an IRC client to talk to NickServ on the IRC network under the nickname of your bot (see step 2).
+4. Follow the instructions to register this nickname: https://freenode.net/kb/answer/registration
+5. Make sure you have followed the verification instructions in the e-mail you will receive after registration of your nickname.
+6. Restart your bridge. The bot should now be able to connect to these channels.

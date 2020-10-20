@@ -76,7 +76,7 @@ describe("Mirroring", function() {
                 state_key: testUser.id,
                 room_id: roomMapping.roomId,
                 type: "m.room.member"
-            }).done(function() {
+            }).then(function() {
                 expect(joined).toBe(true, "Didn't join");
                 done();
             });
@@ -114,7 +114,7 @@ describe("Mirroring", function() {
                     room_id: roomMapping.roomId,
                     type: "m.room.member"
                 });
-            }).done(function() {
+            }).then(function() {
                 expect(parted).toBe(true, "Didn't part");
                 done();
             });
@@ -139,7 +139,7 @@ describe("Mirroring", function() {
                 state_key: testUser.id,
                 room_id: "!bogusroom:id",
                 type: "m.room.member"
-            }).done(function() {
+            }).then(function() {
                 done();
             });
         });
@@ -163,7 +163,7 @@ describe("Mirroring", function() {
                 state_key: testUser.id,
                 room_id: roomMapping.roomId,
                 type: "m.room.member"
-            }).done(function() {
+            }).then(function() {
                 done();
             });
         });
@@ -249,23 +249,23 @@ describe("Mirroring", function() {
                 return Promise.resolve();
             });
 
-            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
+            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
             function(client) {
                 client.emit("join", roomMapping.channel, ircUser.nick);
             });
         });
 
-        it("should leave the matrix room when the IRC user parts", function(done) {
-            sdk.leave.and.callFake(function(roomId) {
+        it("should leave the matrix room when the IRC user parts", async function() {
+            const leavePromise = new Promise(r => sdk.kick.and.callFake(async (roomId, userId, reason) => {
+                expect(userId).toEqual(ircUser.id);
+                expect(reason).toEqual("Client PARTed from channel");
                 expect(roomId).toEqual(roomMapping.roomId);
-                done();
-                return Promise.resolve();
-            });
+                r();
+            }));
 
-            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).done(
-            function(client) {
-                client.emit("part", roomMapping.channel, ircUser.nick);
-            });
+            const client = await env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
+            client.emit("part", roomMapping.channel, ircUser.nick);
+            await leavePromise;
         });
     });
 });

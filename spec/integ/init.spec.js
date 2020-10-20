@@ -51,7 +51,7 @@ describe("Initialisation", function() {
         env.ircMock._whenClient(roomMapping.server, ircNick, "connect",
         function(client, cb) {
             // after the connect callback, modify their nick and emit an event.
-            client._invokeCallback(cb).done(function() {
+            client._invokeCallback(cb).then(function() {
                 process.nextTick(function() {
                     client.nick = assignedNick;
                     client.emit("nick", ircNick, assignedNick);

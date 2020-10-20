@@ -1,5 +1,6 @@
 "$schema": "http://json-schema.org/draft-04/schema#"
 type: "object"
+required: ["homeserver", "ircService"]
 properties:
     advanced:
         type: "object"
@@ -55,6 +56,12 @@ properties:
                 properties:
                     enabled:
                         type: "boolean"
+                    port:
+                        type: "number"
+                    host:
+                        type: "string"
+                    userActivityThresholdHours:
+                        type: "number"
                     remoteUserAgeBuckets:
                         type: "array"
                         items:
@@ -105,6 +112,8 @@ properties:
                         type: "string"
                     enableReload:
                         type: "boolean"
+                    roomLimit:
+                        type: "number" 
             passwordEncryptionKeyPath:
                 type: "string"
             matrixHandler:
@@ -115,8 +124,6 @@ properties:
             ircHandler:
                 type: "object"
                 properties:
-                    leaveConcurrency:
-                        type: "integer"
                     mapIrcMentionsToMatrix:
                         type: "string"
                         enum: ["on", "off", "force-off"]
@@ -190,6 +197,8 @@ properties:
                                 enabled:
                                     type: "boolean"
                                 nick:
+                                    type: "string"
+                                username:
                                     type: "string"
                                 password:
                                     type: "string"

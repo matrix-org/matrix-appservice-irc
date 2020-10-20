@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MatrixRoom, MatrixUser, Entry} from "matrix-appservice-bridge";
+import { MatrixRoom, MatrixUser, RoomBridgeStoreEntry as Entry} from "matrix-appservice-bridge";
 import Bluebird from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig } from "../models/IrcClientConfig";
@@ -120,6 +120,8 @@ export interface DataStore {
 
     setPmRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom, userId: string, virtualUserId: string): Promise<void>;
 
+    removePmRoom(roomId: string): Promise<void>;
+
     getMatrixPmRoom(realUserId: string, virtualUserId: string): Promise<MatrixRoom|null>;
 
     getTrackedChannelsForServer(domain: string): Promise<string[]>;
@@ -158,6 +160,8 @@ export interface DataStore {
 
     getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined>;
 
+    getCountForUsernamePrefix(domain: string, usernamePrefix: string): Promise<number>;
+
     roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string): Promise<void>;
 
     updateLastSeenTimeForUser(userId: string): Promise<void>;
@@ -169,6 +173,12 @@ export interface DataStore {
     getRoomsVisibility(roomIds: string[]): Promise<{[roomId: string]: "public"|"private"}>;
 
     setRoomVisibility(roomId: string, vis: "public"|"private"): Promise<void>;
+
+    isUserDeactivated(userId: string): Promise<boolean>;
+
+    deactivateUser(userId: string): Promise<void>;
+
+    getRoomCount(): Promise<number>;
 
     destroy(): Promise<void>;
 }

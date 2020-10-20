@@ -16,16 +16,32 @@ limitations under the License.
 
 import { getLogger, newRequestLogger, RequestLogger } from "../logging";
 import { Request } from "matrix-appservice-bridge";
-import { LoggerInstance } from "winston";
 import * as Sentry from "@sentry/node";
 
 const log = getLogger("req");
 
+export type BridgeRequestEvent = Request<{
+    event_id: string;
+    sender: string;
+    type: string;
+    state_key?: string;
+    room_id: string;
+    content: Record<string, unknown>;
+    origin_server_ts: number;
+}>;
+
+export type BridgeRequestData = {
+    isFromIrc?: boolean;
+    event_id?: string;
+    room_id?: string;
+    type?: string;
+}|null;
+
 export class BridgeRequest {
     log: RequestLogger;
-    constructor(private req: Request) {
-        const isFromIrc = req.getData() ? Boolean(req.getData().isFromIrc) : false;
-        this.log = newRequestLogger(log as LoggerInstance, req.getId(), isFromIrc);
+    constructor(private req: Request<BridgeRequestData>) {
+        const isFromIrc = req.getData() ? Boolean(req.getData()?.isFromIrc) : false;
+        this.log = newRequestLogger(log, req.getId(), isFromIrc);
     }
 
     getPromise() {
@@ -40,7 +56,7 @@ export class BridgeRequest {
         this.req.reject(err);
     }
 
-    public static HandleExceptionForSentry(req: Request, state: "fail"|"dead") {
+    public static HandleExceptionForSentry(req: Request<BridgeRequestData>, state: "fail"|"dead") {
         const reqData = req.getData() || {};
         req.getPromise().catch((ex: Error) => {
             Sentry.withScope((scope) => {

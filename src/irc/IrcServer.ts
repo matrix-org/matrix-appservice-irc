@@ -43,40 +43,12 @@ export class IrcServer {
      */
     constructor(public domain: string, public config: IrcServerConfig,
                 private homeserverDomain: string, private expiryTimeSeconds: number = 0) {
-        // This ensures that legacy mappings still work, but we prod the user to update.
-        const stringMappings = Object.entries(config.mappings || {}).filter(([, data]) => {
-            return Array.isArray(data);
-        }) as unknown as [string, string[]][];
+        // These are set in reconfigure
+        this.addresses = [];
+        this.groupIdValid = false;
+        this.excludedUsers = [];
 
-        if (stringMappings.length) {
-            log.warn("** The IrcServer.mappings config schema has changed, allowing legacy format for now. **");
-            log.warn("See https://github.com/matrix-org/matrix-appservice-irc/blob/master/CHANGELOG.md for details");
-            for (const [channelId, roomIds] of stringMappings) {
-                config.mappings[channelId] = { roomIds: roomIds }
-            }
-        }
-
-        this.addresses = config.additionalAddresses || [];
-        this.addresses.push(domain);
-        this.excludedUsers = config.excludedUsers.map((excluded) => {
-            return {
-                ...excluded,
-                regex: new RegExp(excluded.regex)
-            }
-        })
-
-        if (this.config.dynamicChannels.groupId !== undefined &&
-            this.config.dynamicChannels.groupId.trim() !== "") {
-            this.groupIdValid = GROUP_ID_REGEX.exec(this.config.dynamicChannels.groupId) !== null;
-            if (!this.groupIdValid) {
-                log.warn(
-    `${domain} has an incorrectly configured groupId for dynamicChannels and will not set groups.`
-                );
-            }
-        }
-        else {
-            this.groupIdValid = false;
-        }
+        this.reconfigure(config, expiryTimeSeconds);
     }
 
     /**
@@ -222,7 +194,7 @@ export class IrcServer {
     }
 
     public isInWhitelist(userId: string) {
-        return this.config.dynamicChannels.whitelist.indexOf(userId) !== -1;
+        return this.config.dynamicChannels.whitelist.includes(userId);
     }
 
     public useSsl() {
@@ -273,9 +245,9 @@ export class IrcServer {
         return this.config.botConfig.nick;
     }
 
-    public createBotIrcClientConfig(username: string) {
+    public createBotIrcClientConfig() {
         return IrcClientConfig.newConfig(
-            null, this.domain, this.config.botConfig.nick, username,
+            null, this.domain, this.config.botConfig.nick, this.config.botConfig.username,
             this.config.botConfig.password
         );
     }
@@ -297,7 +269,7 @@ export class IrcServer {
     }
 
     public isExcludedChannel(channel: string) {
-        return this.config.dynamicChannels.exclude.indexOf(channel) !== -1;
+        return this.config.dynamicChannels.exclude.includes(channel);
     }
 
     public isExcludedUser(userId: string) {
@@ -334,15 +306,15 @@ export class IrcServer {
     }
 
     public shouldSyncMembershipToIrc(kind: MembershipSyncKind, roomId?: string) {
-        return this._shouldSyncMembership(kind, roomId, true);
+        return this.shouldSyncMembership(kind, roomId, true);
     }
 
     public shouldSyncMembershipToMatrix(kind: MembershipSyncKind, channel: string) {
-        return this._shouldSyncMembership(kind, channel, false);
+        return this.shouldSyncMembership(kind, channel, false);
     }
 
-    public _shouldSyncMembership(kind: MembershipSyncKind, identifier: string|undefined, toIrc: boolean) {
-        if (["incremental", "initial"].indexOf(kind) === -1) {
+    private shouldSyncMembership(kind: MembershipSyncKind, identifier: string|undefined, toIrc: boolean) {
+        if (!["incremental", "initial"].includes(kind)) {
             throw new Error("Bad kind: " + kind);
         }
         if (!this.config.membershipLists.enabled) {
@@ -535,6 +507,7 @@ export class IrcServer {
             },
             botConfig: {
                 nick: "appservicebot",
+                username: "matrixbot",
                 joinChannelsIfNoUsers: true,
                 enabled: true
             },
@@ -588,6 +561,46 @@ export class IrcServer {
                 channels: [],
                 rooms: []
             }
+        }
+    }
+
+    public reconfigure(config: IrcServerConfig, expiryTimeSeconds = 0) {
+        log.info(`Reconfiguring ${this.domain}`);
+        this.config = config;
+        this.expiryTimeSeconds = expiryTimeSeconds;
+        // This ensures that legacy mappings still work, but we prod the user to update.
+        const stringMappings = Object.entries(config.mappings || {}).filter(([, data]) => {
+            return Array.isArray(data);
+        }) as unknown as [string, string[]][];
+
+        if (stringMappings.length) {
+            log.warn("** The IrcServer.mappings config schema has changed, allowing legacy format for now. **");
+            log.warn("See https://github.com/matrix-org/matrix-appservice-irc/blob/master/CHANGELOG.md for details");
+            for (const [channelId, roomIds] of stringMappings) {
+                config.mappings[channelId] = { roomIds: roomIds }
+            }
+        }
+
+        this.addresses = config.additionalAddresses || [];
+        this.addresses.push(this.domain);
+        this.excludedUsers = config.excludedUsers.map((excluded) => {
+            return {
+                ...excluded,
+                regex: new RegExp(excluded.regex)
+            }
+        });
+
+        if (config.dynamicChannels.groupId !== undefined &&
+            config.dynamicChannels.groupId.trim() !== "") {
+            this.groupIdValid = GROUP_ID_REGEX.test(config.dynamicChannels.groupId);
+            if (!this.groupIdValid) {
+                log.warn(
+    `${this.domain} has an incorrectly configured groupId for dynamicChannels and will not set groups.`
+                );
+            }
+        }
+        else {
+            this.groupIdValid = false;
         }
     }
 
@@ -672,6 +685,7 @@ export interface IrcServerConfig {
         joinChannelsIfNoUsers: boolean;
         enabled: boolean;
         password?: string;
+        username: string;
     };
     privateMessages: {
         enabled: boolean;

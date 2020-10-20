@@ -1,26 +1,15 @@
 import NeDB from "nedb";
 import nopt from "nopt";
-import { Logger, transports } from "winston";
 import path from "path";
 import { promises as fs } from "fs";
-import { formatterFn, timestampFn } from "../logging";
+import { simpleLogger } from "../logging";
 import { promisify } from "util";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
 import { IrcRoom } from "../models/IrcRoom";
 import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 
-const log = new Logger({
-    level: "info",
-    transports: [
-        new transports.Console({
-            json: false,
-            name: "console",
-            timestamp: timestampFn,
-            formatter: formatterFn,
-        })
-    ],
-});
+const log = simpleLogger();
 
 // NeDB is schemaless
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

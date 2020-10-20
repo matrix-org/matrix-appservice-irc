@@ -5,14 +5,14 @@ import { ConfigValidator, MatrixRoom, MatrixUser } from "matrix-appservice-bridg
 import Bluebird from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcAction } from "../models/IrcAction";
-import { BridgeRequest } from "../models/BridgeRequest";
+import { BridgeRequest, BridgeRequestData } from "../models/BridgeRequest";
 import { ProvisionRequest } from "./ProvisionRequest";
 import logging, { RequestLogger } from "../logging";
 import * as promiseutil from "../promiseutil";
 import * as express from "express";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcUser } from "../models/IrcUser";
-import { BridgedClient, GetNicksResponseOperators } from "../irc/BridgedClient";
+import { GetNicksResponseOperators } from "../irc/BridgedClient";
 import { BridgeStateSyncer } from "../bridge/BridgeStateSyncer";
 
 const log = logging("Provisioner");
@@ -106,36 +106,44 @@ export class Provisioner {
         }
 
         const appservice = this.ircBridge.getAppServiceBridge().appService;
-        // TODO: Make app public
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const app = ((appservice as any).app as express.Router);
-
-        if (enabled && !(app.use && app.get && app.post)) {
-            throw new Error('Could not start provisioning API');
-        }
+        const app = appservice?.expressApp;
 
         // Disable all provision endpoints by not calling 'next' and returning an error instead
         if (!enabled) {
-            app.use((req, res, next) => {
-                if (this.isProvisionRequest(req)) {
-                    res.header("Access-Control-Allow-Origin", "*");
-                    res.header("Access-Control-Allow-Headers",
-                        "Origin, X-Requested-With, Content-Type, Accept");
-                    res.status(500);
-                    res.json({error : 'Provisioning is not enabled.'});
-                }
-                else {
-                    next();
-                }
-            });
+            if (app) {
+                app.use((req, res, next) => {
+                    if (this.isProvisionRequest(req)) {
+                        res.header("Access-Control-Allow-Origin", "*");
+                        res.header("Access-Control-Allow-Headers",
+                            "Origin, X-Requested-With, Content-Type, Accept");
+                        res.status(500);
+                        res.json({error : 'Provisioning is not enabled.'});
+                    }
+                    else {
+                        next();
+                    }
+                });
+            }
+            return;
         }
 
-        // Deal with CORS (temporarily for s-web)
+        if (!app) {
+            throw new Error('Could not start provisioning API');
+        }
+
         app.use((req, res, next) => {
+            // Deal with CORS (temporarily for s-web)
             if (this.isProvisionRequest(req)) {
                 res.header("Access-Control-Allow-Origin", "*");
                 res.header("Access-Control-Allow-Headers",
                     "Origin, X-Requested-With, Content-Type, Accept");
+            }
+            if (!this.ircBridge.getAppServiceBridge().requestCheckToken(req)) {
+                res.status(403).send({
+                    errcode: "M_FORBIDDEN",
+                    error: "Bad token supplied"
+                });
+                return;
             }
             next();
         });
@@ -160,9 +168,11 @@ export class Provisioner {
             this.createProvisionEndpoint(this.queryNetworks, 'queryNetworks')
         );
 
-        if (enabled) {
-            log.info("Provisioning started");
-        }
+        app.get("/_matrix/provision/limits",
+            this.createProvisionEndpoint(this.getLimits, 'limits')
+        );
+
+        log.info("Provisioning started");
     }
 
     private createProvisionEndpoint(fn: (req: ProvisionRequest) => unknown, fnName: string) {
@@ -336,11 +346,11 @@ export class Provisioner {
 
         const info = await botClient.getOperators(ircChannel, {key : key});
 
-        if (info.nicks.indexOf(opNick) === -1) {
+        if (!info.nicks.includes(opNick)) {
             throw new Error(`Provided user is not in channel ${ircChannel}.`);
         }
 
-        if (info.operatorNicks.indexOf(opNick) === -1) {
+        if (!info.operatorNicks.includes(opNick)) {
             throw new Error(`Provided user is not an op of ${ircChannel}.`);
         }
 
@@ -354,7 +364,7 @@ export class Provisioner {
         try {
             const roomState = await matrixClient.roomState(roomId);
             wholeBridgingState = roomState.find(
-                (e) => {
+                (e: {type: string; state_key: string}) => {
                     return e.type === 'm.room.bridging' && e.state_key === skey
                 }
             );
@@ -608,7 +618,7 @@ export class Provisioner {
     }
 
     public async handlePm (server: IrcServer, fromUser: IrcUser, text: string) {
-        if (['y', 'yes'].indexOf(text.trim().toLowerCase()) == -1) {
+        if (!['y', 'yes'].includes(text.trim().toLowerCase())) {
             log.warn(`Provisioner only handles text 'yes'/'y' ` +
                     `(from ${fromUser.nick} on ${server.domain})`);
 
@@ -680,7 +690,7 @@ export class Provisioner {
 
         const botClient = await this.ircBridge.getBotClient(server);
 
-        ircChannel = Provisioner.caseFold(botClient, ircChannel);
+        ircChannel = botClient.caseFold(ircChannel);
 
         if (server.isExcludedChannel(ircChannel)) {
             throw new Error(`Server is configured to exclude channel ${ircChannel}`);
@@ -742,6 +752,10 @@ export class Provisioner {
             }
         }
 
+        if (await this.ircBridge.atBridgedRoomLimit()) {
+            throw new Error('At maximum number of bridged rooms');
+        }
+
         const ircDomain = options.remote_room_server;
         let ircChannel = options.remote_room_channel;
         const roomId = options.matrix_room_id;
@@ -760,7 +774,7 @@ export class Provisioner {
 
         const botClient = await this.ircBridge.getBotClient(server);
 
-        ircChannel = Provisioner.caseFold(botClient, ircChannel);
+        ircChannel = botClient.caseFold(ircChannel);
 
         if (server.isExcludedChannel(ircChannel)) {
             throw new Error(`Server is configured to exclude given channel ('${ircChannel}')`);
@@ -805,7 +819,7 @@ export class Provisioner {
         try {
             // Cause the provisioner to join the IRC channel
             const bridgeReq = new BridgeRequest(
-                this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest()
+                this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest<BridgeRequestData>()
             );
             const target = new MatrixUser(userId);
             // inject a fake join event which will do M->I connections and
@@ -813,7 +827,13 @@ export class Provisioner {
             await this.ircBridge.matrixHandler.onJoin(bridgeReq, {
                 room_id: roomId,
                 _injected: true,
-                _frontier: true
+                _frontier: true,
+                state_key: userId,
+                type: "m.room.member",
+                content: {
+                    membership: "join"
+                },
+                event_id: "!injected_provisioner",
             }, target);
         }
         catch (err) {
@@ -862,16 +882,23 @@ export class Provisioner {
         // user_id must be JOINED and must have permission to modify power levels
         let isJoined = false;
         let hasPower = false;
-        stateEvents.forEach((e) => {
+        stateEvents.forEach((e: { type: string; state_key: string; content: {
+            state_default?: number;
+            users_default?: number;
+            membership: string;
+            users?: Record<string, number>;
+            events?: Record<string, number>;
+        };}) => {
             if (e.type === "m.room.member" && e.state_key === options.user_id) {
                 isJoined = e.content.membership === "join";
             }
-            else if (e.type == "m.room.power_levels" && e.state_key === "") {
-                let powerRequired = e.content.state_default;
+            else if (e.type === "m.room.power_levels" && e.state_key === "") {
+                // https://matrix.org/docs/spec/client_server/r0.6.0#m-room-power-levels
+                let powerRequired = e.content.state_default || 50; // Can be empty. Assume 50 as per spec.
                 if (e.content.events && e.content.events["m.room.power_levels"]) {
                     powerRequired = e.content.events["m.room.power_levels"];
                 }
-                let power = e.content.users_default;
+                let power = e.content.users_default || 0; // Can be empty. Assume 0 as per spec.
                 if (e.content.users && e.content.users[options.user_id]) {
                     power = e.content.users[options.user_id];
                 }
@@ -971,7 +998,7 @@ export class Provisioner {
                     events: stateEvents
                 }
             }
-            const roomInfo = asBot._getRoomInfo(matrixRooms[i].getId(), joinedRoom);
+            const roomInfo = await asBot.getRoomInfo(matrixRooms[i].getId(), joinedRoom);
             for (let j = 0; j < roomInfo.realJoinedUsers.length; j++) {
                 const userId: string = roomInfo.realJoinedUsers[j];
                 if (!joinedUserCounts[userId]) {
@@ -1016,7 +1043,7 @@ export class Provisioner {
             return;
         }
         const stateEvents = await asBot.getClient().roomState(roomId);
-        const roomInfo = asBot._getRoomInfo(roomId, {
+        const roomInfo = await asBot.getRoomInfo(roomId, {
             state: {
                 events: stateEvents
             }
@@ -1075,12 +1102,12 @@ export class Provisioner {
             }).filter((e) => e !== false);
     }
 
-    // Using ISUPPORT rules supported by MatrixBridge bot, case map ircChannel
-    private static caseFold(cli: BridgedClient, channel: string) {
-        if (!cli.unsafeClient) {
-            log.warn(`Could not case map ${channel} - BridgedClient has no IRC client`);
-            return channel;
-        }
-        return cli.unsafeClient._toLowerCase(channel);
+    private getLimits() {
+        const count = this.ircBridge.getStore().getRoomCount();
+        const limit = this.ircBridge.config.ircService.provisioning?.roomLimit || false;
+        return {
+            count,
+            limit,
+        };
     }
 }

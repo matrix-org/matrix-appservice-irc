@@ -1,0 +1,8 @@
+.vscode
+.nyc_output
+data
+tsconfig.tsbuildinfo
+*.log
+config.yaml
+passkey.pem
+appservice-registration-irc.yaml

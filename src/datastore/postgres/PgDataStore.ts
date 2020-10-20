@@ -16,7 +16,7 @@ limitations under the License.
 
 import { Pool } from "pg";
 
-import { MatrixUser, MatrixRoom, RemoteRoom, Entry } from "matrix-appservice-bridge";
+import { MatrixUser, MatrixRoom, RemoteRoom, RoomBridgeStoreEntry as Entry } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
 import { IrcRoom } from "../../models/IrcRoom";
 import { IrcClientConfig } from "../../models/IrcClientConfig";
@@ -26,13 +26,14 @@ import { getLogger } from "../../logging";
 import Bluebird from "bluebird";
 import { StringCrypto } from "../StringCrypto";
 import { toIrcLowerCase } from "../../irc/formatting";
+import { NeDBDataStore } from "../NedbDataStore";
 
 const log = getLogger("PgDatastore");
 
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 3;
+    public static readonly LATEST_SCHEMA = 5;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -116,7 +117,7 @@ export class PgDataStore implements DataStore {
 
     private static pgToRoomEntry(pgEntry: any): Entry {
         return {
-            id: "",
+            id: NeDBDataStore.createMappingId(pgEntry.room_id, pgEntry.irc_domain, pgEntry.irc_channel),
             matrix: new MatrixRoom(pgEntry.room_id, pgEntry.matrix_json),
             remote: new RemoteRoom("",
             {
@@ -125,8 +126,6 @@ export class PgDataStore implements DataStore {
                 domain: pgEntry.irc_domain,
                 type: pgEntry.type,
             }),
-            matrix_id: pgEntry.room_id,
-            remote_id: "foobar",
             data: {
                 origin: pgEntry.origin,
             },
@@ -323,6 +322,11 @@ export class PgDataStore implements DataStore {
         ]);
     }
 
+    public async removePmRoom(roomId: string): Promise<void> {
+        log.debug(`removePmRoom (room_id=${roomId}`);
+        await this.pgPool.query("DELETE FROM pm_rooms WHERE room_id = $1", [roomId]);
+    }
+
     public async getMatrixPmRoom(realUserId: string, virtualUserId: string): Promise<MatrixRoom|null> {
         log.debug(`getMatrixPmRoom (matrix_user_id=${realUserId}, virtual_user_id=${virtualUserId})`);
         const res = await this.pgPool.query("SELECT room_id FROM pm_rooms WHERE matrix_user_id = $1 AND virtual_user_id = $2", [
@@ -357,7 +361,7 @@ export class PgDataStore implements DataStore {
 
     public async getIpv6Counter(): Promise<number> {
         const res = await this.pgPool.query("SELECT count FROM ipv6_counter");
-        return res ? res.rows[0].count : 0;
+        return res ? parseInt(res.rows[0].count, 10) : 0;
     }
 
     public async setIpv6Counter(counter: number): Promise<void> {
@@ -416,7 +420,7 @@ export class PgDataStore implements DataStore {
             return null;
         }
         const row = res.rows[0];
-        const config = row.config;
+        const config = row.config || {}; // This may not be defined.
         if (row.password && this.cryptoStore) {
             config.password = this.cryptoStore.decrypt(row.password);
         }
@@ -513,6 +517,14 @@ export class PgDataStore implements DataStore {
         return new MatrixUser(res.rows[0].user_id, res.rows[0].data);
     }
 
+    public async getCountForUsernamePrefix(domain: string, usernamePrefix: string): Promise<number> {
+        const res = await this.pgPool.query("SELECT COUNT(*) FROM client_config " +
+            "WHERE domain = $2 AND config->>'username' LIKE $1 || '%'",
+        [usernamePrefix, domain]);
+        const count = parseInt(res.rows[0].count, 10);
+        return count;
+    }
+
     public async roomUpgradeOnRoomMigrated(oldRoomId: string, newRoomId: string) {
         await this.pgPool.query("UPDATE rooms SET room_id = $1 WHERE room_id = $2", [newRoomId, oldRoomId]);
     }
@@ -554,6 +566,15 @@ export class PgDataStore implements DataStore {
         log.info(`setRoomVisibility ${roomId} => ${visibility}`);
     }
 
+    public async isUserDeactivated(userId: string): Promise<boolean> {
+        const res = await this.pgPool.query(`SELECT user_id FROM deactivated_users WHERE user_id = $1`, [userId]);
+        return res.rowCount > 0;
+    }
+
+    public async deactivateUser(userId: string) {
+        await this.pgPool.query("INSERT INTO deactivated_users VALUES ($1, $2)", [userId, Date.now()]);
+    }
+
     public async ensureSchema() {
         log.info("Starting postgres database engine");
         let currentVersion = await this.getSchemaVersion();
@@ -571,6 +592,11 @@ export class PgDataStore implements DataStore {
             }
         }
         log.info(`Database schema is at version v${currentVersion}`);
+    }
+
+    public async getRoomCount(): Promise<number> {
+        const res = await this.pgPool.query(`SELECT COUNT(*) FROM rooms`);
+        return res.rows[0];
     }
 
     public async destroy() {

@@ -100,7 +100,7 @@ describe("IRC client cycling", function() {
                 room_id: roomMapping.roomId,
                 type: "m.room.message"
             });
-        }).done(function() {
+        }).then(function() {
             // everyone should have connected/said something
             let i;
             for (i = 0; i < testUsers.length; i++) {
@@ -165,7 +165,7 @@ describe("IRC client cycling", function() {
                 room_id: roomMapping.roomId,
                 type: "m.room.message"
             });
-        }).done(function() {
+        }).then(function() {
             // the first guy should have 2 says, 2 connects and 1 disconnect.
             // We're mainly interested in that there were 2 connect calls. If
             // there is just 1, it indicates it used a cached copy.

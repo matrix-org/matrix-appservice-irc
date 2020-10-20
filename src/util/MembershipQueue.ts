@@ -15,7 +15,7 @@ interface QueueUserItem {
     reason?: string;
     attempts: number;
     roomId: string;
-    userId?: string;
+    userId: string;
     retry: boolean;
     req: BridgeRequest;
 }
@@ -26,7 +26,7 @@ interface QueueUserItem {
 export class MembershipQueue {
     private queuePool: QueuePool<QueueUserItem>;
 
-    constructor(private bridge: Bridge) {
+    constructor(private bridge: Bridge, private botUserId: string) {
         this.queuePool = new QueuePool(CONCURRENT_ROOM_LIMIT, this.serviceQueue.bind(this));
     }
 
@@ -40,7 +40,7 @@ export class MembershipQueue {
     public async join(roomId: string, userId: string|undefined, req: BridgeRequest, retry = true) {
         return this.queueMembership({
             roomId,
-            userId,
+            userId: userId || this.botUserId,
             retry,
             req,
             attempts: 0,
@@ -61,7 +61,7 @@ export class MembershipQueue {
                        retry = true, reason?: string, kickUser?: string) {
         return this.queueMembership({
             roomId,
-            userId,
+            userId: userId || this.botUserId,
             retry,
             req,
             attempts: 0,
@@ -85,16 +85,25 @@ export class MembershipQueue {
         return Array.from(roomId).map((s) => s.charCodeAt(0)).reduce((a, b) => a + b, 0) % CONCURRENT_ROOM_LIMIT;
     }
 
-    private async serviceQueue(item: QueueUserItem): Promise<void> {
-        log.debug(`${item.userId}@${item.roomId} -> ${item.type}`);
-        const { req, roomId, userId, reason, kickUser, attempts } = item;
+    private async serviceQueue(item: QueueUserItem) {
+        const { req, roomId, userId, reason, kickUser, attempts, type } = item;
+        log.debug(`${userId}@${roomId} -> ${type} (reason: ${reason || "none"}, kicker: ${kickUser})`);
         const intent = this.bridge.getIntent(kickUser || userId);
         try {
-            if (item.type === "join") {
+            if (type === "join") {
                 await intent.join(roomId);
+                return;
+            }
+
+            if (kickUser) {
+                await intent.kick(roomId, userId, reason);
+            }
+            else if (reason) {
+                // Self kick to add a reason
+                await intent.kick(roomId, userId, reason);
             }
             else {
-                await intent[kickUser ? "kick" : "leave"](roomId, userId || "", reason);
+                await intent.leave(roomId);
             }
         }
         catch (ex) {
@@ -105,7 +114,7 @@ export class MembershipQueue {
                 (JOIN_DELAY_MS * attempts) + (Math.random() * 500),
                 JOIN_DELAY_CAP_MS
             );
-            req.log.warn(`Failed to join ${roomId}, delaying for ${delay}ms`);
+            req.log.warn(`Failed to ${type} ${roomId}, delaying for ${delay}ms`);
             req.log.debug(`Failed with: ${ex.errcode} ${ex.message}`);
             await new Promise((r) => setTimeout(r, delay));
             this.queueMembership({...item, attempts: item.attempts + 1});

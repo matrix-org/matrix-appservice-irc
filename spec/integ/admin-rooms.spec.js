@@ -258,6 +258,15 @@ describe("Admin rooms", function() {
             sentNickCommand = true;
         });
 
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "whois", (client, whoisNick) => {
+            expect(whoisNick).toEqual(newNick);
+            client.emit("error", {
+                commandType: "error",
+                command: "err_nosuchnick",
+                args: [undefined, newNick]
+            });
+        });
+
         // make sure that when a message is sent it uses the new nick
         let sentSay = false;
         env.ircMock._whenClient(roomMapping.server, newNick, "say",
@@ -277,6 +286,7 @@ describe("Admin rooms", function() {
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).toEqual(`Nick changed from '${userIdNick}' to '${newNick}'.`);
             sentAckNotice = true;
             return Promise.resolve();
         });
@@ -308,6 +318,77 @@ describe("Admin rooms", function() {
         expect(sentSay).toBe(true, "sent say IRC command");
     }));
 
+    it("should be able to keep their name using !nick",
+        test.coroutine(function* () {
+            let newNick = userIdNick;
+            let testText = "I don't know what colour I am.";
+
+            // make sure that the nick command is sent (expected to NOT run)
+            let sentNickCommand = false;
+            env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+                function (client, command, arg) {
+                    expect(client.nick).toEqual(userIdNick, "use the old nick on /nick");
+                    expect(client.addr).toEqual(roomMapping.server);
+                    expect(command).toEqual("NICK");
+                    expect(arg).toEqual(newNick);
+                    client._changeNick(userIdNick, newNick);
+                    sentNickCommand = true;
+                }
+            );
+
+            // make sure that when a message is sent it uses the new nick
+            let sentSay = false;
+            env.ircMock._whenClient(roomMapping.server, newNick, "say",
+                function (client, channel, text) {
+                    expect(client.nick).toEqual(newNick, "use the new nick on /say");
+                    expect(client.addr).toEqual(roomMapping.server);
+                    expect(channel).toEqual(roomMapping.channel);
+                    expect(text.length).toEqual(testText.length);
+                    expect(text).toEqual(testText);
+                    sentSay = true;
+                }
+            );
+
+            // make sure the AS sends an ACK of the request as a notice in the admin
+            // room
+            let sentAckNotice = false;
+            let sdk = env.clientMock._client(botUserId);
+            sdk.sendEvent.and.callFake(function (roomId, type, content) {
+                expect(roomId).toEqual(adminRoomId);
+                expect(content.msgtype).toEqual("m.notice");
+                expect(content.body).toEqual(`Your nick is already '${newNick}'.`);
+                sentAckNotice = true;
+                return Promise.resolve();
+            });
+
+            // trigger the request to change the nick
+            yield env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: `!nick ${roomMapping.server} ${newNick}`,
+                    msgtype: "m.text"
+                },
+                user_id: userId,
+                room_id: adminRoomId,
+                type: "m.room.message"
+            });
+            // trigger the message which should use the new nick
+            yield env.mockAppService._trigger("type:m.room.message", {
+                content: {
+                    body: testText,
+                    msgtype: "m.text"
+                },
+                user_id: userId,
+                room_id: roomMapping.roomId,
+                type: "m.room.message"
+            });
+
+            // make sure everything was called
+            expect(sentNickCommand).toBe(false, "sent nick IRC command");
+            expect(sentAckNotice).toBe(true, "sent ACK m.notice");
+            expect(sentSay).toBe(true, "sent say IRC command");
+        }
+    ));
+
     it("should be able to change their nick using !nick and have it persist across disconnects",
     test.coroutine(function*() {
         let newNick = "Blurple";
@@ -331,6 +412,15 @@ describe("Admin rooms", function() {
             expect(arg).toEqual(newNick);
             client._changeNick(userIdNick, newNick);
             sentNickCommand = true;
+        });
+
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "whois", (client, whoisNick) => {
+            expect(whoisNick).toEqual(newNick);
+            client.emit("error", {
+                commandType: "error",
+                command: "err_nosuchnick",
+                args: [undefined, newNick]
+            });
         });
 
         // make sure that when a message is sent it uses the new nick
@@ -407,6 +497,15 @@ describe("Admin rooms", function() {
                     sentNickCommand = true;
                 });
 
+            env.ircMock._whenClient(roomMapping.server, userIdNick, "whois", (client, whoisNick) => {
+                expect(whoisNick).toEqual(newNick);
+                client.emit("error", {
+                    commandType: "error",
+                    command: "err_nosuchnick",
+                    args: [undefined, newNick]
+                });
+            });
+
             // make sure that a display name change is not propagated
             let sentNick = false;
             env.ircMock._whenClient(roomMapping.server, newNick, "send",
@@ -458,6 +557,15 @@ describe("Admin rooms", function() {
                 sentNickCommand = true;
             });
 
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "whois", (client, whoisNick) => {
+            expect(whoisNick).toEqual('M-' + newNick);
+            client.emit("error", {
+                commandType: "error",
+                command: "err_nosuchnick",
+                args: [undefined, 'M-' + newNick]
+            });
+        });
+    
         // trigger a display name change
         yield env.mockAppService._trigger("type:m.room.member", {
             content: {
@@ -493,6 +601,15 @@ describe("Admin rooms", function() {
                 command: "err_nicktoofast"
             })
             sentNickCommand = true;
+        });
+
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "whois", (client, whoisNick) => {
+            expect(whoisNick).toEqual(newNick);
+            client.emit("error", {
+                commandType: "error",
+                command: "err_nosuchnick",
+                args: [undefined, newNick]
+            });
         });
 
         // make sure that when a message is sent it uses the old nick
@@ -565,6 +682,15 @@ describe("Admin rooms", function() {
             sentNickCommand = true;
         });
 
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "whois", (client, whoisNick) => {
+            expect(whoisNick).toEqual(newNick);
+            client.emit("error", {
+                commandType: "error",
+                command: "err_nosuchnick",
+                args: [undefined, newNick]
+            });
+        });
+
         // make sure the AS sends a timeout error as a notice in the admin
         // room
         let sentAckNotice = false;
@@ -592,6 +718,57 @@ describe("Admin rooms", function() {
         expect(sentNickCommand).toBe(true, "sent nick IRC command");
         expect(sentAckNotice).toBe(true, "sent ACK m.notice");
     }));
+
+    it("should not try to change to a nickname that is already in use", async () => {
+        const newNick = "Blurple";
+
+        // make sure that the NICK command not is sent
+        let sentNickCommand = false;
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
+        function(client, command, arg) {
+            expect(client.nick).toEqual(userIdNick, "use the old nick on /nick");
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(command).toEqual("NICK");
+            expect(arg).toEqual(newNick);
+            sentNickCommand = true;
+        });
+
+        env.ircMock._whenClient(roomMapping.server, userIdNick, "whois", (client, whoisNick, callback) => {
+            expect(whoisNick).toEqual(newNick);
+            callback({user: {
+                data: "hello"
+            }, nick: whoisNick});
+        });
+
+        // make sure the AS sends a timeout error as a notice in the admin
+        // room
+        let sentAckNotice = false;
+        const sdk = env.clientMock._client(botUserId);
+        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).not.toEqual(
+                `The nickname ${newNick} is taken on ${roomMapping.server.domain}.` +
+            "Please pick a different nick.");
+            sentAckNotice = true;
+            return Promise.resolve();
+        });
+
+        // trigger the request to change the nick
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: `!nick ${roomMapping.server} ${newNick}`,
+                msgtype: "m.text"
+            },
+            user_id: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+
+        // make sure everything was called
+        expect(sentNickCommand).toBe(false, "did not send nick IRC command");
+        expect(sentAckNotice).toBe(true, "sent ACK m.notice");
+    });
 
     it("should be able to join a channel with !join if they are on the whitelist",
     test.coroutine(function*() {

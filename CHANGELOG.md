@@ -1,4 +1,460 @@
- 0.14.1 (2020-01-21)
+ 0.21.0 (2020-10-15)
+====================
+
+No significant changes.
+
+
+0.21.0-rc3 (2020-10-13)
+========================
+
+Features
+--------
+
+- Add support for reconfiguring the bridge at runtime by sending a `SIGHUP` ([\#1145](https://github.com/matrix-org/matrix-appservice-irc/issues/1145))
+
+
+Bugfixes
+--------
+
+- Fix a bug where the bridge would leave a user after joining ([\#1143](https://github.com/matrix-org/matrix-appservice-irc/issues/1143))
+- Fix more cases of double bridged users ([\#1146](https://github.com/matrix-org/matrix-appservice-irc/issues/1146))
+- Fix a bug where a user leaving with a reason would cause them to join then leave ([\#1151](https://github.com/matrix-org/matrix-appservice-irc/issues/1151))
+
+
+Internal Changes
+----------------
+
+- Add index to client_config for `config->>username` to speed up username lookups ([\#1148](https://github.com/matrix-org/matrix-appservice-irc/issues/1148))
+
+
+0.21.0-rc2 (2020-10-13)
+========================
+
+Features
+--------
+
+- Add support for reconfiguring the bridge at runtime by sending a `SIGHUP` ([\#1145](https://github.com/matrix-org/matrix-appservice-irc/issues/1145))
+
+
+Bugfixes
+--------
+
+- Fix a bug where the bridge would leave a user after joining ([\#1143](https://github.com/matrix-org/matrix-appservice-irc/issues/1143))
+- Fix more cases of double bridged users ([\#1146](https://github.com/matrix-org/matrix-appservice-irc/issues/1146))
+- Fix a bug where a user leaving with a reason would cause them to join then leave ([\#1151](https://github.com/matrix-org/matrix-appservice-irc/issues/1151))
+
+
+Internal Changes
+----------------
+
+- Add index to client_config for `config->>username` to speed up username lookups ([\#1148](https://github.com/matrix-org/matrix-appservice-irc/issues/1148))
+
+
+0.21.0-rc2 (2020-10-09)
+========================
+
+Bugfixes
+--------
+
+- Fix a bug where the bridge would leave a user after joining ([\#1143](https://github.com/matrix-org/matrix-appservice-irc/issues/1143))
+
+
+0.21.0-rc1 (2020-10-07)
+========================
+
+Features
+--------
+
+- Implement mechanisms to fix powerlevels in rooms if messages fail to bridge ([\#1054](https://github.com/matrix-org/matrix-appservice-irc/issues/1054))
+
+
+Bugfixes
+--------
+
+- Fix a bug where connection reaping would not work sometimes if the bridge could not use the synapse whois admin endpoint ([\#1131](https://github.com/matrix-org/matrix-appservice-irc/issues/1131))
+- Fixes Matrix displayName not being updated properly. Thanks to @BernardZhao ([\#1137](https://github.com/matrix-org/matrix-appservice-irc/issues/1137))
+
+
+Internal Changes
+----------------
+
+- Use types from `matrix-appservice-bridge` rather than local definitions. ([\#1101](https://github.com/matrix-org/matrix-appservice-irc/issues/1101))
+- Fix attribution link in CONTRIBUTING.md ([\#1132](https://github.com/matrix-org/matrix-appservice-irc/issues/1132))
+- The deprecated remove-idle-users.py has been removed. Bridge admins should use the /reapUsers Debug API endpoint instead ([\#1139](https://github.com/matrix-org/matrix-appservice-irc/issues/1139))
+
+
+0.20.2 (2020-08-21)
+====================
+
+Features
+--------
+
+- Add Grafana dashboard sample ([\#1122](https://github.com/matrix-org/matrix-appservice-irc/issues/1122))
+
+
+Bugfixes
+--------
+
+- Reconnect to the correct domain on passsword changes. Thanks to @palmer-dabbelt ([\#1000](https://github.com/matrix-org/matrix-appservice-irc/issues/1000))
+- Improve performance of generating a username ([\#1121](https://github.com/matrix-org/matrix-appservice-irc/issues/1121))
+
+
+0.20.1 (2020-08-17)
+========================
+
+*There were enough changes during the RC period to warrant a new release, so `0.20.0`  was dropped in favour of `0.20.1`.*
+
+Features
+--------
+
+- The quit debouncer has been rewritten to be more performant, dropping QUITs entirely until the bridge is able to cope with them. ([\#1091](https://github.com/matrix-org/matrix-appservice-irc/issues/1091))
+- Track connection state in metrics ([\#1110](https://github.com/matrix-org/matrix-appservice-irc/issues/1110))
+
+
+Bugfixes
+--------
+
+- Fix metrics worker dying and crashing after high load ([\#1109](https://github.com/matrix-org/matrix-appservice-irc/issues/1109))
+- Speed up operations on the publicity syncer for IRC -> Matrix ([\#1111](https://github.com/matrix-org/matrix-appservice-irc/issues/1111))
+- Fix issue where all irc bridged rooms would be marked as public ([\#1113](https://github.com/matrix-org/matrix-appservice-irc/issues/1113))
+- Allow nicknames to start with a special character or number according to RFC 2812 § 2.3.1 ([\#1114](https://github.com/matrix-org/matrix-appservice-irc/issues/1114))
+
+
+Internal Changes
+----------------
+
+- Improve logging around ClientPool ([\#1112](https://github.com/matrix-org/matrix-appservice-irc/issues/1112))
+
+
+0.20.0-rc2 (2020-08-12)
+========================
+
+Features
+--------
+
+- Add metrics for tracking user activeness for matrix and irc users ([\#1105](https://github.com/matrix-org/matrix-appservice-irc/issues/1105))
+
+
+Bugfixes
+--------
+
+- Fix issue where /metrics would respond with no data ([\#1107](https://github.com/matrix-org/matrix-appservice-irc/issues/1107))
+
+
+0.20.0-rc1 (2020-08-11)
+========================
+
+Features
+--------
+
+- Media URLs now include the filename when sent to IRC. ([\#1087](https://github.com/matrix-org/matrix-appservice-irc/issues/1087))
+
+
+Bugfixes
+--------
+
+- Fix duplicate messages appearing if an IRC message is poorly decoded. ([\#1081](https://github.com/matrix-org/matrix-appservice-irc/issues/1081))
+- Make sure a killed BridgedClient is dead, even if connect was never called ([\#1098](https://github.com/matrix-org/matrix-appservice-irc/issues/1098))
+
+
+Internal Changes
+----------------
+
+- Enable many recommended ESLint rules to catch errors ([\#1078](https://github.com/matrix-org/matrix-appservice-irc/issues/1078))
+- Replace .indexOf with more specific methods ([\#1097](https://github.com/matrix-org/matrix-appservice-irc/issues/1097))
+
+
+0.19.0 (2020-07-06)
+====================
+
+No significant changes.
+
+
+0.19.0-rc2 (2020-06-29)
+========================
+
+Features
+--------
+
+- Add `bridge_app_version` metric to report the bridge version. ([\#1071](https://github.com/matrix-org/matrix-appservice-irc/issues/1071))
+
+
+Bugfixes
+--------
+
+- Fix issue where some metrics would not be reported,
+  and a bug in `inspectUsers` which would return an empty list. ([\#1075](https://github.com/matrix-org/matrix-appservice-irc/issues/1075))
+
+
+Internal Changes
+----------------
+
+- Refactor room creation code to use one function for tracking and creation of rooms ([\#1074](https://github.com/matrix-org/matrix-appservice-irc/issues/1074))
+- Code improvements: Simplify use of Map and RegEx methods ([\#1076](https://github.com/matrix-org/matrix-appservice-irc/issues/1076))
+
+
+0.19.0-rc1 (2020-06-26)
+========================
+
+**0.19 introduces a minimum reqirement of NodeJS 12.x**
+
+Features
+--------
+
+- Split out metrics endpoint to a seperate worker ([\#1069](https://github.com/matrix-org/matrix-appservice-irc/issues/1069))
+- Add ability to limit the number of kicked users, and order by inactive time when using the reapUsers Debug API command. ([\#1072](https://github.com/matrix-org/matrix-appservice-irc/issues/1072))
+
+
+Internal Changes
+----------------
+
+- **BREAKING CHANGE**: The bridge now requires a minimum of `NodeJS` v12.x ([\#1070](https://github.com/matrix-org/matrix-appservice-irc/issues/1070))
+
+
+0.18.0 (2020-06-26)
+====================
+
+No significant changes.
+
+
+0.18.0-rc1 (2020-06-22)
+========================
+
+Bugfixes
+--------
+
+- Update `pg` dependency to `8.1.0` to fix NodeJS 14 compatibility.
+  **Be aware** that this means that unauthorized SSL connections are now rejected as of [pg@8.0.0](https://github.com/brianc/node-postgres/blob/master/CHANGELOG.md#pg800) ([\#1050](https://github.com/matrix-org/matrix-appservice-irc/issues/1050))
+- Fixed a crash related to an invalid `ctcp-version` request ([\#1053](https://github.com/matrix-org/matrix-appservice-irc/issues/1053))
+- Add ability to limit the number of rooms that an instance can be bridged. ([\#1060](https://github.com/matrix-org/matrix-appservice-irc/issues/1060))
+- Fixed issue where setting initial sync to true for `membershipLists.room` entries would not work if syncing is off globally. ([\#1065](https://github.com/matrix-org/matrix-appservice-irc/issues/1065))
+
+
+Improved Documentation
+----------------------
+
+- Corrects tutorial port numbers for docker so that copying/pasting will properly run with default port numbers. ([\#1048](https://github.com/matrix-org/matrix-appservice-irc/issues/1048))
+
+
+Internal Changes
+----------------
+
+- Update `sanitizeHtml` package. ([\#1066](https://github.com/matrix-org/matrix-appservice-irc/issues/1066))
+
+
+0.17.1 (2020-05-06)
+====================
+
+Features
+--------
+
+- Add ability to set fallback text encoding for non-UTF-8 messages. ([\#580](https://github.com/matrix-org/matrix-appservice-irc/issues/580))
+
+
+Bugfixes
+--------
+
+- Fixed an issue where installing the bridge from NPM would cause `tsc` to fail and the operation would fail. ([\#1045](https://github.com/matrix-org/matrix-appservice-irc/issues/1045))
+- Ensure we don't kick the bot user on connectionReap ([\#1046](https://github.com/matrix-org/matrix-appservice-irc/issues/1046))
+
+
+Internal Changes
+----------------
+
+- Use `prepare` rather than `prepublish` in `package.json` ([\#1047](https://github.com/matrix-org/matrix-appservice-irc/issues/1047))
+
+
+0.17.0 (2020-05-01)
+====================
+
+No changes since 0.17.0-rc4 
+
+
+0.17.0-rc4 (2020-04-29)
+========================
+
+Bugfixes
+--------
+
+- Will no longer try retry a kick for connection failure if the bot lacks permission ([\#1040](https://github.com/matrix-org/matrix-appservice-irc/issues/1040))
+
+
+Internal Changes
+----------------
+
+- Update matrix-appservice-bridge to 1.12.2 to fix a header bug ([\#1036](https://github.com/matrix-org/matrix-appservice-irc/issues/1036))
+
+
+0.17.0-rc3 (2020-04-17)
+========================
+
+Bugfixes
+--------
+
+- **SECURITY FIX** The bridge now authenticatess the /_matrix/provision set of endpoints. It now requires either a `access_token` query parameter or a `Authorization` header containing the `hs_token` provided in the registration file. ([\#1035](https://github.com/matrix-org/matrix-appservice-irc/issues/1035))
+
+
+Internal Changes
+----------------
+
+- Simplify ClientPool logic using Maps ([\#1034](https://github.com/matrix-org/matrix-appservice-irc/issues/1034))
+
+
+0.17.0-rc2 (2020-04-15)
+========================
+
+Bugfixes
+--------
+
+- Ensure `err.args` is defined when checking errors in `ConnectionInstance` ([\#1030](https://github.com/matrix-org/matrix-appservice-irc/issues/1030))
+
+
+0.17.0-rc1 (2020-04-09)
+========================
+
+Features
+--------
+
+- On name change, inform Matrix users, if their preferred IRC name is taken ([\#1018](https://github.com/matrix-org/matrix-appservice-irc/issues/1018))
+- Add ability to deactivate users permanently via the DebugAPI. ([\#1021](https://github.com/matrix-org/matrix-appservice-irc/issues/1021))
+
+
+Bugfixes
+--------
+
+- Disconnect a PM room from IRC when another user is invited, and disallow invites to PM rooms. ([\#1010](https://github.com/matrix-org/matrix-appservice-irc/issues/1010))
+- Fix issue where users with stored passwords but no config settings (IPv6 address, nickname) would not be able to get connected. Fixes #1014. ([\#1015](https://github.com/matrix-org/matrix-appservice-irc/issues/1015))
+- Kick users who have been X:lined ([\#1023](https://github.com/matrix-org/matrix-appservice-irc/issues/1023))
+- Fix issue where users who used !storepass are never reconnected and cannot send messages through the bridge. ([\#1024](https://github.com/matrix-org/matrix-appservice-irc/issues/1024))
+
+
+Improved Documentation
+----------------------
+
+- Add instructions for registering IRC bot's nickname. Thanks to @DylanVanAssche ([\#1004](https://github.com/matrix-org/matrix-appservice-irc/issues/1004))
+- Improve documentation for changelog entries ([\#1020](https://github.com/matrix-org/matrix-appservice-irc/issues/1020))
+
+
+Internal Changes
+----------------
+
+- Replace deprecated new Buffer("a") ([\#1019](https://github.com/matrix-org/matrix-appservice-irc/issues/1019))
+- Test !nick when the user already has the nick ([\#1020](https://github.com/matrix-org/matrix-appservice-irc/issues/1020))
+- Update dependencies to fix vulnerabilities. ([\#1025](https://github.com/matrix-org/matrix-appservice-irc/issues/1025))
+
+
+0.16.0 (2020-03-03)
+====================
+
+Features
+--------
+
+- Kicks from one IRC user to another will now be shown as kicks on Matrix. ([\#994](https://github.com/matrix-org/matrix-appservice-irc/issues/994))
+
+
+Bugfixes
+--------
+
+- Fix issue where bridged channel(s) would not be carried across on room upgrade. ([\#989](https://github.com/matrix-org/matrix-appservice-irc/issues/989))
+- IRC users will now join the new room on a room upgrade ([\#993](https://github.com/matrix-org/matrix-appservice-irc/issues/993))
+- Fix a bug where users with high numbers of channels would flood the ircd and be stuck trying to connect forever. ([\#995](https://github.com/matrix-org/matrix-appservice-irc/issues/995))
+- Matrix users who change nicks will no longer cause ghosts to appear in rooms with their new nick. ([\#996](https://github.com/matrix-org/matrix-appservice-irc/issues/996))
+- Fix bug where failing to start the bridge would not report any useful information ([\#997](https://github.com/matrix-org/matrix-appservice-irc/issues/997))
+- Fix missing logline arguments for BridgedClient ([\#1004](https://github.com/matrix-org/matrix-appservice-irc/issues/1004))
+
+
+Internal Changes
+----------------
+
+- Add `scripts/changelog-check.sh` and `scripts/changelog-release.sh` ([\#990](https://github.com/matrix-org/matrix-appservice-irc/issues/990))
+- Add `.npmignore` ([\#991](https://github.com/matrix-org/matrix-appservice-irc/issues/991))
+- Ensure the room upgrades test passes with Postgres ([\#992](https://github.com/matrix-org/matrix-appservice-irc/issues/992))
+- Upgrade `winston` logging library to 3.2.1 ([\#1002](https://github.com/matrix-org/matrix-appservice-irc/issues/1002))
+
+
+0.15.2 (2020-02-13)
+====================
+
+Features
+--------
+
+- The bridge will now notify you if a DM recipient is offline. ([\#978](https://github.com/matrix-org/matrix-appservice-irc/issues/978))
+
+
+Bugfixes
+--------
+
+- Fix "User did not rejoin" error when bridge debounces QUITs ([\#977](https://github.com/matrix-org/matrix-appservice-irc/issues/977))
+- Fix an issue where users were not rejoined to channels on netsplit/password change. ([\#979](https://github.com/matrix-org/matrix-appservice-irc/issues/979))
+
+
+0.15.1 (2020-02-06)
+====================
+
+Bugfixes
+--------
+
+- Fix an issue where legacy mappings would cause the bridge to not start. ([\#971](https://github.com/matrix-org/matrix-appservice-irc/issues/971))
+
+
+0.15.0 (2020-02-05)
+====================
+
+Features
+--------
+
+- **Breaking Change** - Static mappings can now set a channel key:
+   - This changes the config schema, even if you do not make use of this feature. You MUST update your existing `mappings` to use the new `roomIds`:
+     ```yaml
+     old:
+       mappings:
+         "#thepub": ["!kieouiJuedJoxtVdaG:localhost"]
+
+     new:
+       mappings:
+         "#thepub":
+           roomIds: ["!kieouiJuedJoxtVdaG:localhost"]
+     ```
+   - The key is automatically used to join Matrix users to the mapped channel. They do not need to know the key. For example, you can bridge password-protected IRC channels to invite-only Matrix rooms:
+     ```yaml
+     mappings:
+       "#viplounge":
+         roomIds: ["!xKtieojhareASOokdc:localhost"]
+         key: "vip-pass"
+     ``` ([\#591](https://github.com/matrix-org/matrix-appservice-irc/issues/591))
+- Add 'defaultOnline' and 'excludeRegex' parameters to /reapUsers. ([\#930](https://github.com/matrix-org/matrix-appservice-irc/issues/930))
+- Add support for MSC2346; adding information about the bridged channel into room state. ([\#941](https://github.com/matrix-org/matrix-appservice-irc/issues/941))
+- Added `!listrooms` command to list which channels you are connected to. ([\#965](https://github.com/matrix-org/matrix-appservice-irc/issues/965))
+
+
+Bugfixes
+--------
+
+- Fix issue where bridges using NeDB would not start. ([\#955](https://github.com/matrix-org/matrix-appservice-irc/issues/955))
+- Substitute `$SERVER` in `ircService.servers.*.dynamicChannels.aliasTemplate`
+  when generating a room alias from channel (fixes thirdparty lookups and joining
+  by IRC channel name from Riot). ([\#958](https://github.com/matrix-org/matrix-appservice-irc/issues/958))
+- Fix an issue where the postgres migration script does not translate '_' => '.' ([\#962](https://github.com/matrix-org/matrix-appservice-irc/issues/962))
+- Fix issue where migrating users from NeDB to Postgres would fail if they had a password. ([\#968](https://github.com/matrix-org/matrix-appservice-irc/issues/968))
+- Fix bug where users would not be able to join a channel via `!join`. ([\#970](https://github.com/matrix-org/matrix-appservice-irc/issues/970))
+
+
+Deprecations and Removals
+-------------------------
+
+- Removed `upgrade-db-0.*.js` scripts which were used to upgrade old versions of the NeDB database. If you are upgrading from <=0.9.1 then you can find the upgrade scripts [here](https://github.com/matrix-org/matrix-appservice-irc/tree/0.14.0/scripts). ([\#947](https://github.com/matrix-org/matrix-appservice-irc/issues/947))
+- Remove `statsd` support as per https://github.com/matrix-org/matrix-appservice-irc/issues/818 ([\#949](https://github.com/matrix-org/matrix-appservice-irc/issues/949))
+- Remove githooks, since they are unused. ([\#951](https://github.com/matrix-org/matrix-appservice-irc/issues/951))
+
+
+Internal Changes
+----------------
+
+- Queue more membership operations inside a retry queue ([\#932](https://github.com/matrix-org/matrix-appservice-irc/issues/932))
+- Queue IRC messages inbound to Matrix for a maximum of 5 seconds. ([\#953](https://github.com/matrix-org/matrix-appservice-irc/issues/953))
+
+
+0.14.1 (2020-01-21)
 ====================
 
 Bugfixes

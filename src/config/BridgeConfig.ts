@@ -6,7 +6,7 @@ export interface BridgeConfig {
     matrixHandler: {
 
     };
-    ircHandler: IrcHandlerConfig;
+    ircHandler?: IrcHandlerConfig;
     database: {
         engine: string;
         connectionString: string;
@@ -27,6 +27,7 @@ export interface BridgeConfig {
             requestTimeoutSeconds: number;
             ruleFile: string;
             enableReload: boolean;
+            roomLimit?: number;
         };
         logging: LoggerConfig;
         debugApi: {
@@ -35,8 +36,11 @@ export interface BridgeConfig {
         };
         /** @deprecated Use `BridgeConfig.database` */
         databaseUri?: string;
-        metrics: {
+        metrics?: {
             enabled: boolean;
+            port?: number;
+            host?: string;
+            userActivityThresholdHours?: number;
             remoteUserAgeBuckets: string[];
         };
         passwordEncryptionKeyPath?: string;
@@ -49,6 +53,7 @@ export interface BridgeConfig {
             enabled: boolean;
             initial: boolean;
         };
+        encodingFallback: string;
     };
     sentry?: {
         enabled: boolean;
