@@ -30,6 +30,7 @@ export class IrcServer {
     private addresses: string[];
     private groupIdValid: boolean;
     private excludedUsers: { regex: RegExp; kickReason?: string }[];
+    private idleUsersStartupExcludeRegex: RegExp|undefined;
     /**
      * Construct a new IRC Server.
      * @constructor
@@ -276,6 +277,18 @@ export class IrcServer {
         return this.excludedUsers.find((exclusion) => {
             return exclusion.regex.exec(userId) !== null;
         });
+    }
+
+    public get ignoreIdleUsersOnStartup() {
+        return this.config.membershipLists.ignoreIdleOnStartup?.enabled;
+    }
+
+    public get ignoreIdleUsersOnStartupAfterMs() {
+        return (this.config.membershipLists.ignoreIdleOnStartup?.idleForHours || 0) * 1000 * 60 * 60;
+    }
+
+    public get ignoreIdleUsersOnStartupExcludeRegex() {
+        return this.idleUsersStartupExcludeRegex;
     }
 
     public canJoinRooms(userId: string) {
@@ -602,6 +615,10 @@ export class IrcServer {
         else {
             this.groupIdValid = false;
         }
+        this.idleUsersStartupExcludeRegex =
+            this.config.membershipLists.ignoreIdleOnStartup?.exclude ?
+            new RegExp(this.config.membershipLists.ignoreIdleOnStartup.exclude)
+            : undefined;
     }
 
     private static templateToRegex(template: string, literalVars: {[key: string]: string},
@@ -719,6 +736,11 @@ export interface IrcServerConfig {
     membershipLists: {
         enabled: boolean;
         floodDelayMs: number;
+        ignoreIdleOnStartup?: {
+            enabled: true;
+            idleForHours: number;
+            exclude: string;
+        };
         global: {
             ircToMatrix: {
                 initial: boolean;
