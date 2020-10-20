@@ -124,11 +124,12 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
     return ircBridge;
 }
 
-export function killBridge(ircBridge: IrcBridge) {
+export function killBridge(ircBridge: IrcBridge, reason?: string) {
     if (!ircBridge) {
         log.info('killBridge(): No bridge running');
         return Bluebird.resolve();
     }
-    log.info('Killing bridge');
-    return ircBridge.kill();
+    const logReason = reason || "(unknown reason)";
+    log.info('Killing bridge: ' + logReason);
+    return ircBridge.kill(reason);
 }

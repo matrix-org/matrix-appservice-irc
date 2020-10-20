@@ -85,14 +85,14 @@ export class ClientPool {
         return this.virtualClients[server.domain].pending.has(nick)
     }
 
-    public killAllClients() {
+    public killAllClients(reason?: string) {
         return Bluebird.all(Object.keys(this.virtualClients).map((domain) =>
             [
                 ...this.virtualClients[domain].userIds.values(),
                 this.botClients.get(domain),
             ]
         ).map((clients) =>
-            Promise.all(clients.map((client) => client?.kill()))
+            Promise.all(clients.map((client) => client?.kill(reason)))
         ));
     }
 

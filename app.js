@@ -64,7 +64,7 @@ new Cli({
         process.on("SIGTERM", async () => {
             log.info("SIGTERM recieved, killing bridge");
             try {
-                await main.killBridge(bridge);
+                await main.killBridge(bridge, "Bridge terminating on SIGTERM");
             }
             catch (ex) {
                 log.error("Failed to killBridge");
