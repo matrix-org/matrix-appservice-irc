@@ -459,6 +459,23 @@ export class IrcBridge {
         return this.bridgeStateSyncer;
     }
 
+    private async pingBridge() {
+        let internalRoom: MatrixRoom|null;
+        try {
+            internalRoom = await this.dataStore.getAdminRoomByUserId("-internal-");
+            if (!internalRoom) {
+                const result = await this.bridge.getIntent().createRoom({ options: {}});
+                internalRoom = new MatrixRoom(result.room_id);
+                this.dataStore.storeAdminRoom(internalRoom, "-internal-");
+            }
+            const time = await this.bridge.pingAppserviceRoute(internalRoom.getId());
+            log.info(`Successfully pinged the bridge. Round trip took ${time}ms`);
+        }
+        catch (ex) {
+            log.error("Homeserver cannot reach the bridge. You probably need to adjust your configuration.", ex);
+        }
+    }
+
     public async run(port: number|null) {
         const dbConfig = this.config.database;
         // cli port, then config port, then default port
@@ -556,6 +573,8 @@ export class IrcBridge {
                 "FATAL: Registration file is missing a sender_localpart and/or AS token."
             );
         }
+
+        await this.pingBridge();
 
         // Storing all the users we know about to avoid calling /register on them.
         const allUsers = await this.dataStore.getAllUserIds();
