@@ -3,14 +3,13 @@
 
 import Bluebird from "bluebird";
 import { IrcBridge } from "./IrcBridge";
-import { AppServiceBot } from "matrix-appservice-bridge";
+import { AppServiceBot, MembershipQueue, Request } from "matrix-appservice-bridge";
 import { IrcServer } from "../irc/IrcServer";
 import { QueuePool } from "../util/QueuePool";
 import logging from "../logging";
 import { IrcRoom } from "../models/IrcRoom";
-import { BridgeRequest } from "../models/BridgeRequest";
 import * as promiseutil from "../promiseutil";
-import { Queue } from "../util/Queue";
+import { BridgeRequest } from "../models/BridgeRequest";
 
 const log = logging("MemberListSyncer");
 
@@ -49,18 +48,9 @@ export class MemberListSyncer {
         irc: {},
         matrix: {},
     }
-    private leaveQueuePool: QueuePool<LeaveQueueItem>;
-    constructor(private ircBridge: IrcBridge, private appServiceBot: AppServiceBot, private server: IrcServer,
+    constructor(private ircBridge: IrcBridge, private memberQueue: MembershipQueue,
+                private appServiceBot: AppServiceBot, private server: IrcServer,
                 private appServiceUserId: string, private injectJoinFn: InjectJoinFn) {
-        // A queue which controls the rate at which leaves are sent to Matrix. We need this queue
-        // because Synapse is slow. Synapse locks based on the room ID, so there is no benefit to
-        // having 2 in-flight requests for the same room ID. As a result, we want to queue based
-        // on the room ID, and let N "room queues" be processed concurrently. This can be
-        // represented as a QueuePool of size N, which enqueues all the requests for a single
-        // room in one go, which we can do because IRC sends all the nicks down as NAMES. For each
-        // block of users in a room queue, we need another Queue to ensure that there is only ever
-        // 1 in-flight leave request at a time per room queue.
-        this.leaveQueuePool = new QueuePool(3, this.leaveUsersInRoom.bind(this));
     }
 
     public isRemoteJoinedToRoom(roomId: string, userId: string) {
@@ -315,12 +305,12 @@ export class MemberListSyncer {
         const d = promiseutil.defer();
         // take the first entry and inject a join event
         const joinNextUser = () => {
-            this.usersToJoin--;
             const entry = entries.shift();
             if (!entry) {
                 d.resolve();
                 return;
             }
+            this.usersToJoin--;
             if (entry.userId.startsWith("@-")) {
                 joinNextUser();
                 return;
@@ -358,28 +348,17 @@ export class MemberListSyncer {
         });
     }
 
-    // Critical section of the leave queue pool.
-    // item looks like:
-    // {
-    //   roomId: "!foo:bar", userIds: [ "@alice:bar", "@bob:bar", ... ]
-    // }
     private async leaveUsersInRoom(item: LeaveQueueItem) {
-        // We need to queue these up in ANOTHER queue so as not to have
-        // 2 in-flight requests at the same time. We return a promise which resolves
-        // when this room is completely done.
-        const q = new Queue<string>(async (userId) => {
-            log.debug(`Leaving ${userId} from ${item.roomId}`);
-            // Do this here, we might not manage to leave but we won't retry.
-            this.usersToLeave--;
-            await this.ircBridge.getAppServiceBridge().getIntent(userId).leave(item.roomId);
-        });
+        const staticRequest = new Request({ id: "member-sync", data: null});
 
-        await Promise.all(item.userIds.map((userId) =>
-            q.enqueue(userId, userId)
-        ));
+        await Promise.all(item.userIds.map((userId) => {
+            log.debug(`Leaving ${userId} from ${item.roomId}`);
+            this.usersToLeave--;
+            return this.memberQueue.leave(item.roomId, userId, staticRequest, false);
+        }));
 
         // Make sure to deop any users
-        await this.ircBridge.ircHandler.roomAccessSyncer.removePowerLevels(item.roomId, item.userIds);
+        await this.ircBridge.ircHandler?.roomAccessSyncer.removePowerLevels(item.roomId, item.userIds);
     }
 
     // Update the MemberListSyncer with the IRC NAMES_RPL that has been received for channel.
@@ -435,8 +414,8 @@ export class MemberListSyncer {
             }
             totalLeavingUsers += usersToLeave.length;
             // ID is the complete mapping of roomID/channel which will be unique
-            promises.push(this.leaveQueuePool.enqueue(roomId + " " + channel, {
-                roomId: roomId,
+            promises.push(this.leaveUsersInRoom({
+                roomId,
                 userIds: usersToLeave,
             }));
         });
@@ -455,9 +434,9 @@ export class MemberListSyncer {
         return this.usersToLeave;
     }
 
-    public addToLeavePool(userIds: string[], roomId: string, channel: string) {
+    public addToLeavePool(userIds: string[], roomId: string) {
         this.usersToLeave += userIds.length;
-        this.leaveQueuePool.enqueue(roomId + " " + channel, {
+        this.leaveUsersInRoom({
             roomId,
             userIds
         });
