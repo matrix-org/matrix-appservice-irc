@@ -27,10 +27,11 @@ export type MembershipSyncKind = "incremental"|"initial";
  * Represents a single IRC server from config.yaml
  */
 export class IrcServer {
-    private addresses: string[];
-    private groupIdValid: boolean;
-    private excludedUsers: { regex: RegExp; kickReason?: string }[];
-    private idleUsersStartupExcludeRegex: RegExp|undefined;
+    private addresses: string[] = [];
+    private groupIdValid = false;
+    private excludedUsers: { regex: RegExp; kickReason?: string }[] = [];
+    private idleUsersStartupExcludeRegex?: RegExp;
+    private enforceReconnectInterval = true;
     /**
      * Construct a new IRC Server.
      * @constructor
@@ -44,11 +45,6 @@ export class IrcServer {
      */
     constructor(public domain: string, public config: IrcServerConfig,
                 private homeserverDomain: string, private expiryTimeSeconds: number = 0) {
-        // These are set in reconfigure
-        this.addresses = [];
-        this.groupIdValid = false;
-        this.excludedUsers = [];
-
         this.reconfigure(config, expiryTimeSeconds);
     }
 
@@ -222,8 +218,12 @@ export class IrcServer {
         return this.config.ircClients.idleTimeout;
     }
 
+    public toggleReconnectInterval(enable: boolean) {
+        this.enforceReconnectInterval = enable;
+    }
+
     public getReconnectIntervalMs() {
-        return this.config.ircClients.reconnectIntervalMs;
+        return this.enforceReconnectInterval ? this.config.ircClients.reconnectIntervalMs : 0;
     }
 
     public getConcurrentReconnectLimit() {
