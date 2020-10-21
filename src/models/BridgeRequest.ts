@@ -44,6 +44,10 @@ export class BridgeRequest {
         this.log = newRequestLogger(log, req.getId(), isFromIrc);
     }
 
+    getId() {
+        return this.req.getId();
+    }
+
     getPromise() {
         return this.req.getPromise();
     }

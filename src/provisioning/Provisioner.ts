@@ -1051,8 +1051,7 @@ export class Provisioner {
         req.log.info(`Leaving ${roomInfo.remoteJoinedUsers.length} virtual users from ${roomId}.`);
         this.ircBridge.getMemberListSyncer(server).addToLeavePool(
             roomInfo.remoteJoinedUsers,
-            roomId,
-            ircChannel
+            roomId
         );
     }
 
