@@ -256,15 +256,28 @@ describe("Mirroring", function() {
         });
 
         it("should leave the matrix room when the IRC user parts", async function() {
-            const leavePromise = new Promise(r => sdk.kick.and.callFake(async (roomId, userId, reason) => {
-                expect(userId).toEqual(ircUser.id);
-                expect(reason).toEqual("Client PARTed from channel");
+            const leavePromise = new Promise(r => sdk.leave.and.callFake(async (roomId) => {
                 expect(roomId).toEqual(roomMapping.roomId);
                 r();
+                return {};
             }));
 
             const client = await env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
             client.emit("part", roomMapping.channel, ircUser.nick);
+            await leavePromise;
+        });
+
+        it("should leave the matrix room with a reason when the IRC user parts", async function() {
+            const leavePromise = new Promise(r => sdk.kick.and.callFake(async (roomId, userId, reason) => {
+                expect(userId).toEqual(ircUser.id);
+                expect(reason).toEqual("Part: has been whacked with a wet trout");
+                expect(roomId).toEqual(roomMapping.roomId);
+                r();
+                return {};
+            }));
+
+            const client = await env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
+            client.emit("part", roomMapping.channel, ircUser.nick, "has been whacked with a wet trout");
             await leavePromise;
         });
     });

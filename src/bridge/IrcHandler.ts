@@ -793,11 +793,11 @@ export class IrcHandler {
         }
 
         // get virtual matrix user
-        req.log.info("Mapped nick %s to %s (leaving %s rooms)", nick, userId, matrixRooms.length);
+        req.log.info("Mapped nick %s to %s (leaving %s room(s))", nick, userId, matrixRooms.length);
         await Promise.all(matrixRooms.map(async (room) => {
             if (leavingUser.isVirtual) {
                 return this.membershipQueue.leave(
-                    room.getId(), userId, req, true, undefined,
+                    room.getId(), userId, req, true, "Client PARTed from channel",
                     this.ircBridge.appServiceUserId);
             }
 
