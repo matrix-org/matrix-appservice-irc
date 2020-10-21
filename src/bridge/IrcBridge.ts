@@ -696,9 +696,10 @@ export class IrcBridge {
             const duration = " (" + req.getDuration() + "ms)";
             log.info(`[${req.getId()}] [${dir}] ${msg} ${duration}`);
         }
+        const factory = this.bridge.getRequestFactory();
 
         // SUCCESS
-        this.bridge.getRequestFactory().addDefaultResolveCallback((req, _res) => {
+        factory.addDefaultResolveCallback((req, _res) => {
             const res = _res as BridgeRequestErr|null;
             const bridgeRequest = req as Request<BridgeRequestData>;
             if (res === BridgeRequestErr.ERR_VIRTUAL_USER) {
@@ -718,18 +719,18 @@ export class IrcBridge {
             this.logMetric(bridgeRequest, "success");
         });
         // FAILURE
-        this.bridge.getRequestFactory().addDefaultRejectCallback((req) => {
+        factory.addDefaultRejectCallback((req) => {
             const bridgeRequest = req as Request<BridgeRequestData>;
             logMessage(bridgeRequest, "FAILED");
             this.logMetric(bridgeRequest, "fail");
             BridgeRequest.HandleExceptionForSentry(req as Request<BridgeRequestData>, "fail");
         });
         // DELAYED
-        this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
+        factory.addDefaultTimeoutCallback((req) => {
             logMessage(req as Request<BridgeRequestData>, "DELAYED");
         }, DELAY_TIME_MS);
         // DEAD
-        this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
+        factory.addDefaultTimeoutCallback((req) => {
             const bridgeRequest = req as Request<BridgeRequestData>;
             logMessage(bridgeRequest, "DEAD");
             this.logMetric(bridgeRequest, "dead");
@@ -1291,7 +1292,6 @@ export class IrcBridge {
                 this.memberListSyncers[room.getServer().domain].addToLeavePool(
                     roomInfo.remoteJoinedUsers,
                     oldRoomId,
-                    room.getChannel(),
                 );
             })
         }));
