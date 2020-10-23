@@ -281,6 +281,8 @@ export class MatrixHandler {
             return "You are not connected to any networks.";
         }
 
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
+
         for (let i = 0; i < clients.length; i++) {
             const bridgedClient = clients[i];
             if (bridgedClient.chanList.length === 0) {
@@ -305,15 +307,26 @@ export class MatrixHandler {
 
                 // Don't wait for these to complete
                 Promise.all([...uniqueRoomIds].map(async (roomId) => {
+                    let state: {membership?: string};
                     try {
-                        await this.membershipQueue.leave(
-                            roomId,
-                            userId,
-                            req,
-                            false,
-                            reason,
-                            this.ircBridge.appServiceUserId
-                        );
+                        state = await intent.getStateEvent(roomId, "m.room.member", userId);
+                    }
+                    catch (ex) {
+                        state = {};
+                    }
+                    try {
+                        // Only kick if the state is join or leave, ignore all else.
+                        // https://github.com/matrix-org/matrix-appservice-irc/issues/1163
+                        if (state.membership === "join" || state.membership === "invite" ) {
+                            await this.membershipQueue.leave(
+                                roomId,
+                                userId,
+                                req,
+                                false,
+                                reason,
+                                this.ircBridge.appServiceUserId
+                            );
+                        }
                     }
                     catch (err) {
                         req.log.error(err);
