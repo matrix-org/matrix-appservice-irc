@@ -80,8 +80,8 @@ export class DebugApi {
             this.onReapUsers(query, response);
             return;
         }
-        else if (req.method === "POST" && path === "/killPortal") {
-            this.killPortal(req, response);
+        else if (req.method === "POST" && path === "/killRoom") {
+            this.killRoom(req, response);
             return;
         }
         else if (req.method === "GET" && path === "/inspectUsers") {
@@ -281,7 +281,7 @@ export class DebugApi {
         });
     }
 
-    private async killPortal (req: IncomingMessage, response: ServerResponse) {
+    private async killRoom (req: IncomingMessage, response: ServerResponse) {
         const store = this.ircBridge.getStore() as DataStore;
         const result: { error: string[]; stages: string[] } = {
             error: [], // string|[string] containing a fatal error or minor errors.
@@ -335,8 +335,7 @@ export class DebugApi {
         const room = await store.getRoom(
             roomId,
             domain,
-            channel,
-            "alias"
+            channel
         );
         if (room === null) {
             result.error.push("Room not found");
@@ -355,8 +354,7 @@ export class DebugApi {
         await store.removeRoom(
             roomId,
             domain,
-            channel,
-            "alias"
+            channel
         );
         result.stages.push("Removed room from store");
 
@@ -390,7 +388,7 @@ export class DebugApi {
         // It will also leave the MatrixBot.
         try {
             await this.ircBridge.getProvisioner().leaveIfUnprovisioned(
-                ProvisionRequest.createFake("killPortal", log),
+                ProvisionRequest.createFake("killRoom", log),
                 roomId,
                 server,
                 channel

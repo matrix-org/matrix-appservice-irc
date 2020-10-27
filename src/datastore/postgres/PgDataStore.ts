@@ -183,9 +183,10 @@ export class PgDataStore implements DataStore {
         ])).then((result) => result.rows).map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
-    public async removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin: RoomOrigin): Promise<void> {
+    public async removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<void> {
+        const originStr = origin ? "ORIGIN = $4" : "";
         await this.pgPool.query(
-            "DELETE FROM rooms WHERE room_id = $1 AND irc_domain = $2 AND irc_channel = $3 AND origin = $4",
+            "DELETE FROM rooms WHERE room_id = $1 AND irc_domain = $2 AND irc_channel = $3" + originStr,
             [roomId, ircDomain, ircChannel, origin]
         );
     }

@@ -227,14 +227,14 @@ export class NeDBDataStore implements DataStore {
      * aliasing and "join" if it was created during a join.
      * @return {Promise}
      */
-    public async removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin: RoomOrigin): Promise<void> {
-        if (typeof origin !== 'string') {
+    public async removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<void> {
+        if (origin && typeof origin !== 'string') {
             throw new Error('Origin must be a string = "config"|"provision"|"alias"|"join"');
         }
 
         await this.roomStore.delete({
             id: NeDBDataStore.createMappingId(roomId, ircDomain, ircChannel),
-            'data.origin': origin
+            ...(origin ? {'data.origin': origin} : undefined),
         });
     }
 
