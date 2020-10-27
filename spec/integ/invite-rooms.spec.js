@@ -36,7 +36,7 @@ describe("Invite-only rooms", function() {
         sdk.joinRoom.and.callFake(async (roomId) => {
             expect(roomId).toEqual(adminRoomId);
             joinRoomCount += 1;
-            return {room_id: roomId};
+            return {roomId};
         });
 
         await env.mockAppService._trigger("type:m.room.member", {
