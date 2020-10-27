@@ -65,6 +65,9 @@ interface MatrixSimpleMessage {
 
 interface MatrixEventLeave {
     room_id: string;
+    content: {
+        reason?: string;
+    };
     _injected?: boolean;
 }
 
@@ -594,8 +597,8 @@ export class MatrixHandler {
 
     private async _onKick(req: BridgeRequest, event: MatrixEventKick, kicker: MatrixUser, kickee: MatrixUser) {
         req.log.info(
-            "onKick %s is kicking/banning %s from %s",
-            kicker.getId(), kickee.getId(), event.room_id
+            "onKick %s is kicking/banning %s from %s (reason: %s)",
+            kicker.getId(), kickee.getId(), event.room_id, event.content.reason || "none"
         );
         this._onMemberEvent(req, event);
 
@@ -730,7 +733,7 @@ export class MatrixHandler {
                 return; // not connected to this server
             }
             // leave it; if we aren't joined this will no-op.
-            await client.leaveChannel(ircRoom.channel);
+            await client.leaveChannel(ircRoom.channel, event.content.reason);
         });
 
         if (promises.length === 0) { // no connected clients
@@ -1213,7 +1216,7 @@ export class MatrixHandler {
         return reqHandler(req, this._onJoin(req, event, user));
     }
 
-    public onLeave(req: BridgeRequest, event: { room_id: string; _injected?: boolean }, user: MatrixUser) {
+    public onLeave(req: BridgeRequest, event: MatrixEventLeave, user: MatrixUser) {
         return reqHandler(req, this._onLeave(req, event, user));
     }
 
