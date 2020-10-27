@@ -137,10 +137,10 @@ export class IrcHandler {
     /**
      * Create a new matrix PM room for an IRC user  with nick `fromUserNick` and another
      * matrix user with user ID `toUserId`.
-     * @param {string} toUserId : The user ID of the recipient.
-     * @param {string} fromUserId : The user ID of the sender.
-     * @param {string} fromUserNick : The nick of the sender.
-     * @param {IrcServer} server : The sending IRC server.
+     * @param {string} toUserId The user ID of the recipient.
+     * @param {string} fromUserId The user ID of the sender.
+     * @param {string} fromUserNick The nick of the sender.
+     * @param {IrcServer} server The sending IRC server.
      * @return {Promise} which is resolved when the PM room has been created.
      */
     private async createPmRoom (toUserId: string, fromUserId: string, fromUserNick: string, server: IrcServer) {
@@ -191,10 +191,10 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC message event.
-     * @param {IrcServer} server : The sending IRC server.
-     * @param {IrcUser} fromUser : The sender.
-     * @param {IrcUser} toUser : The target.
-     * @param {Object} action : The IRC action performed.
+     * @param {IrcServer} server The sending IRC server.
+     * @param {IrcUser} fromUser The sender.
+     * @param {IrcUser} toUser The target.
+     * @param {Object} action The IRC action performed.
      * @return {Promise} which is resolved/rejected when the request
      * finishes.
      */
@@ -304,10 +304,10 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC invite event.
-     * @param {IrcServer} server : The sending IRC server.
-     * @param {IrcUser} fromUser : The sender.
-     * @param {IrcUser} toUser : The target.
-     * @param {String} channel : The channel.
+     * @param {IrcServer} server The sending IRC server.
+     * @param {IrcUser} fromUser The sender.
+     * @param {IrcUser} toUser The target.
+     * @param {String} channel The channel.
      * @return {Promise} which is resolved/rejected when the request
      * finishes.
      */
@@ -422,10 +422,10 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC topic event.
-     * @param {IrcServer} server : The sending IRC server.
-     * @param {IrcUser} fromUser : The sender.
-     * @param {string} channel : The target channel.
-     * @param {Object} action : The IRC action performed.
+     * @param {IrcServer} server The sending IRC server.
+     * @param {IrcUser} fromUser The sender.
+     * @param {string} channel The target channel.
+     * @param {Object} action The IRC action performed.
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     public async onTopic (req: BridgeRequest, server: IrcServer, fromUser: IrcUser,
@@ -479,10 +479,10 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC message event.
-     * @param {IrcServer} server : The sending IRC server.
-     * @param {IrcUser} fromUser : The sender.
-     * @param {string} channel : The target channel.
-     * @param {Object} action : The IRC action performed.
+     * @param {IrcServer} server The sending IRC server.
+     * @param {IrcUser} fromUser The sender.
+     * @param {string} channel The target channel.
+     * @param {Object} action The IRC action performed.
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     public async onMessage (req: BridgeRequest, server: IrcServer, fromUser: IrcUser,
@@ -590,10 +590,10 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC join event.
-     * @param {IrcServer} server : The sending IRC server.
-     * @param {IrcUser} joiningUser : The user who joined.
-     * @param {string} chan : The channel that was joined.
-     * @param {string} kind : The kind of join (e.g. from a member list if
+     * @param {IrcServer} server The sending IRC server.
+     * @param {IrcUser} joiningUser The user who joined.
+     * @param {string} chan The channel that was joined.
+     * @param {string} kind The kind of join (e.g. from a member list if
      * the bot just connected, or an actual JOIN command)
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
@@ -744,10 +744,10 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC part event.
-     * @param server : The sending IRC server.
-     * @param leavingUser : The user who parted.
-     * @param chan : The channel that was left.
-     * @param kind : The kind of part (e.g. PART, KICK, BAN, QUIT, netsplit, etc)
+     * @param server The sending IRC server.
+     * @param leavingUser The user who parted.
+     * @param chan The channel that was left.
+     * @param kind The kind of part (e.g. PART, KICK, BAN, QUIT, netsplit, etc)
      * @param reason: The reason why the client parted, if given.
      * @return A promise which is resolved/rejected when the request finishes.
      */
@@ -821,7 +821,7 @@ export class IrcHandler {
     /**
      * Called when a user sets a mode in a channel.
      * @param {Request} req The metadata request
-     * @param {IrcServer} server : The sending IRC server.
+     * @param {IrcServer} server The sending IRC server.
      * @param {string} channel The channel that has the given mode.
      * @param {string} mode The mode that the channel is in, e.g. +sabcdef
      * @return {Promise} which is resolved/rejected when the request finishes.
@@ -840,7 +840,7 @@ export class IrcHandler {
     /**
      * Called when channel mode information is received
      * @param {Request} req The metadata request
-     * @param {IrcServer} server : The sending IRC server.
+     * @param {IrcServer} server The sending IRC server.
      * @param {string} channel The channel that has the given mode.
      * @param {string} mode The mode that the channel is in, e.g. +sabcdef
      * @return {Promise} which is resolved/rejected when the request finishes.
