@@ -602,18 +602,12 @@ export class IrcBridge {
         log.info("Syncing relevant membership lists...");
         const memberlistPromises: Promise<void>[] = [];
 
-        // HACK: Remember reconnectIntervals to put them back later
-        //  If memberlist-syncing 100s of connections, the scheduler will cause massive
-        //  waiting times for connections to be created.
-        //  We disable this scheduling manually to allow people to send messages through
-        //  quickly when starting up (effectively prioritising them). This is just the
-        //  quickest way to disable scheduler.
-        const reconnectIntervalsMap = Object.create(null);
-
         this.ircServers.forEach((server) => {
-
-            reconnectIntervalsMap[server.domain] = server.getReconnectIntervalMs();
-            server.config.ircClients.reconnectIntervalMs = 0;
+            //  If memberlist-syncing 100s of connections, the scheduler will cause massive
+            //  waiting times for connections to be created.
+            //  We disable this scheduling manually to allow people to send messages through
+            //  quickly when starting up (effectively prioritising them).
+            server.toggleReconnectInterval(false);
 
             // TODO reduce deps required to make MemberListSyncers.
             // TODO Remove injectJoinFn bodge
@@ -664,7 +658,7 @@ export class IrcBridge {
 
         // Reset reconnectIntervals
         this.ircServers.forEach((server) => {
-            server.config.ircClients.reconnectIntervalMs = reconnectIntervalsMap[server.domain];
+            server.toggleReconnectInterval(true);
         });
 
         log.info("Startup complete.");
