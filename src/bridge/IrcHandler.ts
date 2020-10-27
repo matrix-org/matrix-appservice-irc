@@ -502,7 +502,7 @@ export class IrcHandler {
             return undefined;
         }
 
-        req.log.info("onMessage: %s from=%s to=%s action=%s",
+        req.log.debug("onMessage: %s from=%s to=%s action=%s",
             server.domain, fromUser, channel, JSON.stringify(action).substring(0, 80)
         );
 
@@ -563,10 +563,10 @@ export class IrcHandler {
         }
 
         const failed = [];
+        req.log.debug(
+            "Relaying in room(s) %s", matrixRooms.map((r) => r.getId()).join(", "),
+        );
         for (const room of matrixRooms) {
-            req.log.info(
-                "Relaying in room %s", room.getId()
-            );
             try {
                 await this.ircBridge.sendMatrixAction(room, virtualMatrixUser, mxAction);
             }
