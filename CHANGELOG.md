@@ -1,4 +1,35 @@
- 0.21.0 (2020-10-15)
+ 0.22.0-rc1 (2020-10-28)
+====================
+
+**Breaking Change**: We've renamed the `/killPortal` DebugAPI endpoint to `/killRoom`, and it will now unbridge all types of rooms rather than just portal rooms.
+
+Features
+--------
+
+- Pre-emptively ignore users who are already idle when starting up the bridge ([\#1156](https://github.com/matrix-org/matrix-appservice-irc/issues/1156))
+- Propagate a reason all the way through killing the bridge ([\#1159](https://github.com/matrix-org/matrix-appservice-irc/issues/1159))
+- Add startup check to ensure the homeserver can send the bridge events. ([\#1160](https://github.com/matrix-org/matrix-appservice-irc/issues/1160))
+- Replace `/killPortal` debug API with `/killRoom` API, which works for all bridge mapping types ([\#1169](https://github.com/matrix-org/matrix-appservice-irc/issues/1169))
+
+
+Bugfixes
+--------
+
+- Don't wait for leaves to complete when running the reaping script ([\#1147](https://github.com/matrix-org/matrix-appservice-irc/issues/1147))
+- Fix bug where m.audio files would not be forwarded to IRC ([\#1150](https://github.com/matrix-org/matrix-appservice-irc/issues/1150))
+- Do not change a Matrix user's IRC nickname unless their profile has also changed ([\#1157](https://github.com/matrix-org/matrix-appservice-irc/issues/1157))
+- Fixed an issue where the bridge would kick users from rooms they never joined ([\#1165](https://github.com/matrix-org/matrix-appservice-irc/issues/1165))
+
+
+Internal Changes
+----------------
+
+- Determine user activeness based off presence, typing and read receipts when kicking idle users. ([\#1152](https://github.com/matrix-org/matrix-appservice-irc/issues/1152))
+- Bridge IRC `reason`s when users QUIT or PART ([\#1161](https://github.com/matrix-org/matrix-appservice-irc/issues/1161))
+- Remove hacks around reconnections on startup ([\#1162](https://github.com/matrix-org/matrix-appservice-irc/issues/1162))
+
+
+0.21.0 (2020-10-15)
 ====================
 
 No significant changes.

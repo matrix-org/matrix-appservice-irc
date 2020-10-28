@@ -1,1 +1,0 @@
-Add startup check to ensure the homeserver can send the bridge events.
