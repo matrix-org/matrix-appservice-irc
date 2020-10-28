@@ -83,7 +83,7 @@ export interface DataStore {
      * aliasing and "join" if it was created during a join.
      * @return {Promise}
      */
-    removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin: RoomOrigin): Promise<void>;
+    removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<void>;
 
     /**
      * Retrieve a list of IRC rooms for a given room ID.
