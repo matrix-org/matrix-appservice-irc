@@ -73,6 +73,8 @@ export interface ConnectionOpts {
     nick: string;
     secure?: {
         ca?: string;
+        key?: string;
+        cert?: string;
     };
     encodingFallback: string;
 }
@@ -368,6 +370,9 @@ export class ConnectionInstance {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
         }
+        if (!opts.password && server.saslType() !== "EXTERNAL") {
+            throw new Error("Using sasl with no password is invalid");
+        }
         const connectionOpts = {
             userName: opts.username,
             realName: opts.realname,
@@ -383,8 +388,11 @@ export class ConnectionInstance {
             retryCount: 0,
             family: server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null,
             bustRfc3484: true,
-            sasl: opts.password ? server.useSasl() : false,
-            secure: server.useSsl() ? { ca: server.getCA() } : undefined,
+            sasl: server.useSasl(),
+            saslType: server.saslType(),
+            secure: server.useSsl() ? {
+                ca: server.getCA(), key: server.getKey(), cert: server.getCert()
+            } : undefined,
             encodingFallback: opts.encodingFallback
         };
 

@@ -152,6 +152,12 @@ properties:
                             type: "boolean"
                         sasl:
                             type: "boolean"
+                        saslType:
+                            type: "string"
+                        key:
+                            type: "string"
+                        cert:
+                            type: "string"
                         allowExpiredCerts:
                             type: "boolean"
                         password:
