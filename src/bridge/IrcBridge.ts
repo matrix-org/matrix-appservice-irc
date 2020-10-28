@@ -30,12 +30,12 @@ import {
     MembershipCache,
     AgeCounters,
     EphemeralEvent,
+    MembershipQueue,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
-import { MembershipQueue } from "../util/MembershipQueue";
 import { BridgeStateSyncer } from "./BridgeStateSyncer";
 import { Registry } from "prom-client";
 import { spawnMetricsWorker } from "../workers/MetricsWorker";
@@ -177,7 +177,12 @@ export class IrcBridge {
             },
             membershipCache: this.membershipCache,
         });
-        this.membershipQueue = new MembershipQueue(this.bridge, this.appServiceUserId);
+        this.membershipQueue = new MembershipQueue(this.bridge, {
+            concurrentRoomLimit: 3,
+            maxAttempts: 10,
+            joinDelayMs: 500,
+            maxJoinDelayMs: 5 * 60 * 1000, // 5 mins,
+        });
         this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
         this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue);
 
@@ -612,7 +617,7 @@ export class IrcBridge {
             // TODO reduce deps required to make MemberListSyncers.
             // TODO Remove injectJoinFn bodge
             this.memberListSyncers[server.domain] = new MemberListSyncer(
-                this, this.bridge.getBot(), server, this.appServiceUserId,
+                this, this.membershipQueue, this.bridge.getBot(), server, this.appServiceUserId,
                 (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
                     const req = new BridgeRequest(
                         this.bridge.getRequestFactory().newRequest()
@@ -685,9 +690,10 @@ export class IrcBridge {
             const duration = " (" + req.getDuration() + "ms)";
             log.info(`[${req.getId()}] [${dir}] ${msg} ${duration}`);
         }
+        const factory = this.bridge.getRequestFactory();
 
         // SUCCESS
-        this.bridge.getRequestFactory().addDefaultResolveCallback((req, _res) => {
+        factory.addDefaultResolveCallback((req, _res) => {
             const res = _res as BridgeRequestErr|null;
             const bridgeRequest = req as Request<BridgeRequestData>;
             if (res === BridgeRequestErr.ERR_VIRTUAL_USER) {
@@ -707,18 +713,18 @@ export class IrcBridge {
             this.logMetric(bridgeRequest, "success");
         });
         // FAILURE
-        this.bridge.getRequestFactory().addDefaultRejectCallback((req) => {
+        factory.addDefaultRejectCallback((req) => {
             const bridgeRequest = req as Request<BridgeRequestData>;
             logMessage(bridgeRequest, "FAILED");
             this.logMetric(bridgeRequest, "fail");
             BridgeRequest.HandleExceptionForSentry(req as Request<BridgeRequestData>, "fail");
         });
         // DELAYED
-        this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
+        factory.addDefaultTimeoutCallback((req) => {
             logMessage(req as Request<BridgeRequestData>, "DELAYED");
         }, DELAY_TIME_MS);
         // DEAD
-        this.bridge.getRequestFactory().addDefaultTimeoutCallback((req) => {
+        factory.addDefaultTimeoutCallback((req) => {
             const bridgeRequest = req as Request<BridgeRequestData>;
             logMessage(bridgeRequest, "DEAD");
             this.logMetric(bridgeRequest, "dead");
@@ -1280,7 +1286,6 @@ export class IrcBridge {
                 this.memberListSyncers[room.getServer().domain].addToLeavePool(
                     roomInfo.remoteJoinedUsers,
                     oldRoomId,
-                    room.getChannel(),
                 );
             })
         }));

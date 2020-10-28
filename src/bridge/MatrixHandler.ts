@@ -1,6 +1,6 @@
 import { IrcBridge } from "./IrcBridge";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
-import { MatrixUser, MatrixRoom, StateLookup, StateLookupEvent } from "matrix-appservice-bridge";
+import { MatrixUser, MatrixRoom, StateLookup, StateLookupEvent, MembershipQueue } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { IrcRoom } from "../models/IrcRoom";
@@ -9,7 +9,6 @@ import { IrcServer } from "../irc/IrcServer";
 import { IrcAction } from "../models/IrcAction";
 import { toIrcLowerCase } from "../irc/formatting";
 import { AdminRoomHandler } from "./AdminRoomHandler";
-import { MembershipQueue } from "../util/MembershipQueue";
 import { trackChannelAndCreateRoom } from "./RoomCreation";
 
 async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {

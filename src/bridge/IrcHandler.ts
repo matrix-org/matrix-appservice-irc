@@ -4,7 +4,7 @@ import { RoomAccessSyncer } from "./RoomAccessSyncer";
 import { IrcServer, MembershipSyncKind } from "../irc/IrcServer";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
 import { BridgedClient } from "../irc/BridgedClient";
-import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
+import { MatrixRoom, MatrixUser, MembershipQueue } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { IrcAction } from "../models/IrcAction";
 import { IrcRoom } from "../models/IrcRoom";
@@ -12,7 +12,6 @@ import { MatrixAction } from "../models/MatrixAction";
 import { RequestLogger } from "../logging";
 import { RoomOrigin } from "../datastore/DataStore";
 import QuickLRU from "quick-lru";
-import { MembershipQueue } from "../util/MembershipQueue";
 import { IrcMessage } from "../irc/ConnectionInstance";
 import { trackChannelAndCreateRoom } from "../bridge/RoomCreation";
 const NICK_USERID_CACHE_MAX = 512;
@@ -138,10 +137,10 @@ export class IrcHandler {
     /**
      * Create a new matrix PM room for an IRC user  with nick `fromUserNick` and another
      * matrix user with user ID `toUserId`.
-     * @param {string} toUserId : The user ID of the recipient.
-     * @param {string} fromUserId : The user ID of the sender.
-     * @param {string} fromUserNick : The nick of the sender.
-     * @param {IrcServer} server : The sending IRC server.
+     * @param {string} toUserId The user ID of the recipient.
+     * @param {string} fromUserId The user ID of the sender.
+     * @param {string} fromUserNick The nick of the sender.
+     * @param {IrcServer} server The sending IRC server.
      * @return {Promise} which is resolved when the PM room has been created.
      */
     private async createPmRoom (toUserId: string, fromUserId: string, fromUserNick: string, server: IrcServer) {
@@ -192,10 +191,10 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC message event.
-     * @param {IrcServer} server : The sending IRC server.
-     * @param {IrcUser} fromUser : The sender.
-     * @param {IrcUser} toUser : The target.
-     * @param {Object} action : The IRC action performed.
+     * @param {IrcServer} server The sending IRC server.
+     * @param {IrcUser} fromUser The sender.
+     * @param {IrcUser} toUser The target.
+     * @param {Object} action The IRC action performed.
      * @return {Promise} which is resolved/rejected when the request
      * finishes.
      */
@@ -305,10 +304,10 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC invite event.
-     * @param {IrcServer} server : The sending IRC server.
-     * @param {IrcUser} fromUser : The sender.
-     * @param {IrcUser} toUser : The target.
-     * @param {String} channel : The channel.
+     * @param {IrcServer} server The sending IRC server.
+     * @param {IrcUser} fromUser The sender.
+     * @param {IrcUser} toUser The target.
+     * @param {String} channel The channel.
      * @return {Promise} which is resolved/rejected when the request
      * finishes.
      */
@@ -423,10 +422,10 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC topic event.
-     * @param {IrcServer} server : The sending IRC server.
-     * @param {IrcUser} fromUser : The sender.
-     * @param {string} channel : The target channel.
-     * @param {Object} action : The IRC action performed.
+     * @param {IrcServer} server The sending IRC server.
+     * @param {IrcUser} fromUser The sender.
+     * @param {string} channel The target channel.
+     * @param {Object} action The IRC action performed.
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     public async onTopic (req: BridgeRequest, server: IrcServer, fromUser: IrcUser,
@@ -480,10 +479,10 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC message event.
-     * @param {IrcServer} server : The sending IRC server.
-     * @param {IrcUser} fromUser : The sender.
-     * @param {string} channel : The target channel.
-     * @param {Object} action : The IRC action performed.
+     * @param {IrcServer} server The sending IRC server.
+     * @param {IrcUser} fromUser The sender.
+     * @param {string} channel The target channel.
+     * @param {Object} action The IRC action performed.
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     public async onMessage (req: BridgeRequest, server: IrcServer, fromUser: IrcUser,
@@ -591,10 +590,10 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC join event.
-     * @param {IrcServer} server : The sending IRC server.
-     * @param {IrcUser} joiningUser : The user who joined.
-     * @param {string} chan : The channel that was joined.
-     * @param {string} kind : The kind of join (e.g. from a member list if
+     * @param {IrcServer} server The sending IRC server.
+     * @param {IrcUser} joiningUser The user who joined.
+     * @param {string} chan The channel that was joined.
+     * @param {string} kind The kind of join (e.g. from a member list if
      * the bot just connected, or an actual JOIN command)
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
@@ -745,14 +744,15 @@ export class IrcHandler {
 
     /**
      * Called when the AS receives an IRC part event.
-     * @param {IrcServer} server : The sending IRC server.
-     * @param {IrcUser} leavingUser : The user who parted.
-     * @param {string} chan : The channel that was left.
-     * @param {string} kind : The kind of part (e.g. PART, KICK, BAN, QUIT, netsplit, etc)
-     * @return {Promise} which is resolved/rejected when the request finishes.
+     * @param server The sending IRC server.
+     * @param leavingUser The user who parted.
+     * @param chan The channel that was left.
+     * @param kind The kind of part (e.g. PART, KICK, BAN, QUIT, netsplit, etc)
+     * @param reason: The reason why the client parted, if given.
+     * @return A promise which is resolved/rejected when the request finishes.
      */
     public async onPart (req: BridgeRequest, server: IrcServer, leavingUser: IrcUser,
-                         chan: string, kind: string): Promise<BridgeRequestErr|undefined> {
+                         chan: string, kind: string, reason?: string): Promise<BridgeRequestErr|undefined> {
         this.incrementMetric("part");
         this.invalidateNickUserIdMap(server, chan);
         // parts are always incremental (only NAMES are initial)
@@ -793,27 +793,35 @@ export class IrcHandler {
         }
 
         // get virtual matrix user
-        req.log.info("Mapped nick %s to %s", nick, userId);
-        const promise = await Promise.all(matrixRooms.map(async (room) => {
+        req.log.info("Mapped nick %s to %s (leaving %s room(s))", nick, userId, matrixRooms.length);
+        await Promise.all(matrixRooms.map(async (room) => {
+            if (leavingUser.isVirtual) {
+                return this.membershipQueue.leave(
+                    room.getId(), userId, req, true, "Client PARTed from channel",
+                    this.ircBridge.appServiceUserId);
+            }
+
+            // Show a reason if the part is not a regular part, or reason text was given.
+            const kindText = kind[0].toUpperCase() + kind.substr(1);
+            if (reason) {
+                reason = `${kindText}: ${reason}`;
+            }
+            else if (kind !== "part") {
+                reason = kindText;
+            }
+
             await this.membershipQueue.leave(
-                room.getId(), userId, req, true, "Client PARTed from channel",
+                room.getId(), userId, req, true, reason,
                 leavingUser.isVirtual ? this.ircBridge.appServiceUserId : undefined);
-            try {
-                await this.roomAccessSyncer.removePowerLevels(room.getId(), [userId]);
-            }
-            catch (ex) {
-                // This is non-critical but annoying.
-                req.log.warn("Failed to remove power levels for leaving user.");
-            }
+            return this.roomAccessSyncer.removePowerLevels(room.getId(), [userId]);
         }));
-        await promise;
         return undefined;
     }
 
     /**
      * Called when a user sets a mode in a channel.
      * @param {Request} req The metadata request
-     * @param {IrcServer} server : The sending IRC server.
+     * @param {IrcServer} server The sending IRC server.
      * @param {string} channel The channel that has the given mode.
      * @param {string} mode The mode that the channel is in, e.g. +sabcdef
      * @return {Promise} which is resolved/rejected when the request finishes.
@@ -832,7 +840,7 @@ export class IrcHandler {
     /**
      * Called when channel mode information is received
      * @param {Request} req The metadata request
-     * @param {IrcServer} server : The sending IRC server.
+     * @param {IrcServer} server The sending IRC server.
      * @param {string} channel The channel that has the given mode.
      * @param {string} mode The mode that the channel is in, e.g. +sabcdef
      * @return {Promise} which is resolved/rejected when the request finishes.

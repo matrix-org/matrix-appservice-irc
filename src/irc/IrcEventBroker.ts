@@ -330,10 +330,10 @@ export class IrcEventBroker {
 
         // Listen for other events
 
-        this.hookIfClaimed(client, connInst, "part", (chan: string, nick: string, /* reason: string */) => {
+        this.hookIfClaimed(client, connInst, "part", (chan: string, nick: string, reason: string) => {
             const req = createRequest();
             complete(req, ircHandler.onPart(
-                req, server, createUser(nick), chan, "part"
+                req, server, createUser(nick), chan, "part", reason
             ));
         });
         this.hookIfClaimed(client, connInst, "quit", (nick: string, reason: string, chans: string[]) => {
@@ -343,7 +343,7 @@ export class IrcEventBroker {
                 chans.forEach((chan) => {
                     const req = createRequest();
                     complete(req, ircHandler.onPart(
-                        req, server, createUser(nick), chan, "quit"
+                        req, server, createUser(nick), chan, "quit", reason
                     ));
                 });
             }

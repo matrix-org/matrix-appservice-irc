@@ -937,7 +937,7 @@ export class Provisioner {
         try {
             await Promise.all([
                 this.partUnlinkedIrcClients(req, roomId, server, ircChannel),
-                this.leaveMatrixVirtuals(req, roomId, server, ircChannel)
+                this.leaveMatrixVirtuals(req, roomId, server)
             ]);
         }
         catch (err) {
@@ -1033,7 +1033,7 @@ export class Provisioner {
         );
     }
 
-    private async leaveMatrixVirtuals(req: ProvisionRequest, roomId: string, server: IrcServer, ircChannel: string) {
+    private async leaveMatrixVirtuals(req: ProvisionRequest, roomId: string, server: IrcServer) {
         const asBot = this.ircBridge.getAppServiceBridge().getBot();
         const roomChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(
             roomId
@@ -1051,8 +1051,7 @@ export class Provisioner {
         req.log.info(`Leaving ${roomInfo.remoteJoinedUsers.length} virtual users from ${roomId}.`);
         this.ircBridge.getMemberListSyncer(server).addToLeavePool(
             roomInfo.remoteJoinedUsers,
-            roomId,
-            ircChannel
+            roomId
         );
     }
 
