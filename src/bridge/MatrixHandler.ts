@@ -1156,8 +1156,6 @@ export class MatrixHandler {
             if (lines[0].length > REPLY_SOURCE_MAX_LENGTH) {
                 rplSource = rplSource + "...";
             }
-            // Wrap in formatting
-            rplSource = ` "${rplSource}"`;
         }
         else {
             // Don't show a source because we couldn't format one.
@@ -1179,7 +1177,7 @@ export class MatrixHandler {
         }
 
         return {
-            formatted: `<${rplName}${rplSource}> ${rplText}`,
+            formatted: `"<${rplName}> ${rplSource}" <- ${rplText}`,
             reply: rplText,
         };
     }
