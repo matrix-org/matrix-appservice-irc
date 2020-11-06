@@ -1,4 +1,10 @@
- 0.22.0-rc1 (2020-10-28)
+ 0.22.0 (2020-11-06)
+====================
+
+No significant changes.
+
+
+0.22.0-rc1 (2020-10-28)
 ====================
 
 **Breaking Change**: We've renamed the `/killPortal` DebugAPI endpoint to `/killRoom`, and it will now unbridge all types of rooms rather than just portal rooms.
