@@ -36,6 +36,7 @@ interface TopicQueueItem {
 
 export interface IrcHandlerConfig {
     mapIrcMentionsToMatrix?: "on"|"off"|"force-off";
+    powerLevelGracePeriodMs?: number;
 }
 
 type MetricNames = "join.names"|"join"|"part"|"pm"|"invite"|"topic"|"message"|"kick"|"mode";
@@ -732,7 +733,7 @@ export class IrcHandler {
                     // If this fails, we want to fail the operation.
                 }
                 try {
-                    await this.roomAccessSyncer.removePowerLevels(room.getId(), [matrixUserKickee.getId()]);
+                    await this.roomAccessSyncer.removePowerLevels(room.getId(), [matrixUserKickee.getId()], req);
                 }
                 catch (ex) {
                     // This is non-critical but annoying.
@@ -813,7 +814,7 @@ export class IrcHandler {
             await this.membershipQueue.leave(
                 room.getId(), userId, req, true, reason,
                 leavingUser.isVirtual ? this.ircBridge.appServiceUserId : undefined);
-            return this.roomAccessSyncer.removePowerLevels(room.getId(), [userId]);
+            return this.roomAccessSyncer.removePowerLevels(room.getId(), [userId], req);
         }));
         return undefined;
     }
