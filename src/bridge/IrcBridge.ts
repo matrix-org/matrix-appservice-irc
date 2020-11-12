@@ -434,6 +434,8 @@ export class IrcBridge {
         metrics.addCollector(async () => {
             this.clientPool.collectConnectionStatesForAllServers(clientStates);
         });
+
+        this.membershipQueue.registerMetrics();
     }
 
     public get appServiceUserId() {
