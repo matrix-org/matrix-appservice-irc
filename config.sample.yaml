@@ -498,7 +498,7 @@ ircService:
 
     # When handling lots of mode changes, wait this long before setting a power level
     # event in order to batch together changes
-    # powerLevelGracePeriod: 5000
+    # powerLevelGracePeriod: 1000
 
 # Options here are generally only applicable to large-scale bridges and may have
 # consequences greater than other options in this configuration file.
