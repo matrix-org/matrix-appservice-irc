@@ -439,8 +439,17 @@ describe("IRC-to-Matrix operator modes bridging", function() {
 
     it("should bridge multiple mode changes as a single power level event", async () => {
         // Set IRC user prefix, which in reality is assumed to have happened
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "get me in",
+                msgtype: "m.text"
+            },
+            user_id: tRealUserId2,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+
         const client = await env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
-        const client2 = await env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick2);
         client.chans[roomMapping.channel] = {
             users: {
                 [tRealMatrixUserNick]: "@",
@@ -448,6 +457,7 @@ describe("IRC-to-Matrix operator modes bridging", function() {
             }
         };
 
+        const client2 = await env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick2);
         client2.chans[roomMapping.channel] = {
             users: {
                 [tRealMatrixUserNick2]: "@"
@@ -459,6 +469,7 @@ describe("IRC-to-Matrix operator modes bridging", function() {
                 resolve({roomId, eventType, content, key});
             });
         });
+
         const cli = await env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
         cli.emit(
             "+mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
@@ -475,6 +486,8 @@ describe("IRC-to-Matrix operator modes bridging", function() {
         expect(setPowerLevelResult.content.users[tRealUserId2]).toBe(50);
     });
 
+
+    it("should bridge the highest power of multiple modes", async () => {
         // Set IRC user prefix, which in reality is assumed to have happened
         const client = await env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
 
