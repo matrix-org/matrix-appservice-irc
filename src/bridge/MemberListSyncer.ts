@@ -3,7 +3,7 @@
 
 import Bluebird from "bluebird";
 import { IrcBridge } from "./IrcBridge";
-import { AppServiceBot, MembershipQueue, Request } from "matrix-appservice-bridge";
+import { AppServiceBot, MembershipQueue } from "matrix-appservice-bridge";
 import { IrcServer } from "../irc/IrcServer";
 import { QueuePool } from "../util/QueuePool";
 import logging from "../logging";
