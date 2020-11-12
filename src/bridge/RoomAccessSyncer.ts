@@ -165,6 +165,12 @@ export class RoomAccessSyncer {
     }
 
     private async setPowerLevel(roomId: string, userId: string, level: number|null, req: BridgeRequest) {
+        if (this.powerLevelGracePeriod === 0) {
+            // If there is no grace period, just change them now.
+            await this.changePowerLevels(roomId, {[userId]: level}, req);
+            return;
+        }
+
         const existingPl: RequestedPLChange = this.pendingPLChanges.get(roomId) || { users: {} };
         existingPl.users[userId] = level;
         if (existingPl.timeout) {
@@ -172,15 +178,10 @@ export class RoomAccessSyncer {
             clearTimeout(existingPl.timeout);
         }
 
-        if (this.powerLevelGracePeriod === 0) {
-            // If there is no grace period, just change them now.
-            await this.changePowerLevels(roomId, existingPl.users, req);
-            return;
-        }
-
         existingPl.timeout = setTimeout(async () => {
             this.changePowerLevels(roomId, existingPl.users, req);
         }, this.powerLevelGracePeriod);
+        this.pendingPLChanges.set(roomId, existingPl);
     }
 
     /**
@@ -238,7 +239,7 @@ export class RoomAccessSyncer {
                 return;
             }
             const chanData = bridgedClient.chanData(channel);
-            if (!(chanData && chanData.users)) {
+            if (!chanData?.users) {
                 req.log.error(`No channel data for ${channel}`);
                 return;
             }

@@ -41,7 +41,7 @@
             "toConsole": true
         },
         "ircHandler": {
-            "powerLevelGracePeriodMs": 50
+            "powerLevelGracePeriodMs": 500
         },
         "servers": {
             "irc.example": {
