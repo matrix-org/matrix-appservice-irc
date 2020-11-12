@@ -40,6 +40,9 @@
             "level": "debug",
             "toConsole": true
         },
+        "ircHandler": {
+            "powerLevelGracePeriodMs": 50
+        },
         "servers": {
             "irc.example": {
                 "port": 6667,
