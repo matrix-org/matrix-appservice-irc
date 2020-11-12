@@ -171,14 +171,16 @@ export class RoomAccessSyncer {
             // If we had a pending request, clear it and wait again.
             clearTimeout(existingPl.timeout);
         }
+
         if (this.powerLevelGracePeriod === 0) {
             // If there is no grace period, just change them now.
             await this.changePowerLevels(roomId, existingPl.users, req);
             return;
         }
+
         existingPl.timeout = setTimeout(async () => {
             this.changePowerLevels(roomId, existingPl.users, req);
-        }, 15000);
+        }, this.powerLevelGracePeriod);
     }
 
     /**
