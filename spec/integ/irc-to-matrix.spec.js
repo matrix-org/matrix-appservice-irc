@@ -359,8 +359,8 @@ describe("IRC-to-Matrix operator modes bridging", function() {
 
     let botMatrixClient = null;
 
-    let tRealMatrixUserNick = "M-alice";
-    let tRealUserId = "@alice:anotherhomeserver";
+    const tRealMatrixUserNick = "M-alice";
+    const tRealUserId = "@alice:anotherhomeserver";
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
@@ -400,10 +400,9 @@ describe("IRC-to-Matrix operator modes bridging", function() {
         yield test.afterEach(env);
     }));
 
-    it("should bridge modes to power levels",
-    test.coroutine(function*() {
+    it("should bridge modes to power levels", async () => {
         // Set IRC user prefix, which in reality is assumed to have happened
-        const client = yield env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
+        const client = await env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
 
         client.chans[roomMapping.channel] = {
             users: {
@@ -411,31 +410,26 @@ describe("IRC-to-Matrix operator modes bridging", function() {
             }
         };
 
-        const promise = new Promise((resolve, reject) => {
-            botMatrixClient.setPowerLevel.and.callFake(
-            function(roomId, userId, powerLevel, event, callback) {
-                expect(roomId).toBe(roomMapping.roomId);
-                expect(userId).toBe(tRealUserId);
-                expect(powerLevel).toBe(50);
-                resolve();
-                return Promise.resolve();
-            });
-
-            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-            function(cli) {
-                cli.emit(
-                    "+mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
-                );
+        const promise = new Promise((resolve) => {
+            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, content, key) => {
+                resolve({roomId, eventType, content, key});
             });
         });
+        const cli = await env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
+        cli.emit(
+            "+mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
+        );
 
-        yield promise;
-    }));
+        const setPowerLevelResult = await promise;
+        expect(setPowerLevelResult.roomId).toBe(roomMapping.roomId);
+        expect(setPowerLevelResult.eventType).toBe("m.room.power_levels");
+        expect(setPowerLevelResult.key).toBe("");
+        expect(setPowerLevelResult.content.users[tRealUserId]).toBe(50);
+    });
 
-    it("should bridge the highest power of multiple modes",
-    test.coroutine(function*() {
+    it("should bridge the highest power of multiple modes", async function() {
         // Set IRC user prefix, which in reality is assumed to have happened
-        const client = yield env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
+        const client = await env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
 
         // This test simulates MODE +o being received, when the user had previously already had
         // a prefix of "+". So their prefix is updated to "+@", as per node-irc. The expected
@@ -446,31 +440,27 @@ describe("IRC-to-Matrix operator modes bridging", function() {
             }
         };
 
-        const promise = new Promise((resolve, reject) => {
-            botMatrixClient.setPowerLevel.and.callFake(
-            function(roomId, userId, powerLevel, event, callback) {
-                expect(roomId).toBe(roomMapping.roomId);
-                expect(userId).toBe(tRealUserId);
-                expect(powerLevel).toBe(50);
-                resolve();
-                return Promise.resolve();
-            });
-
-            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-            function(cli) {
-                cli.emit(
-                    "+mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
-                );
+        const promise = new Promise((resolve) => {
+            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, content, key) => {
+                resolve({roomId, eventType, content, key});
             });
         });
+        const cli = await env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
+        cli.emit(
+            "+mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
+        );
 
-        yield promise;
-    }));
+        const setPowerLevelResult = await promise;
+        expect(setPowerLevelResult.roomId).toBe(roomMapping.roomId);
+        expect(setPowerLevelResult.eventType).toBe("m.room.power_levels");
+        expect(setPowerLevelResult.key).toBe("");
+        expect(setPowerLevelResult.content.users[tRealUserId]).toBe(50);
+    });
 
     it("should bridge the highest power of multiple modes when a higher power mode is removed",
-    test.coroutine(function*() {
+    async function() {
         // Set IRC user prefix, which in reality is assumed to have happened
-        const client = yield env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
+        const client = await env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
 
         // This test simulates MODE -o being received, when the user had previously already had
         // a prefix of "+@". So their prefix is updated to "+", as per node-irc. The expected
@@ -481,34 +471,31 @@ describe("IRC-to-Matrix operator modes bridging", function() {
             }
         };
 
-        const promise = new Promise((resolve, reject) => {
-            botMatrixClient.setPowerLevel.and.callFake(
-            function(roomId, userId, powerLevel, event, callback) {
-                expect(roomId).toBe(roomMapping.roomId);
-                expect(userId).toBe(tRealUserId);
-                expect(powerLevel).toBe(25);
-                resolve();
-                return Promise.resolve();
-            });
-
-            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-            function(cli) {
-                cli.emit(
-                    "+mode", roomMapping.channel, "op-er", "v", tRealMatrixUserNick, "here you go"
-                );
-                cli.emit(
-                    "-mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
-                );
+        const promise = new Promise((resolve) => {
+            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, content, key) => {
+                resolve({roomId, eventType, content, key});
             });
         });
 
-        yield promise;
-    }));
+        const cli = await env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
+
+        cli.emit(
+            "+mode", roomMapping.channel, "op-er", "v", tRealMatrixUserNick, "here you go"
+        );
+        cli.emit(
+            "-mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
+        );
+        const setPowerLevelResult = await promise;
+        expect(setPowerLevelResult.roomId).toBe(roomMapping.roomId);
+        expect(setPowerLevelResult.eventType).toBe("m.room.power_levels");
+        expect(setPowerLevelResult.key).toBe("");
+        expect(setPowerLevelResult.content.users[tRealUserId]).toBe(25);
+    });
 
     it("should bridge the highest power of multiple modes when a lower power mode is removed",
-    test.coroutine(function*() {
+    async function() {
         // Set IRC user prefix, which in reality is assumed to have happened
-        const client = yield env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
+        const client = await env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
 
         // This test simulates MODE -v being received, when the user had previously already had
         // a prefix of "+@". So their prefix is updated to "@", as per node-irc. The expected
@@ -519,29 +506,27 @@ describe("IRC-to-Matrix operator modes bridging", function() {
             }
         };
 
-        const promise = new Promise((resolve, reject) => {
-            botMatrixClient.setPowerLevel.and.callFake(
-            function(roomId, userId, powerLevel, event, callback) {
-                expect(roomId).toBe(roomMapping.roomId);
-                expect(userId).toBe(tRealUserId);
-                expect(powerLevel).toBe(50);
-                resolve();
-                return Promise.resolve();
-            });
-
-            env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-            function(cli) {
-                cli.emit(
-                    "+mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
-                );
-                cli.emit(
-                    "-mode", roomMapping.channel, "op-er", "v", tRealMatrixUserNick, "here you go"
-                );
+        const promise = new Promise((resolve) => {
+            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, content, key) => {
+                resolve({roomId, eventType, content, key});
             });
         });
 
-        yield promise;
-    }));
+        const cli = await env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
+
+        cli.emit(
+            "+mode", roomMapping.channel, "op-er", "o", tRealMatrixUserNick, "here you go"
+        );
+        cli.emit(
+            "-mode", roomMapping.channel, "op-er", "v", tRealMatrixUserNick, "here you go"
+        );
+
+        const setPowerLevelResult = await promise;
+        expect(setPowerLevelResult.roomId).toBe(roomMapping.roomId);
+        expect(setPowerLevelResult.eventType).toBe("m.room.power_levels");
+        expect(setPowerLevelResult.key).toBe("");
+        expect(setPowerLevelResult.content.users[tRealUserId]).toBe(50);
+    });
 });
 
 describe("IRC-to-Matrix name bridging", function() {
