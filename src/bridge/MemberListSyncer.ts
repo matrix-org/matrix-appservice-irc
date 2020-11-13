@@ -3,7 +3,7 @@
 
 import Bluebird from "bluebird";
 import { IrcBridge } from "./IrcBridge";
-import { AppServiceBot, MembershipQueue, Request } from "matrix-appservice-bridge";
+import { AppServiceBot, MembershipQueue } from "matrix-appservice-bridge";
 import { IrcServer } from "../irc/IrcServer";
 import { QueuePool } from "../util/QueuePool";
 import logging from "../logging";
@@ -349,16 +349,16 @@ export class MemberListSyncer {
     }
 
     private async leaveUsersInRoom(item: LeaveQueueItem) {
-        const staticRequest = new Request({ id: "member-sync", data: null});
+        const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
 
         await Promise.all(item.userIds.map((userId) => {
             log.debug(`Leaving ${userId} from ${item.roomId}`);
             this.usersToLeave--;
-            return this.memberQueue.leave(item.roomId, userId, staticRequest, false);
+            return this.memberQueue.leave(item.roomId, userId, req, false);
         }));
 
         // Make sure to deop any users
-        await this.ircBridge.ircHandler?.roomAccessSyncer.removePowerLevels(item.roomId, item.userIds);
+        await this.ircBridge.ircHandler?.roomAccessSyncer.removePowerLevels(item.roomId, item.userIds, req);
     }
 
     // Update the MemberListSyncer with the IRC NAMES_RPL that has been received for channel.

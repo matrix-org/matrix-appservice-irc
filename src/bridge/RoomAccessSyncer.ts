@@ -2,7 +2,7 @@ import { getLogger } from "../logging";
 import { IrcBridge } from "./IrcBridge";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcServer } from "../irc/IrcServer";
-import { MatrixRoom } from "matrix-appservice-bridge";
+import { MatrixRoom, PowerLevelContent } from "matrix-appservice-bridge";
 import { BridgedClientStatus } from "../irc/BridgedClient";
 const log = getLogger("RoomAccessSyncer");
 
@@ -26,34 +26,47 @@ const PRIVATE_MODES = [
  */
 const ACCESS_REFRESH_THRESHOLD = 1;
 
+const DEFAULT_POWER_LEVEL_GRACE_MS = 1000;
+
+interface RequestedPLChange {
+    users: {[userId: string]: number|null};
+    timeout?: NodeJS.Timeout;
+}
+
 /**
  * This class is supplimentary to the IrcHandler class. This
  * class handles incoming mode changes as well as computing the new
  * power level state.
  */
 export class RoomAccessSyncer {
-
+    private pendingPLChanges: Map<string, RequestedPLChange> = new Map(); /* roomId->RequestedPLChange */
     private accessRefreshCount: Map<string, number> = new Map();
 
     // Warning: This cache is currently unbounded.
     private powerLevelsForRoom: {
-        [roomId: string]: unknown;
+        [roomId: string]: PowerLevelContent;
     } = {};
+
     constructor(private ircBridge: IrcBridge) { }
+
+    get powerLevelGracePeriod() {
+        const configPeriod = this.ircBridge.config.ircHandler?.powerLevelGracePeriodMs;
+        return configPeriod === undefined ? DEFAULT_POWER_LEVEL_GRACE_MS : configPeriod;
+    }
 
     /**
      * Called when a m.room.power_levels is forwarded to the bridge. This should
      * happen when a Matrix user or the bridge changes the power levels for a room.
-     * @param {MatrixEvent} event The matrix event.
+     * @param \event The matrix event.
      */
-    public onMatrixPowerlevelEvent(event: {room_id: string; content: unknown}) {
+    public onMatrixPowerlevelEvent(event: {room_id: string; content: PowerLevelContent}) {
         this.powerLevelsForRoom[event.room_id] = event.content;
     }
 
     /**
-     * Useful function to determine current power levels. Will either use
+     * Function to determine current power levels. Will either use
      * cached value or fetch from the homeserver.
-     * @param {string} roomId The room to fetch the state from.
+     * @param roomId The room to fetch the state from.
      */
     private async getCurrentPowerlevels(roomId: string) {
         if (typeof(roomId) !== "string") {
@@ -64,7 +77,7 @@ export class RoomAccessSyncer {
         }
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         try {
-            const state = await intent.getStateEvent(roomId, "m.room.power_levels");
+            const state: PowerLevelContent = await intent.getStateEvent(roomId, "m.room.power_levels");
             this.powerLevelsForRoom[roomId] = state;
             return state;
         }
@@ -72,6 +85,103 @@ export class RoomAccessSyncer {
             log.warn("Failed to get power levels for ", roomId);
             return null;
         }
+    }
+
+    public async removePowerLevels(roomId: string, users: string[], req: BridgeRequest) {
+        const map: {[userId: string]: null} = {};
+        users.forEach((u) => {map[u] = null});
+        return this.changePowerLevels(roomId, map, req);
+    }
+
+    /**
+     * Bulk change a set of users permissions from a room. If users is empty
+     * or no changes were made, this will no-op.
+     * @param roomId A roomId
+     * @param users A set of userIds
+     */
+    private async changePowerLevels(roomId: string, users: {[userId: string]: number|null}, req: BridgeRequest) {
+        if (Object.keys(users).length === 0) {
+            return;
+        }
+
+        const plContent = await this.getCurrentPowerlevels(roomId);
+        if (!plContent) {
+            log.warn(`Could not remove power levels for ${roomId} Could not fetch power levels.`);
+            return;
+        }
+        if (!plContent.users) {
+            // We cannot possibly be OPed if the user field doesn't exist, bail early.
+            log.warn("Invalid PL event has no user field, impossible to set PLs!");
+            return;
+        }
+
+        let modified = 0;
+        for (const [userId, power] of Object.entries(users)) {
+            if (power === null) {
+                delete plContent.users[userId];
+                modified++;
+            }
+            else if (plContent.users[userId] !== power) {
+                plContent.users[userId] = power;
+                modified++;
+            }
+        }
+        if (modified === 0) {
+            // We didn't actually change anything, so don't send anything.
+            return;
+        }
+        log.info(`Changing power levels for ${modified} user(s) from ${roomId}`);
+
+        const botClient = this.ircBridge.getAppServiceBridge().getIntent();
+        try {
+            await botClient.sendStateEvent(roomId, "m.room.power_levels", "", plContent);
+        }
+        catch (ex) {
+            req.log.warn(`Failed to apply PL to ${roomId}`, ex);
+            if (ex.errcode !== "M_TOO_LARGE") {
+                return;
+            }
+            req.log.warn(`The powerlevel event is too large, attempting to flush out left users`);
+            /**
+             * We have so many custom power levels that the event is too large.
+             * This can happen for channels with extremely large numbers of members,
+             * but there *are* things we can do about this.
+             * One trick is to flush out any users that aren't present in the room.
+             */
+            const joinedMembers = Object.keys(
+                await this.ircBridge.getAppServiceBridge().getBot().getJoinedMembers(roomId)
+            );
+            const customPLs = Object.keys(plContent.users);
+            for (const userId of new Set(customPLs.filter((u) => !joinedMembers.includes(u)))) {
+                delete plContent.users[userId];
+            }
+            try {
+                await botClient.sendStateEvent(roomId, "m.room.power_levels", "", plContent);
+            }
+            catch (ex2) {
+                req.log.warn(`Failed to apply PL to ${roomId}, and flushing out left members didn't help`, ex2);
+            }
+        }
+    }
+
+    private async setPowerLevel(roomId: string, userId: string, level: number|null, req: BridgeRequest) {
+        if (this.powerLevelGracePeriod === 0) {
+            // If there is no grace period, just change them now.
+            await this.changePowerLevels(roomId, {[userId]: level}, req);
+            return;
+        }
+
+        const existingPl: RequestedPLChange = this.pendingPLChanges.get(roomId) || { users: {} };
+        existingPl.users[userId] = level;
+        if (existingPl.timeout) {
+            // If we had a pending request, clear it and wait again.
+            clearTimeout(existingPl.timeout);
+        }
+
+        existingPl.timeout = setTimeout(async () => {
+            this.changePowerLevels(roomId, existingPl.users, req);
+        }, this.powerLevelGracePeriod);
+        this.pendingPLChanges.set(roomId, existingPl);
     }
 
     /**
@@ -129,7 +239,7 @@ export class RoomAccessSyncer {
                 return;
             }
             const chanData = bridgedClient.chanData(channel);
-            if (!(chanData && chanData.users)) {
+            if (!chanData?.users) {
                 req.log.error(`No channel data for ${channel}`);
                 return;
             }
@@ -155,7 +265,7 @@ export class RoomAccessSyncer {
 
         // By default, unset the user's power level. This will be treated
         // as the users_default defined in the power levels (or 0 otherwise).
-        let level: number|undefined = undefined;
+        let level: number|null = null;
         // Sort the userPowers for this user in descending order
         // and grab the highest value at the start of the array.
         if (userPowers.length > 0) {
@@ -166,11 +276,11 @@ export class RoomAccessSyncer {
             `onMode: Mode ${mode} received for ${nick}, granting level of ` +
             `${enabled ? level : 0} to ${userId}`
         );
-        const intent = this.ircBridge.getAppServiceBridge().getIntent();
 
         for (const room of matrixRooms) {
             const powerLevelMap = await (this.getCurrentPowerlevels(room.getId())) || {};
-            const users: {[userId: string]: number} = powerLevelMap.users || {};
+            const users = (powerLevelMap.users || {}) as {[userId: string]: number};
+
             // If the user's present PL is equal to the level,
             // or is 0|undefined and the mode is disabled.
             if ((users[userId] === level && enabled) || !enabled && !users[userId]) {
@@ -179,8 +289,12 @@ export class RoomAccessSyncer {
             }
             // If we have a PL for the user, and the PL is higher than
             // the level we want to give the user.
-            if (users[userId] !== undefined && users[userId] > (level || 0)) {
+            if (users[userId] > (level || 0)) {
                 req.log.debug("Not granting PLs, user has a higher existing PL");
+                continue;
+            }
+            if (users[userId] === undefined && level === powerLevelMap.users_default) {
+                req.log.debug("Not granting PLs, user is equal to users_default");
                 continue;
             }
             // If we hit here, then level is higher than our current level.
@@ -190,29 +304,7 @@ export class RoomAccessSyncer {
                 // set of modes.
                 level = 0;
             }
-            try {
-                await intent.setPowerLevel(room.getId(), userId, level);
-            }
-            catch (ex) {
-                req.log.warn(`Failed to apply PL${level} to ${userId}`, ex);
-                if (ex.errcode === "M_TOO_LARGE") {
-                    req.log.warn(`The powerlevel event is too large, attempting to flush out left users`);
-                    /**
-                     * We have so many custom power levels that the event is too large.
-                     * This can happen for channels with extremely large numbers of members,
-                     * but there *are* things we can do about this.
-                     * One trick is to flush out any users that aren't present in the room.
-                     */
-                    const joinedMembers = Object.keys(
-                        await this.ircBridge.getAppServiceBridge().getBot().getJoinedMembers(room.getId())
-                    );
-                    const customPLs = Object.keys(
-                        (await intent.getStateEvent(room.getId(), 'm.room.power_levels')).users
-                    );
-                    const leftUsers = new Set(customPLs.filter((u) => !joinedMembers.includes(u)));
-                    await this.removePowerLevels(room.getId(), [...leftUsers]);
-                }
-            }
+            this.setPowerLevel(room.getId(), userId, level, req);
         }
 
     }
@@ -264,37 +356,6 @@ export class RoomAccessSyncer {
         }));
 
         return Promise.all(promises);
-    }
-
-    /**
-     * Bulk remove a set of users permissions from a room. If users is empty
-     * or no changes were made, this will no-op.
-     * @param {string} roomId A roomId
-     * @param {string[]} users A set of userIds
-     */
-    public async removePowerLevels(roomId: string, users: string[]) {
-        if (users.length === 0) {
-            return;
-        }
-        log.info(`Removing power levels for ${users.length} user(s) from ${roomId}`);
-        const plContent = await this.getCurrentPowerlevels(roomId);
-        if (!plContent) {
-            log.warn(`Could not remove power levels for ${roomId} Could not fetch power levels.`);
-            return;
-        }
-        let modified = 0;
-        for (const userId of users) {
-            if (plContent.users[userId] !== undefined) {
-                delete plContent.users[userId];
-                modified++;
-            }
-        }
-        if (modified === 0) {
-            // We didn't actually change anything, so don't send anything.
-            return;
-        }
-        const botClient = this.ircBridge.getAppServiceBridge().getIntent().getClient();
-        await botClient.sendStateEvent(roomId, "m.room.power_levels", plContent, "");
     }
 
     public async onFailedMessage(req: BridgeRequest, server: IrcServer, channel: string) {
@@ -422,6 +483,10 @@ export class RoomAccessSyncer {
             const roomId = room.getId();
             try {
                 const plContent = await this.getCurrentPowerlevels(roomId);
+                if (!plContent) {
+                    req.log.warn(`Could not get PLs for ${roomId}`);
+                    continue;
+                }
                 const eventsDefault = enabled ? 1 : 0;
                 if (plContent.events_default === eventsDefault) {
                     req.log.debug(`${channel} already has events_default set to ${eventsDefault}`);
