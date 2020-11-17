@@ -284,7 +284,6 @@ export class IrcEventBroker {
             const req = createRequest();
             // Check and drop here, because we want to avoid the performance impact.
             if (!IrcEventBroker.isValidNick(to)) {
-                req.log.warn(`Dropped message due to invalid nick. to: ${to}`);
                 req.resolve(BridgeRequestErr.ERR_DROPPED);
                 return;
             }
@@ -299,7 +298,6 @@ export class IrcEventBroker {
             const req = createRequest();
             // Check and drop here, because we want to avoid the performance impact.
             if (!IrcEventBroker.isValidNick(to)) {
-                req.log.warn(`Dropped message due to invalid nick. ${to}`);
                 req.resolve(BridgeRequestErr.ERR_DROPPED);
                 return;
             }
@@ -315,7 +313,6 @@ export class IrcEventBroker {
                 const req = createRequest();
                 // Check and drop here, because we want to avoid the performance impact.
                 if (!IrcEventBroker.isValidNick(to)) {
-                    req.log.warn(`Dropped message due to invalid nick. ${to}`);
                     req.resolve(BridgeRequestErr.ERR_DROPPED);
                     return;
                 }
@@ -585,6 +582,6 @@ export class IrcEventBroker {
 
     static isValidNick(nick: string) {
         // The first character must be one of these.
-        return /^[A-Za-z\[\]\\`_^\{\|\}]/.test(nick[0])
+        return /^[A-Za-z\[\]\\`_^\{\|\}]/.test(nick[0]);
     }
 }
