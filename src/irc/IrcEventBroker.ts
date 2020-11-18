@@ -282,6 +282,11 @@ export class IrcEventBroker {
         connInst.addListener("message", (from: string, to: string, text: string) => {
             if (to.startsWith("#")) { return; }
             const req = createRequest();
+            // Check and drop here, because we want to avoid the performance impact.
+            if (!IrcEventBroker.isValidNick(to)) {
+                req.resolve(BridgeRequestErr.ERR_DROPPED);
+                return;
+            }
             complete(req, ircHandler.onPrivateMessage(
                 req,
                 server, createUser(from), createUser(to),
@@ -291,6 +296,11 @@ export class IrcEventBroker {
         connInst.addListener("notice", (from: string, to: string, text: string) => {
             if (!from || to.startsWith("#")) { return; }
             const req = createRequest();
+            // Check and drop here, because we want to avoid the performance impact.
+            if (!IrcEventBroker.isValidNick(to)) {
+                req.resolve(BridgeRequestErr.ERR_DROPPED);
+                return;
+            }
             complete(req, ircHandler.onPrivateMessage(
                 req,
                 server, createUser(from), createUser(to),
@@ -301,6 +311,11 @@ export class IrcEventBroker {
             if (to.startsWith("#")) { return; }
             if (text.startsWith("ACTION ")) {
                 const req = createRequest();
+                // Check and drop here, because we want to avoid the performance impact.
+                if (!IrcEventBroker.isValidNick(to)) {
+                    req.resolve(BridgeRequestErr.ERR_DROPPED);
+                    return;
+                }
                 complete(req, ircHandler.onPrivateMessage(
                     req,
                     server, createUser(from), createUser(to),
@@ -563,5 +578,10 @@ export class IrcEventBroker {
             }
             await req();
         })();
+    }
+
+    static isValidNick(nick: string) {
+        // The first character must be one of these.
+        return /^[A-Za-z\[\]\\`_^\{\|\}]/.test(nick[0]);
     }
 }
