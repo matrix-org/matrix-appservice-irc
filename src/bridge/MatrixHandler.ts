@@ -419,7 +419,8 @@ export class MatrixHandler {
         * [6] MX  --invite--> BOT  (invite to private room to allow bot to bridge) - Ignore.
         * [7] MX  --invite--> MX   (matrix user inviting another matrix user)
         */
-        req.log.info("onInvite: from=%s to=%s rm=%s id=%s", event.sender, event.state_key, event.room_id, event.room_id);
+        req.log.info("onInvite: from=%s to=%s rm=%s id=%s", event.sender,
+            event.state_key, event.room_id, event.event_id);
         this._onMemberEvent(req, event);
 
         // mark this room as being processed in case we simultaneously get
