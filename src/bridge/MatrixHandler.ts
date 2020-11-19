@@ -65,6 +65,7 @@ interface MatrixSimpleMessage {
 
 interface MatrixEventLeave {
     room_id: string;
+    event_id: string;
     _injected?: boolean;
 }
 
@@ -418,7 +419,7 @@ export class MatrixHandler {
         * [6] MX  --invite--> BOT  (invite to private room to allow bot to bridge) - Ignore.
         * [7] MX  --invite--> MX   (matrix user inviting another matrix user)
         */
-        req.log.info("onInvite: %s", JSON.stringify(event));
+        req.log.info("onInvite: from=%s to=%s rm=%s id=%s", event.sender, event.state_key, event.room_id, event.room_id);
         this._onMemberEvent(req, event);
 
         // mark this room as being processed in case we simultaneously get
@@ -473,7 +474,7 @@ export class MatrixHandler {
 
     private async _onJoin(req: BridgeRequest, event: OnMemberEventData, user: MatrixUser):
     Promise<BridgeRequestErr|null> {
-        req.log.info("onJoin: ", JSON.stringify(event));
+        req.log.info("onJoin: usr=%s rm=%s id=%s", event.state_key, event.room_id, event.event_id);
         this._onMemberEvent(req, event);
         // membershiplists injects leave events when syncing initial membership
         // lists. We know if this event is injected because this flag is set.
@@ -692,7 +693,7 @@ export class MatrixHandler {
 
     private async _onLeave(req: BridgeRequest, event: MatrixEventLeave, user: MatrixUser):
     Promise<BridgeRequestErr|null> {
-        req.log.info("onLeave: usr=%s rm=%s", user.getId(), event.room_id);
+        req.log.info("onLeave: usr=%s rm=%s id=%s", user.getId(), event.room_id, event.event_id);
         // membershiplists injects leave events when syncing initial membership
         // lists. We know if this event is injected because this flag is set.
         const syncKind = event._injected ? "initial" : "incremental";
@@ -771,8 +772,8 @@ export class MatrixHandler {
         * Matrix --> Matrix (Admin room)
         */
 
-        req.log.info("OnMessage: %s usr=%s rm=%s",
-            event.type, event.sender, event.room_id,
+        req.log.info("onMessage: %s usr=%s rm=%s id=%s",
+            event.type, event.sender, event.room_id, event.event_id
         );
         if (event.content.body) {
             req.log.debug("Message body: %s", event.content.body);
