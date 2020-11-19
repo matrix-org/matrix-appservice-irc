@@ -493,6 +493,13 @@ export class IrcHandler {
         if (fromUser.isVirtual) {
             return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
+
+        const mxAction = MatrixAction.fromIrcAction(action);
+        if (!mxAction) {
+            req.log.error("Couldn't map IRC action to matrix action");
+            return BridgeRequestErr.ERR_DROPPED;
+        }
+
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
 
         if (matrixRooms.length === 0) {
@@ -508,11 +515,6 @@ export class IrcHandler {
         );
         req.log.debug("action=%s", JSON.stringify(action).substring(0, 80))
 
-        const mxAction = MatrixAction.fromIrcAction(action);
-        if (!mxAction) {
-            req.log.error("Couldn't map IRC action to matrix action");
-            return BridgeRequestErr.ERR_DROPPED;
-        }
 
         let mapping = null;
         if (this.nickUserIdMapCache.has(`${server.domain}:${channel}`)) {
@@ -765,16 +767,15 @@ export class IrcHandler {
         const nick = leavingUser.nick;
         req.log.info("onPart(%s) %s to %s", kind, nick, chan);
 
+        // if the person leaving is a virtual IRC user, do nothing. Unless it's a part.
+        if (leavingUser.isVirtual && kind !== "part") {
+            return BridgeRequestErr.ERR_VIRTUAL_USER;
+        }
 
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, chan);
         if (matrixRooms.length === 0) {
             req.log.info("No mapped matrix rooms for IRC channel %s", chan);
             return BridgeRequestErr.ERR_NOT_MAPPED;
-        }
-
-        // if the person leaving is a virtual IRC user, do nothing. Unless it's a part.
-        if (leavingUser.isVirtual && kind !== "part") {
-            return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
 
         let userId: string;
@@ -855,6 +856,10 @@ export class IrcHandler {
      */
     public async onMetadata(req: BridgeRequest, client: BridgedClient, msg: string, force: boolean,
                             ircMsg?: IrcMessage) {
+        if (!client.userId) {
+            // Probably the bot
+            return undefined;
+        }
         req.log.info("%s : Sending metadata '%s'", client, msg);
         if (!this.ircBridge.isStartedUp && !force) {
             req.log.info("Suppressing metadata: not started up.");
@@ -863,10 +868,6 @@ export class IrcHandler {
 
         const botUser = new MatrixUser(this.ircBridge.appServiceUserId);
 
-        if (!client.userId) {
-            // Probably the bot
-            return undefined;
-        }
 
         if (ircMsg && ircMsg.command === "err_nosuchnick") {
             const otherNick = ircMsg.args[1];
