@@ -518,7 +518,7 @@ export class PgDataStore implements DataStore {
             [username, domain]
         );
         if (res.rowCount === 0) {
-            return;
+            return undefined;
         }
         else if (res.rowCount > 1) {
             log.error("getMatrixUserByUsername returned %s results for %s on %s", res.rowCount, username, domain);
@@ -546,7 +546,7 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query(statement, [userId, Date.now()]);
     }
 
-    public async getLastSeenTimeForUsers(): Promise<{ user_id: string, ts: number }[]> {
+    public async getLastSeenTimeForUsers(): Promise<{ user_id: string; ts: number }[]> {
         const res = await this.pgPool.query(`SELECT * FROM last_seen`);
         return res.rows;
     }
