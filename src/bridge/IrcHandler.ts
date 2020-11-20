@@ -250,7 +250,7 @@ export class IrcHandler {
         }
 
         const virtualMatrixUser = await this.ircBridge.getMatrixUser(fromUser);
-        req.log.debug("Mapped to %s", JSON.stringify(virtualMatrixUser));
+        req.log.debug("Mapped to %s", virtualMatrixUser.getId());
 
         // Try to get the room from the store.
         let pmRoom = await this.ircBridge.getStore().getMatrixPmRoom(
@@ -338,7 +338,7 @@ export class IrcHandler {
         const ircClient = bridgedIrcClient;
 
         const virtualMatrixUser = await this.ircBridge.getMatrixUser(fromUser);
-        req.log.debug("Mapped to %s", JSON.stringify(virtualMatrixUser));
+        req.log.debug("Mapped to %s", virtualMatrixUser.getId());
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
         const roomAlias = server.getAliasFromChannel(channel);
         const inviteIntent = this.ircBridge.getAppServiceBridge().getIntent(
