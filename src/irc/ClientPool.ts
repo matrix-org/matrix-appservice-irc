@@ -496,7 +496,7 @@ export class ClientPool {
     public getNickUserIdMappingForChannel(server: IrcServer, channel: string): {[nick: string]: string} {
         const nickUserIdMap: {[nick: string]: string} = {};
         for (const [userId, client] of this.virtualClients[server.domain].userIds.entries()) {
-            if (client.chanList.includes(channel)) {
+            if (client.inChannel(channel)) {
                 nickUserIdMap[client.nick] = userId;
             }
         }
@@ -584,7 +584,7 @@ export class ClientPool {
         const isBot = bridgedClient.isBot;
         const chanList = bridgedClient.chanList;
 
-        if (chanList.length === 0 && !isBot && disconnectReason !== "iwanttoreconnect") {
+        if (chanList.size === 0 && !isBot && disconnectReason !== "iwanttoreconnect") {
             // Never drop the bot, or users that really want to reconnect.
             log.info(
                 `Dropping ${bridgedClient.id} (${bridgedClient.nick}) because they are not joined to any channels`
@@ -627,13 +627,13 @@ export class ClientPool {
         if (queue === null) {
             this.reconnectClient({
                 cli: cli,
-                chanList: chanList,
+                chanList: [...chanList],
             });
             return;
         }
         queue.enqueue(cli.id, {
             cli: cli,
-            chanList: chanList,
+            chanList: [...chanList],
         });
     }
 

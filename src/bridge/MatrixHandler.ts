@@ -285,7 +285,7 @@ export class MatrixHandler {
 
         for (let i = 0; i < clients.length; i++) {
             const bridgedClient = clients[i];
-            if (bridgedClient.chanList.length === 0) {
+            if (bridgedClient.chanList.size === 0) {
                 req.log.info(
                     `Bridged client for ${userId} is not in any channels ` +
                     `on ${bridgedClient.server.domain}`
@@ -295,7 +295,7 @@ export class MatrixHandler {
                 // Get all rooms that the bridgedClient is in
                 const uniqueRoomIds = new Set<string>();
                 (await Promise.all(
-                    bridgedClient.chanList.map(
+                    [...bridgedClient.chanList].map(
                         (channel) => {
                             return this.ircBridge.getStore().getMatrixRoomsForChannel(
                                 bridgedClient.server, channel
