@@ -604,7 +604,7 @@ export class IrcHandler {
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     public async onJoin (req: BridgeRequest, server: IrcServer, joiningUser: IrcUser,
-                         chan: string, kind: "names"|"join") {
+                         chan: string, kind: "names"|"join"|"nick") {
         if (kind === "names") {
             this.incrementMetric("join.names");
         }
