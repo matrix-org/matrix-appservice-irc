@@ -64,6 +64,7 @@ interface MatrixSimpleMessage {
 
 interface MatrixEventLeave {
     room_id: string;
+    event_id: string;
     _injected?: boolean;
 }
 
@@ -115,7 +116,7 @@ export class MatrixHandler {
      * @param {MatrixUser} inviter : The user who invited the bot.
      */
     private async handleAdminRoomInvite(req: BridgeRequest, event: {room_id: string}, inviter: MatrixUser) {
-        req.log.info("Handling invite from user directed to bot.");
+        req.log.info(`Handling invite from ${inviter.getId()} directed to bot.`);
         // Real MX user inviting BOT to a private chat
         const mxRoom = new MatrixRoom(event.room_id);
         await this.membershipQueue.join(event.room_id, undefined, req, true);
@@ -134,7 +135,7 @@ export class MatrixHandler {
             }
         }
         catch (err) {
-            req.log.info(`Not a plumbed room: Error retrieving m.room.plumbing (${err.data.error})`);
+            req.log.debug(`Not a plumbed room: Error retrieving m.room.plumbing (${err.data.error})`);
         }
 
         // clobber any previous admin room ID
@@ -216,7 +217,7 @@ export class MatrixHandler {
             );
             return;
         }
-        req.log.error("This room isn't a 1:1 chat!");
+        req.log.warn(`Room ${event.room_id} is not a 1:1 chat`);
         await intent.kick(event.room_id, invitedUser.getId(), "Group chat not supported.");
     }
 
@@ -417,7 +418,8 @@ export class MatrixHandler {
         * [6] MX  --invite--> BOT  (invite to private room to allow bot to bridge) - Ignore.
         * [7] MX  --invite--> MX   (matrix user inviting another matrix user)
         */
-        req.log.info("onInvite: %s", JSON.stringify(event));
+        req.log.info("onInvite: from=%s to=%s rm=%s id=%s", event.sender,
+            event.state_key, event.room_id, event.event_id);
         this._onMemberEvent(req, event);
 
         // mark this room as being processed in case we simultaneously get
@@ -472,7 +474,7 @@ export class MatrixHandler {
 
     private async _onJoin(req: BridgeRequest, event: OnMemberEventData, user: MatrixUser):
     Promise<BridgeRequestErr|null> {
-        req.log.info("onJoin: %s", JSON.stringify(event));
+        req.log.info("onJoin: usr=%s rm=%s id=%s", event.state_key, event.room_id, event.event_id);
         this._onMemberEvent(req, event);
         // membershiplists injects leave events when syncing initial membership
         // lists. We know if this event is injected because this flag is set.
@@ -513,7 +515,7 @@ export class MatrixHandler {
         // for each room (which may be on different servers)
         ircRooms.forEach((room) => {
             if (room.server.claimsUserId(user.getId())) {
-                req.log.info("%s is a virtual user (claimed by %s)",
+                req.log.debug("%s is a virtual user (claimed by %s)",
                     user.getId(), room.server.domain);
                 return;
             }
@@ -593,8 +595,8 @@ export class MatrixHandler {
 
     private async _onKick(req: BridgeRequest, event: MatrixEventKick, kicker: MatrixUser, kickee: MatrixUser) {
         req.log.info(
-            "onKick %s is kicking/banning %s from %s",
-            kicker.getId(), kickee.getId(), event.room_id
+            "onKick %s is kicking/banning %s from %s (reason: %s)",
+            kicker.getId(), kickee.getId(), event.room_id, event.content.reason || "none"
         );
         this._onMemberEvent(req, event);
 
@@ -648,7 +650,7 @@ export class MatrixHandler {
             const kickerClient = this.ircBridge.getIrcUserFromCache(server, kicker.getId());
             if (!kickerClient) {
                 // well this is awkward.. whine about it and bail.
-                req.log.error(
+                req.log.warn(
                     "%s has no client instance to send kick from. Cannot kick.",
                     kicker.getId()
                 );
@@ -691,7 +693,7 @@ export class MatrixHandler {
 
     private async _onLeave(req: BridgeRequest, event: MatrixEventLeave, user: MatrixUser):
     Promise<BridgeRequestErr|null> {
-        req.log.info("onLeave: %s", JSON.stringify(event));
+        req.log.info("onLeave: usr=%s rm=%s id=%s", user.getId(), event.room_id, event.event_id);
         // membershiplists injects leave events when syncing initial membership
         // lists. We know if this event is injected because this flag is set.
         const syncKind = event._injected ? "initial" : "incremental";
@@ -770,10 +772,12 @@ export class MatrixHandler {
         * Matrix --> Matrix (Admin room)
         */
 
-        req.log.info("%s usr=%s rm=%s body=%s",
-            event.type, event.sender, event.room_id,
-            (event.content.body ? event.content.body.substring(0, 20) : "")
+        req.log.info("onMessage: %s usr=%s rm=%s id=%s",
+            event.type, event.sender, event.room_id, event.event_id
         );
+        if (event.content.body) {
+            req.log.debug("Message body: %s", event.content.body);
+        }
         const mxAction = MatrixAction.fromEvent(
             event, this.mediaUrl
         );
@@ -787,7 +791,7 @@ export class MatrixHandler {
         const servers = this.ircBridge.getServers();
         for (let i = 0; i < servers.length; i++) {
             if (servers[i].claimsUserId(event.sender)) {
-                req.log.info("%s is a virtual user (claimed by %s)",
+                req.log.debug("%s is a virtual user (claimed by %s)",
                     event.sender, servers[i].domain);
                 return BridgeRequestErr.ERR_VIRTUAL_USER;
             }
@@ -824,7 +828,7 @@ export class MatrixHandler {
             // could be an Admin room, so check.
             const adminRoom = await this.ircBridge.getStore().getAdminRoomById(event.room_id);
             if (!adminRoom) {
-                req.log.info("No mapped channels.");
+                req.log.debug("No mapped channels.");
                 return BridgeRequestErr.ERR_DROPPED;
             }
             // process admin request
@@ -848,7 +852,7 @@ export class MatrixHandler {
 
         ircRooms.forEach((ircRoom) => {
             if (ircRoom.server.claimsUserId(event.sender)) {
-                req.log.info("%s is a virtual user (claimed by %s)",
+                req.log.debug("%s is a virtual user (claimed by %s)",
                     event.sender, ircRoom.server.domain);
                 return;
             }
@@ -880,7 +884,7 @@ export class MatrixHandler {
                         displayName = res.displayname;
                     }
                     catch (err) {
-                        req.log.error("Failed to get display name: %s", err);
+                        req.log.warn("Failed to get display name: %s", err);
                         // this is non-fatal, continue.
                     }
                     bridgedClient = await this.ircBridge.getBridgedClient(
@@ -1006,7 +1010,7 @@ export class MatrixHandler {
             await this.ircBridge.sendIrcAction(ircRoom, ircClient, bigFileIrcAction);
         }
         else {
-            req.log.warn("Sending truncated message");
+            req.log.debug("Sending truncated message");
             // Modify the event to become a truncated version of the original
             //  the truncation limits the number of lines sent to lineLimit.
 
@@ -1212,7 +1216,7 @@ export class MatrixHandler {
         return reqHandler(req, this._onJoin(req, event, user));
     }
 
-    public onLeave(req: BridgeRequest, event: { room_id: string; _injected?: boolean }, user: MatrixUser) {
+    public onLeave(req: BridgeRequest, event: MatrixEventLeave, user: MatrixUser) {
         return reqHandler(req, this._onLeave(req, event, user));
     }
 

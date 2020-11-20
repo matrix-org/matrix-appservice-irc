@@ -115,7 +115,7 @@ export class IrcHandler {
             this.roomIdToPrivateMember[roomId] = priv;
 
             // query room state to see if the user is actually joined.
-            log.info("Querying PM room state (%s) between %s and %s",
+            log.debug("Querying PM room state (%s) between %s and %s",
                 roomId, userId, virtUserId);
             priv = (await intent.getStateEvent(roomId, "m.room.member", userId));
             this.roomIdToPrivateMember[roomId] = priv;
@@ -217,14 +217,14 @@ export class IrcHandler {
             req.log.error("Cannot route PM to %s - no client", toUser);
             return BridgeRequestErr.ERR_DROPPED;
         }
-        req.log.info("onPrivateMessage: %s from=%s to=%s action=%s",
-            server.domain, fromUser, toUser,
-            JSON.stringify(action).substring(0, 80)
+        req.log.info("onPrivateMessage: %s from=%s to=%s",
+            server.domain, fromUser, toUser
         );
+        req.log.debug("action=%s", JSON.stringify(action).substring(0, 80));
 
         if (bridgedIrcClient.isBot) {
             if (action.type !== "message") {
-                req.log.info("Ignoring non-message PM");
+                req.log.debug("Ignoring non-message PM");
                 return BridgeRequestErr.ERR_DROPPED;
             }
             req.log.debug("Rerouting PM directed to the bot from %s to provisioning", fromUser);
@@ -250,7 +250,7 @@ export class IrcHandler {
         }
 
         const virtualMatrixUser = await this.ircBridge.getMatrixUser(fromUser);
-        req.log.info("Mapped to %s", JSON.stringify(virtualMatrixUser));
+        req.log.debug("Mapped to %s", virtualMatrixUser.getId());
 
         // Try to get the room from the store.
         let pmRoom = await this.ircBridge.getStore().getMatrixPmRoom(
@@ -338,7 +338,7 @@ export class IrcHandler {
         const ircClient = bridgedIrcClient;
 
         const virtualMatrixUser = await this.ircBridge.getMatrixUser(fromUser);
-        req.log.info("Mapped to %s", JSON.stringify(virtualMatrixUser));
+        req.log.debug("Mapped to %s", virtualMatrixUser.getId());
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
         const roomAlias = server.getAliasFromChannel(channel);
         const inviteIntent = this.ircBridge.getAppServiceBridge().getIntent(
@@ -432,14 +432,15 @@ export class IrcHandler {
     public async onTopic (req: BridgeRequest, server: IrcServer, fromUser: IrcUser,
                           channel: string, action: IrcAction) {
         this.incrementMetric("topic");
-        req.log.info("onTopic: %s from=%s to=%s action=%s",
-            server.domain, fromUser, channel, JSON.stringify(action).substring(0, 80)
-        );
-
         if (fromUser.isVirtual) {
             // Don't echo our topics back.
             return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
+        req.log.info("onTopic: %s from=%s to=%s ",
+            server.domain, fromUser, channel
+        );
+        req.log.debug("action=%s", JSON.stringify(action).substring(0, 80));
+
 
         const ALLOWED_ORIGINS: RoomOrigin[] = ["join", "alias"];
         const topic = action.text;
@@ -492,6 +493,13 @@ export class IrcHandler {
         if (fromUser.isVirtual) {
             return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
+
+        const mxAction = MatrixAction.fromIrcAction(action);
+        if (!mxAction) {
+            req.log.error("Couldn't map IRC action to matrix action");
+            return BridgeRequestErr.ERR_DROPPED;
+        }
+
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
 
         if (matrixRooms.length === 0) {
@@ -502,15 +510,11 @@ export class IrcHandler {
             return undefined;
         }
 
-        req.log.info("onMessage: %s from=%s to=%s action=%s",
-            server.domain, fromUser, channel, JSON.stringify(action).substring(0, 80)
+        req.log.info("onMessage: %s from=%s to=%s",
+            server.domain, fromUser, channel
         );
+        req.log.debug("action=%s", JSON.stringify(action).substring(0, 80))
 
-        const mxAction = MatrixAction.fromIrcAction(action);
-        if (!mxAction) {
-            req.log.error("Couldn't map IRC action to matrix action");
-            return BridgeRequestErr.ERR_DROPPED;
-        }
 
         let mapping = null;
         if (this.nickUserIdMapCache.has(`${server.domain}:${channel}`)) {
@@ -563,10 +567,10 @@ export class IrcHandler {
         }
 
         const failed = [];
+        req.log.debug(
+            "Relaying in room(s) %s", matrixRooms.map((r) => r.getId()).join(", "),
+        );
         for (const room of matrixRooms) {
-            req.log.info(
-                "Relaying in room %s", room.getId()
-            );
             try {
                 await this.ircBridge.sendMatrixAction(room, virtualMatrixUser, mxAction);
             }
@@ -612,7 +616,7 @@ export class IrcHandler {
         const nick = joiningUser.nick;
         const syncType: MembershipSyncKind = kind === "names" ? "initial" : "incremental";
         if (!server.shouldSyncMembershipToMatrix(syncType, chan)) {
-            req.log.info("IRC onJoin(%s) %s to %s - not syncing.", kind, nick, chan);
+            req.log.debug("IRC onJoin(%s) %s to %s - not syncing.", kind, nick, chan);
             return BridgeRequestErr.ERR_NOT_MAPPED;
         }
 
@@ -758,22 +762,21 @@ export class IrcHandler {
         this.invalidateNickUserIdMap(server, chan);
         // parts are always incremental (only NAMES are initial)
         if (!server.shouldSyncMembershipToMatrix("incremental", chan)) {
-            req.log.info("Server doesn't mirror parts.");
+            req.log.debug("Server doesn't mirror parts.");
             return undefined;
         }
         const nick = leavingUser.nick;
         req.log.info("onPart(%s) %s to %s", kind, nick, chan);
 
+        // if the person leaving is a virtual IRC user, do nothing. Unless it's a part.
+        if (leavingUser.isVirtual && kind !== "part") {
+            return BridgeRequestErr.ERR_VIRTUAL_USER;
+        }
 
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, chan);
         if (matrixRooms.length === 0) {
             req.log.info("No mapped matrix rooms for IRC channel %s", chan);
             return BridgeRequestErr.ERR_NOT_MAPPED;
-        }
-
-        // if the person leaving is a virtual IRC user, do nothing. Unless it's a part.
-        if (leavingUser.isVirtual && kind !== "part") {
-            return BridgeRequestErr.ERR_VIRTUAL_USER;
         }
 
         let userId: string;
@@ -862,6 +865,10 @@ export class IrcHandler {
      */
     public async onMetadata(req: BridgeRequest, client: BridgedClient, msg: string, force: boolean,
                             ircMsg?: IrcMessage) {
+        if (!client.userId) {
+            // Probably the bot
+            return undefined;
+        }
         req.log.info("%s : Sending metadata '%s'", client, msg);
         if (!this.ircBridge.isStartedUp && !force) {
             req.log.info("Suppressing metadata: not started up.");
@@ -870,10 +877,6 @@ export class IrcHandler {
 
         const botUser = new MatrixUser(this.ircBridge.appServiceUserId);
 
-        if (!client.userId) {
-            // Probably the bot
-            return undefined;
-        }
 
         if (ircMsg && ircMsg.command === "err_nosuchnick") {
             const otherNick = ircMsg.args[1];
