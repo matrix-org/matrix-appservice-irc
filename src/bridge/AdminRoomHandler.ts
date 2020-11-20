@@ -409,14 +409,14 @@ export class AdminRoomHandler {
                 "notice", "You are not currently connected to this irc network"
             ));
         }
-        if (client.chanList.length === 0) {
+        if (client.chanList.size === 0) {
             return this.ircBridge.sendMatrixAction(room, this.botUser, new MatrixAction(
                 "notice", "You are connected, but not joined to any channels."
             ));
         }
 
-        let chanList = `You are joined to ${client.chanList.length} rooms: \n\n`;
-        let chanListHTML = `<p> You are joined to <code>${client.chanList.length}</code> rooms: </p><ul>`;
+        let chanList = `You are joined to ${client.chanList.size} rooms: \n\n`;
+        let chanListHTML = `<p> You are joined to <code>${client.chanList.size}</code> rooms: </p><ul>`;
         for (const channel of client.chanList) {
             const rooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
             chanList += `- \`${channel}\` which is bridged to ${rooms.map((r) => r.getId()).join(", ")}`;
