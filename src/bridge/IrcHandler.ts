@@ -17,6 +17,7 @@ import { trackChannelAndCreateRoom } from "../bridge/RoomCreation";
 const NICK_USERID_CACHE_MAX = 512;
 const PM_POWERLEVEL_MATRIXUSER = 10;
 const PM_POWERLEVEL_IRCUSER = 100;
+const MEMBERSHIP_INITIAL_TTL_MS = 30 * 60 * 1000; // 30 mins
 
 export type MatrixMembership = "join"|"invite"|"leave"|"ban";
 
@@ -636,9 +637,12 @@ export class IrcHandler {
         );
         const promises = matrixRooms.map(async (room) => {
             req.log.info("Joining room %s and setting presence to online", room.getId());
-            // Do not retry a names join
-            // The bridge cachces membership locally, so duplicate calls to join will be no-oped
-            await this.membershipQueue.join(room.getId(), matrixUser.getId(), req, kind !== "names");
+            // Only retry if this is not an initial sync to avoid extra load
+            const shouldRetry = syncType === "incremental";
+            // Initial membership should have a longer TTL as it is likely going to be delayed by a large
+            // number of new joiners.
+            const ttl = syncType === "initial" ? MEMBERSHIP_INITIAL_TTL_MS : undefined;
+            await this.membershipQueue.join(room.getId(), matrixUser.getId(), req, shouldRetry, ttl);
             intent.setPresence("online");
         });
         if (matrixRooms.length === 0) {
@@ -794,8 +798,7 @@ export class IrcHandler {
         await Promise.all(matrixRooms.map(async (room) => {
             if (leavingUser.isVirtual) {
                 return this.membershipQueue.leave(
-                    room.getId(), userId, req, true, "Client PARTed from channel",
-                    this.ircBridge.appServiceUserId);
+                    room.getId(), userId, req, true, this.ircBridge.appServiceUserId);
             }
 
             // Show a reason if the part is not a regular part, or reason text was given.
