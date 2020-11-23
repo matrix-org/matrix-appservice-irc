@@ -349,12 +349,14 @@ export class MemberListSyncer {
     }
 
     private async leaveUsersInRoom(item: LeaveQueueItem) {
-        const staticRequest = new Request({ id: "member-sync", data: null});
+        const req = new Request({ id: "member-sync", data: null});
 
         await Promise.all(item.userIds.map((userId) => {
             log.debug(`Leaving ${userId} from ${item.roomId}`);
             this.usersToLeave--;
-            return this.memberQueue.leave(item.roomId, userId, staticRequest, false);
+            if (this.ircBridge.membershipCache.getMemberEntry(item.roomId, userId) === "join") {
+                return this.memberQueue.leave(item.roomId, userId, req, false, undefined, undefined);
+            }
         }));
 
         // Make sure to deop any users

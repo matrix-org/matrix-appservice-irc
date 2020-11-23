@@ -76,7 +76,7 @@ export class IrcBridge {
         matrix_request_seconds: Histogram<string>;
         remote_request_seconds: Histogram<string>;
     }|null = null;
-    private membershipCache: MembershipCache;
+    public readonly membershipCache: MembershipCache;
     private readonly membershipQueue: MembershipQueue;
     private bridgeStateSyncer!: BridgeStateSyncer;
 
