@@ -637,7 +637,7 @@ export class IrcHandler {
         const promises = matrixRooms.map(async (room) => {
             req.log.info("Joining room %s and setting presence to online", room.getId());
             // Do not retry a names join
-            // The bridge cachces membership locally, so duplicate calls to join will be no-oped
+            // The bridge caches membership locally, so duplicate calls to join will be no-oped
             await this.membershipQueue.join(room.getId(), matrixUser.getId(), req, kind !== "names");
             intent.setPresence("online");
         });
@@ -968,4 +968,3 @@ export class IrcHandler {
         this.nickUserIdMapCache.delete(`${server.domain}:${channel}`);
     }
 }
-
