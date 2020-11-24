@@ -12,6 +12,7 @@ import * as promiseutil from "../promiseutil";
 import { BridgeRequest } from "../models/BridgeRequest";
 
 const log = logging("MemberListSyncer");
+const LEAVE_TTL_MS = 30 * 60 * 1000; // 30 mins
 
 interface MemberStateEvent {
     type: string;
@@ -346,11 +347,11 @@ export class MemberListSyncer {
         await Promise.all(item.userIds.map((userId) => {
             log.debug(`Leaving ${userId} from ${item.roomId}`);
             this.usersToLeave--;
-            return this.memberQueue.leave(item.roomId, userId, req, false);
+            return this.memberQueue.leave(item.roomId, userId, req, false, undefined, undefined, LEAVE_TTL_MS);
         }));
 
         // Make sure to deop any users
-        await this.ircBridge.ircHandler?.roomAccessSyncer.removePowerLevels(item.roomId, item.userIds, req);
+        await this.ircBridge.ircHandler.roomAccessSyncer.removePowerLevels(item.roomId, item.userIds, req);
     }
 
     // Update the MemberListSyncer with the IRC NAMES_RPL that has been received for channel.

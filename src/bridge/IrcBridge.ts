@@ -179,9 +179,10 @@ export class IrcBridge {
         });
         this.membershipQueue = new MembershipQueue(this.bridge, {
             concurrentRoomLimit: 3,
-            maxAttempts: 10,
-            joinDelayMs: 500,
-            maxJoinDelayMs: 5 * 60 * 1000, // 5 mins,
+            maxAttempts: 5,
+            actionDelayMs: 500,
+            maxActionDelayMs: 5 * 60 * 1000, // 5 mins,
+            defaultTtlMs: 10 * 60 * 1000, // 10 mins
         });
         this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
         this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue);
@@ -227,6 +228,7 @@ export class IrcBridge {
         }
 
         this.ircHandler.onConfigChanged(newConfig.ircHandler || {});
+        this.config.ircHandler = newConfig.ircHandler;
 
         const hasLoggingChanged = JSON.stringify(oldConfig.ircService.logging)
             !== JSON.stringify(newConfig.ircService.logging);
@@ -434,6 +436,8 @@ export class IrcBridge {
         metrics.addCollector(async () => {
             this.clientPool.collectConnectionStatesForAllServers(clientStates);
         });
+
+        this.membershipQueue.registerMetrics();
     }
 
     public get appServiceUserId() {
