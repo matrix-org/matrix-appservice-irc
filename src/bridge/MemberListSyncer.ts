@@ -54,14 +54,6 @@ export class MemberListSyncer {
                 private appServiceUserId: string, private injectJoinFn: InjectJoinFn) {
     }
 
-    public isRemoteJoinedToRoom(roomId: string, userId: string) {
-        const room = this.memberLists.matrix[roomId];
-        if (room) {
-            return room.remoteJoinedUsers.includes(userId);
-        }
-        return false;
-    }
-
     public async sync() {
         const server = this.server;
         if (!server.isMembershipListsEnabled()) {

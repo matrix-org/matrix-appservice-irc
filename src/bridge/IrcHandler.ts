@@ -233,15 +233,16 @@ export class IrcHandler {
             return undefined;
         }
 
+        if (!server.allowsPms()) {
+            req.log.error("Server %s disallows PMs.", server.domain);
+            return BridgeRequestErr.ERR_DROPPED;
+        }
+
         if (!bridgedIrcClient.userId) {
             req.log.error("Cannot route PM to %s - no user id on client", toUser);
             return BridgeRequestErr.ERR_DROPPED;
         }
 
-        if (!server.allowsPms()) {
-            req.log.error("Server %s disallows PMs.", server.domain);
-            return BridgeRequestErr.ERR_DROPPED;
-        }
 
         const mxAction = MatrixAction.fromIrcAction(action);
 
@@ -251,7 +252,7 @@ export class IrcHandler {
         }
 
         const virtualMatrixUser = await this.ircBridge.getMatrixUser(fromUser);
-        req.log.debug("Mapped to %s", virtualMatrixUser.getId());
+        req.log.debug(`Mapped ${fromUser.nick} -> ${virtualMatrixUser.getId()}`);
 
         // Try to get the room from the store.
         let pmRoom = await this.ircBridge.getStore().getMatrixPmRoom(
@@ -604,7 +605,7 @@ export class IrcHandler {
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     public async onJoin (req: BridgeRequest, server: IrcServer, joiningUser: IrcUser,
-                         chan: string, kind: string) {
+                         chan: string, kind: "names"|"join"|"nick") {
         if (kind === "names") {
             this.incrementMetric("join.names");
         }
@@ -614,6 +615,12 @@ export class IrcHandler {
 
         this.invalidateNickUserIdMap(server, chan);
 
+        req.log.info("onJoin(%s) %s to %s", kind, joiningUser.nick, chan);
+        // if the person joining is a virtual IRC user, do nothing.
+        if (joiningUser.isVirtual) {
+            return BridgeRequestErr.ERR_VIRTUAL_USER;
+        }
+
         const nick = joiningUser.nick;
         const syncType: MembershipSyncKind = kind === "names" ? "initial" : "incremental";
         if (!server.shouldSyncMembershipToMatrix(syncType, chan)) {
@@ -621,11 +628,6 @@ export class IrcHandler {
             return BridgeRequestErr.ERR_NOT_MAPPED;
         }
 
-        req.log.info("onJoin(%s) %s to %s", kind, nick, chan);
-        // if the person joining is a virtual IRC user, do nothing.
-        if (joiningUser.isVirtual) {
-            return BridgeRequestErr.ERR_VIRTUAL_USER;
-        }
 
         // get virtual matrix user
         const matrixUser = await this.ircBridge.getMatrixUser(joiningUser);
@@ -634,17 +636,6 @@ export class IrcHandler {
             matrixUser.getId()
         );
         const promises = matrixRooms.map(async (room) => {
-            /** If this is a "NAMES" query, we can make use of the joinedMembers call we made
-             * to check if the user already exists in the room. This should save oodles of time.
-             */
-            if (kind === "names" &&
-                this.ircBridge.getMemberListSyncer(server).isRemoteJoinedToRoom(
-                    room.getId(),
-                    matrixUser.getId()
-                )) {
-                req.log.debug("Not joining to %s, already joined.", room.getId());
-                return;
-            }
             req.log.info("Joining room %s and setting presence to online", room.getId());
             // Only retry if this is not an initial sync to avoid extra load
             const shouldRetry = syncType === "incremental";
@@ -980,4 +971,3 @@ export class IrcHandler {
         this.nickUserIdMapCache.delete(`${server.domain}:${channel}`);
     }
 }
-
