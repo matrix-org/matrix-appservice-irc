@@ -169,7 +169,7 @@ export class BridgedClient extends EventEmitter {
     }
 
     public get chanList() {
-        return Array.from(this._chanList);
+        return this._chanList;
     }
 
     public get status() {
@@ -320,14 +320,16 @@ export class BridgedClient extends EventEmitter {
     }
 
     public async reconnect(reconnectChanList: string[]) {
+        // XXX: Why do we add these here?
         reconnectChanList.forEach((c) => this._chanList.add(c));
         await this.connect();
         this.log.info(
             "Reconnected %s@%s", this.nick, this.server.domain
         );
-        this.log.info("Rejoining %s channels", this.chanList.length);
+        this.log.info("Rejoining %s channels", this._chanList.size);
         // This needs to be synchronous
-        for (const channel of this.chanList) {
+        for (const channel of this._chanList) {
+            // XXX: Why do we not catch these?
             await this.joinChannel(channel);
         }
         this.log.info("Rejoined channels");

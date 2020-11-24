@@ -27,8 +27,11 @@ import Bluebird from "bluebird";
 import { StringCrypto } from "../StringCrypto";
 import { toIrcLowerCase } from "../../irc/formatting";
 import { NeDBDataStore } from "../NedbDataStore";
+import QuickLRU from "quick-lru";
 
 const log = getLogger("PgDatastore");
+
+const FEATURE_CACHE_SIZE = 512;
 
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
@@ -37,6 +40,9 @@ export class PgDataStore implements DataStore {
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
+    private userFeatureCache = new QuickLRU<string, UserFeatures>({
+        maxSize: FEATURE_CACHE_SIZE,
+    });
 
     constructor(private bridgeDomain: string, connectionString: string, pkeyPath?: string, min = 1, max = 4) {
         this.pgPool = new Pool({
@@ -465,14 +471,14 @@ export class PgDataStore implements DataStore {
     }
 
     public async getUserFeatures(userId: string): Promise<UserFeatures> {
-        const pgRes = (
-            await this.pgPool.query("SELECT features FROM user_features WHERE user_id = $1",
-            [userId])
-        );
-        if (pgRes.rowCount === 0) {
-            return {};
+        const existing = this.userFeatureCache.get(userId);
+        if (existing) {
+            return existing;
         }
-        return pgRes.rows[0].features || {};
+        const pgRes = await this.pgPool.query("SELECT features FROM user_features WHERE user_id = $1", [userId]);
+        const features = (pgRes.rows[0] || {});
+        this.userFeatureCache.set(userId, features);
+        return features;
     }
 
     public async storeUserFeatures(userId: string, features: UserFeatures): Promise<void> {
@@ -512,7 +518,7 @@ export class PgDataStore implements DataStore {
             [username, domain]
         );
         if (res.rowCount === 0) {
-            return;
+            return undefined;
         }
         else if (res.rowCount > 1) {
             log.error("getMatrixUserByUsername returned %s results for %s on %s", res.rowCount, username, domain);
@@ -540,7 +546,7 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query(statement, [userId, Date.now()]);
     }
 
-    public async getLastSeenTimeForUsers(): Promise<{ user_id: string, ts: number }[]> {
+    public async getLastSeenTimeForUsers(): Promise<{ user_id: string; ts: number }[]> {
         const res = await this.pgPool.query(`SELECT * FROM last_seen`);
         return res.rows;
     }

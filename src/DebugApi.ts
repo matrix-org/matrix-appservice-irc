@@ -426,7 +426,7 @@ export class DebugApi {
                         return undefined;
                     }
                     return {
-                        channels: client.chanList,
+                        channels: [...client.chanList],
                         dead: client.isDead(),
                         server: client.server.domain,
                         nick: client.nick,
