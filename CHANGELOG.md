@@ -1,4 +1,29 @@
- 0.22.0 (2020-11-06)
+ 0.23.0-rc1 (2020-11-24)
+====================
+
+Features
+--------
+
+- Add membership queue Prometheus metrics under the prefix `bridge_membershipqueue_`. ([\#1185](https://github.com/matrix-org/matrix-appservice-irc/issues/1185))
+- Fix a performance issue where many mode changes in quick succession for a channel would cause many m.room.power_level events to be created. ([\#1186](https://github.com/matrix-org/matrix-appservice-irc/issues/1186))
+- When multiple users leave the room at the same time, batch together powerlevel removals ([\#1196](https://github.com/matrix-org/matrix-appservice-irc/issues/1196))
+
+
+Bugfixes
+--------
+
+- Reduce verbosity of some log lines from INFO to DEBUG ([\#1168](https://github.com/matrix-org/matrix-appservice-irc/issues/1168))
+- Drop IRC messages directed towards invalid nicks early. ([\#1189](https://github.com/matrix-org/matrix-appservice-irc/issues/1189))
+- Improve the performance of sending messages by speeding up some function calls ([\#1192](https://github.com/matrix-org/matrix-appservice-irc/issues/1192))
+
+
+Internal Changes
+----------------
+
+- Improve the handling speed of IRC joins. ([\#1187](https://github.com/matrix-org/matrix-appservice-irc/issues/1187))
+
+
+0.22.0 (2020-11-06)
 ====================
 
 No significant changes.

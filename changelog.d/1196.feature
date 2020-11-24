@@ -1,1 +1,0 @@
-When multiple users leave the room at the same time, batch together powerlevel removals
