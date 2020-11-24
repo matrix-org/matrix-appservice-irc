@@ -88,7 +88,7 @@ export class RoomAccessSyncer {
     }
 
     public async removePowerLevels(roomId: string, users: string[], req: BridgeRequest) {
-        return Promise.all(users.map(userId =>
+        await Promise.all(users.map(userId =>
             this.setPowerLevel(roomId, userId, null, req)
         ));
     }
