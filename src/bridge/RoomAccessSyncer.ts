@@ -88,9 +88,9 @@ export class RoomAccessSyncer {
     }
 
     public async removePowerLevels(roomId: string, users: string[], req: BridgeRequest) {
-        const map: {[userId: string]: null} = {};
-        users.forEach((u) => {map[u] = null});
-        return this.changePowerLevels(roomId, map, req);
+        await Promise.all(users.map(userId =>
+            this.setPowerLevel(roomId, userId, null, req)
+        ));
     }
 
     /**
@@ -164,7 +164,7 @@ export class RoomAccessSyncer {
         }
     }
 
-    private async setPowerLevel(roomId: string, userId: string, level: number|null, req: BridgeRequest) {
+    public async setPowerLevel(roomId: string, userId: string, level: number|null, req: BridgeRequest) {
         if (this.powerLevelGracePeriod === 0) {
             // If there is no grace period, just change them now.
             await this.changePowerLevels(roomId, {[userId]: level}, req);

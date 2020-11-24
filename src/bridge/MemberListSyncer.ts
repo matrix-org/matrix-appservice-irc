@@ -358,7 +358,7 @@ export class MemberListSyncer {
         }));
 
         // Make sure to deop any users
-        await this.ircBridge.ircHandler?.roomAccessSyncer.removePowerLevels(item.roomId, item.userIds, req);
+        await this.ircBridge.ircHandler.roomAccessSyncer.removePowerLevels(item.roomId, item.userIds, req);
     }
 
     // Update the MemberListSyncer with the IRC NAMES_RPL that has been received for channel.

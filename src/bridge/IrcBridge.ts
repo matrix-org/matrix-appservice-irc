@@ -227,6 +227,7 @@ export class IrcBridge {
         }
 
         this.ircHandler.onConfigChanged(newConfig.ircHandler || {});
+        this.config.ircHandler = newConfig.ircHandler;
 
         const hasLoggingChanged = JSON.stringify(oldConfig.ircService.logging)
             !== JSON.stringify(newConfig.ircService.logging);
