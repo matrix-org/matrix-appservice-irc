@@ -873,8 +873,7 @@ export class IrcHandler {
 
         const botUser = new MatrixUser(this.ircBridge.appServiceUserId);
 
-
-        if (ircMsg && ircMsg.command === "err_nosuchnick") {
+        if (ircMsg?.command === "err_nosuchnick") {
             const otherNick = ircMsg.args[1];
             const otherUser = new MatrixUser(client.server.getUserIdFromNick(otherNick));
             const room = await this.ircBridge.getStore().getMatrixPmRoom(client.userId, otherUser.userId);
@@ -919,6 +918,11 @@ export class IrcHandler {
         }
         else {
             adminRoom = fetchedAdminRoom;
+        }
+
+
+        if (ircMsg?.command === "err_cannotsendtochan") {
+            msg = `Message could not be sent to ${ircMsg.args[1]}`;
         }
 
         const notice = new MatrixAction("notice", msg);
