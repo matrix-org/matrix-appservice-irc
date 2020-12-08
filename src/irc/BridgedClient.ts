@@ -292,7 +292,7 @@ export class BridgedClient extends EventEmitter {
             });
             connInst.client.addListener("error", (err: IrcMessage) => {
                 // Errors we MUST notify the user about, regardless of the bridge's admin room config.
-                const ERRORS_TO_FORCE = ["err_nononreg", "err_nosuchnick"];
+                const ERRORS_TO_FORCE = ["err_nononreg", "err_nosuchnick", "err_cannotsendtochan"];
                 if (!err || !err.command || connInst.dead) {
                     return;
                 }
