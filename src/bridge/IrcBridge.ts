@@ -740,10 +740,10 @@ export class IrcBridge {
     //  Killing a client means that it will disconnect forever
     //  and never do anything useful again.
     //  There is no guarentee that the bridge will do anything
-    //  usefull once this has been called.
+    //  useful once this has been called.
     //
     //  See (BridgedClient.prototype.kill)
-    public async kill(reason?: string) {
+    public async kill(reason?: string): Promise<void> {
         log.info("Killing all clients");
         await this.clientPool.killAllClients(reason);
         if (this.dataStore) {
@@ -752,7 +752,7 @@ export class IrcBridge {
         await this.appservice.close();
     }
 
-    public get isStartedUp() {
+    public get isStartedUp(): boolean {
         return this.startedUp;
     }
 
@@ -808,7 +808,7 @@ export class IrcBridge {
         );
     }
 
-    public async getMatrixUser(ircUser: IrcUser) {
+    public async getMatrixUser(ircUser: IrcUser): Promise<MatrixUser> {
         let matrixUser = null;
         const userLocalpart = ircUser.server.getUserLocalpart(ircUser.nick);
         const displayName = ircUser.server.getDisplayNameFromNick(ircUser.nick);
@@ -833,7 +833,7 @@ export class IrcBridge {
         return matrixUser;
     }
 
-    public onEvent(request: BridgeRequestEvent) {
+    public onEvent(request: BridgeRequestEvent): void {
         request.outcomeFrom(this._onEvent(request));
     }
 
@@ -948,7 +948,7 @@ export class IrcBridge {
         return undefined;
     }
 
-    public async onUserQuery(matrixUser: MatrixUser) {
+    public async onUserQuery(matrixUser: MatrixUser): Promise<null> {
         const baseRequest = this.bridge.getRequestFactory().newRequest<BridgeRequestData>();
         const request = new BridgeRequest(baseRequest);
         await this.matrixHandler.onUserQuery(request, matrixUser.getId());
@@ -956,7 +956,7 @@ export class IrcBridge {
         return null; // don't provision, we already do atm
     }
 
-    public async onAliasQuery (alias: string) {
+    public async onAliasQuery (alias: string): Promise<null> {
         const baseRequest = this.bridge.getRequestFactory().newRequest<BridgeRequestData>();
         const request = new BridgeRequest(baseRequest);
         await this.matrixHandler.onAliasQuery(request, alias);
@@ -1078,31 +1078,31 @@ export class IrcBridge {
         ];
     }
 
-    public getIrcUserFromCache(server: IrcServer, userId: string) {
+    public getIrcUserFromCache(server: IrcServer, userId: string): BridgedClient | undefined {
         return this.clientPool.getBridgedClientByUserId(server, userId);
     }
 
-    public getBridgedClientsForUserId(userId: string) {
+    public getBridgedClientsForUserId(userId: string): BridgedClient[] {
         return this.clientPool.getBridgedClientsForUserId(userId);
     }
 
-    public getBridgedClientsForRegex(regex: string) {
+    public getBridgedClientsForRegex(regex: string): { [userId: string]: BridgedClient[] } {
         return this.clientPool.getBridgedClientsForRegex(regex);
     }
 
-    public getBridgedClient(server: IrcServer, userId: string, displayName?: string) {
+    public getBridgedClient(server: IrcServer, userId: string, displayName?: string): Promise<BridgedClient> {
         return this.clientPool.getBridgedClient(server, userId, displayName);
     }
 
-    public getServer(domainName: string) {
+    public getServer(domainName: string): IrcServer | null {
         return this.ircServers.find((s) => s.domain === domainName) || null;
     }
 
-    public getServers() {
+    public getServers(): IrcServer[] {
         return this.ircServers || [];
     }
 
-    public getMemberListSyncer(server: IrcServer) {
+    public getMemberListSyncer(server: IrcServer): MemberListSyncer {
         return this.memberListSyncers[server.domain];
     }
 
@@ -1118,11 +1118,11 @@ export class IrcBridge {
         };
     }
 
-    public getServerForUserId(userId: string) {
+    public getServerForUserId(userId: string): IrcServer | null {
         return this.getServers().find((s) => s.claimsUserId(userId)) || null;
     }
 
-    public async matrixToIrcUser(user: MatrixUser) {
+    public async matrixToIrcUser(user: MatrixUser): Promise<IrcUser> {
         const server = this.getServerForUserId(user.getId());
         const ircInfo = {
             server: server,
@@ -1158,13 +1158,13 @@ export class IrcBridge {
     /**
      * Determines if a nick name already exists.
      */
-    public async checkNickExists(server: IrcServer, nick: string) {
+    public async checkNickExists(server: IrcServer, nick: string): Promise<boolean> {
         log.info("Querying for nick %s on %s", nick, server.domain);
         const client = await this.getBotClient(server);
         return await client.whois(nick) !== null;
     }
 
-    public async joinBot(ircRoom: IrcRoom) {
+    public async joinBot(ircRoom: IrcRoom): Promise<void> {
         if (!ircRoom.server.isBotEnabled()) {
             log.info("joinBot: Bot is disabled.");
             return;
@@ -1178,7 +1178,7 @@ export class IrcBridge {
         }
     }
 
-    public async partBot(ircRoom: IrcRoom) {
+    public async partBot(ircRoom: IrcRoom): Promise<void> {
         log.info(
             "Parting bot from %s on %s", ircRoom.channel, ircRoom.server.domain
         );
@@ -1186,7 +1186,7 @@ export class IrcBridge {
         await client.leaveChannel(ircRoom.channel);
     }
 
-    public sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction) {
+    public sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction): Promise<void> {
         log.info(
             "Sending IRC message in %s as %s (connected=%s)",
             ircRoom.channel, bridgedClient.nick, Boolean(bridgedClient.status === BridgedClientStatus.CONNECTED)
@@ -1194,7 +1194,7 @@ export class IrcBridge {
         return bridgedClient.sendAction(ircRoom, action);
     }
 
-    public async getBotClient(server: IrcServer) {
+    public async getBotClient(server: IrcServer): Promise<BridgedClient> {
         const botClient = this.clientPool.getBot(server);
         if (botClient) {
             return botClient;
@@ -1298,7 +1298,7 @@ export class IrcBridge {
 
     public async connectionReap(logCb: (line: string) => void, reqServerName: string,
                                 maxIdleHours: number, reason = "User is inactive", dry = false,
-                                defaultOnline?: boolean, excludeRegex?: string, limit?: number) {
+                                defaultOnline?: boolean, excludeRegex?: string, limit?: number): Promise<void> {
         if (!this.activityTracker) {
             throw Error("activityTracker is not enabled");
         }
@@ -1360,7 +1360,7 @@ export class IrcBridge {
         logCb(`Quit ${userNumber}/${users.length}`);
     }
 
-    public async atBridgedRoomLimit() {
+    public async atBridgedRoomLimit(): Promise<boolean> {
         const limit = this.config.ircService.provisioning?.roomLimit;
         if (!limit) {
             return false;
