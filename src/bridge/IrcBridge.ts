@@ -530,17 +530,6 @@ export class IrcBridge {
 
         await this.dataStore.removeConfigMappings();
 
-        if (this.config.ircService.debugApi.enabled) {
-            this.debugApi = new DebugApi(
-                this,
-                this.config.ircService.debugApi.port,
-                this.ircServers,
-                this.clientPool,
-                this.registration.getAppServiceToken() as string
-            );
-            this.debugApi.run();
-        }
-
         if (this.activityTracker) {
             log.info("Restoring last active times from DB");
             const users = await this.dataStore.getLastSeenTimeForUsers();
@@ -567,6 +556,17 @@ export class IrcBridge {
         }
 
         this.clientPool = new ClientPool(this, this.dataStore);
+
+        if (this.config.ircService.debugApi.enabled) {
+            this.debugApi = new DebugApi(
+                this,
+                this.config.ircService.debugApi.port,
+                this.ircServers,
+                this.clientPool,
+                this.registration.getAppServiceToken() as string
+            );
+            this.debugApi.run();
+        }
 
         if (this.ircServers.length === 0) {
             throw Error("No IRC servers specified.");
