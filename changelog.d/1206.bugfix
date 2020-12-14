@@ -1,1 +1,1 @@
-Create DebugAPI after its dependency ClientPool
+Fix potential error when using killUser debug endpoind
