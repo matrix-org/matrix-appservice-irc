@@ -128,9 +128,9 @@ export class AdminRoomHandler {
                 return;
             }
         }
-
+        const userDomain = event.sender.split(':')[1];
         const userPermission = this.ircBridge.config.ircService.permissions[event.sender] || // This takes priority
-                                this.ircBridge.config.ircService.permissions[event.sender.split(':')[1]] || // Then the domain
+                                this.ircBridge.config.ircService.permissions[userDomain] || // Then the domain
                                 this.ircBridge.config.ircService.permissions['*']; // Finally wildcard.
 
         switch (cmd) {
