@@ -134,6 +134,11 @@ properties:
                         type: "boolean"
                     initial:
                         type: "boolean"
+            permissions:
+                type: "object"
+                additionalProperties:
+                    - type: "string"
+                      enum: ["admin"]
             servers:
                 type: "object"
                 # all properties must follow the following
