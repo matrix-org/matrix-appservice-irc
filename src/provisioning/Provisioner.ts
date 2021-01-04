@@ -791,7 +791,7 @@ export class Provisioner {
         }
     }
 
-    private async doLink(req: ProvisionRequest, server: IrcServer, ircChannel: string,
+    public async doLink(req: ProvisionRequest, server: IrcServer, ircChannel: string,
         key: string|undefined, roomId: string, userId: string) {
         const ircDomain = server.domain;
         const mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;

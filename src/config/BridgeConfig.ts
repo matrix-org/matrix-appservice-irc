@@ -54,6 +54,9 @@ export interface BridgeConfig {
             initial: boolean;
         };
         encodingFallback: string;
+        permissions: {
+            [userIdOrDomain: string]: "admin";
+        };
     };
     sentry?: {
         enabled: boolean;
