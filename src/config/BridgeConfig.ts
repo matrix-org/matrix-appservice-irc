@@ -54,7 +54,7 @@ export interface BridgeConfig {
             initial: boolean;
         };
         encodingFallback: string;
-        permissions: {
+        permissions?: {
             [userIdOrDomain: string]: "admin";
         };
     };

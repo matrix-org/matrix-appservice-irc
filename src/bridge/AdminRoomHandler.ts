@@ -129,9 +129,9 @@ export class AdminRoomHandler {
             }
         }
         const userDomain = event.sender.split(':')[1];
-        const userPermission = this.ircBridge.config.ircService.permissions[event.sender] || // This takes priority
+        const userPermission = this.ircBridge.config.ircService.permissions && (this.ircBridge.config.ircService.permissions[event.sender] || // This takes priority
                                 this.ircBridge.config.ircService.permissions[userDomain] || // Then the domain
-                                this.ircBridge.config.ircService.permissions['*']; // Finally wildcard.
+                                this.ircBridge.config.ircService.permissions['*']); // Finally wildcard.
 
         switch (cmd) {
             case "!join":
@@ -178,7 +178,7 @@ export class AdminRoomHandler {
         }
     }
 
-    private async handlePlumb(args: string[], adminRoom: MatrixRoom, sender: string, userPermission: string) {
+    private async handlePlumb(args: string[], adminRoom: MatrixRoom, sender: string, userPermission: string|undefined) {
         if (userPermission !== 'admin') {
             return this.ircBridge.sendMatrixAction(
                 adminRoom, this.botUser, new MatrixAction("notice", "You must be an admin to use this command")
@@ -639,7 +639,7 @@ export class AdminRoomHandler {
         );
     }
 
-    private async showHelp(adminRoom: MatrixRoom, userPermission: string) {
+    private async showHelp(adminRoom: MatrixRoom, userPermission: string|undefined) {
         const notice = new MatrixAction("notice", null,
             "This is an IRC admin room for controlling your IRC connection and sending " +
             "commands directly to IRC. " +
