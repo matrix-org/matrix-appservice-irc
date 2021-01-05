@@ -196,7 +196,7 @@ export class AdminRoomHandler {
         if (!ircChannel || !ircChannel.startsWith("#")) {
             return this.ircBridge.sendMatrixAction(
                 adminRoom, this.botUser,
-                new MatrixAction("notice", "The server provided is not configured on this bridge"),
+                new MatrixAction("notice", "The channel name must start with a #"),
             );
         }
         // Check if the room exists and the user is invited.
@@ -208,7 +208,7 @@ export class AdminRoomHandler {
             log.error(`Could not join the target room of a !plumb command`, ex);
             return this.ircBridge.sendMatrixAction(
                 adminRoom, this.botUser,
-                new MatrixAction("notice", "Could not join the target room, you may need to invite it"),
+                new MatrixAction("notice", "Could not join the target room, you may need to invite the bot"),
             );
         }
         try {
