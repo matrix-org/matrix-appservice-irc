@@ -505,7 +505,7 @@ ircService:
   # from the admin room but may be expanded in the future to contain more
   # options. Currently you may either set the value to be 'admin', or leave the key
   # out to imply that the user does not have special permissions.
-  # UserID takes precedence over domain, which takes precendence over wildcard
+  # UserID takes precedence over domain, which takes precedence over wildcard.
   permissions:
   # '*': admin
   # 'matrix.org': admin
