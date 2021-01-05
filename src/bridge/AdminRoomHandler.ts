@@ -129,9 +129,10 @@ export class AdminRoomHandler {
             }
         }
         const userDomain = event.sender.split(':')[1];
-        const userPermission = this.ircBridge.config.ircService.permissions && (this.ircBridge.config.ircService.permissions[event.sender] || // This takes priority
-                                this.ircBridge.config.ircService.permissions[userDomain] || // Then the domain
-                                this.ircBridge.config.ircService.permissions['*']); // Finally wildcard.
+        const userPermission = this.ircBridge.config.ircService.permissions &&
+                               (this.ircBridge.config.ircService.permissions[event.sender] || // This takes priority
+                               this.ircBridge.config.ircService.permissions[userDomain] || // Then the domain
+                               this.ircBridge.config.ircService.permissions['*']); // Finally wildcard.
 
         switch (cmd) {
             case "!join":
