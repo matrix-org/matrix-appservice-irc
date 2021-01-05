@@ -32,7 +32,8 @@ new Cli({
                 provisioning: {
                     enabled: false,
                     requestTimeoutSeconds: 60 * 5
-                }
+                },
+                permissions: {},
             }
         },
     },

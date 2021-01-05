@@ -25,10 +25,11 @@ import { MatrixHandler } from "./MatrixHandler";
 import logging from "../logging";
 import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "../util/PackageInfo";
+import { ProvisionRequest } from "../provisioning/ProvisionRequest";
 
 const log = logging("AdminRoomHandler");
 
-const COMMANDS = {
+const COMMANDS: {[command: string]: {example: string; summary: string; requiresPermission?: string}} = {
     "!join": {
         example: `!join [irc.example.net] #channel [key]`,
         summary: `Join a channel (with optional channel key)`,
@@ -73,6 +74,11 @@ const COMMANDS = {
     "!bridgeversion": {
         example: `!bridgeversion`,
         summary: "Return the version from matrix-appservice-irc bridge.",
+    },
+    '!plumb': {
+        example: `!plumb !room:example.com irc.example.net #foobar`,
+        summary: "Plumb an IRC channel into a Matrix room.",
+        requiresPermission: 'admin'
     }
 };
 
@@ -89,7 +95,6 @@ export class AdminRoomHandler {
     private readonly botUser: MatrixUser;
     constructor(private ircBridge: IrcBridge, private matrixHandler: MatrixHandler) {
         this.botUser = new MatrixUser(ircBridge.appServiceUserId, undefined, false);
-
     }
 
     public async onAdminMessage(req: BridgeRequest, event: MatrixSimpleMessage, adminRoom: MatrixRoom) {
@@ -123,6 +128,11 @@ export class AdminRoomHandler {
                 return;
             }
         }
+        const userDomain = event.sender.split(':')[1];
+        const userPermission = this.ircBridge.config.ircService.permissions &&
+                               (this.ircBridge.config.ircService.permissions[event.sender] || // This takes priority
+                               this.ircBridge.config.ircService.permissions[userDomain] || // Then the domain
+                               this.ircBridge.config.ircService.permissions['*']); // Finally wildcard.
 
         switch (cmd) {
             case "!join":
@@ -155,8 +165,11 @@ export class AdminRoomHandler {
             case "!bridgeversion":
                 await this.showBridgeVersion(adminRoom);
                 break;
+            case "!plumb":
+                await this.handlePlumb(args, adminRoom, event.sender, userPermission)
+                break;
             case "!help":
-                await this.showHelp(adminRoom);
+                await this.showHelp(adminRoom, userPermission);
                 break;
             default: {
                 const notice = new MatrixAction("notice",
@@ -164,6 +177,61 @@ export class AdminRoomHandler {
                 await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
             }
         }
+    }
+
+    private async handlePlumb(args: string[], adminRoom: MatrixRoom, sender: string, userPermission: string|undefined) {
+        if (userPermission !== 'admin') {
+            return this.ircBridge.sendMatrixAction(
+                adminRoom, this.botUser, new MatrixAction("notice", "You must be an admin to use this command")
+            );
+        }
+        const [matrixRoomId, serverDomain, ircChannel] = args;
+        const server = serverDomain && this.ircBridge.getServer(serverDomain);
+        if (!server) {
+            return this.ircBridge.sendMatrixAction(
+                adminRoom, this.botUser,
+                new MatrixAction("notice", "The server provided is not configured on this bridge"),
+            );
+        }
+        if (!ircChannel || !ircChannel.startsWith("#")) {
+            return this.ircBridge.sendMatrixAction(
+                adminRoom, this.botUser,
+                new MatrixAction("notice", "The channel name must start with a #"),
+            );
+        }
+        // Check if the room exists and the user is invited.
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
+        try {
+            await intent.getStateEvent(matrixRoomId, 'm.room.create');
+        }
+        catch (ex) {
+            log.error(`Could not join the target room of a !plumb command`, ex);
+            return this.ircBridge.sendMatrixAction(
+                adminRoom, this.botUser,
+                new MatrixAction("notice", "Could not join the target room, you may need to invite the bot"),
+            );
+        }
+        try {
+            await this.ircBridge.getProvisioner().doLink(
+                ProvisionRequest.createFake("adminCommand", log),
+                server,
+                ircChannel,
+                undefined,
+                matrixRoomId,
+                sender,
+            );
+        }
+        catch (ex) {
+            log.error(`Failed to handle !plumb command:`, ex);
+            return this.ircBridge.sendMatrixAction(
+                adminRoom, this.botUser,
+                new MatrixAction("notice", "Failed to plumb room. Check the logs for details."),
+            );
+        }
+        return this.ircBridge.sendMatrixAction(
+            adminRoom, this.botUser,
+            new MatrixAction("notice", "Room plumbed."),
+        );
     }
 
     private async handleJoin(req: BridgeRequest, args: string[], server: IrcServer, room: MatrixRoom, sender: string) {
@@ -572,12 +640,13 @@ export class AdminRoomHandler {
         );
     }
 
-    private async showHelp(adminRoom: MatrixRoom) {
+    private async showHelp(adminRoom: MatrixRoom, userPermission: string|undefined) {
         const notice = new MatrixAction("notice", null,
             "This is an IRC admin room for controlling your IRC connection and sending " +
             "commands directly to IRC. " +
             "The following commands are available:<br/><ul>\n\t" +
-            Object.values(COMMANDS).map((c) =>
+            Object.values(COMMANDS).filter(
+                (c) => !c.requiresPermission || c.requiresPermission === userPermission).map((c) =>
                 `<li><strong>${c.example}</strong> : ${c.summary}</li>`
             ).join(`\n\t`) +
             `</ul>`,
