@@ -213,7 +213,7 @@ export class AdminRoomHandler {
         }
         try {
             await this.ircBridge.getProvisioner().doLink(
-                ProvisionRequest.createFake("killRoom", log),
+                ProvisionRequest.createFake("adminCommand", log),
                 server,
                 ircChannel,
                 undefined,
