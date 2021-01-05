@@ -503,7 +503,7 @@ ircService:
   # Map of permissions from user/domain/wildcard to permission level.
   # This is currently used to allow/disallow use of admin commands
   # from the admin room but may be expanded in the future to contain more
-  # options. Currently you may either set the value to be 'admin', or leave the key
+  # options. Currently, you may either set the value to be 'admin', or leave the key
   # out to imply that the user does not have special permissions.
   # UserID takes precedence over domain, which takes precedence over wildcard.
   permissions:
