@@ -33,6 +33,7 @@ RUN mkdir ./data
 
 COPY --from=freebind /freebindfree/libfreebindfree.so /app/libfreebindfree.so
 COPY --from=builder /build/node_modules /app/node_modules
+COPY --from=builder /build/package.json /app/package.json
 COPY --from=builder /build/lib /app/lib
 
 COPY app.js config.schema.yml /app/
