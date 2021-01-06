@@ -1,0 +1,1 @@
+Fix an issue that would cause `!bridgeversion` to report `Unknown` when running inside a Docker container.
