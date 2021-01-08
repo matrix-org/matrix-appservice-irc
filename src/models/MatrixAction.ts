@@ -83,7 +83,8 @@ export class MatrixAction {
         public readonly type: string,
         public text: string|null = null,
         public htmlText: string|null = null,
-        public readonly ts: number = 0
+        public readonly ts: number = 0,
+        public replyEvent?: string,
         ) {
         if (!ACTION_TYPES.includes(type)) {
             throw new Error("Unknown MatrixAction type: " + type);
