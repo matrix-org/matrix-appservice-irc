@@ -771,6 +771,14 @@ export class IrcBridge {
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
         const intent = this.bridge.getIntent(from.userId);
+        const extraContent: Record<string, unknown> = {};
+        if (action.replyEvent) {
+            extraContent["m.relates_to"] = {
+                "m.in_reply_to": {
+                  event_id: action.replyEvent,
+                }
+            }
+        }
         if (action.msgType) {
             if (action.htmlText) {
                 await intent.sendMessage(room.getId(), {
@@ -779,13 +787,15 @@ export class IrcBridge {
                         action.text || action.htmlText.replace(/(<([^>]+)>)/ig, "") // strip html tags
                     ),
                     format: "org.matrix.custom.html",
-                    formatted_body: action.htmlText
+                    formatted_body: action.htmlText,
+                    ...extraContent,
                 });
             }
             else {
                 await intent.sendMessage(room.getId(), {
                     msgtype: action.msgType,
-                    body: action.text
+                    body: action.text,
+                    ...extraContent,
                 });
             }
             return;
