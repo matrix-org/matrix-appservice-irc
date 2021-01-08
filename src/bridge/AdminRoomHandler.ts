@@ -21,7 +21,7 @@ import { MatrixAction } from "../models/MatrixAction";
 import { IrcServer } from "../irc/IrcServer";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
-import { MatrixHandler } from "./MatrixHandler";
+import { MatrixHandler, MatrixSimpleMessage } from "./MatrixHandler";
 import logging from "../logging";
 import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "../util/PackageInfo";
@@ -83,14 +83,6 @@ const COMMANDS: {[command: string]: {example: string; summary: string; requiresP
 };
 
 const USER_FEATURES = ["mentions"];
-
-interface MatrixSimpleMessage {
-    sender: string;
-    content: {
-        body: string;
-    };
-}
-
 export class AdminRoomHandler {
     private readonly botUser: MatrixUser;
     constructor(private ircBridge: IrcBridge, private matrixHandler: MatrixHandler) {
