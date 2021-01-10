@@ -86,6 +86,9 @@ To send a PM to someone on an IRC network:
  - Start a conversation with a user ID ``@<user_prefix><nick>:<homeserver_hosting_the_appservice>`` e.g.
    ``@irc_Alice:example.com``. The template for this can be configured at `config.yaml:ircService.servers.<servername>.matrixClients.userTemplate`.
 
+To change IRC nick in any room (useful for users from other bridges who can't talk to integration bot directly):
+ - Enter command `!irc nick <newnick>` in any room. Bridge will not respond but the nick is changed if it is valid.
+
 # Configuration
 See [the sample config file](config.sample.yaml) for an explanation of the
 configuration options available.
