@@ -19,6 +19,7 @@ import { getLogger } from "../logging";
 import { DataStore } from "../datastore/DataStore";
 import { MatrixUser } from "matrix-appservice-bridge";
 import { IrcClientConfig } from "../models/IrcClientConfig";
+import Ident from "./Ident";
 
 const log = getLogger("IdentGenerator");
 
@@ -43,6 +44,10 @@ export class IdentGenerator {
         });
     }
 
+    static switchAroundMxid(user: MatrixUser) {
+        return `${user.host}:${user.localpart}`;
+    }
+
     /**
      * Get the IRC name info for this user.
      * @param {IrcClientConfig} clientConfig IRC client configuration info.
@@ -55,8 +60,9 @@ export class IdentGenerator {
     public async getIrcNames(ircClientConfig: IrcClientConfig, matrixUser?: MatrixUser):
         Promise<{username: string; realname: string}> {
         const username = ircClientConfig.getUsername();
+        
         const realname = (matrixUser ?
-            IdentGenerator.sanitiseRealname(matrixUser.getId()) :
+            IdentGenerator.sanitiseRealname(IdentGenerator.switchAroundMxid(matrixUser)) :
             IdentGenerator.sanitiseRealname(username || "")
                 ).substring(
                     0, IdentGenerator.MAX_REAL_NAME_LENGTH
