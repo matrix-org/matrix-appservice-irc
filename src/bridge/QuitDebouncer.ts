@@ -15,6 +15,7 @@ export class QuitDebouncer {
     };
 
     private quitProcessQueue: Queue<{channel: string; server: IrcServer}>;
+    private wasSplitOccuring = false;
 
     constructor(
         servers: IrcServer[],
@@ -104,7 +105,12 @@ export class QuitDebouncer {
         // We don't want to debounce users that are quiting legitimately so return early, and
         // we do want to make their virtual matrix user leave the room, so return true.
         if (!isSplitOccuring) {
+            this.wasSplitOccuring = isSplitOccuring;
             return true;
+        }
+        else if (isSplitOccuring !== this.wasSplitOccuring) {
+            log.warn(`A netsplit is occuring: debouncing QUITs`)
+            this.wasSplitOccuring = true;
         }
 
         log.debug(`Dropping QUIT for ${nick}`);
