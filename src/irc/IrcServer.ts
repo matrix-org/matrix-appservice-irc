@@ -159,7 +159,7 @@ export class IrcServer {
         return this.config.ircClients.userModes || "";
     }
 
-    public getRealNameFormat() {
+    public getRealNameFormat(): "mxid"|"reverse-mxid" {
         return this.config.ircClients.realnameFormat || "mxid";
     }
 

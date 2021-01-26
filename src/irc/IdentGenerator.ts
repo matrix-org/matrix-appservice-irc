@@ -48,7 +48,7 @@ export class IdentGenerator {
         return user.host.split('.')
                 .reverse()
                 .join('.')
-                .substr(0, 30) + (user.host.length > 30 ? ">:" : ":") + user.localpart;
+                .substring(0, 30) + (user.host.length > 30 ? ">:" : ":") + user.localpart;
     }
 
     /**
