@@ -219,7 +219,7 @@ export class BridgedClient extends EventEmitter {
 
         try {
             const nameInfo = await this.identGenerator.getIrcNames(
-                this.clientConfig, this.matrixUser
+                this.clientConfig, this.server, this.matrixUser,
             );
             const ipv6Prefix = this.server.getIpv6Prefix();
             if (ipv6Prefix) {
@@ -478,7 +478,7 @@ export class BridgedClient extends EventEmitter {
 
         const c = this.state.client;
 
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
             this.log.debug("Kicking %s from channel %s", nick, channel);
             c.send("KICK", channel, nick, reason);
             resolve(); // wait for some response? Is there even one?

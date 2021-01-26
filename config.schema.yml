@@ -364,6 +364,9 @@ properties:
                                     minimum: 0
                                 allowNickChanges:
                                     type: "boolean"
+                                realnameFormat:
+                                    type: "string"
+                                    enum: ["mxid","reverse-mxid"]
                                 ipv6:
                                     type: "object"
                                     properties:
