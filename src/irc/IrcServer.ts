@@ -159,6 +159,10 @@ export class IrcServer {
         return this.config.ircClients.userModes || "";
     }
 
+    public getRealNameFormat() {
+        return this.config.ircClients.realnameFormat || "mxid";
+    }
+
     public getJoinRule() {
         return this.config.dynamicChannels.joinRule;
     }
@@ -726,6 +730,7 @@ export interface IrcServerConfig {
         };
         lineLimit: number;
         userModes?: string;
+        realnameFormat?: "mxid"|"reverse-mxid";
     };
     excludedUsers: Array<
         {

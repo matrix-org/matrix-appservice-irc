@@ -19,7 +19,7 @@ import { getLogger } from "../logging";
 import { DataStore } from "../datastore/DataStore";
 import { MatrixUser } from "matrix-appservice-bridge";
 import { IrcClientConfig } from "../models/IrcClientConfig";
-import Ident from "./Ident";
+import { IrcServer } from "./IrcServer";
 
 const log = getLogger("IdentGenerator");
 
@@ -60,16 +60,26 @@ export class IdentGenerator {
      *   realname: 'realname_to_use'
      * }
      */
-    public async getIrcNames(ircClientConfig: IrcClientConfig, matrixUser?: MatrixUser):
+    public async getIrcNames(ircClientConfig: IrcClientConfig, server: IrcServer, matrixUser?: MatrixUser):
         Promise<{username: string; realname: string}> {
         const username = ircClientConfig.getUsername();
-        
-        const realname = (matrixUser ?
-            IdentGenerator.sanitiseRealname(IdentGenerator.switchAroundMxid(matrixUser)) :
-            IdentGenerator.sanitiseRealname(username || "")
-                ).substring(
-                    0, IdentGenerator.MAX_REAL_NAME_LENGTH
-        );
+
+        let realname: string;
+        if (!matrixUser) {
+            realname = IdentGenerator.sanitiseRealname(username || "");
+        }
+        else if (server.getRealNameFormat() === "mxid") {
+            realname = IdentGenerator.sanitiseRealname(matrixUser.getId());
+        }
+        else if (server.getRealNameFormat() === "reverse-mxid") {
+            realname = IdentGenerator.sanitiseRealname(IdentGenerator.switchAroundMxid(matrixUser));
+        }
+        else {
+            throw Error('Invalid value for realNameFormat');
+        }
+
+        realname = realname.substring(0, IdentGenerator.MAX_REAL_NAME_LENGTH);
+
         if (matrixUser) {
             if (username) {
                 log.debug(
