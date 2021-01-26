@@ -66,12 +66,12 @@ export default {
             } as QueueItem
         );
 
-        log.info(
+        log.debug(
             `Queued scheduled promise for ${server.domain} ${nick}` +
             (addedDelayMs > 0 ? ` with ${Math.round(addedDelayMs)}ms added delay`:'')
         );
 
-        log.info(
+        log.debug(
             `Queue for ${server.domain} length = ${q.size()}`
         );
 
