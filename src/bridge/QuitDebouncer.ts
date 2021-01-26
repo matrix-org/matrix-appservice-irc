@@ -1,6 +1,5 @@
 import { IrcServer } from "../irc/IrcServer";
 import Log from "../logging";
-import { Queue } from "../util/Queue";
 
 const log = Log("QuitDebouncer");
 
@@ -11,19 +10,19 @@ export class QuitDebouncer {
         [domain: string]: {
             quitTimestampsMs: number[];
             splitChannelUsers: Map<string, Set<string>>; //"$channel $nick"
+            existingTimeouts: Set<string>; // Existing channel timeouts
         };
     };
 
-    private quitProcessQueue: Queue<{channel: string; server: IrcServer}>;
+    private wasSplitOccuring = false;
 
     constructor(
         servers: IrcServer[],
-        private handleQuit: (item: {channel: string; server: IrcServer}) => Promise<void>) {
+        private handleQuit: (channel: string, server: IrcServer, nicks: string[]) => Promise<void>) {
         // Measure the probability of a net-split having just happened using QUIT frequency.
         // This is to smooth incoming PART spam from IRC clients that suffer from a
         // net-split (or other issues that lead to mass PART-ings)
         this.debouncerForServer = {};
-        this.quitProcessQueue = new Queue(this.handleQuit);
 
         // Keep a track of the times at which debounceQuit was called, and use this to
         // determine the rate at which quits are being received. This can then be used
@@ -32,6 +31,7 @@ export class QuitDebouncer {
             this.debouncerForServer[domain] = {
                 quitTimestampsMs: [],
                 splitChannelUsers: new Map(),
+                existingTimeouts: new Set(),
             };
         });
     }
@@ -43,19 +43,34 @@ export class QuitDebouncer {
      * @param {IrcServer} server The sending IRC server.
      */
     public onJoin(nick: string, channel: string, server: IrcServer) {
-        if (!this.debouncerForServer[server.domain]) {
+        const debouncer = this.debouncerForServer[server.domain];
+        if (!debouncer) {
             return;
         }
-        const set = this.debouncerForServer[server.domain].splitChannelUsers.get(channel);
+        const set = debouncer.splitChannelUsers.get(channel);
         if (!set) {
+            // We are either not debouncing, or this channel has been handled already.
             return;
         }
         set.delete(nick);
-
-        if (set.size === 0) {
+        if (debouncer.existingTimeouts.has(channel)) {
+            // We are already handling this one.
             return;
         }
-        this.quitProcessQueue.enqueue(channel+server.domain, {channel, server});
+        if (set.size === 0) {
+            // Nobody to debounce, yay.
+            return;
+        }
+        const delay = Math.max(server.getQuitDebounceDelayMinMs(), server.getQuitDebounceDelayMaxMs() * Math.random());
+        log.info(`Will attempt to reconnect users for ${channel} after ${delay}ms`)
+        setTimeout(() => {
+            // Clear our existing sets, we're about to operate on the channel.
+            const nicks = this.getQuitNicksForChannel(channel, server);
+            debouncer.splitChannelUsers.delete(channel);
+            debouncer.existingTimeouts.delete(channel);
+            this.handleQuit(channel, server, nicks);
+        }, delay);
+        debouncer.existingTimeouts.add(channel);
     }
 
     /**
@@ -63,11 +78,12 @@ export class QuitDebouncer {
      * @param channel The IRC channel
      * @param server The IRC server
      */
-    public getQuitNicksForChannel(channel: string, server: IrcServer) {
+    private getQuitNicksForChannel(channel: string, server: IrcServer) {
         // A little hint on iterators here:
         // You can return values() (an IterableIterator<string>) and if the Set gets modified,
         // the iterator will skip the value that was deleted.
-        return this.debouncerForServer[server.domain].splitChannelUsers.get(channel)?.values() || [];
+        const nicks = this.debouncerForServer[server.domain].splitChannelUsers.get(channel)?.values();
+        return nicks ? [...nicks] : [];
     }
 
     /**
@@ -104,7 +120,12 @@ export class QuitDebouncer {
         // We don't want to debounce users that are quiting legitimately so return early, and
         // we do want to make their virtual matrix user leave the room, so return true.
         if (!isSplitOccuring) {
+            this.wasSplitOccuring = isSplitOccuring;
             return true;
+        }
+        else if (isSplitOccuring !== this.wasSplitOccuring) {
+            log.warn(`A netsplit is occuring: debouncing QUITs`)
+            this.wasSplitOccuring = true;
         }
 
         log.debug(`Dropping QUIT for ${nick}`);
