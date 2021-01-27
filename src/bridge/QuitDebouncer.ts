@@ -61,6 +61,7 @@ export class QuitDebouncer {
             // Nobody to debounce, yay.
             return;
         }
+        const delay = server.getQuitDebounceDelay();
         log.info(`Will attempt to reconnect users for ${channel} after ${delay}ms`)
         setTimeout(() => {
             // Clear our existing sets, we're about to operate on the channel.
@@ -68,7 +69,7 @@ export class QuitDebouncer {
             debouncer.splitChannelUsers.delete(channel);
             debouncer.existingTimeouts.delete(channel);
             this.handleQuit(channel, server, nicks);
-        }, server.getQuitDebounceDelay());
+        }, delay);
         debouncer.existingTimeouts.add(channel);
     }
 
