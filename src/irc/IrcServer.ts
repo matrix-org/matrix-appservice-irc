@@ -94,7 +94,11 @@ export class IrcServer {
         return this.config.quitDebounce.enabled;
     }
 
-    public getQuitDebounceDelay() {
+    /**
+     * Get a random interval to delay a quits for when debouncing. Will be between
+     * `delayMinMs` and `delayMaxMs`
+     */
+    public getQuitDebounceDelay(): number {
         return this.getQuitDebounceDelayMinMs() + (
             this.getQuitDebounceDelayMaxMs() - this.getQuitDebounceDelayMinMs()
         ) * Math.random();
