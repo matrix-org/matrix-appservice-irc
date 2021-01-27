@@ -32,7 +32,7 @@ homeserver:
   # Default: true
   enablePresence: true
 
-  # Which port should the appservice bind to. Takes priority over the one provided in the
+  # Which port should the appservice bind to. Can be overriden by the one provided in the
   # command line! Optional.
   # bindPort: 9999
 
