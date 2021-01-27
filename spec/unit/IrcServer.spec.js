@@ -2,6 +2,23 @@
 const { IrcServer } = require("../../lib/irc/IrcServer");
 const extend = require("extend");
 describe("IrcServer", function() {
+    describe("getQuitDebounceDelay", () => {
+        it("should get a random period between min and max", () => {
+            const delayMinMs = 5;
+            const delayMaxMs = 10;
+            const server = new IrcServer("irc.foobar",
+                extend(true, IrcServer.DEFAULT_CONFIG, {
+                    quitDebounce: {
+                        delayMinMs,
+                        delayMaxMs,
+                    }
+                })
+            );
+            const delay = server.getQuitDebounceDelay();
+            expect(delay).toBeGreaterThan(delayMinMs);
+            expect(delay).toBeLessThan(delayMaxMs);
+        });
+    })
     describe("getNick", function() {
         it("should get a nick from a userid", function() {
             const server = new IrcServer("irc.foobar",

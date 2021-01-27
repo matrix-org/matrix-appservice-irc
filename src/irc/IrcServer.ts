@@ -95,23 +95,14 @@ export class IrcServer {
     }
 
     /**
-     * Get the minimum number of ms to debounce before bridging a QUIT to Matrix
-     * during a detected net-split. If the user rejoins a channel before bridging
-     * the quit to a leave, the leave will not be sent.
-     * @return {number}
+     * Get a random interval to delay a quits for when debouncing. Will be between
+     * `delayMinMs` and `delayMaxMs`
      */
-    public getQuitDebounceDelayMinMs() {
-        return this.config.quitDebounce.delayMinMs;
-    }
-
-    /**
-     * Get the maximum number of ms to debounce before bridging a QUIT to Matrix
-     * during a detected net-split. If a leave is bridged, it will occur at a
-     * random time between delayMinMs (see above) delayMaxMs.
-     * @return {number}
-     */
-    public getQuitDebounceDelayMaxMs() {
-        return this.config.quitDebounce.delayMaxMs;
+    public getQuitDebounceDelay(): number {
+        const { delayMaxMs, delayMinMs } = this.config.quitDebounce;
+        return delayMinMs + (
+            delayMaxMs - delayMinMs
+        ) * Math.random();
     }
 
     /**
