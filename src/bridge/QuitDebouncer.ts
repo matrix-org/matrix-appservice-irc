@@ -41,25 +41,33 @@ export class QuitDebouncer {
      * when a quit was debounced during a split.
      * @param {string} nick The nick of the IRC user joining.
      * @param {IrcServer} server The sending IRC server.
+     * @returns True if the join should be processed, otherwise false.
      */
     public onJoin(nick: string, channel: string, server: IrcServer) {
         const debouncer = this.debouncerForServer[server.domain];
         if (!debouncer) {
-            return;
+            return true;
         }
         const set = debouncer.splitChannelUsers.get(channel);
+
         if (!set) {
             // We are either not debouncing, or this channel has been handled already.
-            return;
-        }
-        set.delete(nick);
-        if (debouncer.existingTimeouts.has(channel)) {
-            // We are already handling this one.
-            return;
+            return true;
         }
         if (set.size === 0) {
             // Nobody to debounce, yay.
-            return;
+            return true;
+        }
+        if (!set.delete(nick)) {
+            // This user did NOT quit the channel, so we should treat them as a new joiner and handle immediately.
+            return true;
+        }
+
+        // Otherwise, this user DID quit the channel so we know they are joined to the room (as we are deferring
+        // their quit).
+        if (debouncer.existingTimeouts.has(channel)) {
+            // We are already handling this channel.
+            return false;
         }
         const delay = server.getQuitDebounceDelay();
         log.info(`Will attempt to reconnect users for ${channel} after ${delay}ms`)
@@ -71,6 +79,7 @@ export class QuitDebouncer {
             this.handleQuit(channel, server, nicks);
         }, delay);
         debouncer.existingTimeouts.add(channel);
+        return false;
     }
 
     /**

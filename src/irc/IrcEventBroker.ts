@@ -361,6 +361,12 @@ export class IrcEventBroker {
                 req, server, createUser(nick), chan, "part", reason
             ));
         });
+        this.hookIfClaimed(client, connInst, "kick", (chan: string, nick: string, by: string, reason: string) => {
+            const req = createRequest();
+            complete(req, ircHandler.onKick(
+                req, server, createUser(by), createUser(nick), chan, reason
+            ));
+        });
         this.hookIfClaimed(client, connInst, "quit", (nick: string, reason: string, chans: string[]) => {
             chans = chans || [];
             // True if a leave should be sent, otherwise false.
@@ -373,18 +379,14 @@ export class IrcEventBroker {
                 });
             }
         });
-        this.hookIfClaimed(client, connInst, "kick", (chan: string, nick: string, by: string, reason: string) => {
-            const req = createRequest();
-            complete(req, ircHandler.onKick(
-                req, server, createUser(by), createUser(nick), chan, reason
-            ));
-        });
         this.hookIfClaimed(client, connInst, "join", (chan: string, nick: string) => {
             const req = createRequest();
-            this.quitDebouncer.onJoin(nick, chan, server);
-            complete(req, ircHandler.onJoin(
-                req, server, createUser(nick), chan, "join"
-            ));
+            // True if a join should be sent, otherwise false
+            if (this.quitDebouncer.onJoin(nick, chan, server)) {
+                complete(req, ircHandler.onJoin(
+                    req, server, createUser(nick), chan, "join"
+                ));
+            }
         });
         this.hookIfClaimed(client, connInst, "nick", (oldNick: string, newNick: string, chans: string[]) => {
             chans = chans || [];
