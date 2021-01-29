@@ -89,7 +89,8 @@ export class ConnectionInstance {
      * @param {string} domain The domain (for logging purposes)
      * @param {string} nick The nick (for logging purposes)
      */
-    constructor (public readonly client: Client, private readonly domain: string, private nick: string, private pingOpts: {
+    constructor (public readonly client: Client, private readonly domain: string, private nick: string,
+        private pingOpts: {
         pingRateMs: number;
         pingTimeoutMs: number;
     }) {
