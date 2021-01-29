@@ -379,6 +379,10 @@ properties:
                                     type: "integer"
                                 userModes:
                                     type: "string"
+                                pingTimeoutMs:
+                                    type: "integer"
+                                pingRateMs:
+                                    type: "integer"
                         excludeUsers:
                             type: "array"
                             properties:

@@ -286,6 +286,23 @@ export class IrcServer {
         return this.idleUsersStartupExcludeRegex;
     }
 
+    /**
+     * The amount of time to allow for inactivty on the connection, before considering the connection
+     * dead. This usually happens if the IRCd doesn't ping us.
+     */
+    public get pingTimeout() {
+        return this.config.ircClients.pingTimeoutMs;
+    }
+
+    /**
+     * The rate at which to send pings to the IRCd if the client is being quiet for a while.
+     * Whilst the IRCd *should* be sending pings to us to keep the connection alive, it appears
+     * that sometimes they don't get around to it and end up ping timing us out.
+    */
+    public get pingRateMs() {
+        return this.config.ircClients.pingRateMs;
+    }
+
     public canJoinRooms(userId: string) {
         return (
             this.config.dynamicChannels.enabled &&
@@ -551,7 +568,9 @@ export class IrcServer {
                 ipv6: {
                     only: false
                 },
-                lineLimit: 3
+                lineLimit: 3,
+                pingTimeoutMs: 1000 * 60 * 10,
+                pingRateMs: 1000 * 60,
             },
             membershipLists: {
                 enabled: false,
@@ -722,6 +741,8 @@ export interface IrcServerConfig {
         lineLimit: number;
         userModes?: string;
         realnameFormat?: "mxid"|"reverse-mxid";
+        pingTimeoutMs: number;
+        pingRateMs: number;
     };
     excludedUsers: Array<
         {
