@@ -40,17 +40,17 @@ function workerThread() {
             return;
         }
         writeLog("debug", "Request for /metrics");
-        const timeout = setTimeout(() => {
+        const timeout = setTimeout(async () => {
             intervalCounter.inc(METRICS_DUMP_TIMEOUT_MS);
             res.statusCode = 200;
             res.writeHead(200);
-            writeAndEnd(res, registry.metrics());
+            writeAndEnd(res, await registry.metrics());
         }, METRICS_DUMP_TIMEOUT_MS)
 
         // We've checked for the existence of parentPort above.
 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        parentPort!.once("message", (msg: string) => {
+        parentPort!.once("message", async (msg: string) => {
             clearTimeout(timeout);
             const time = Date.now();
             intervalCounter.set(time - lastDumpTs);
@@ -62,7 +62,7 @@ function workerThread() {
                 return;
             }
             res.writeHead(200);
-            writeAndEnd(res, `${dump}\n${registry.metrics()}`);
+            writeAndEnd(res, `${dump}\n${await registry.metrics()}`);
         });
 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -70,12 +70,12 @@ function workerThread() {
     }).listen(workerData.port, workerData.hostname, 1);
 }
 
-export function spawnMetricsWorker(port: number, hostname = "127.0.0.1", onMetricsRequested: () => string) {
+export function spawnMetricsWorker(port: number, hostname = "127.0.0.1", onMetricsRequested: () => Promise<string>) {
     const worker = new Worker(__filename, { workerData: { port, hostname } });
     const workerLogger = getLog("MetricsWorker");
-    worker.on("message", (msg: string) => {
+    worker.on("message", async (msg: string) => {
         if (msg === "metricsdump") {
-            worker.postMessage("metricsdump:" + onMetricsRequested());
+            worker.postMessage("metricsdump:" + await onMetricsRequested());
         }
         else if (msg.startsWith("log")) {
             const [, logLevel, logMsg] = msg.split(":");
