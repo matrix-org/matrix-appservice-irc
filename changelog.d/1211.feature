@@ -1,1 +1,0 @@
-Add `!plumb` admin command to bridge rooms

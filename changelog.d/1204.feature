@@ -1,1 +1,0 @@
-Warn Matrix users if they are unable to speak in a channel.
