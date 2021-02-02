@@ -1203,7 +1203,7 @@ export class IrcBridge {
             ircRoom.channel, bridgedClient.nick, Boolean(bridgedClient.status === BridgedClientStatus.CONNECTED)
         );
         if (action.text.startsWith("!irc nick ")) {
-            const newNick = action.text.substr(10)
+            const newNick = action.text.substr("!irc nick ".length)
             log.info("Matrix user wants to change nick from %s to %s", bridgedClient.nick, newNick)
             try {
                return bridgedClient.changeNick(newNick, true)
