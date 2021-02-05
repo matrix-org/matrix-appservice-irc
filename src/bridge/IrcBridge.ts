@@ -1198,19 +1198,6 @@ export class IrcBridge {
     }
 
     public async sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction) {
-        if (action.text.startsWith("!irc nick ")) {
-            const newNick = action.text.substr("!irc nick ".length)
-            log.info("Matrix user wants to change nick from %s to %s", bridgedClient.nick, newNick)
-            try {
-                // TODO: Send confirmation on success or failure
-                return await bridgedClient.changeNick(newNick, true)
-            }
-            catch (err) {
-                if (err.stack) {
-                    log.error(err);
-                }
-            }
-        }
         log.info(
             "Sending IRC message in %s as %s (connected=%s)",
             ircRoom.channel, bridgedClient.nick, Boolean(bridgedClient.status === BridgedClientStatus.CONNECTED)

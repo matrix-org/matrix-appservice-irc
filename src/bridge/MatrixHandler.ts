@@ -762,6 +762,46 @@ export class MatrixHandler {
         return null;
     }
 
+    private async onCommand(req: BridgeRequest, event: MatrixMessageEvent): Promise<BridgeRequestErr|null> {
+        req.log.info(`Handling command from ${event.sender}`);
+        if (!event.content.body) {
+            throw Error('Cannot handle command with no text');
+        }
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
+        const [command, ...args] = event.content.body.trim().substr("!irc ".length).split(" ");
+        // We currently only check the first room.
+        const [targetRoom] = await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
+        if (command === "nick") {
+            const newNick = args[0];
+            // We need to get the context of this room.
+            if (!targetRoom) {
+                await intent.sendMessage(event.room_id, {
+                    'msgtype': 'm.notice',
+                    'body': 'Room is not bridged, cannot set nick without a target server'
+                });
+            }
+            const bridgedClient = await this.ircBridge.getBridgedClient(targetRoom.server, event.sender);
+            req.log.info("Matrix user wants to change nick from %s to %s", bridgedClient.nick, newNick);
+            try {
+                await bridgedClient.changeNick(newNick, true);
+            }
+            catch (e) {
+                await intent.sendMessage(event.room_id, {
+                    'msgtype': 'm.notice',
+                    'body': `Unable to change nick: ${e.message}`
+                });
+                req.log.warn(`Didn't change nick on the IRC side: ${e}`);
+            }
+        }
+        else {
+            await intent.sendMessage(event.room_id, {
+                'msgtype': 'm.notice',
+                'body': 'Command not known'
+            });
+        }
+        return null;
+    }
+
     /**
      * Called when the AS receives a new Matrix Event.
      * @return {Promise} which is resolved/rejected when the request finishes.
@@ -782,11 +822,6 @@ export class MatrixHandler {
         const mxAction = MatrixAction.fromEvent(
             event, this.mediaUrl
         );
-        const ircAction = IrcAction.fromMatrixAction(mxAction);
-        if (ircAction === null) {
-            req.log.info("IrcAction couldn't determine an action type.");
-            return BridgeRequestErr.ERR_DROPPED;
-        }
 
         // check if this message is from one of our virtual users
         const servers = this.ircBridge.getServers();
@@ -796,6 +831,17 @@ export class MatrixHandler {
                     event.sender, servers[i].domain);
                 return BridgeRequestErr.ERR_VIRTUAL_USER;
             }
+        }
+
+
+        if (mxAction.type === "command") {
+            return this.onCommand(req, event);
+        }
+
+        const ircAction = IrcAction.fromMatrixAction(mxAction);
+        if (ircAction === null) {
+            req.log.info("IrcAction couldn't determine an action type.");
+            return BridgeRequestErr.ERR_DROPPED;
         }
 
         // wait a while if we just got an invite else we may not have the mapping stored

@@ -21,7 +21,7 @@ const log = require("../logging").get("MatrixAction");
 import { ContentRepo, Intent } from "matrix-appservice-bridge";
 import escapeStringRegexp from "escape-string-regexp";
 
-const ACTION_TYPES = ["message", "emote", "topic", "notice", "file", "image", "video", "audio"];
+const ACTION_TYPES = ["message", "emote", "topic", "notice", "file", "image", "video", "audio", "command"];
 const EVENT_TO_TYPE: {[mxKey: string]: string} = {
     "m.room.message": "message",
     "m.room.topic": "topic"
@@ -166,6 +166,11 @@ export class MatrixAction {
             text = event.content.topic;
         }
         else if (event.type === "m.room.message") {
+            if (event.content.msgtype === 'm.text' && event.content.body?.startsWith('!irc ')) {
+                // This might be a command
+                type = "command";
+                return new MatrixAction(type, text, null, event.origin_server_ts, event.event_id);
+            }
             if (event.content.format === "org.matrix.custom.html") {
                 htmlText = event.content.formatted_body;
             }
