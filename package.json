@@ -36,7 +36,7 @@
     "js-yaml": "^3.14.0",
     "logform": "^2.2.0",
     "matrix-appservice": "^0.7.1",
-    "matrix-appservice-bridge": "^2.4.0",
+    "matrix-appservice-bridge": "^2.5.0-rc1",
     "matrix-lastactive": "^0.1.5",
     "nedb": "^1.1.2",
     "nodemon": "^2.0.7",
@@ -64,7 +64,7 @@
     "eslint": "^5.16.0",
     "jasmine": "^3.6.2",
     "nyc": "^14.1.1",
-    "prom-client": "^12.0.0",
+    "prom-client": "^13.0.0",
     "proxyquire": "^1.4.0",
     "typescript": "^3.7.3"
   }

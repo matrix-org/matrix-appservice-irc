@@ -364,6 +364,9 @@ properties:
                                     minimum: 0
                                 allowNickChanges:
                                     type: "boolean"
+                                realnameFormat:
+                                    type: "string"
+                                    enum: ["mxid","reverse-mxid"]
                                 ipv6:
                                     type: "object"
                                     properties:
@@ -376,6 +379,10 @@ properties:
                                     type: "integer"
                                 userModes:
                                     type: "string"
+                                pingTimeoutMs:
+                                    type: "integer"
+                                pingRateMs:
+                                    type: "integer"
                         excludeUsers:
                             type: "array"
                             properties:

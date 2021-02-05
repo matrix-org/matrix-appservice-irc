@@ -210,13 +210,20 @@ export class IrcEventBroker {
     /**
      * This function is called when the quit debouncer has deemed it safe to start sending
      * quits from users who were debounced.
-     * @param item The channel/server pair to send QUITs from
+     * @param channel The channel to handle QUITs for.
+     * @param server The channels server.
+     * @param nicks The set of nicks for the channel.
      */
-    private async handleDebouncedQuit(item: {channel: string; server: IrcServer}) {
+    private async handleDebouncedQuit(channel: string, server: IrcServer, nicks: string[]) {
+        log.info(`Sending delayed QUITs for ${channel} (${nicks.length} nicks)`);
+        if (nicks.length === 0) {
+            return;
+        }
         const createUser = (nick: string) => {
             return new IrcUser(
-                item.server, nick,
-                this.pool.nickIsVirtual(item.server, nick)
+                server,
+                nick,
+                this.pool.nickIsVirtual(server, nick)
             );
         };
 
@@ -229,11 +236,14 @@ export class IrcEventBroker {
                 })
             );
         };
-        const req = createRequest();
-        log.info(`Sending delayed QUITs for ${item.channel}`);
-        for (const nick of this.quitDebouncer.getQuitNicksForChannel(item.channel, item.server)) {
+        for (const nick of nicks) {
+            const req = createRequest();
             await complete(req, this.ircHandler.onPart(
-                req, item.server, createUser(nick), item.channel, "quit"
+                req,
+                server,
+                createUser(nick),
+                channel,
+                "quit"
             ));
         }
     }
@@ -351,6 +361,12 @@ export class IrcEventBroker {
                 req, server, createUser(nick), chan, "part", reason
             ));
         });
+        this.hookIfClaimed(client, connInst, "kick", (chan: string, nick: string, by: string, reason: string) => {
+            const req = createRequest();
+            complete(req, ircHandler.onKick(
+                req, server, createUser(by), createUser(nick), chan, reason
+            ));
+        });
         this.hookIfClaimed(client, connInst, "quit", (nick: string, reason: string, chans: string[]) => {
             chans = chans || [];
             // True if a leave should be sent, otherwise false.
@@ -363,18 +379,14 @@ export class IrcEventBroker {
                 });
             }
         });
-        this.hookIfClaimed(client, connInst, "kick", (chan: string, nick: string, by: string, reason: string) => {
-            const req = createRequest();
-            complete(req, ircHandler.onKick(
-                req, server, createUser(by), createUser(nick), chan, reason
-            ));
-        });
         this.hookIfClaimed(client, connInst, "join", (chan: string, nick: string) => {
             const req = createRequest();
-            this.quitDebouncer.onJoin(nick, chan, server);
-            complete(req, ircHandler.onJoin(
-                req, server, createUser(nick), chan, "join"
-            ));
+            // True if a join should be sent, otherwise false
+            if (this.quitDebouncer.onJoin(nick, chan, server)) {
+                complete(req, ircHandler.onJoin(
+                    req, server, createUser(nick), chan, "join"
+                ));
+            }
         });
         this.hookIfClaimed(client, connInst, "nick", (oldNick: string, newNick: string, chans: string[]) => {
             chans = chans || [];

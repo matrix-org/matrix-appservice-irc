@@ -32,7 +32,7 @@ homeserver:
   # Default: true
   enablePresence: true
 
-  # Which port should the appservice bind to. Takes priority over the one provided in the
+  # Which port should the appservice bind to. Can be overriden by the one provided in the
   # command line! Optional.
   # bindPort: 9999
 
@@ -371,6 +371,16 @@ ircService:
         # through the bridge e.g. caller ID as there is no way to /ACCEPT.
         # Default: "" (no user modes)
         # userModes: "R"
+        # The format of the realname defined for users, either mxid or reverse-mxid
+        realnameFormat: "mxid"
+        # The minimum time to wait between connection attempts if we were disconnected
+        # due to throttling.
+        # pingTimeoutMs: 600000
+        # The rate at which to send pings to the IRCd if the client is being quiet for a while.
+        # Whilst the IRCd *should* be sending pings to us to keep the connection alive, it appears
+        # that sometimes they don't get around to it and end up ping timing us out.
+        # pingRateMs: 60000
+
   # Set information about the bridged channel in the room state, so that client's may
   # present relevant UI to the user. MSC2346
   bridgeInfoState:

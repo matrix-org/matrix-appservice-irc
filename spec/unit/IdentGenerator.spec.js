@@ -1,5 +1,6 @@
 "use strict";
 const Promise = require("bluebird");
+const { MatrixUser } = require("matrix-appservice-bridge");
 const { IdentGenerator } = require("../../lib/irc/IdentGenerator");
 const { IrcClientConfig } = require("../../lib/models/IrcClientConfig");
 
@@ -12,12 +13,8 @@ describe("Username generation", function() {
     let ircClientConfigs;
     let ircClientConfigsUsername;
     let ircClientConfigsUsernames;
-
-    var mkMatrixUser = function(uid) {
-        return {
-            userId: uid,
-            getId: function() { return uid; }
-        };
+    const serverMock = {
+        getRealNameFormat: () => "mxid",
     };
 
     beforeEach(function() {
@@ -45,7 +42,7 @@ describe("Username generation", function() {
         storeMock.getMatrixUserByUsername = async function(domain, uname) {
             var obj;
             if (ircClientConfigsUsername[uname+domain]) {
-                return mkMatrixUser(ircClientConfigsUsername[uname+domain].getUserId());
+                return new MatrixUser(ircClientConfigsUsername[uname+domain].getUserId());
             }
             return obj;
         };
@@ -63,15 +60,23 @@ describe("Username generation", function() {
     it("should attempt to truncate the user ID on a long user ID", async function() {
         var userId = "@myreallylonguseridhere:localhost";
         var uname = "myreally";
-        const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+        const info = await identGenerator.getIrcNames(ircClientConfig, serverMock, new MatrixUser(userId));
         expect(info.username).toEqual(uname);
+    });
+
+    it("should reverse the userID", async function() {
+        var userId = "@myreallylonguseridhere:localhost";
+        const info = await identGenerator.getIrcNames(ircClientConfig, {
+            getRealNameFormat: () => "reverse-mxid",
+        }, new MatrixUser(userId));
+        expect(info.realname).toEqual("localhost:myreallylonguseridhere");
     });
 
     it("should start with '_1' on an occupied user ID", async function() {
         const userId = "@myreallylonguseridhere:localhost";
         const uname = "myreal_1";
         storeMock.storeIrcClientConfig(new IrcClientConfig("@someone:else", IRC_DOMAIN, { username: "myreally" }));
-        const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+        const info = await identGenerator.getIrcNames(ircClientConfig, serverMock, new MatrixUser(userId));
         expect(info.username).toEqual(uname);
     });
 
@@ -82,7 +87,7 @@ describe("Username generation", function() {
         for (let i = 1; i < 10; i++) {
             storeMock.storeIrcClientConfig(new IrcClientConfig(`@someone${i}:else`, IRC_DOMAIN, { username: "myreal_" + i }));
         }
-        const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+        const info = await identGenerator.getIrcNames(ircClientConfig, serverMock, new MatrixUser(userId));
         expect(info.username).toEqual(uname);
     });
 
@@ -91,7 +96,7 @@ describe("Username generation", function() {
         const uname = "myreal_2";
         storeMock.storeIrcClientConfig(new IrcClientConfig("@someone:else", IRC_DOMAIN, { username: "myreally" }));
         storeMock.storeIrcClientConfig(new IrcClientConfig("@someone1:else", IRC_DOMAIN, { username: "myreal_1" }));
-        const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+        const info = await identGenerator.getIrcNames(ircClientConfig, serverMock, new MatrixUser(userId));
         expect(info.username).toEqual(uname);
     });
 
@@ -102,7 +107,7 @@ describe("Username generation", function() {
         };
         const userId = "@myreallylonguseridhere:localhost";
         try {
-            await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+            await identGenerator.getIrcNames(ircClientConfig, serverMock, new MatrixUser(userId));
         }
         catch (ex) {
             return;
@@ -113,7 +118,7 @@ describe("Username generation", function() {
     it("should prefix 'M' onto usernames which don't begin with A-z", async function() {
         const userId = "@-myname:localhost";
         const uname = "M-myname";
-        const info = await identGenerator.getIrcNames(ircClientConfig, mkMatrixUser(userId));
+        const info = await identGenerator.getIrcNames(ircClientConfig, serverMock, new MatrixUser(userId));
         expect(info.username).toEqual(uname);
     });
 
@@ -122,7 +127,7 @@ describe("Username generation", function() {
         for (let i = 0; i < 1000; i++) {
             const userId = `${userIdPrefix}${i}:localhost`;
             const config = new IrcClientConfig(userId, 'irc.example.com');
-            const result = await identGenerator.getIrcNames(config, mkMatrixUser(userId));
+            const result = await identGenerator.getIrcNames(config, serverMock, new MatrixUser(userId));
             if (i === 0) {
                 expect(result.username).toBe("longpref");
             } else {

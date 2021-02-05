@@ -38,15 +38,8 @@ const FLOOD_PROTECTION_DELAY_MS = 700;
 // The max amount of time we should wait for the server to ping us before reconnecting.
 // Servers ping infrequently (2-3mins) so this should be high enough to allow up
 // to 2 pings to lapse before reconnecting (5-6mins).
-const PING_TIMEOUT_MS = 1000 * 60 * 10;
-// The minimum time to wait between connection attempts if we were disconnected
-// due to throttling.
-const THROTTLE_WAIT_MS = 20 * 1000;
 
-// The rate at which to send pings to the IRCd if the client is being quiet for a while.
-// Whilst the IRCd *should* be sending pings to us to keep the connection alive, it appears
-// that sometimes they don't get around to it and end up ping timing us out.
-const PING_RATE_MS = 1000 * 60;
+const THROTTLE_WAIT_MS = 20 * 1000;
 
 // String reply of any CTCP Version requests
 const CTCP_VERSION = 'matrix-appservice-irc, part of the Matrix.org Network';
@@ -96,7 +89,11 @@ export class ConnectionInstance {
      * @param {string} domain The domain (for logging purposes)
      * @param {string} nick The nick (for logging purposes)
      */
-    constructor (public readonly client: Client, private readonly domain: string, private nick: string) {
+    constructor (public readonly client: Client, private readonly domain: string, private nick: string,
+        private pingOpts: {
+        pingRateMs: number;
+        pingTimeoutMs: number;
+    }) {
         this.listenForErrors();
         this.listenForPings();
         this.listenForCTCPVersions();
@@ -311,7 +308,7 @@ export class ConnectionInstance {
                 this.client.emit("netError", {
                     msg: "Client-side ping timeout"
                 });
-            }, PING_TIMEOUT_MS);
+            }, this.pingOpts.pingTimeoutMs);
         }
         this.client.on("ping", (svr: string) => {
             log.debug("Received ping from %s directed at %s", svr, this.nick);
@@ -348,7 +345,7 @@ export class ConnectionInstance {
             this.client.send("PING", "LAG" + Date.now());
             // keep doing it.
             this.resetPingSendTimer();
-        }, PING_RATE_MS);
+        }, this.pingOpts.pingRateMs);
     }
 
     /**
@@ -394,7 +391,10 @@ export class ConnectionInstance {
                 server.randomDomain(), opts.nick, connectionOpts
             );
             const inst = new ConnectionInstance(
-                nodeClient, server.domain, opts.nick
+                nodeClient, server.domain, opts.nick, {
+                    pingRateMs: server.pingRateMs,
+                    pingTimeoutMs: server.pingTimeout,
+                }
             );
             if (onCreatedCallback) {
                 onCreatedCallback(inst);
