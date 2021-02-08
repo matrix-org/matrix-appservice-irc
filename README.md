@@ -1,94 +1,90 @@
-Matrix <--> IRC Bridge
+Matrix IRC Bridge
 ----------------------
+
+[![Docker Automated build](https://img.shields.io/docker/cloud/build/matrixdotorg/matrix-appservice-irc.svg)](https://hub.docker.com/r/matrixdotorg/matrix-appservice-irc)
 [![Build Status](https://badge.buildkite.com/f33ff3f5e59aed3057cec0215a84e26747581e0fcb09b4b699.svg?branch=master)](https://buildkite.com/matrix-dot-org/matrix-appservice-irc)
+[![#irc:matrix.org](https://img.shields.io/matrix/irc:matrix.org.svg?server_fqdn=matrix.org&label=%23irc:matrix.org&logo=matrix)](https://matrix.to/#/#irc:matrix.org)
+[![Documentation Status](https://readthedocs.org/projects/matrix-appservice-irc/badge/?version=latest)](https://matrix-appservice-irc.readthedocs.io/en/latest/?badge=latest)
 
-This is an IRC bridge for Matrix using the Application Services (AS) API. If you're upgrading from an old release, be sure to read the [CHANGELOG](CHANGELOG.md) as there may be breaking changes between releases.
+This is an IRC bridge for [Matrix](https://matrix.org). If you're upgrading from an
+old release, be sure to read the [CHANGELOG](./CHANGELOG.md) as there may be breaking changes between releases.
 
-This bridge will pass all IRC messages through to Matrix, and all Matrix messages through to IRC. It is highly configurable and is currently used on the matrix.org homeserver to bridge a number of popular IRC networks including Freenode and Moznet.
-
-# Setup
-There are 4 stages to setting up the IRC bridge which are outlined below.
-
-For more information, check out the [how-to guide](HOWTO.md).
-
-**WARNING: You should seek permission from the operator of the bridged IRC network before running this bridge. Bridging may be against the IRC network's Terms of Use.**
-
-## 1. Installation
-To install all dependencies and add a binary `matrix-appservice-irc`:
-```
- $ npm install matrix-appservice-irc --global
-```
-
-Alternatively, `git clone` this repository on the `master` branch, then run `npm install`. If
-you use this method, the bridge can be run via `node app.js`.
+This bridge will pass all IRC messages through to Matrix, and all Matrix messages through to IRC. It is highly
+configurable and is currently used on the matrix.org homeserver to bridge a number of popular IRC networks
+including Freenode and OFTC.
 
 
-### Requirements
- - Node.js **v12** or above.
- - A Matrix homeserver you control. Synapse v0.99.5.2 or above is recommended, but other homeserver implementations may also work.  
+## What does it do?
 
-
-## 2. Configuration
-The bridge must be configured before it can be run. This tells the bridge where to find the homeserver
-and how to bridge IRC channels/users.
-
- - Copy `config.sample.yaml` to `config.yaml`.
- - Modify `config.yaml` to point to your homeserver and IRC network of choice.
-
-For more information, check out the [how-to guide](HOWTO.md) and/or [the sample config](config.sample.yaml).
-
-## 3. Registration
-The bridge needs to generate a registration file which can be passed to the homeserver to tell the
-homeserver which Matrix events the bridge should receive. Execute the following command:
-
-```
-$ node app.js -r -f my_registration_file.yaml -u "http://where.the.appservice.listens:9999" -c config.yaml -l my_bot
-
-Loading config file /home/github/matrix-appservice-irc/config.yaml
-Output registration to: /home/github/matrix-appservice-irc/my_registration_file.yaml
-```
-
-*More information on the CLI args can be found by running* `$ node app.js --help`
-
-This will create a registration YAML file. Edit your **homeserver** config file (e.g. `homeserver.yaml`) to
-point to this registration file:
-
-```yaml
-# homeserver.yaml
-app_service_config_files: ["my_registration_file.yaml"]
-```
-
-## 4. Running
-Finally, the bridge can be run using the following command:
-
-```
-$ node app.js -c config.yaml -f my_registration_file.yaml -p 9999 
-```
-
-
-# What does it do?
 On startup, the bridge will join Matrix clients to the IRC channels specified in the configuration file. It
-will then listen for incoming IRC messages and forward them through to Matrix rooms. Each real Matrix
-user is represented by an IRC client, and each real IRC client is represented by a Matrix user. Full
+will then listen for incoming IRC messages and forward them through to Matrix rooms
+Each real Matrix user is represented by an IRC client, and each real IRC client is represented by a Matrix user. Full
 two-way communication in channels and PMs are supported, along with a huge array of customisation options.
 
-For more information on how you can customise the bridge, check out the [how-to guide](HOWTO.md).
 
-# Usage
-To join a channel on an IRC network configured for public use:
- - Join a room with the alias ``#<alias_prefix><channel_name>:<homeserver_hosting_the_appservice>`` e.g. ``#irc_#python:example.com``. The template for this can be configured at `config.yaml:ircService.servers.<servername>.dynamicChannels.aliasTemplate`.
+## Usage
 
-For the publicly bridged IRC networks on matrix.org, the options are:
- - ``/join #freenode_#somewhere:matrix.org`` (for freenode)
- - ``/join #mozilla_#somewhere:matrix.org`` (for moznet)
+### Joining a channel
 
-To send a PM to someone on an IRC network:
- - Start a conversation with a user ID ``@<user_prefix><nick>:<homeserver_hosting_the_appservice>`` e.g.
-   ``@irc_Alice:example.com``. The template for this can be configured at `config.yaml:ircService.servers.<servername>.matrixClients.userTemplate`.
+Joining a public channel over the bridge is as easy as joining an alias, for instance:
 
-# Configuration
-See [the sample config file](config.sample.yaml) for an explanation of the
+`#freenode_#python:matrix.org` maps to the `#python` channel on Freenode.
+
+### PMing a user
+
+Sending a PM to an IRC user means starting a conversation with:
+
+`@freenode_Alice:matrix.org` maps to the nickname `Alice` on Freenode.
+
+If a PM is sent from the IRC side, it will either appear in your existing room or you will be invited
+to a new room.
+
+### Customising your experience
+
+You may also want to customise your nickname or set a password to authenticate with services, you
+can do this by PMing the bridge bot user. E.g. the matrix.org freenode bridge user is `@appservice-irc:matrix.org`.
+
+```
+!nick Alice
+!storepass MySecretPassword
+```
+
+More commands can be found [here](https://matrix-org.github.io/matrix-appservice-irc/usage#BotCommands)
+
+The alias and user formats may differer depending on the bridge you are using, so be sure to check with the
+server administrator if the above defaults are not working for you. Server administrators can
+check [the sample config file](./config.sample.yaml) for instructions on how to change the templates
+for users and channels.
+
+The wiki [contains a list of public IRC networks](https://github.com/matrix-org/matrix-appservice-irc/wiki/Bridged-IRC-networks)
+including alias and user_id formats.
+
+
+## Setting up your own bridge
+
+You will need a Matrix homeserver to run this bridge. Any homeserver that supports the AS API
+should work.
+
+See [the getting started docs](https://matrix-org.github.io/matrix-appservice-irc/bridge_setup)
+for instructions on how to set up the bridge.
+
+### Configuration
+
+See [the sample config file](./config.sample.yaml) for an explanation of the
 configuration options available.
 
-# Contributing
-Please see the [CONTRIBUTING](CONTRIBUTING.md) file for information on contributing.
+
+### Documentation
+
+Documentation can be found on [GitHub Pages](https://matrix-org.github.io/matrix-appservice-irc).
+
+You can build the documentaion yourself by:
+```
+# Ensure that Rust is installed on your system.
+# cargo install mdbook
+mdbook build
+sensible-browser book/index.html
+```
+
+## Contributing
+Please see the [CONTRIBUTING](./CONTRIBUTING.md) file for information on contributing.
