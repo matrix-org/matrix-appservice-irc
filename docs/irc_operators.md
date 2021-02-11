@@ -4,7 +4,7 @@ This chapter describes useful information about the bridge for IRC operators or 
 
 The IRC bridge provides each Matrix user with one IRC connection in order to bridge them "natively"
 into the IRC network, as so they can largely be treated as real users. Due to the 1:1 connection system,
-it is often useful that the IRCD network provide the bridge host with a more relaxed ILINE limit depending
+it is often useful that the IRCD network provides the bridge host with a more relaxed ILINE limit depending
 on the number of Matrix users they'd expect to use the bridge.
 
 ### The Matrix experience
@@ -20,7 +20,7 @@ However as with all bridges, the native feeling can catch IRC or Matrix users un
 ### The [m]/-M suffix
 
 By default, the IRC bridge will append a `-M` to nicks for Matrix users. This is to avoid clashes with a users
-real identity on IRC as well as to highlight that they are on the bridge (and may not even know they are on IRC).
+real identity on IRC as well as to highlight that the users are on the bridge (and may not even know the conversation is bridged to IRC).
 The user has the option to change this by going to the bot and sending a `!nick` command, so the suffix should not
 be used as a blanket detection method.
 
@@ -55,21 +55,20 @@ A Matrix room can be connected to a IRC network in one of two ways:
 
 
 Additionally, a channel may be connected to one portal and multiple plumbed rooms without issue as the 
-messages from Matrix users are replicated to the other rooms for them. We typically do not reccomend
+messages from Matrix users are replicated to the other rooms for them. We typically do not recommend
 multiple points of entry to the channel due to the obvious confusion this causes.
 
 ### Connection failure
 
 If a Matrix user fails to join a channel due to a ban, they are kicked from it. If the Matrix user
 fails to get a connection to IRC at all, they are also kicked from any rooms they are part of. The exception
-to this rule is if the bridge bot (which does the kicking) lacks permissions in the room, where it
-will be unable to perform any action.
+to this rule is if the bridge bot (which does the kicking) lacks permission to kick members of the room.
 
 ### Line limits
 
 The IRC bridge allows admins to configure a maximum amount of lines that can be sent at a time to a channel
 by a Matrix user. The Matrix spec allows events to be sent by users up to 65k in size, so with some margin for
-event padding, a message could feasabily be over 64k in size. The Matrix spec has no limit on how many lines
+event padding, a message could feasibly be over 64k in size. The Matrix spec has no limit on how many lines
 a single message can have so to avoid this issue the bridge will "pastebin" any overly large message rather
 than send the message line by line.
 

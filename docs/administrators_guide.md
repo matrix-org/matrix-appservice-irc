@@ -10,7 +10,7 @@ TODO: This
 
 The bridge supports hot-reloading of the configuration file by sending a `SIGHUP` signal. Some configuration keys will
 not be reloaded as they are required to be static to avoid bridge instability. Unsupported keys are marked in
-[config.sample.yaml](https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml)
+[config.sample.yaml](https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml).
 
 ## The Debug API
 

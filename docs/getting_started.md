@@ -1,7 +1,7 @@
 Getting started
 ---------------
 
-This guide is written for server administrators who would like to setup their own IRC bridge to one or more networks.
+This guide is written for server administrators who would like to set up their own IRC bridge to one or more networks.
 
 # Setup
 
