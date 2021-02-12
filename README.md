@@ -21,44 +21,9 @@ will then listen for incoming IRC messages and forward them through to Matrix ro
 Each real Matrix user is represented by an IRC client, and each real IRC client is represented by a Matrix user. Full
 two-way communication in channels and PMs are supported, along with a huge array of customisation options.
 
-
 ## Usage
 
-### Joining a channel
-
-Joining a public channel over the bridge is as easy as joining an alias, for instance:
-
-`#freenode_#python:matrix.org` maps to the `#python` channel on Freenode.
-
-### PMing a user
-
-Sending a PM to an IRC user means starting a conversation with:
-
-`@freenode_Alice:matrix.org` maps to the nickname `Alice` on Freenode.
-
-If a PM is sent from the IRC side, it will either appear in your existing room or you will be invited
-to a new room.
-
-### Customising your experience
-
-You may also want to customise your nickname or set a password to authenticate with services, you
-can do this by PMing the bridge bot user. E.g. the matrix.org freenode bridge user is `@appservice-irc:matrix.org`.
-
-```
-!nick Alice
-!storepass MySecretPassword
-```
-
-More commands can be found [here](https://matrix-org.github.io/matrix-appservice-irc/usage#BotCommands)
-
-The alias and user formats may differer depending on the bridge you are using, so be sure to check with the
-server administrator if the above defaults are not working for you. Server administrators can
-check [the sample config file](./config.sample.yaml) for instructions on how to change the templates
-for users and channels.
-
-The wiki [contains a list of public IRC networks](https://github.com/matrix-org/matrix-appservice-irc/wiki/Bridged-IRC-networks)
-including alias and user_id formats.
-
+To learn how to use the bridge, see our [usage guide](https://matrix-org.github.io/matrix-appservice-irc/latest/usage.html)
 
 ## Setting up your own bridge
 
