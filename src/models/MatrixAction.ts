@@ -187,9 +187,13 @@ export class MatrixAction {
                 }
 
                 if (filename) {
-                    url += `/${filename}`;
+                    url += `/${encodeURIComponent(filename)}`;
+                    text = `${fileSize} < ${url} >`;
                 }
-                text = `${event.content.body}${fileSize} < ${url} >`;
+                else {
+                    // If not a filename, print the body
+                    text = `${event.content.body} ${fileSize} < ${url} >`;
+                }
             }
         }
         return new MatrixAction(type, text, htmlText, event.origin_server_ts);
