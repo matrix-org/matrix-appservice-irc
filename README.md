@@ -22,6 +22,8 @@ To install all dependencies and add a binary `matrix-appservice-irc`:
 Alternatively, `git clone` this repository on the `master` branch, then run `npm install`. If
 you use this method, the bridge can be run via `node app.js`.
 
+This repository also contains snapcraft packaging information. Until the snap is published on the snapcraft store, the snap can be built by
+running `snapcraft` in the top level of this repository, and the resulting `.snap` installed with `snap install --devmode <filename>.snap`.
 
 ### Requirements
  - Node.js **v12** or above.

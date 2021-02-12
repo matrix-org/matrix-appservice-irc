@@ -45,3 +45,6 @@ passkey.pem
 *.tsbuildinfo
 *.map
 lib/
+
+#snap
+*.snap
