@@ -27,7 +27,7 @@ which maps to the nickname `Alice` on Freenode.
 If a PM is sent from the IRC side, it will either appear in your existing PM room or you will be invited
 to a new room.
 
-The room alias and user formats may differer depending on the bridge you are using, so be sure to check with the
+The room alias and user formats may differ depending on the bridge you are using, so be sure to check with the
 server administrator if the above defaults are not working for you. Server administrators can check
 [config.sample.yaml](https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml) for
 instructions on how to change the templates for users and channels.
