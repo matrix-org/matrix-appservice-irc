@@ -62,7 +62,7 @@ easier to handle than flat files and allows you to inspect the state of it while
 Setting up PostgresSQL for the bridge is as easy as doing:
 
 ```postgres
--- Authenticate with postgres, the
+-- Authenticate with postgres, then
 psql 'postgres://dbstring'
 CREATE DATABASE ircbridge;
 CREATE USER ircbridge WITH PASSWORD 's3cr3t';

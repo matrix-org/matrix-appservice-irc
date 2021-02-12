@@ -66,7 +66,7 @@ List all the Matrix rooms that you are joined to which are also connected to IRC
 
 QUITs you from all connected networks AND **kicks you from all IRC rooms** (except DMs). This is to avoid
 leaking history to your Matrix account while not being visible to IRC users. This command will not remove
-your password or stored data with the bridge. You will need to contact the owner of the bridge to do so.
+your password or stored data with the bridge. Ask the owner of the bridge to remove that data for you.
 
 
 ### `!nick`
@@ -81,11 +81,11 @@ user's nickname, this will fail.
 
 `!feature feature-name [true/false/default]`
 
-Enable or disable a feature for your account. Specifying `true` will enable the feature, `false` to disable, or `default`
-to use the default setting based upon the bridge config.
+Enable or disable a feature for your account. Set it to `true` to enable the feature, `false` to disable it, or `default`
+to use the default based upon the bridge config.
 
-Currently the featues you can use are:
-- `mentions` - Determine whether IRC users can mention you on the IRC bridge. Not that this will only stop mention text being turned
+Currently, the features you can use are:
+- `mentions` - Determine whether IRC users can mention you on the IRC bridge. Note, that this will only stop mention text being turned
   into pills. See [this section](usage.md#message-behaviours) for an explanation of this feature.
 
 
@@ -112,4 +112,4 @@ You must invite the bridge bot into the Matrix room for this to work.
 
 ### `!help`
 
-Provides a printout of the bot commands for the bridge
+Prints a list of commands for the bridge.
