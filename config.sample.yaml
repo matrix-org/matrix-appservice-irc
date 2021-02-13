@@ -1,5 +1,6 @@
 # Configuration specific to AS registration. Unless other marked, all fields
 # are *REQUIRED*.
+# Unless otherwise specified, these keys CANNOT be hot-reloaded.
 homeserver:
   # The URL to the home server for client-server API calls, also used to form the
   # media URLs as displayed in bridged IRC channels:
@@ -8,7 +9,7 @@ homeserver:
   # The URL of the homeserver hosting media files. This is only used to transform
   # mxc URIs to http URIs when bridging m.room.[file|image] events. Optional. By
   # default, this is the homeserver URL, specified above.
-  #
+  # This key CAN be hot-reloaded.
   # media_url: "http://media.repo:8008"
 
   # Drop Matrix messages which are older than this number of seconds, according to
@@ -21,6 +22,7 @@ homeserver:
   # clock times and hence produce different origin_server_ts values, which may be old
   # enough to cause *all* events from the homeserver to be dropped.
   # Default: 0 (don't ever drop)
+  # This key CAN be hot-reloaded.
   # dropMatrixMessagesAfterSecs: 300 # 5 minutes
 
   # The 'domain' part for user IDs on this home server. Usually (but not always)
@@ -42,6 +44,8 @@ homeserver:
 
 # Configuration specific to the IRC service
 ircService:
+  # All server keys can be hot-reloaded, however existing IRC connections
+  # will not have changes applied to them.
   servers:
     # The address of the server to connect to.
     irc.example.com:
@@ -389,6 +393,7 @@ ircService:
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users
   # rather than the application service itself.
+  # This key CANNOT be hot-reloaded
   ident:
     # True to listen for Ident requests and respond with the
     # matrix user's user_id (converted to ASCII, respecting RFC 1413).
@@ -411,6 +416,7 @@ ircService:
 
   # Configuration for logging. Optional. Default: console debug level logging
   # only.
+  # This key CANNOT be hot-reloaded
   logging:
     # Level to log on console/logfile. One of error|warn|info|debug
     level: "debug"
@@ -426,6 +432,7 @@ ircService:
     maxFiles: 5
 
   # Metrics will then be available via GET /metrics on the bridge listening port (-p).
+  # This key CANNOT be hot-reloaded
   metrics:
     # Whether to actually enable the metric endpoint. Default: false
     enabled: true
@@ -452,6 +459,7 @@ ircService:
   #   POST /irc/$domain/user/$user_id => Issue a raw IRC command down this connection.
   #                                      Format: new line delimited commands as per IRC protocol.
   #
+  # This key CANNOT be hot-reloaded
   debugApi:
     # True to enable the HTTP API endpoint. Default: false.
     enabled: false
@@ -464,6 +472,7 @@ ircService:
   # GET /_matrix/provision/unlink
   # GET /_matrix/provision/listlinks
   #
+  # This key CANNOT be hot-reloaded
   provisioning:
     # True to enable the provisioning HTTP endpoint. Default: false.
     enabled: false
@@ -491,9 +500,11 @@ ircService:
   # for storage in the database. Passwords are stored by using the admin room command
   # `!storepass server.name passw0rd. When a connection is made to IRC on behalf of
   # the Matrix user, this password will be sent as the server password (PASS command).
+  # This key CANNOT be hot-reloaded
   passwordEncryptionKeyPath: "passkey.pem"
 
   # Config for Matrix -> IRC bridging
+  # This key CANNOT be hot-reloaded
   matrixHandler:
     # Cache this many matrix events in memory to be used for m.relates_to messages (usually replies).
     eventCacheSize: 4096
@@ -528,11 +539,14 @@ advanced:
   # however for large bridges it is important to rate limit the bridge to avoid
   # accidentally overloading the homeserver. Defaults to 1000, which should be
   # enough for the vast majority of use cases.
+  # This key CAN be hot-reloaded
   maxHttpSockets: 1000
   # Max size of an appservice transaction payload, in bytes. Defaults to 10Mb
+  # This key CANNOT be hot-reloaded.
   maxTxnSize: 10000000
 
 # Capture information to a sentry.io instance
+# This key CANNOT be hot-reloaded.
 sentry:
   enabled: false
   dsn: "https://<key>@sentry.io/<project>"
@@ -542,6 +556,7 @@ sentry:
   # serverName: ""
 
 # Use an external database to store bridge state.
+# This key CANNOT be hot-reloaded.
 database:
   # database engine (must be 'postgres' or 'nedb'). Default: nedb
   engine: "postgres"

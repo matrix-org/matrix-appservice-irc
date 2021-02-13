@@ -45,3 +45,4 @@ passkey.pem
 *.tsbuildinfo
 *.map
 lib/
+/book/
