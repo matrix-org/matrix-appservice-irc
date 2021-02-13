@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html" class="active"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li><li class="chapter-item expanded "><a href="development.html"><strong aria-hidden="true">6.</strong> Development</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html" class="active"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -164,15 +164,53 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#administrators-guide" id="administrators-guide">Administrators Guide</a></h1>
-<p>This document describes useful information when administering a bridge. </p>
-<h2><a class="header" href="#scaling" id="scaling">Scaling</a></h2>
-<p>TODO: This</p>
+<p>This document describes useful information when administering a bridge.</p>
+<h2><a class="header" href="#advanced-configuration" id="advanced-configuration">Advanced Configuration</a></h2>
+<p>Typically the information given in <a href="./bridge_setup.html">Bridge Setup</a> is good enough for small
+to medium sized bridges, but if you expect to handle extremely heavy IRC or Matrix traffic
+then it might be looking at tweaking some of these options.</p>
+<p>It should be noted that often the homeserver you have connected to the bridge will play a greater
+role in the percieved performance of your bridge, as it is usually the bottleneck in either handing
+(federated) traffic towards the bridge, or persisting and federating traffic from the bridge to users.</p>
+<p>It is strongly advised that if you are suffering from performance issues, you should identify if there
+are problems with your homeserver first.</p>
+<h3><a class="header" href="#quit-debouncing" id="quit-debouncing">Quit Debouncing</a></h3>
+<p><a href="https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml#L93">Setting documentation</a></p>
+<p>This setting handles the &quot;debouncing&quot; of quits when the server sees an extreme amount of QUIT events
+from the IRC server. IRC servers often suffer from <a href="https://en.wikipedia.org/wiki/Netsplit">netsplits</a>
+which manifest as many QUITs. The IRC bridge will handle one QUIT per <em>room</em>, so 5 users quitting from 5
+rooms would manifest as 25 events. This can quickly overwhelm the bridge.</p>
+<p>The quit debouner is often overkill for smaller bridges, but if you find that the bridge becomes overwhelmed
+and unresponsive after a netsplit then it enabled. </p>
+<h3><a class="header" href="#membership-syncing" id="membership-syncing">Membership syncing</a></h3>
+<p><a href="https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml#L222">Setting documentation</a></p>
+<p>Typically it's wise to leave this setting on by default, as populating the memberlists on both sides of the
+bridge leads to a more pleasant experience for users. However as the setting requires the constant adjustment
+of the member lists on both sides of the bridge it can be more intensive on homeserver resources. You can
+also adjust the membership settings of individual rooms or channels to lessen the effect.</p>
 <h2><a class="header" href="#hot-reloading" id="hot-reloading">Hot Reloading</a></h2>
-<p>The bridge supports hot-reloading of the configuration file by sending a <code>SIGHUP</code> signal. Some configuration keys will
-not be reloaded as they are required to be static to avoid bridge instability. Unsupported keys are marked in
-<a href="https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml">config.sample.yaml</a></p>
+<p>The bridge supports hot-reloading of the configuration file by sending a <code>SIGHUP</code> signal. Some configuration 
+keys will not be reloaded as they are required to be static to avoid bridge instability. Unsupported keys are 
+marked in <a href="https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml">config.sample.yaml</a>.
+Hot reloading is useful as restarting the bridge will drop all IRC connections, so it's worth using this
+method to avoid disruption.</p>
+<p>Typically the process is as follows.</p>
+<pre><code class="language-sh">$ ps -A | grep 'node'
+31960 pts/7    00:00:13 node
+# and then send the SIGHUP signal
+$ kill -SIGHUP 31960
+</code></pre>
+<p>The logs will then mention <code>Bridge config was reloaded, applying changes</code> which confirms
+that the reload has taken place.</p>
+<h2><a class="header" href="#metrics--grafana" id="metrics--grafana">Metrics / Grafana</a></h2>
+<p>The bridge includes a prometheus compatible metrics endpoint which can be used to inspect
+the state of the bridge. The repository also includes a grafana dashboard; more information
+can be found in <a href="https://github.com/matrix-org/matrix-appservice-irc/blob/develop/contrib/GRAFANA.md">GRAFANA.md</a>.</p>
 <h2><a class="header" href="#the-debug-api" id="the-debug-api">The Debug API</a></h2>
-<p>TODO: Currently this is documented over in the (GitHub wiki)[https://github.com/matrix-org/matrix-appservice-irc/wiki/Debug-API]</p>
+<p>The Debug API allows you to perform administrative actions on the bridge such as killing a IRC
+connection, inspecting connected users or unbridging a room. The API is currently loosely documented
+over in <a href="%5Bhttps://github.com/matrix-org/matrix-appservice-irc/wiki/Debug-API">the GitHub wiki</a>.</p>
+<p>This is not enabled by default.</p>
 
                     </main>
 
@@ -211,21 +249,6 @@ not be reloaded as they are required to be static to avoid bridge instability. U
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

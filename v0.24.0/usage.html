@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html" class="active"><strong aria-hidden="true">2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li><li class="chapter-item expanded "><a href="development.html"><strong aria-hidden="true">6.</strong> Development</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html" class="active"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -164,9 +164,69 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#using-the-bridge" id="using-the-bridge">Using the bridge</a></h1>
-<h2><a class="header" href="#bot-commands" id="bot-commands">Bot Commands</a></h2>
-<p>The bridge bot allows you to control your IRC connection through various bot commands. Some
-commands are reserved for bridge administrators, which can be configured in the config file.</p>
+<p>This chapter describes how to use the bridge and is intended for new or experienced Matrix
+users.</p>
+<h2><a class="header" href="#getting-connected" id="getting-connected">Getting connected</a></h2>
+<p>The IRC bridge will dynamically connect you to IRC when you start interacting with an IRC bridged room.
+Some bridges, such as matrix.org, will connect you to IRC and join you to a channel the moment you join
+the Matrix room. Others will only connect you to IRC when you attempt to send a message to a Matrix channel.</p>
+<p>Once you are connected to IRC, any joins you make to rooms connected to IRC will be replicated as joins to the
+IRC channel. By default your nickname will be <code>YourDisplayname-M</code>, but some bridges may alter this default
+by using a <code>[m]</code> suffix instead.</p>
+<h3><a class="header" href="#joining-a-channel" id="joining-a-channel">Joining a channel</a></h3>
+<p>Joining a public channel over the bridge is as easy as joining an alias, for instance:</p>
+<p><code>#freenode_#python:matrix.org</code> maps to the <code>#python</code> channel on Freenode.</p>
+<h3><a class="header" href="#private-messaging" id="private-messaging">Private Messaging</a></h3>
+<p>Sending a PM to an IRC user means starting a conversation with <code>@freenode_Alice:matrix.org</code>,
+which maps to the nickname <code>Alice</code> on Freenode.</p>
+<p>If a PM is sent from the IRC side, it will either appear in your existing PM room or you will be invited
+to a new room.</p>
+<p>The room alias and user formats may differ depending on the bridge you are using, so be sure to check with the
+server administrator if the above defaults are not working for you. Server administrators can check
+<a href="https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml">config.sample.yaml</a> for
+instructions on how to change the templates for users and channels.</p>
+<p>The wiki contains a <a href="https://github.com/matrix-org/matrix-appservice-irc/wiki/Bridged-IRC-networks">list of public IRC networks</a>
+including alias and user_id formats.</p>
+<h3><a class="header" href="#customising-your-experience" id="customising-your-experience">Customising your experience</a></h3>
+<p>You may also want to customise your nickname or set a password to authenticate with services, you
+can do this by PMing the bridge bot user. E.g. the matrix.org freenode bridge user is <code>@appservice-irc:matrix.org</code>.</p>
+<pre><code>!nick Alice
+!storepass MySecretPassword
+</code></pre>
+<p>More commands can be found in the <a href="./admin_room.html">Admin Room</a> section.</p>
+<h2><a class="header" href="#authentication" id="authentication">Authentication</a></h2>
+<p>Most networks provide a mechanism for one to authenticate themselves. You can do this manually by messaging NickServ
+or by providing a password to the bridge itself. See the <a href="./admin_room.html">Admin Room</a> section for help.</p>
+<h2><a class="header" href="#message-behaviours" id="message-behaviours">Message behaviours</a></h2>
+<p>Messages from IRC to Matrix appear in roughly as you'd expect them to. Emotes (<code>/me</code> text) are applied as Matrix supports
+it, and mIRC format colours are applied too. The IRC bridge makes an attempt to replace nicknames in sent messages with 
+user mention &quot;pills&quot;.</p>
+<p><img src="images/irc_mentions.png" alt="An illustration of the IRC mentions feature" /></p>
+<h3><a class="header" href="#matrix---irc-formatting" id="matrix---irc-formatting">Matrix -&gt; IRC formatting</a></h3>
+<p>Messages from Matrix are often richer than their IRC counterparts, as Matrix has support for sending HTML, files, edits and replies.</p>
+<p>Basic formatting is supported such as <strong>bolding</strong> and <em>italics</em> but other formats are discarded. Messages that exceed the maximum
+size of an IRC message <em>or</em> a message that contains newlines will be split into two or more messages. The configuration value
+<code>lineLimit</code> sets the maximum permittied number of messages to be sent before the whole message is stored as a file and sent as a link.</p>
+<p>For example:</p>
+<pre><code class="language-irc">&gt; Half-Shot sent a long message: &lt;https://matrix.org/_matrix/media/r0/download/matrix.org/fooobar/message.txt&gt;
+</code></pre>
+<p>Files are sent as textual links such as:</p>
+<pre><code class="language-irc">&gt; Half-Shot uploaded an image: meme.gif (1358KiB) &lt; https://matrix.org/_matrix/media/r0/download/half-shot.uk/fooobar/meme.gif &gt;
+</code></pre>
+<p>Edits are sent with a fallback star:</p>
+<pre><code class="language-irc">&gt; Half-Shot: foo
+&gt; Half-Shot: * foobar
+</code></pre>
+<p>Replies are sent with context:</p>
+<pre><code class="language-irc">&gt; Half-Shot: foo
+&gt; &lt;Half-Shot &quot;foo&quot;&gt; bar
+</code></pre>
+<p>Reactions or other non-message events are not sent presently.</p>
+<h2><a class="header" href="#encryption" id="encryption">Encryption</a></h2>
+<p>Presently the bridge cannot work in an E2EE room. The bridge will leave any room that has encryption enabled. This is because
+the bridge does not know how to read encrypted events and so far no work has been started to support this. IRC is not capable of
+relaying E2E messages to IRC clients and as such the bridge would have to decrypt messages from Matrix and encrypt messages from
+IRC. As such the team have chosen not to support encrypted Matrix rooms at this time.</p>
 
                     </main>
 
@@ -179,7 +239,7 @@ commands are reserved for bridge administrators, which can be configured in the 
                         
 
                         
-                            <a rel="next" href="bridge_setup.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="admin_room.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -197,7 +257,7 @@ commands are reserved for bridge administrators, which can be configured in the 
                 
 
                 
-                    <a rel="next" href="bridge_setup.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="admin_room.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
@@ -205,21 +265,6 @@ commands are reserved for bridge administrators, which can be configured in the 
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

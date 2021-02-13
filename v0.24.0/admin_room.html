@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Introduction - Matrix IRC Bridge</title>
+        <title>Admin Room - Matrix IRC Bridge</title>
         
         
 
@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html" class="active"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -163,22 +163,82 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#introduction" id="introduction">Introduction</a></h1>
-<p>This book describes how to use the Matrix IRC bridge, giving an overview of functions for users and server administrators. If you
-believe there are errors or omissions in the book, please open an issue on <a href="https://github.com/matrix-org/matrix-appservice-irc/issues">GitHub</a>
-or create a PR.</p>
-<p>For an overview of the bridge, see the <a href="https://github.com/matrix-org/matrix-appservice-irc">README.md</a></p>
-<p>A community maintained wiki also exists which can be found <a href="https://github.com/matrix-org/matrix-appservice-irc/wiki">here</a></p>
-<p>The documentation is built from source and can be found in <a href="https://github.com/matrix-org/matrix-appservice-irc/tree/develop/docs">the GitHub repo</a></p>
+                        <h1><a class="header" href="#admin-room" id="admin-room">Admin Room</a></h1>
+<p>Most bridges will send you an invite to an admin room once you connectto control your connection 
+to IRC, but larger bridges like matrix.org's Freenode bridge will not (you will need to start a
+conversation with the bot manually).</p>
+<h2><a class="header" href="#bot-commands" id="bot-commands">Bot Commands</a></h2>
+<p>The admin room allows you to send commands to a room to manipulate your IRC session. </p>
+<p>Some commands take a <code>[irc.example.net]</code> which lets you choose which IRC network to direct the
+request to, as some bridges host multiple IRC networks. Typically matrix.org bridges only host
+one network.</p>
+<h3><a class="header" href="#join" id="join"><code>!join</code></a></h3>
+<p><code>!join [irc.example.net] #channel [key]</code></p>
+<p>Joins a channel on the IRC side and invites you to the Matrix room. This command will create a new
+portal room if a room doesn't exist. This is useful where you cannot with the alias syntax (e.g. the channel requires a key).</p>
+<h3><a class="header" href="#cmd" id="cmd"><code>!cmd</code></a></h3>
+<p><code>!cmd [irc.example.net] COMMAND [arg0 [arg1 [...]]]</code></p>
+<p>Send a raw command through the IRC connection. This is useful for making MODE changes to yourself
+or to a channel if you have operator priviledges. Note that this command will not produce any response
+text, so commands will happen silently.</p>
+<h3><a class="header" href="#whois" id="whois"><code>!whois</code></a></h3>
+<p><code>!whois [irc.example.net] NickName|@alice:matrix.org</code></p>
+<p>A powerful command to either lookup a nickname <em>or</em> a Matrix UserID and return information about that user.</p>
+<h3><a class="header" href="#storepass" id="storepass"><code>!storepass</code></a></h3>
+<p><code>!storepass [irc.example.net] passw0rd</code></p>
+<p>Store a password, or a <code>username:password</code> combination to be sent as a PASS command on connection to the server.
+This will also reconnect you to IRC so the PASS command can be sent.</p>
+<p><strong>This action will store your password in encrypted form on the IRC bridge</strong>, so be sure to use a unique password
+for the IRC service. </p>
+<h3><a class="header" href="#removepass" id="removepass"><code>!removepass</code></a></h3>
+<p><code>!removepass [irc.example.net]</code></p>
+<p>Remove your stored password, will NOT reconnect you.</p>
+<h3><a class="header" href="#listrooms" id="listrooms"><code>!listrooms</code></a></h3>
+<p><code>!listrooms [irc.example.net]</code></p>
+<p>List all the Matrix rooms that you are joined to which are also connected to IRC.</p>
+<h3><a class="header" href="#quit" id="quit"><code>!quit</code></a></h3>
+<p>QUITs you from all connected networks AND <strong>kicks you from all IRC rooms</strong> (except DMs). This is to avoid
+leaking history to your Matrix account while not being visible to IRC users. This command will not remove
+your password or stored data with the bridge. Ask the owner of the bridge to remove that data for you.</p>
+<h3><a class="header" href="#nick" id="nick"><code>!nick</code></a></h3>
+<p><code>!nick [irc.example.net] nick</code></p>
+<p>Set your nickname for your IRC conenction and persist it across restarts. If the nickname clashes with another
+user's nickname, this will fail.</p>
+<h3><a class="header" href="#feature" id="feature"><code>!feature</code></a></h3>
+<p><code>!feature feature-name [true/false/default]</code></p>
+<p>Enable or disable a feature for your account. Set it to <code>true</code> to enable the feature, <code>false</code> to disable it, or <code>default</code>
+to use the default based upon the bridge config.</p>
+<p>Currently, the features you can use are:</p>
+<ul>
+<li><code>mentions</code> - Determine whether IRC users can mention you on the IRC bridge. Note, that this will only stop mention text being turned
+into pills. See <a href="usage.html#message-behaviours">this section</a> for an explanation of this feature.</li>
+</ul>
+<h3><a class="header" href="#bridgeversion" id="bridgeversion"><code>!bridgeversion</code></a></h3>
+<p>Prints the current version of the bridge.</p>
+<p>The bridge bot allows you to control your IRC connection through various bot commands. Some
+commands are reserved for bridge administrators, which can be configured in the config file.</p>
+<h3><a class="header" href="#plumb" id="plumb"><code>!plumb</code></a></h3>
+<p><code>!feature !room:example.com irc.network.net #channel</code></p>
+<p><em>This command only works for bridge administrators</em></p>
+<p>This command allows you to plumb a IRC channel into a room without using the HTTP provisioning API. This command does NOT 
+validate that you have permission to do this on the IRC channel so please take care to ensure that the IRC channel is
+aware of your actions.</p>
+<p>You must invite the bridge bot into the Matrix room for this to work.</p>
+<h3><a class="header" href="#help" id="help"><code>!help</code></a></h3>
+<p>Prints a list of commands for the bridge.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
+                            <a rel="prev" href="usage.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
 
                         
-                            <a rel="next" href="usage.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="bridge_setup.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -190,9 +250,13 @@ or create a PR.</p>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
+                    <a rel="prev" href="usage.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
 
                 
-                    <a rel="next" href="usage.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="bridge_setup.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 

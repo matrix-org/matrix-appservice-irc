@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html" class="active"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li><li class="chapter-item expanded "><a href="development.html"><strong aria-hidden="true">6.</strong> Development</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html" class="active"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -165,9 +165,10 @@
                     <main>
                         <h1><a class="header" href="#introduction" id="introduction">Introduction</a></h1>
 <p>This book describes how to use the Matrix IRC bridge, giving an overview of functions for users and server administrators. If you
-believe there are errors or omissions in the book, please open an issue over at <a href="matrix-appservice-irc">https://github.com/matrix-org/matrix-appservice-irc/issues</a>
-or if you believe you have the know-how, create a PR.</p>
+believe there are errors or omissions in the book, please open an issue on <a href="https://github.com/matrix-org/matrix-appservice-irc/issues">GitHub</a>
+or create a PR.</p>
 <p>For an overview of the bridge, see the <a href="https://github.com/matrix-org/matrix-appservice-irc">README.md</a></p>
+<p>A community maintained wiki also exists which can be found <a href="https://github.com/matrix-org/matrix-appservice-irc/wiki">here</a></p>
 <p>The documentation is built from source and can be found in <a href="https://github.com/matrix-org/matrix-appservice-irc/tree/develop/docs">the GitHub repo</a></p>
 
                     </main>
@@ -199,21 +200,6 @@ or if you believe you have the know-how, create a PR.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         
