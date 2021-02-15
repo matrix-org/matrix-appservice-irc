@@ -177,7 +177,7 @@ export class MatrixAction {
                 let fileSize = "";
                 if (event.content.info && event.content.info.size &&
                         typeof event.content.info.size === "number") {
-                    fileSize = " (" + Math.round(event.content.info.size / 1024) + "KiB)";
+                    fileSize = "(" + Math.round(event.content.info.size / 1024) + "KiB)";
                 }
 
                 let url = ContentRepo.getHttpUriForMxc(mediaUrl, event.content.url);
@@ -191,6 +191,7 @@ export class MatrixAction {
                     text = `${fileSize} < ${url} >`;
                 }
                 else {
+                    fileSize = fileSize ? ` ${fileSize}` : "";
                     // If not a filename, print the body
                     text = `${event.content.body}${fileSize} < ${url} >`;
                 }
