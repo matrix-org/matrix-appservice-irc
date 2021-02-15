@@ -192,7 +192,7 @@ export class MatrixAction {
                 }
                 else {
                     // If not a filename, print the body
-                    text = `${event.content.body} ${fileSize} < ${url} >`;
+                    text = `${event.content.body}${fileSize} < ${url} >`;
                 }
             }
         }
