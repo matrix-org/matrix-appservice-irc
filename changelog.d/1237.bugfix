@@ -1,0 +1,1 @@
+MXC urls are now properly URL encoded when sent to IRC.
