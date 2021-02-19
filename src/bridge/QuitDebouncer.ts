@@ -54,13 +54,9 @@ export class QuitDebouncer {
             // We are either not debouncing, or this channel has been handled already.
             return true;
         }
-        if (set.size === 0) {
-            // Nobody to debounce, yay.
-            return true;
-        }
         if (!set.delete(nick)) {
             // This user did NOT quit the channel, so we should treat them as a new joiner and handle immediately.
-            return true;
+            return server.shouldDropJoinsDuringDebounce();
         }
 
         // Otherwise, this user DID quit the channel so we know they are joined to the room (as we are deferring

@@ -177,6 +177,8 @@ properties:
                             properties:
                                 enabled:
                                     type: "boolean"
+                                dropJoinsDuringDebounce:
+                                    type: "boolean"
                                 quitsPerSecond:
                                     type: "number"
                                 delayMinMs:

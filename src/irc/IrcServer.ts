@@ -95,6 +95,15 @@ export class IrcServer {
     }
 
     /**
+     * Should the bridge drop any new joins when a debounce
+     * is ongoing
+     * @return {Boolean} this.config.quitDebounce.dropJoinsDuringDebounce.
+     */
+    public shouldDropJoinsDuringDebounce() {
+        return this.config.quitDebounce.dropJoinsDuringDebounce;
+    }
+
+    /**
      * Get a random interval to delay a quits for when debouncing. Will be between
      * `delayMinMs` and `delayMaxMs`
      */
@@ -527,6 +536,7 @@ export class IrcServer {
             quitDebounce: {
                 enabled: false,
                 quitsPerSecond: 5,
+                dropJoinsDuringDebounce: false,
                 delayMinMs: 3600000, // 1h
                 delayMaxMs: 7200000, // 2h
             },
@@ -701,6 +711,7 @@ export interface IrcServerConfig {
         quitsPerSecond: number;
         delayMinMs: number;
         delayMaxMs: number;
+        dropJoinsDuringDebounce: boolean;
     };
     mappings: {
         [channel: string]: {

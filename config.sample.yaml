@@ -113,6 +113,10 @@ ircService:
         delayMinMs: 3600000 # 1h
         # Default: 7200000, = 2h
         delayMaxMs: 7200000 # 2h
+        # Should the bridge drop any joins that happen during the debounce period. If your
+        # bridge suffers from extensive downtime when debouncing, this might help smooth
+        # things over.
+        dropJoinsDuringDebounce: false
 
       # A map for conversion of IRC user modes to Matrix power levels. This enables bridging
       # of IRC ops to Matrix power levels only, it does not enable the reverse. If a user has
