@@ -21,7 +21,7 @@ modePowerMap:
     v: 1
 ```
 
-An operator on the IRC side of the bridge will be given moderator priviledges (PL50) and a voiced user will be given
+An operator on the IRC side of the bridge will be given moderator privileges (PL50) and a voiced user will be given
 PL1. In `+m` (moderated) rooms, users who are not voiced cannot speak and so the Matrix room will not allow users with
 PL0 (that is, without +v) to speak.
 
@@ -47,8 +47,8 @@ For example to allow matrix.org bridge users to access your invite-only channel,
 
 ## +s (Secret)
 
-By default the IRC bridge will automatically insert any newly joined rooms into the homeserver's room directory, if
-the room has not been bridged. The +s mode will mark the channel as secret and the bridge will not show it in the
+By default the IRC bridge will automatically insert any newly joined rooms into the homeserver's room directory.
+The +s mode will mark the channel as secret and the bridge will not show it in the
 directory. The room will still be joinable however.
 
 ## Key protected (+k)
@@ -60,4 +60,4 @@ the database as a security precaution so you should be expected to do this again
 ## Channel Forwarding (+f)
 
 Channel forwarding is presently unsupported, see https://github.com/matrix-org/matrix-appservice-irc/issues/214
-for information and updates
+for information and updates.
