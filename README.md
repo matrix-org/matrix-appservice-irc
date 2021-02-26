@@ -4,7 +4,6 @@ Matrix IRC Bridge
 [![Docker Automated build](https://img.shields.io/docker/cloud/build/matrixdotorg/matrix-appservice-irc.svg)](https://hub.docker.com/r/matrixdotorg/matrix-appservice-irc)
 [![Build Status](https://badge.buildkite.com/f33ff3f5e59aed3057cec0215a84e26747581e0fcb09b4b699.svg?branch=master)](https://buildkite.com/matrix-dot-org/matrix-appservice-irc)
 [![#irc:matrix.org](https://img.shields.io/matrix/irc:matrix.org.svg?server_fqdn=matrix.org&label=%23irc:matrix.org&logo=matrix)](https://matrix.to/#/#irc:matrix.org)
-[![Documentation Status](https://readthedocs.org/projects/matrix-appservice-irc/badge/?version=latest)](https://matrix-appservice-irc.readthedocs.io/en/latest/?badge=latest)
 
 This is an IRC bridge for [Matrix](https://matrix.org). If you're upgrading from an
 old release, be sure to read the [CHANGELOG](./CHANGELOG.md) as there may be breaking changes between releases.
@@ -30,7 +29,7 @@ To learn how to use the bridge, see our [usage guide](https://matrix-org.github.
 You will need a Matrix homeserver to run this bridge. Any homeserver that supports the AS API
 should work.
 
-See [the getting started docs](https://matrix-org.github.io/matrix-appservice-irc/bridge_setup)
+See [the getting started docs](https://matrix-org.github.io/matrix-appservice-irc/latest/bridge_setup)
 for instructions on how to set up the bridge.
 
 ### Configuration
