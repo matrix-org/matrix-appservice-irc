@@ -324,12 +324,7 @@ export class DebugApi {
             return;
         }
 
-        log.warn(
-    `Requested deletion of portal room alias ${roomId} through debug API
-    Domain: ${domain}
-    Channel: ${channel}
-    Leave Notice: ${notice}
-    Remove Alias: ${removeAlias}`);
+        log.info(`Killing room ${roomId} (${domain} ${channel}) removeAlias: ${removeAlias} notice: ${notice}`);
 
         // Find room
         const room = await store.getRoom(

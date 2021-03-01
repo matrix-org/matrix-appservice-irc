@@ -942,13 +942,13 @@ export class Provisioner {
         }
         catch (err) {
             // keep going, we still need to part the bot; this is just cleanup
-            req.log.error(err.stack);
+            req.log.error(`Failed to unlink matrix/remote users from channel: ${err}`);
         }
 
         // Cause the bot to part the channel if there are no other rooms being mapped to this
         // channel
         const mxRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, ircChannel);
-        if (mxRooms.length === 0) {
+        if (mxRooms.length === 0 && server.isBotEnabled()) {
             const botClient = await this.ircBridge.getBotClient(server);
             req.log.info(`Leaving channel ${ircChannel} as there are no more provisioned mappings`);
             await botClient.leaveChannel(ircChannel);
@@ -1039,6 +1039,9 @@ export class Provisioner {
             roomId
         );
         if (roomChannels.length > 0) {
+            req.log.warn(
+                `Not leaving matrix virtuals from room, room is still bridged to ${roomChannels.length} channel(s)`
+            );
             // We can't determine who should and shouldn't be in the room.
             return;
         }
