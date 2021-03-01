@@ -348,6 +348,18 @@ export class PgDataStore implements DataStore {
         return new MatrixRoom(res.rows[0].room_id);
     }
 
+    public async getMatrixPmRoomById(roomId: string): Promise<MatrixRoom|null> {
+        log.debug(`getMatrixPmRoom (roomId=${roomId})`);
+        const res = await this.pgPool.query(
+            "SELECT room_id, matrix_user_id, virtual_user_id FROM pm_rooms WHERE room_id = $1", [
+            roomId,
+        ]);
+        if (res.rowCount === 0) {
+            return null;
+        }
+        return new MatrixRoom(res.rows[0].room_id);
+    }
+
     public async getTrackedChannelsForServer(domain: string): Promise<string[]> {
         if (!this.serverMappings[domain]) {
             // Return empty if we don't know the server.
@@ -408,6 +420,10 @@ export class PgDataStore implements DataStore {
             return null;
         }
         return new MatrixRoom(res.rows[0].room_id);
+    }
+
+    public async removeAdminRoom(room: MatrixRoom): Promise<void> {
+        await this.pgPool.query("DELETE FROM admin_rooms WHERE room_id = $1", [room.roomId]);
     }
 
     public async storeMatrixUser(matrixUser: MatrixUser): Promise<void> {

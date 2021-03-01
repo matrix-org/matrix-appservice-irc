@@ -719,9 +719,34 @@ export class MatrixHandler {
             serverLookup[ircClient.server.domain] = ircClient;
         });
 
+        const store = this.ircBridge.getStore();
 
         // which channels should the connected client leave?
-        const ircRooms = await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
+        const ircRooms = await store.getIrcChannelsForRoomId(event.room_id);
+
+        if (!ircRooms) {
+            const adminRoom = await store.getAdminRoomById(event.room_id);
+            if (adminRoom) {
+                await store.removeAdminRoom(adminRoom);
+                // The user left the admin room, let's also leave.
+                // XXX: The typing of .leave is wrong, it should
+                // allow undefined.
+                await this.membershipQueue.leave(event.room_id, "", req);
+                return null;
+            }
+
+            const pmRoom = await store.getMatrixPmRoomById(event.room_id);
+            if (pmRoom) {
+                await store.removePmRoom(pmRoom.roomId);
+                // The user left the pm room, let's also leave.
+                const members = await this.ircBridge.getAppServiceBridge().getBot().getJoinedMembers(pmRoom.roomId);
+                await Promise.all(Object.keys(members).map((u) => {
+                    this.membershipQueue.leave(event.room_id, u, req);
+                }));
+                return null;
+            }
+
+        }
 
         // ========== Client Parting ==========
         // for each room, if we're connected to it, leave the channel.
