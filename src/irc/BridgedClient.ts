@@ -327,7 +327,7 @@ export class BridgedClient extends EventEmitter {
             "Reconnected %s@%s", this.nick, this.server.domain
         );
         this.log.info("Rejoining %s channels", this._chanList.size);
-        // This needs to be synchronous to avoid spamming freenode
+        // This needs to be synchronous to avoid spamming the IRCD
         // with lots of reconnects.
         for (const channel of this._chanList) {
             try {
