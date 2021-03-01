@@ -1,1 +1,0 @@
-Fix an issue where the QuitDebouncer would reprocess old QUITs, and process QUITs too early during the debouncing process.

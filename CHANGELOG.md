@@ -1,4 +1,31 @@
- 0.23.0 (2020-12-01)
+0.24.0-rc1 (2021-02-02)
+========================
+
+Features
+--------
+
+- Warn Matrix users if they are unable to speak in a channel. ([\#1204](https://github.com/matrix-org/matrix-appservice-irc/issues/1204))
+- Add `!plumb` admin command to bridge rooms ([\#1211](https://github.com/matrix-org/matrix-appservice-irc/issues/1211))
+- Use replies when responding to admin commands. ([\#1215](https://github.com/matrix-org/matrix-appservice-irc/issues/1215))
+- Add `ircClients.realnameFormat` option in the config to show mxid in reverse in the realname field of IRC clients. ([\#1229](https://github.com/matrix-org/matrix-appservice-irc/issues/1229))
+- Add `pingTimeoutMs` and `pingRateMs` as options to the config ([\#1232](https://github.com/matrix-org/matrix-appservice-irc/issues/1232))
+
+
+Bugfixes
+--------
+
+- Fix potential error when using killUser debug endpoint ([\#1206](https://github.com/matrix-org/matrix-appservice-irc/issues/1206))
+- Fix an issue that would cause `!bridgeversion` to report `Unknown` when running inside a Docker container. ([\#1212](https://github.com/matrix-org/matrix-appservice-irc/issues/1212))
+- Fix an issue where the QuitDebouncer would reprocess old QUITs, and process QUITs too early during the debouncing process. ([\#1228](https://github.com/matrix-org/matrix-appservice-irc/issues/1228), [\#1230](https://github.com/matrix-org/matrix-appservice-irc/issues/1230), [\#1231](https://github.com/matrix-org/matrix-appservice-irc/issues/1231))
+
+
+Internal Changes
+----------------
+
+- Update `matrix-appservice-bridge` to `2.5.0-rc1` ([\#1233](https://github.com/matrix-org/matrix-appservice-irc/issues/1233))
+
+
+0.23.0 (2020-12-01)
 ====================
 
 No significant changes.

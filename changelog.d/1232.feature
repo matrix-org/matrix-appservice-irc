@@ -1,1 +1,0 @@
-Add `pingTimeoutMs` and `pingRateMs` as options to the config 

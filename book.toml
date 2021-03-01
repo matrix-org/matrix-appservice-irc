@@ -1,0 +1,6 @@
+[book]
+authors = ["The Matrix.org Foundation C.I.C"]
+language = "en"
+multilingual = false
+src = "docs"
+title = "Matrix IRC Bridge"
