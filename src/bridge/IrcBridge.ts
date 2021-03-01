@@ -1145,21 +1145,6 @@ export class IrcBridge {
         return new IrcUser(ircInfo.server, ircInfo.nick, true);
     }
 
-    public async trackChannel(server: IrcServer, channel: string, key?: string): Promise<IrcRoom> {
-        if (!server.isBotEnabled()) {
-            log.info("trackChannel: Bot is disabled.");
-            return new IrcRoom(server, channel);
-        }
-        const client = await this.getBotClient(server);
-        try {
-            return await client.joinChannel(channel, key);
-        }
-        catch (ex) {
-            log.error(ex);
-            throw Error("Failed to join channel");
-        }
-    }
-
     public connectToIrcNetworks() {
         return promiseutil.allSettled(this.ircServers.map((server) =>
             Bluebird.cast(this.clientPool.loginToServer(server))
