@@ -60,6 +60,8 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
     if (server.isExcludedChannel(ircChannel)) {
         throw Error('Channel is excluded');
     }
+    // See https://github.com/matrix-org/matrix-appservice-irc/pull/1256
+    // for context on why we don't join the room here.
     req.log.debug("Going to track IRC channel %s", ircChannel);
     const ircRoom = new IrcRoom(server, ircChannel);
     let roomId;
