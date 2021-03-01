@@ -327,10 +327,15 @@ export class BridgedClient extends EventEmitter {
             "Reconnected %s@%s", this.nick, this.server.domain
         );
         this.log.info("Rejoining %s channels", this._chanList.size);
-        // This needs to be synchronous
+        // This needs to be synchronous to avoid spamming the IRCD
+        // with lots of reconnects.
         for (const channel of this._chanList) {
-            // XXX: Why do we not catch these?
-            await this.joinChannel(channel);
+            try {
+                await this.joinChannel(channel);
+            }
+            catch (ex) {
+                this.log.error(`Failed to rejoin channel: ${ex}`);
+            }
         }
         this.log.info("Rejoined channels");
     }
