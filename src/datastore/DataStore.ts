@@ -124,6 +124,8 @@ export interface DataStore {
 
     getMatrixPmRoom(realUserId: string, virtualUserId: string): Promise<MatrixRoom|null>;
 
+    getMatrixPmRoomById(roomId: string): Promise<MatrixRoom|null>;
+
     getTrackedChannelsForServer(domain: string): Promise<string[]>;
 
     getRoomIdsFromConfig(): Promise<string[]>;
@@ -137,6 +139,8 @@ export interface DataStore {
     getAdminRoomById(roomId: string): Promise<MatrixRoom|null>;
 
     storeAdminRoom(room: MatrixRoom, userId: string): Promise<void>;
+
+    removeAdminRoom(room: MatrixRoom): Promise<void>;
 
     upsertMatrixRoom(room: MatrixRoom): Promise<void>;
 

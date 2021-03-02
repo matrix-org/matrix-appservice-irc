@@ -384,6 +384,18 @@ export class NeDBDataStore implements DataStore {
         return entry.matrix || null;
     }
 
+    public async getMatrixPmRoomById(roomId: string) {
+        const entry = await this.roomStore.getEntriesByMatrixId(roomId);
+        if (!entry) {
+            return null;
+        }
+        if (entry.length > 1) {
+            log.warn(`More than one PM room assigned to Matrix room ${roomId}, returning first`);
+        }
+        return entry[0].matrix || null;
+    }
+
+
     public async getTrackedChannelsForServer(domain: string) {
         const entries: Entry[] = await this.roomStore.getEntriesByRemoteRoomData({ domain });
         const channels = new Set<string>();
@@ -477,6 +489,12 @@ export class NeDBDataStore implements DataStore {
             matrix: room,
             remote: undefined,
             data: {},
+        });
+    }
+
+    public async removeAdminRoom(room: MatrixRoom): Promise<void> {
+        await this.roomStore.delete({
+            matrix: room,
         });
     }
 
