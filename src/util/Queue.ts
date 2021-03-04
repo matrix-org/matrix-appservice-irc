@@ -135,6 +135,7 @@ export class Queue<T> {
         }
         try {
             const thing = this.processFn(this.processing.item);
+            // @ts-ignore
             const result = yield thing;
             this.processing.defer.resolve(result);
         }
