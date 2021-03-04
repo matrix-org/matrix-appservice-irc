@@ -67,6 +67,14 @@ export class IrcServer {
     }
 
     /**
+     * Get an icon to represent the network
+     * The icon URL, if configured.
+     */
+    public getIcon(): string|undefined {
+        return this.config.icon;
+    }
+
+    /**
      * Return a randomised server domain from the default and additional addresses.
      * @return {string}
      */

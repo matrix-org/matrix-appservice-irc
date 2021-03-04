@@ -51,10 +51,10 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
     }
     if (ircBridge.stateSyncer) {
         initialState.push(
-            ircBridge.stateSyncer.createInitialState(
-                server,
-                ircChannel,
-            )
+            // RoomId isn't used by this bridge
+            await ircBridge.stateSyncer.createInitialState("", {
+                channel: ircChannel, networkId: server.getNetworkId()
+            }),
         )
     }
     if (server.isExcludedChannel(ircChannel)) {
