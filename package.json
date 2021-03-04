@@ -35,8 +35,8 @@
     "irc": "github:matrix-org/node-irc#9028c2197c216dd8e6fc2cb3cc07ce2d6bf741a7",
     "js-yaml": "^3.14.0",
     "logform": "^2.2.0",
-    "matrix-appservice": "^0.7.1",
-    "matrix-appservice-bridge": "^2.5.0",
+    "matrix-appservice": "^0.8.0",
+    "matrix-appservice-bridge": "^2.6.0-rc1",
     "matrix-lastactive": "^0.1.5",
     "nedb": "^1.1.2",
     "nopt": "^3.0.1",
@@ -65,6 +65,6 @@
     "nyc": "^14.1.1",
     "prom-client": "^13.0.0",
     "proxyquire": "^1.4.0",
-    "typescript": "^3.7.3"
+    "typescript": "^4.2.2"
   }
 }
