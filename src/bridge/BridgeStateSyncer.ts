@@ -8,6 +8,7 @@ import { IrcServer } from "../irc/IrcServer";
 const log = logging("BridgeStateSyncer");
 
 const SYNC_CONCURRENCY = 3;
+const BRIDGE_LINE_LIMIT = 200;
 
 interface QueueItem {
     roomId: string;
@@ -65,7 +66,7 @@ export class BridgeStateSyncer {
             // Event wasn't found or was invalid, let's try setting one.
             const eventContent = this.createBridgeInfoContent(mapping.networkId, mapping.channel);
             const owner = await this.determineProvisionedOwner(item.roomId, mapping.networkId, mapping.channel);
-            eventContent.creator = owner || intent.client.credentials.userId;
+            eventContent.creator = owner || undefined;
             try {
                 await intent.sendStateEvent(item.roomId, BridgeStateSyncer.EventType, key, eventContent);
             }
@@ -97,7 +98,7 @@ export class BridgeStateSyncer {
         }
         const serverName = server.getReadableName();
         return {
-            creator: creator || "", // Is this known?
+            creator: creator, // Is this known?
             protocol: {
                 id: "irc",
                 displayname: "IRC",
@@ -109,7 +110,12 @@ export class BridgeStateSyncer {
             channel: {
                 id: channel,
                 external_url: `irc://${server.domain}/${channel}`
-            }
+            },
+            limitations: {
+                "org.matrix.message-length": {
+                    limit: BRIDGE_LINE_LIMIT,
+                },
+            },
         }
     }
 
