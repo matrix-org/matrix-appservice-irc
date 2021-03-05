@@ -135,6 +135,8 @@ export class Queue<T> {
         }
         try {
             const thing = this.processFn(this.processing.item);
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             const result = yield thing;
             this.processing.defer.resolve(result);
         }

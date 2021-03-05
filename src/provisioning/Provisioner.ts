@@ -13,7 +13,6 @@ import * as express from "express";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcUser } from "../models/IrcUser";
 import { GetNicksResponseOperators } from "../irc/BridgedClient";
-import { BridgeStateSyncer } from "../bridge/BridgeStateSyncer";
 
 const log = logging("Provisioner");
 
@@ -50,8 +49,6 @@ interface PendingRequest {
 }
 
 export class Provisioner {
-    // Cache bot clients so as not to create duplicates
-    private botClients: {} = {};
     private pendingRequests: {
         [domain: string]: {
             [nick: string]: PendingRequest;
@@ -580,11 +577,15 @@ export class Provisioner {
         // Send bridge info state event
         if (this.ircBridge.stateSyncer) {
             const intent = this.ircBridge.getAppServiceBridge().getIntent();
+            const infoMapping = await this.ircBridge.stateSyncer.createInitialState(roomId, {
+                channel: ircChannel,
+                networkId: server.getNetworkId(),
+            })
             await intent.sendStateEvent(
                 roomId,
-                BridgeStateSyncer.EventType,
-                BridgeStateSyncer.createStateKey(server.domain, ircChannel),
-                this.ircBridge.stateSyncer.createBridgeInfoContent(server, ircChannel, userId)
+                infoMapping.type,
+                infoMapping.state_key,
+                infoMapping.content as unknown as Record<string, unknown>,
             );
         }
     }

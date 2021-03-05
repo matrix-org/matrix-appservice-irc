@@ -31,15 +31,17 @@ import {
     AgeCounters,
     EphemeralEvent,
     MembershipQueue,
+    BridgeInfoStateSyncer,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
-import { BridgeStateSyncer } from "./BridgeStateSyncer";
 import { Registry } from "prom-client";
 import { spawnMetricsWorker } from "../workers/MetricsWorker";
 import { getBridgeVersion } from "../util/PackageInfo";
+import { globalAgent as gAHTTP } from "http";
+import { globalAgent as gAHTTPS } from "https";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -78,7 +80,10 @@ export class IrcBridge {
     }|null = null;
     private membershipCache: MembershipCache;
     private readonly membershipQueue: MembershipQueue;
-    private bridgeStateSyncer!: BridgeStateSyncer;
+    private bridgeStateSyncer?: BridgeInfoStateSyncer<{
+        channel: string;
+        networkId: string;
+    }>;
 
     constructor(public readonly config: BridgeConfig, private registration: AppServiceRegistration) {
         // TODO: Don't log this to stdout
@@ -209,8 +214,8 @@ export class IrcBridge {
 
         if (oldConfig.advanced.maxHttpSockets !== newConfig.advanced.maxHttpSockets) {
             const maxSockets = (newConfig.advanced || {maxHttpSockets: 1000}).maxHttpSockets;
-            require("http").globalAgent.maxSockets = maxSockets;
-            require("https").globalAgent.maxSockets = maxSockets;
+            gAHTTP.maxSockets = maxSockets;
+            gAHTTPS.maxSockets = maxSockets;
             log.info(`Adjusted max sockets to ${maxSockets}`);
         }
 
@@ -486,6 +491,24 @@ export class IrcBridge {
         }
     }
 
+    public createInfoMapping(channel: string, networkId: string) {
+        const network = this.getServer(networkId);
+        return {
+            protocol: {
+                id: 'irc',
+                displayname: 'IRC',
+            },
+            network: {
+                id: networkId,
+                displayname: network?.getReadableName(),
+                avatar_url: network?.getIcon() as `mxc://`,
+            },
+            channel: {
+                id: channel,
+            }
+        }
+    }
+
     public async run(port: number|null) {
         const dbConfig = this.config.database;
         // cli port, then config port, then default port
@@ -597,9 +620,13 @@ export class IrcBridge {
         await this.fetchJoinedRooms();
 
         if (this.config.ircService.bridgeInfoState?.enabled) {
-            this.bridgeStateSyncer = new BridgeStateSyncer(this.dataStore, this.bridge, this);
+            this.bridgeStateSyncer = new BridgeInfoStateSyncer(this.bridge, {
+                bridgeName: 'org.matrix.appservice-irc',
+                getMapping: async (roomId, { channel, networkId }) => this.createInfoMapping(channel, networkId),
+            });
             if (this.config.ircService.bridgeInfoState.initial) {
-                this.bridgeStateSyncer.beginSync().then(() => {
+                const mappings = await this.dataStore.getAllChannelMappings();
+                this.bridgeStateSyncer.initialSync(mappings).then(() => {
                     log.info("Bridge state syncing completed");
                 }).catch((err) => {
                     log.error("Bridge state syncing resulted in an error:", err);
@@ -1243,7 +1270,7 @@ export class IrcBridge {
             }
         });
         const bridgingEvent = stateEvents.find((ev: {type: string}) => ev.type === "m.room.bridging");
-        const bridgeInfoEvent = stateEvents.find((ev: {type: string}) => ev.type === BridgeStateSyncer.EventType);
+        const bridgeInfoEvent = stateEvents.find((ev: {type: string}) => ev.type === BridgeInfoStateSyncer.EventType);
         if (bridgingEvent) {
             try {
                 await this.bridge.getIntent().sendStateEvent(

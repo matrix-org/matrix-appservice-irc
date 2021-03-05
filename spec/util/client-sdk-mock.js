@@ -14,7 +14,7 @@ function MockClient(config) {
     };
     this._http = { opts: {} };
     this._http.authedRequest = jasmine.createSpy("sdk.authedRequest()");
-    this.register = jasmine.createSpy("sdk.register(username, password)");
+    this.registerRequest = jasmine.createSpy("sdk.registerRequest(data)");
     this.createRoom = jasmine.createSpy("sdk.createRoom(opts)");
     this.joinRoom = jasmine.createSpy("sdk.joinRoom(idOrAlias, opts)");
     this.sendMessage = jasmine.createSpy("sdk.sendMessage(roomId, content)");
@@ -92,7 +92,7 @@ function MockClient(config) {
 
     // mock up registration since we make them if they aren't in the DB (which they won't be
     // for testing).
-    this.register.and.callFake(function() {
+    this.registerRequest.and.callFake(function() {
         return Promise.resolve({});
     });
 
@@ -103,7 +103,7 @@ function MockClient(config) {
 
     // Helper to succeed sdk registration calls.
     this._onHttpRegister = function(params) {
-        self.register.and.callFake(function(username, password) {
+        self.registerRequest.and.callFake(function({username}) {
             expect(username).toEqual(params.expectLocalpart);
             return Promise.resolve({
                 user_id: params.returnUserId

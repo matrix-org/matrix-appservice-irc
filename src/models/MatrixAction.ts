@@ -17,9 +17,10 @@ limitations under the License.
 import { IrcAction } from "./IrcAction";
 
 import ircFormatting = require("../irc/formatting");
-const log = require("../logging").get("MatrixAction");
 import { ContentRepo, Intent } from "matrix-appservice-bridge";
 import escapeStringRegexp from "escape-string-regexp";
+import logging from "../logging";
+const log = logging("MatrixAction");
 
 const ACTION_TYPES = ["message", "emote", "topic", "notice", "file", "image", "video", "audio"];
 const EVENT_TO_TYPE: {[mxKey: string]: string} = {
