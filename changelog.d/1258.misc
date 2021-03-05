@@ -1,1 +1,0 @@
-Leave DM rooms and admin rooms if the Matrix user leaves so that a homeserver may clear them up later.

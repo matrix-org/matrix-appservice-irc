@@ -1,1 +1,0 @@
-Fix an issue where IRC membership would not be bridged to new rooms when `botConfig.enabled` is `true`. 

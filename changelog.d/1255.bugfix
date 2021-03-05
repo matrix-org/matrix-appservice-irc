@@ -1,1 +1,0 @@
-Fixed an issue where users would not be rejoined to some channels on reconnect if they failed to rejoin any channel.
