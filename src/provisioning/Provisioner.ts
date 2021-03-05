@@ -1,7 +1,7 @@
 import { Request } from "express";
 import { IrcBridge } from "../bridge/IrcBridge";
 import { Defer } from "../promiseutil";
-import { BridgeInfoStateSyncer, ConfigValidator, MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
+import { ConfigValidator, MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import Bluebird from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcAction } from "../models/IrcAction";
@@ -49,8 +49,6 @@ interface PendingRequest {
 }
 
 export class Provisioner {
-    // Cache bot clients so as not to create duplicates
-    private botClients: {} = {};
     private pendingRequests: {
         [domain: string]: {
             [nick: string]: PendingRequest;

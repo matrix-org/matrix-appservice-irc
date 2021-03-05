@@ -16,9 +16,9 @@ limitations under the License.
 */
 
 import * as ircFormatting from "../irc/formatting";
-const log = require("../logging").get("IrcAction");
-
 import { MatrixAction } from "./MatrixAction";
+import logging from "../logging";
+const log = logging("MatrixAction");
 
 const ACTION_TYPES = ["message", "emote", "topic", "notice"];
 type IrcActionType = "message"|"emote"|"topic"|"notice";

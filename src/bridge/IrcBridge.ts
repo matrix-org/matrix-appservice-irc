@@ -40,6 +40,8 @@ import { BridgeConfig } from "../config/BridgeConfig";
 import { Registry } from "prom-client";
 import { spawnMetricsWorker } from "../workers/MetricsWorker";
 import { getBridgeVersion } from "../util/PackageInfo";
+import { globalAgent as gAHTTP } from "http";
+import { globalAgent as gAHTTPS } from "https";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -212,8 +214,8 @@ export class IrcBridge {
 
         if (oldConfig.advanced.maxHttpSockets !== newConfig.advanced.maxHttpSockets) {
             const maxSockets = (newConfig.advanced || {maxHttpSockets: 1000}).maxHttpSockets;
-            require("http").globalAgent.maxSockets = maxSockets;
-            require("https").globalAgent.maxSockets = maxSockets;
+            gAHTTP.maxSockets = maxSockets;
+            gAHTTPS.maxSockets = maxSockets;
             log.info(`Adjusted max sockets to ${maxSockets}`);
         }
 
