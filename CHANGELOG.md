@@ -31,6 +31,11 @@ Internal Changes
 - Leave DM rooms and admin rooms if the Matrix user leaves so that a homeserver may clear them up later. ([\#1258](https://github.com/matrix-org/matrix-appservice-irc/issues/1258))
 - Update to matrix-appservice-bridge 2.6.0-rc1 and use it's implementation of the BridgeInfoStateSyncer ([\#1262](https://github.com/matrix-org/matrix-appservice-irc/issues/1262))
 
+0.24.0 (2021-02-12)
+====================
+
+No significant changes.
+
 
 0.24.0-rc1 (2021-02-02)
 ========================
