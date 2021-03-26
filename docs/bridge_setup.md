@@ -78,8 +78,12 @@ homeserver which Matrix events the bridge should receive.
 Execute the following command:
 
 ```
-node app.js -r -f appservice-registration-irc.yaml -u "http://where.the.appservice.listens:8090" -c config.yaml -l my_bot
+node app.js -r -f appservice-registration-irc.yaml -u "http://localhost:8090" -c config.yaml -l my_bot
 ```
+
+Change `-u "http://localhost:8090"` to whereever your Matrix server can contact this IRC bridge.
+By changing the option `-l my_bot` you can modify the localpart of the bridge bot user. It contacts
+Matrix users of your bridge to control their usage of the bridge (e.g. to change their nickname).
 
 You should get something like:
 ```
