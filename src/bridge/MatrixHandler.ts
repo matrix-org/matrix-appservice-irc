@@ -23,6 +23,25 @@ async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
     }
 }
 
+/**
+ * Returns a trimmed string if the input text is all Markdown-style code.
+ * This is used to allow small code snippets to look nice in IRC and not be
+ * transformed into an upload.
+ */
+function trimCodeMessages(text: string): string|void {
+    let trimmedText = text.trim();
+    // If this post isn't all code, ignore it.
+    if (!/^```.*\n.*```$/s.test(trimmedText)) {
+        return;
+    }
+    // Remove the first line (e.g. ```js) and the ``` at the end
+    trimmedText = trimmedText.substring(trimmedText.indexOf('\n'), trimmedText.length - 3).trim();
+    // Add monospace character at the start of each line
+    // https://modern.ircdocs.horse/formatting.html#monospace
+    trimmedText = trimmedText.replace(/\n/, '\n\x11');
+    return trimmedText;
+}
+
 const MSG_PMS_DISABLED = "[Bridge] Sorry, PMs are disabled on this bridge.";
 const MSG_PMS_DISABLED_FEDERATION = "[Bridge] Sorry, PMs are disabled on this bridge over federation.";
 
@@ -956,6 +975,11 @@ export class MatrixHandler {
             return;
         }
 
+        const potentialCodeText = trimCodeMessages(text)
+        if (potentialCodeText) {
+            ircAction.text = text = potentialCodeText;
+        }
+        
         let cacheBody = text;
         if (event.content["m.relates_to"] && event.content["m.relates_to"]["m.in_reply_to"]) {
             const eventId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
