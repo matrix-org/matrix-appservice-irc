@@ -21,7 +21,7 @@ Joining a public channel over the bridge is as easy as joining an alias, for ins
 
 ### Private Messaging
 
-Sending a PM to an IRC user means starting a conversation with `@freenode_Alice:matrix.org`,
+Sending a Private Message (PM) to an IRC user means starting a conversation with `@freenode_Alice:matrix.org`,
 which maps to the nickname `Alice` on Freenode.
 
 If a PM is sent from the IRC side, it will either appear in your existing PM room or you will be invited
@@ -96,7 +96,7 @@ Reactions or other non-message events are not sent presently.
 
 ## Encryption
 
-Presently the bridge cannot work in an E2EE room. The bridge will leave any room that has encryption enabled. This is because
+Presently, the bridge cannot work in an E2EE room. The bridge will leave any room that has encryption enabled. This is because
 the bridge does not know how to read encrypted events and so far no work has been started to support this. IRC is not capable of
 relaying E2E messages to IRC clients and as such the bridge would have to decrypt messages from Matrix and encrypt messages from
-IRC. As such the team have chosen not to support encrypted Matrix rooms at this time.
+IRC. As such, the team has chosen not to support encrypted Matrix rooms at this time.
