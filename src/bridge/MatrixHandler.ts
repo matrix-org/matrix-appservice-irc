@@ -975,7 +975,7 @@ export class MatrixHandler {
             return;
         }
 
-        const potentialCodeText = trimCodeMessages(text)
+        const potentialCodeText = trimCodeMessages(text);
         if (potentialCodeText) {
             ircAction.text = text = potentialCodeText;
         }
