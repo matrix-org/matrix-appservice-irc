@@ -120,7 +120,7 @@ app_service_config_files: ["appservice-registration-irc.yaml"]
 Finally, the bridge can be run using the following command:
 
 ```
-$ node app.js -c config.yaml -f my_registration_file.yaml -p 8090
+$ node app.js -c config.yaml -f appservice-registration-irc.yaml -p 8090
 ```
 
 Or for Docker:
