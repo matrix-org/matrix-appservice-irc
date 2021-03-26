@@ -123,5 +123,5 @@ Or for Docker:
 
 ```
 # Remember to expose ports for metrics, debug API if you need to.
-docker run -v $PWD/data:/data -p 8090 matrixdotorg/matrix-appservice-irc
+docker run --volume $PWD/data:/data --publish 8090 matrixdotorg/matrix-appservice-irc
 ```
