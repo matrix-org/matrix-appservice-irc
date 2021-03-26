@@ -39,4 +39,43 @@ describe("Formatting", function() {
             ).toBe(null);
         });
     });
+    describe("ircToHtml", function() {
+        it("should have non-HTML for non-formatted inputs", function() {
+            expect(
+                formatting.ircToHtml("The quick brown fox jumps over the lazy dog.")
+            ).toBe("The quick brown fox jumps over the lazy dog.");
+        });
+        it("should <b> for bold inputs", function() {
+            expect(
+                formatting.ircToHtml("The quick brown \u0002fox\u000f jumps over the lazy \u0002dog\u000f.")
+            ).toBe("The quick brown <b>fox</b> jumps over the lazy <b>dog</b>.");
+        });
+    });
+    describe("markdownCodeToIrc", function() {
+        it("should return null for a non-code input", function() {
+            expect(
+                formatting.markdownCodeToIrc("The quick brown fox jumps over the lazy dog.")
+            ).toBe(null);
+        });
+        it("should remove markdown code delimiters", function() {
+            expect(
+                formatting.markdownCodeToIrc("```\nconst matrixBridge = true;\n```")
+            ).toBe("const matrixBridge = true;");
+        });
+        it("should trim whitespaces around the markdown code delimiters", function () {
+            expect(
+                formatting.markdownCodeToIrc(" \t\n```\nconst matrixBridge = true;\n```\n ")
+            ).toBe("const matrixBridge = true;");
+        });
+        it("should support multiple lines", function () {
+            expect(
+                formatting.markdownCodeToIrc("```\n'use strict';\nconst matrixBridge = true;\nparty();\n```")
+            ).toBe("'use strict';\nconst matrixBridge = true;\nparty();");
+        });
+        it("should remove language annotation in the after the intro delimiter", function () {
+            expect(
+                formatting.markdownCodeToIrc("```js\nconst matrixBridge = true;\n```")
+            ).toBe("const matrixBridge = true;");
+        });
+    });
 });
