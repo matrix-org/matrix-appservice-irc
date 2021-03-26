@@ -28,11 +28,11 @@ async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
  * This is used to allow small code snippets to look nice in IRC and not be
  * transformed into an upload.
  */
-function trimCodeMessages(text: string): string|void {
+function trimCodeMessages(text: string): string|undefined {
     let trimmedText = text.trim();
     // If this post isn't all code, ignore it.
     if (!/^```.*\n.*```$/s.test(trimmedText)) {
-        return;
+        return undefined;
     }
     // Remove the first line (e.g. ```js) and the ``` at the end
     trimmedText = trimmedText.substring(trimmedText.indexOf('\n'), trimmedText.length - 3).trim();
@@ -979,7 +979,7 @@ export class MatrixHandler {
         if (potentialCodeText) {
             ircAction.text = text = potentialCodeText;
         }
-        
+
         let cacheBody = text;
         if (event.content["m.relates_to"] && event.content["m.relates_to"]["m.in_reply_to"]) {
             const eventId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
