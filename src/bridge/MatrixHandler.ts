@@ -964,10 +964,10 @@ export class MatrixHandler {
                 cacheBody = reply.reply;
             }
         }
-        let body = cacheBody.trim().substr(0, REPLY_SOURCE_MAX_LENGTH);
+        let body = cacheBody.trim().substring(0, REPLY_SOURCE_MAX_LENGTH);
         const nextNewLine = body.indexOf('\n');
         if (nextNewLine !== -1) {
-            body = cacheBody.substr(0, nextNewLine);
+            body = cacheBody.substring(0, nextNewLine);
         }
         this.eventCache.set(event.event_id, {
             body,
@@ -1164,7 +1164,7 @@ export class MatrixHandler {
                 else {
                     rplSource = eventContent.content.body;
                 }
-                rplSource = rplSource.substr(0, REPLY_SOURCE_MAX_LENGTH);
+                rplSource = rplSource.substring(0, REPLY_SOURCE_MAX_LENGTH);
                 this.eventCache.set(eventId, {sender: rplName, body: rplSource});
             }
             catch (err) {
@@ -1185,7 +1185,7 @@ export class MatrixHandler {
         const lines = rplSource.split('\n').filter((line) => !/^\s*$/.test(line))
         if (lines.length > 0) {
             // Cut to a maximum length.
-            rplSource = lines[0].substr(0, REPLY_SOURCE_MAX_LENGTH);
+            rplSource = lines[0].substring(0, REPLY_SOURCE_MAX_LENGTH);
             // Ellipsis if needed.
             if (lines[0].length > REPLY_SOURCE_MAX_LENGTH) {
                 rplSource = rplSource + "...";
@@ -1207,8 +1207,8 @@ export class MatrixHandler {
             // If we couldn't find a client for them, they might be a ghost.
             const ghostName = ircRoom.getServer().getNickFromUserId(rplName);
             // If we failed to get a name, just make a guess of it.
-            rplName = ghostName !== null ? ghostName : rplName.substr(1,
-                Math.min(REPLY_NAME_MAX_LENGTH, rplName.indexOf(":") - 1)
+            rplName = ghostName !== null ? ghostName : rplName.substring(1,
+                Math.min(REPLY_NAME_MAX_LENGTH + 1, rplName.indexOf(":") - 1)
             );
         }
 

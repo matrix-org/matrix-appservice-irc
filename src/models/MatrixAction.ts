@@ -143,7 +143,7 @@ export class MatrixAction {
 
             if (identifier === undefined) {
                 // Fallback to userid.
-                identifier = userId.substr(1, userId.indexOf(":")-1)
+                identifier = userId.substring(1, userId.indexOf(":")-1)
             }
 
             const regex = MentionRegex(escapeStringRegexp(matchName));

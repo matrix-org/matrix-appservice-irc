@@ -55,7 +55,7 @@ function workerThread() {
             const time = Date.now();
             intervalCounter.set(time - lastDumpTs);
             lastDumpTs = time;
-            const dump = msg.substr('metricsdump:'.length);
+            const dump = msg.substring('metricsdump:'.length);
             if (res.finished) {
                 // Sometimes a message will come in far too late because we've already
                 // sent an empty response. Drop it here.

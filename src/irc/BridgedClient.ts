@@ -734,7 +734,7 @@ export class BridgedClient extends EventEmitter {
                 if (throwOnInvalid) {
                     throw new Error(`Nick '${nick}' is too long. (Max: ${maxNickLen})`);
                 }
-                n = n.substr(0, maxNickLen);
+                n = n.substring(0, maxNickLen);
             }
         }
 

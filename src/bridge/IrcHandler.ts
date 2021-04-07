@@ -802,7 +802,7 @@ export class IrcHandler {
             }
 
             // Show a reason if the part is not a regular part, or reason text was given.
-            const kindText = kind[0].toUpperCase() + kind.substr(1);
+            const kindText = kind[0].toUpperCase() + kind.substring(1);
             if (reason) {
                 reason = `${kindText}: ${reason}`;
             }
