@@ -955,7 +955,7 @@ export class MatrixHandler {
             return;
         }
 
-        let cacheBody = event.content.body;
+        let cacheBody = ircAction.text;
         if (event.content["m.relates_to"] && event.content["m.relates_to"]["m.in_reply_to"]) {
             const eventId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
             const reply = await this.textForReplyEvent(event, eventId, ircRoom);
@@ -964,8 +964,13 @@ export class MatrixHandler {
                 cacheBody = reply.reply;
             }
         }
+        let body = cacheBody.trim().substr(0, REPLY_SOURCE_MAX_LENGTH);
+        const nextNewLine = body.indexOf('\n');
+        if (nextNewLine !== -1) {
+            body = cacheBody.substr(0, nextNewLine);
+        }
         this.eventCache.set(event.event_id, {
-            body: cacheBody.substr(0, REPLY_SOURCE_MAX_LENGTH),
+            body,
             sender: event.sender
         });
 
@@ -1005,7 +1010,7 @@ export class MatrixHandler {
         try {
             // Try to upload as a file and get URI
             //  (this could fail, see the catch statement)
-            contentUri = await this.ircBridge.uploadTextFile(fileName, event.content.body);
+            contentUri = await this.ircBridge.uploadTextFile(fileName, ircAction.text);
         }
         catch (err) {
             // Uploading the file to HS could fail
@@ -1207,8 +1212,9 @@ export class MatrixHandler {
             );
         }
 
+        const RESET_CODE = '\u000f';
         return {
-            formatted: `<${rplName}${rplSource}> ${rplText}`,
+            formatted: `<${rplName}${rplSource}${RESET_CODE}> ${rplText}`,
             reply: rplText,
         };
     }
