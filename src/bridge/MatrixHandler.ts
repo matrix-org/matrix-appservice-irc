@@ -1212,9 +1212,8 @@ export class MatrixHandler {
             );
         }
 
-        const RESET_CODE = '\u000f';
         return {
-            formatted: `<${rplName}${rplSource}${RESET_CODE}> ${rplText}`,
+            formatted: `<${rplName}${rplSource}> ${rplText}`,
             reply: rplText,
         };
     }
