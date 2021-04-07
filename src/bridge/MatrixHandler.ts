@@ -967,7 +967,7 @@ export class MatrixHandler {
         let body = cacheBody.trim().substring(0, REPLY_SOURCE_MAX_LENGTH);
         const nextNewLine = body.indexOf("\n");
         if (nextNewLine !== -1) {
-            body = cacheBody.substring(0, nextNewLine);
+            body = body.substring(0, nextNewLine);
         }
         this.eventCache.set(event.event_id, {
             body,
