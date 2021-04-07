@@ -341,9 +341,9 @@ export function markdownCodeToIrc(text: string): string|null {
         return null;
     }
     // Remove the first line (e.g. ```js) and the ``` at the end
-    trimmedText = trimmedText.substring(trimmedText.indexOf('\n'), trimmedText.length - 3);
+    trimmedText = trimmedText.substring(trimmedText.indexOf("\n"), trimmedText.length - 3);
     // Trim whitespaces but not indentation
-    trimmedText = trimmedText.replace(/^\s*?\n/, '').replace(/\s*$/, '');
+    trimmedText = trimmedText.replace(/^\s*?\n/, "").replace(/\s*$/, "");
     return trimmedText;
 }
 

@@ -965,7 +965,7 @@ export class MatrixHandler {
             }
         }
         let body = cacheBody.trim().substring(0, REPLY_SOURCE_MAX_LENGTH);
-        const nextNewLine = body.indexOf('\n');
+        const nextNewLine = body.indexOf("\n");
         if (nextNewLine !== -1) {
             body = cacheBody.substring(0, nextNewLine);
         }
