@@ -1207,8 +1207,8 @@ export class MatrixHandler {
             // If we couldn't find a client for them, they might be a ghost.
             const ghostName = ircRoom.getServer().getNickFromUserId(rplName);
             // If we failed to get a name, just make a guess of it.
-            rplName = ghostName !== null ? ghostName : rplName.substring(1,
-                Math.min(REPLY_NAME_MAX_LENGTH + 1, rplName.indexOf(":") - 1)
+            rplName = ghostName !== null ? ghostName : rplName.substr(1,
+                Math.min(REPLY_NAME_MAX_LENGTH, rplName.indexOf(":") - 1)
             );
         }
 
