@@ -1,1 +1,1 @@
-Add retry mechanism to them creation of PM rooms
+Add retry mechanism to the creation of PM rooms
