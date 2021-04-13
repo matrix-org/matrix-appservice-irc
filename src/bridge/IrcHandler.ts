@@ -18,6 +18,7 @@ const NICK_USERID_CACHE_MAX = 512;
 const PM_POWERLEVEL_MATRIXUSER = 10;
 const PM_POWERLEVEL_IRCUSER = 100;
 const MEMBERSHIP_INITIAL_TTL_MS = 30 * 60 * 1000; // 30 mins
+const PM_ROOM_CREATION_RETRIES = 3; // How often to retry to create a PM room, if it fails?
 
 export type MatrixMembership = "join"|"invite"|"leave"|"ban";
 
@@ -146,12 +147,17 @@ export class IrcHandler {
      * @param server The sending IRC server.
      * @return A Promise which is resolved when the PM room has been created.
      */
-    private async createPmRoom (req: BridgeRequest, toUserId: string, fromUserId: string, fromUserNick: string, server: IrcServer): Promise<MatrixRoom> {
-        let remainingAttempts = 3;
+    private async createPmRoom(
+        req: BridgeRequest,
+        toUserId: string,
+        fromUserId: string,
+        fromUserNick: string,
+        server: IrcServer
+    ): Promise<MatrixRoom> {
+        let remainingReties = PM_ROOM_CREATION_RETRIES;
         let response;
-        while (!response && remainingAttempts > 0) {
+        do {
             try {
-                remainingAttempts--;
                 response = await this.ircBridge.getAppServiceBridge().getIntent(
                     fromUserId
                 ).createRoom({
@@ -187,9 +193,10 @@ export class IrcHandler {
                     }
                 });
             } catch (error) {
-                req.log.warn(`Failed creating a PM room with ${toUserId}. Remaining attempts: ${remainingAttempts}`);
+                req.log.warn(`Failed creating a PM room with ${toUserId}. Remaining reties: ${remainingReties}`);
             }
-        }
+            remainingReties--;
+        } while (!response && remainingReties > 0);
         if (!response) {
             throw Error(`Failed creating a PM room with ${toUserId}. Giving up.`);
         }
