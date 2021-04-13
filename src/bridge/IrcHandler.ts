@@ -167,7 +167,6 @@ export class IrcHandler {
                         visibility: "private",
                         // We deliberately set our own power levels below.
                         // preset: "trusted_private_chat",
-                        invite: [toUserId],
                         creation_content: {
                             "m.federate": server.shouldFederatePMs()
                         },
