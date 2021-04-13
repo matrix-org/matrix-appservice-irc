@@ -87,7 +87,8 @@ export class DebugApi {
         else if (req.method === "GET" && path === "/inspectUsers") {
             this.inspectUsers(query["regex"] as string, response);
             return;
-        } else if (req.method === "GET" && path === "/version") {
+        }
+        else if (req.method === "GET" && path === "/version") {
             response.writeHead(200, {"Content-Type": "text/plain"});
             response.write(getBridgeVersion());
             response.end();
@@ -286,7 +287,7 @@ export class DebugApi {
         const result: { error: string[]; stages: string[] } = {
             error: [], // string|[string] containing a fatal error or minor errors.
             stages: [] // stages completed for removing the room. It's possible it might only
-                       // half complete, and we should make that obvious.
+            // half complete, and we should make that obvious.
         };
         const body = (await this.wrapJsonReq(req, response)) as {
             room_id: string;
@@ -356,10 +357,10 @@ export class DebugApi {
         if (notice) {
             try {
                 await this.ircBridge.getAppServiceBridge().getIntent().sendMessage(roomId,
-                {
-                    msgtype: "m.notice",
-                    body: `This room has been unbridged from ${channel} (${server.getReadableName()})`
-                });
+                    {
+                        msgtype: "m.notice",
+                        body: `This room has been unbridged from ${channel} (${server.getReadableName()})`
+                    });
                 result.stages.push("Left notice in room");
             }
             catch (e) {
