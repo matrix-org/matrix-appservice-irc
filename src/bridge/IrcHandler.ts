@@ -192,7 +192,9 @@ export class IrcHandler {
                         }],
                     }
                 });
-            } catch (error) {
+            }
+            catch (error) {
+                req.log.error(error);
                 req.log.warn(`Failed creating a PM room with ${toUserId}. Remaining reties: ${remainingReties}`);
             }
             remainingReties--;
