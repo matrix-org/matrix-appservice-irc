@@ -605,6 +605,7 @@ export class PgDataStore implements DataStore {
         let currentVersion = await this.getSchemaVersion();
         while (currentVersion < PgDataStore.LATEST_SCHEMA) {
             log.info(`Updating schema to v${currentVersion + 1}`);
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
             const runSchema = require(`./schema/v${currentVersion + 1}`).runSchema;
             try {
                 await runSchema(this.pgPool);
