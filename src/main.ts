@@ -5,7 +5,7 @@ import http from "http";
 import https from "https";
 import { RoomBridgeStore, UserBridgeStore } from "matrix-appservice-bridge";
 import { IrcBridge } from "./bridge/IrcBridge";
-import { IrcServer } from "./irc/IrcServer";
+import { IrcServer, IrcServerConfig } from "./irc/IrcServer";
 import ident from "./irc/Ident";
 import * as logging from "./logging";
 import { BridgeConfig } from "./config/BridgeConfig";
@@ -32,7 +32,7 @@ process.on("unhandledRejection", (reason: any) => {
     log.error(reasonStr);
 });
 
-const _toServer = (domain: string, serverConfig: any, homeserverDomain: string) => {
+const _toServer = (domain: string, serverConfig: IrcServerConfig, homeserverDomain: string) => {
     // set server config defaults
     return new IrcServer(
         domain, extend(true, IrcServer.DEFAULT_CONFIG, serverConfig), homeserverDomain

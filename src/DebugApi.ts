@@ -58,7 +58,13 @@ export class DebugApi {
     }
 
     private onRequest(req: IncomingMessage, response: ServerResponse) {
-        const reqPath = req.url!.split("?");
+        if (!req.url) {
+            response.writeHead(500, { "Content-Type": "text/plain" });
+            response.write("Your request reached our server without a URL.");
+            response.end();
+            throw Error('URL is required but was falsy.');
+        }
+        const reqPath = req.url.split("?");
         const path = reqPath[0];
         const query = querystring.parse(reqPath[1]);
         log.debug(req.method + " " + path);
