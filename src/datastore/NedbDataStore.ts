@@ -162,7 +162,7 @@ export class NeDBDataStore implements DataStore {
                     return null;
                 }
                 return entry;
-        });
+            });
     }
 
     /**
@@ -174,12 +174,12 @@ export class NeDBDataStore implements DataStore {
         const entries = await this.roomStore.select<
             unknown,
             { remote: { domain: string; channel: string}; matrix_id: string}>(
-            {
-                matrix_id: {$exists: true},
-                remote_id: {$exists: true},
-                'remote.type': "channel"
-            }
-        );
+                {
+                    matrix_id: {$exists: true},
+                    remote_id: {$exists: true},
+                    'remote.type': "channel"
+                }
+            );
 
         const mappings: ChannelMappings = {};
 
@@ -649,8 +649,8 @@ export class NeDBDataStore implements DataStore {
             "data.last_seen_ts": {$exists: true},
         });
         return docs.map(doc => ({
-          user_id: doc.id,
-          ts: doc.data.last_seen_ts,
+            user_id: doc.id,
+            ts: doc.data.last_seen_ts,
         }));
     }
 

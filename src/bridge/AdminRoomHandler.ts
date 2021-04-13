@@ -166,7 +166,7 @@ export class AdminRoomHandler {
                 break;
             default: {
                 response = new MatrixAction("notice",
-                "The command was not recognised. Available commands are listed by !help");
+                    "The command was not recognised. Available commands are listed by !help");
             }
         }
         if (response) {
@@ -356,8 +356,8 @@ export class AdminRoomHandler {
                 return new MatrixAction(
                     "notice",
                     whoisClient ?
-                    `${whoisNick} is connected to ${server.domain} as '${whoisClient.nick}'.` :
-                    `${whoisNick} has no IRC connection via this bridge.`);
+                        `${whoisNick} is connected to ${server.domain} as '${whoisClient.nick}'.` :
+                        `${whoisNick} has no IRC connection via this bridge.`);
             }
             catch (err) {
                 if (err.stack) {
