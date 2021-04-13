@@ -245,7 +245,7 @@ export class IdentGenerator {
 
     private static modifyUsername(uname: string, suffix: number): { result: boolean; uname: string} {
         const suffixString = `${this.USER_NAME_DELIMITER}${suffix}`;
-        uname = `${uname.substr(0, this.MAX_USER_NAME_LENGTH - suffixString.length)}${suffixString}`;
+        uname = `${uname.substring(0, this.MAX_USER_NAME_LENGTH - suffixString.length)}${suffixString}`;
         return { result: suffix <= this.MAX_USER_NAME_SUFFIX, uname }; // break out if '~10000'
     }
 }

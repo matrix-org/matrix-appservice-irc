@@ -101,7 +101,9 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
     }
 
     const maxSockets = (config.advanced || {maxHttpSockets: 1000}).maxHttpSockets;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     require("http").globalAgent.maxSockets = maxSockets;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     require("https").globalAgent.maxSockets = maxSockets;
 
     // run the bridge

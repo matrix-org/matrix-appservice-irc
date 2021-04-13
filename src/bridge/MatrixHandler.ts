@@ -950,23 +950,27 @@ export class MatrixHandler {
     private async sendIrcAction(req: BridgeRequest, ircRoom: IrcRoom, ircClient: BridgedClient, ircAction: IrcAction,
         event: MatrixMessageEvent) {
         // Send the action as is if it is not a text message
-        let text = event.content.body;
-        if (event.content.msgtype !== "m.text" || !text) {
+        if (event.content.msgtype !== "m.text" || !event.content.body) {
             await this.ircBridge.sendIrcAction(ircRoom, ircClient, ircAction);
             return;
         }
 
-        let cacheBody = text;
+        let cacheBody = ircAction.text;
         if (event.content["m.relates_to"] && event.content["m.relates_to"]["m.in_reply_to"]) {
             const eventId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
             const reply = await this.textForReplyEvent(event, eventId, ircRoom);
             if (reply !== null) {
-                ircAction.text = text = reply.formatted;
+                ircAction.text = reply.formatted;
                 cacheBody = reply.reply;
             }
         }
+        let body = cacheBody.trim().substring(0, REPLY_SOURCE_MAX_LENGTH);
+        const nextNewLine = body.indexOf("\n");
+        if (nextNewLine !== -1) {
+            body = body.substring(0, nextNewLine);
+        }
         this.eventCache.set(event.event_id, {
-            body: cacheBody.substr(0, REPLY_SOURCE_MAX_LENGTH),
+            body,
             sender: event.sender
         });
 
@@ -980,7 +984,7 @@ export class MatrixHandler {
         await ircClient.waitForConnected();
 
         // Generate an array of individual messages that would be sent
-        const potentialMessages = ircClient.getSplitMessages(ircRoom.channel, text);
+        const potentialMessages = ircClient.getSplitMessages(ircRoom.channel, ircAction.text);
         const lineLimit = ircRoom.server.getLineLimit();
 
         if (potentialMessages.length <= lineLimit) {
@@ -1006,7 +1010,7 @@ export class MatrixHandler {
         try {
             // Try to upload as a file and get URI
             //  (this could fail, see the catch statement)
-            contentUri = await this.ircBridge.uploadTextFile(fileName, text);
+            contentUri = await this.ircBridge.uploadTextFile(fileName, ircAction.text);
         }
         catch (err) {
             // Uploading the file to HS could fail
@@ -1160,7 +1164,7 @@ export class MatrixHandler {
                 else {
                     rplSource = eventContent.content.body;
                 }
-                rplSource = rplSource.substr(0, REPLY_SOURCE_MAX_LENGTH);
+                rplSource = rplSource.substring(0, REPLY_SOURCE_MAX_LENGTH);
                 this.eventCache.set(eventId, {sender: rplName, body: rplSource});
             }
             catch (err) {
@@ -1181,7 +1185,7 @@ export class MatrixHandler {
         const lines = rplSource.split('\n').filter((line) => !/^\s*$/.test(line))
         if (lines.length > 0) {
             // Cut to a maximum length.
-            rplSource = lines[0].substr(0, REPLY_SOURCE_MAX_LENGTH);
+            rplSource = lines[0].substring(0, REPLY_SOURCE_MAX_LENGTH);
             // Ellipsis if needed.
             if (lines[0].length > REPLY_SOURCE_MAX_LENGTH) {
                 rplSource = rplSource + "...";
