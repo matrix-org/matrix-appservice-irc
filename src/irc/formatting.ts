@@ -79,11 +79,11 @@ const STYLE_DEFAULT_STATE: StyleState = {
 
 export function escapeHtmlChars(text: string): string {
     return text
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#39;"); // to work on HTML4 (&apos; is HTML5 only)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;"); // to work on HTML4 (&apos; is HTML5 only)
 }
 
 /**
@@ -351,16 +351,16 @@ export function toIrcLowerCase(str: string, caseMapping: "strict-rfc1459"|"rfc14
     const lower = str.toLowerCase();
     if (caseMapping === "rfc1459") {
         return lower.
-        replace(/\[/g, "{").
-        replace(/\]/g, "}").
-        replace(/\\/g, "|").
-        replace(/\^/g, "~");
+            replace(/\[/g, "{").
+            replace(/\]/g, "}").
+            replace(/\\/g, "|").
+            replace(/\^/g, "~");
     }
     else if (caseMapping === "strict-rfc1459") {
         return lower.
-        replace(/\[/g, "{").
-        replace(/\]/g, "}").
-        replace(/\\/g, "|");
+            replace(/\[/g, "{").
+            replace(/\]/g, "}").
+            replace(/\\/g, "|");
     }
     throw Error("Unknown case mapping");
 }

@@ -596,7 +596,7 @@ export class Provisioner {
         }
     }
 
-// Returns a pending request if it's promise isPending(), otherwise null
+    // Returns a pending request if it's promise isPending(), otherwise null
     private getRequest(server: IrcServer, opNick: string) {
         const reqs = this.pendingRequests[server.domain];
         if (reqs) {
@@ -724,7 +724,7 @@ export class Provisioner {
         return queryInfo;
     }
 
-// Get the list of currently network instances
+    // Get the list of currently network instances
     public async queryNetworks() {
         const thirdParty = await this.ircBridge.getThirdPartyProtocol();
 
@@ -1065,7 +1065,7 @@ export class Provisioner {
         const ircChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(roomId);
         if (ircChannels.length === 0) {
             const matrixClient = this.ircBridge.getAppServiceBridge()
-                                            .getClientFactory().getClientAs();
+                .getClientFactory().getClientAs();
             req.log.info(`Leaving room ${roomId} as there are no more provisioned mappings`);
             await matrixClient.leave(roomId);
         }
