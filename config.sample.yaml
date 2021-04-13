@@ -36,7 +36,7 @@ homeserver:
 
   # Which port should the appservice bind to. Can be overriden by the one provided in the
   # command line! Optional.
-  # bindPort: 8090
+  # bindPort: 9999
 
   # Use this option to force the appservice to listen on another hostname for transactions.
   # This is NOT your synapse hostname. E.g. use 127.0.0.1 to only listen locally. Optional.
