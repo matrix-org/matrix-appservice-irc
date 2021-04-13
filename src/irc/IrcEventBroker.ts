@@ -164,7 +164,7 @@ export class IrcEventBroker {
 
     private hookIfClaimed (client: BridgedClient, connInst: ConnectionInstance,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        eventName: string, fn: (...args: Array<any>) => void) {
+                           eventName: string, fn: (...args: Array<any>) => void) {
         if (client.isBot && !client.server.isBotEnabled()) {
             return; // don't both attaching listeners we'll never invoke.
         }

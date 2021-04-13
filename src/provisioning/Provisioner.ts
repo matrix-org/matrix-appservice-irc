@@ -204,7 +204,7 @@ export class Provisioner {
     }
 
     private async updateBridgingState (roomId: string, userId: string,
-        status: "pending"|"success"|"failure", skey: string) {
+                                       status: "pending"|"success"|"failure", skey: string) {
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         try {
             await intent.client.sendStateEvent(roomId, 'm.room.bridging', {
@@ -230,7 +230,7 @@ export class Provisioner {
      *  If the number of attempts is reached, an error is thrown.
     */
     private async _retry<V>(req: ProvisionRequest, attempts: number, retryDelayMS: number, obj: unknown,
-        fn: (args: string) => V, args: string) {
+                            fn: (args: string) => V, args: string) {
         for (;attempts > 0; attempts--) {
             try {
                 const val = await fn.apply(obj, [args]);
@@ -253,7 +253,7 @@ export class Provisioner {
     }
 
     private retry<V>(req: ProvisionRequest, attempts: number, retryDelayMS: number, obj: unknown,
-        fn: (args: string) => V, args: string) {
+                     fn: (args: string) => V, args: string) {
         return Bluebird.cast(this._retry(req, attempts, retryDelayMS, obj, fn, args));
     }
 
@@ -320,7 +320,7 @@ export class Provisioner {
      *  - (Matrix) update room state m.room.brdiging
     */
     private async authoriseProvisioning(req: ProvisionRequest, server: IrcServer, userId: string,
-        ircChannel: string, roomId: string, opNick: string, key?: string) {
+                                        ircChannel: string, roomId: string, opNick: string, key?: string) {
         const ircDomain = server.domain;
 
         const existing = this.getRequest(server, opNick);
@@ -793,7 +793,7 @@ export class Provisioner {
     }
 
     public async doLink(req: ProvisionRequest, server: IrcServer, ircChannel: string,
-        key: string|undefined, roomId: string, userId: string) {
+                        key: string|undefined, roomId: string, userId: string) {
         const ircDomain = server.domain;
         const mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
         req.log.info(`Provisioning link for room ${mappingLogId}`);

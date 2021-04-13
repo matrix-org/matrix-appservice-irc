@@ -237,7 +237,7 @@ export class ClientPool {
             }
             // If we failed to connect
             log.error("Couldn't connect virtual user %s (%s) to %s : %s",
-                    ircClientConfig.getDesiredNick(), userId, server.domain, JSON.stringify(err));
+                ircClientConfig.getDesiredNick(), userId, server.domain, JSON.stringify(err));
             throw err;
         }
     }

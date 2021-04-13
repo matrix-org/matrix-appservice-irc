@@ -61,7 +61,7 @@ class IdentSrv {
     public configure(opts: IdentConfig) {
         log.info("Configuring ident server => %s", JSON.stringify(opts));
         this.config = opts;
-         // This is only called if enabled.
+        // This is only called if enabled.
         this.isEnabled = true;
     }
 
@@ -75,13 +75,13 @@ class IdentSrv {
         }
         else if (port === 0) {
             Object.keys(this.portMappings)
-            .filter((portNum: string) => this.portMappings[portNum] === username)
-            .forEach((portNum) => {
-                if (this.portMappings[portNum] === username) {
-                    delete this.portMappings[portNum];
-                    log.debug("Remove user %s from port %s", username, portNum);
-                }
-            });
+                .filter((portNum: string) => this.portMappings[portNum] === username)
+                .forEach((portNum) => {
+                    if (this.portMappings[portNum] === username) {
+                        delete this.portMappings[portNum];
+                        log.debug("Remove user %s from port %s", username, portNum);
+                    }
+                });
         }
     }
 
@@ -100,9 +100,9 @@ class IdentSrv {
             this.respond(sock,
                 String(localOutgoingPort),
                 String(remoteConnectPort)).catch(() => {
-                    // Just close the connection
-                    sock.end();
-                });
+                // Just close the connection
+                sock.end();
+            });
         });
         sock.on("close", () => {
             log.debug("CLOSE");

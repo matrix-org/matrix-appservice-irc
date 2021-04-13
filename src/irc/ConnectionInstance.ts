@@ -361,7 +361,7 @@ export class ConnectionInstance {
      * @return {Promise} Resolves to an ConnectionInstance or rejects.
      */
     public static async create (server: IrcServer, opts: ConnectionOpts,
-        onCreatedCallback?: (inst: ConnectionInstance) => void): Promise<ConnectionInstance> {
+                                onCreatedCallback?: (inst: ConnectionInstance) => void): Promise<ConnectionInstance> {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
         }

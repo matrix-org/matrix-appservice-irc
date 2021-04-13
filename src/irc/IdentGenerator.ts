@@ -46,9 +46,9 @@ export class IdentGenerator {
 
     static switchAroundMxid(user: MatrixUser) {
         return user.host.split('.')
-                .reverse()
-                .join('.')
-                .substring(0, 30) + (user.host.length > 30 ? ">:" : ":") + user.localpart;
+            .reverse()
+            .join('.')
+            .substring(0, 30) + (user.host.length > 30 ? ">:" : ":") + user.localpart;
     }
 
     /**

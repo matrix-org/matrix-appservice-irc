@@ -87,6 +87,11 @@
     "no-unused-vars": 0, // covered by @typescript-eslint/no-unused-vars
     "strict": ["error", "never" ],
     "eqeqeq": 2,
-    "prefer-const": 2
+    "prefer-const": 2,
+    "indent": ["error", 4, {
+      "FunctionDeclaration": {"parameters": "first"},
+      "FunctionExpression": {"parameters": "first"},
+      "SwitchCase": 1}
+    ]
   }
 }

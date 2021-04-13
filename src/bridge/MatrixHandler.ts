@@ -160,7 +160,7 @@ export class MatrixHandler {
 
     private async handleInviteFromUser(req: BridgeRequest, event: MatrixEventInvite, invited: IrcUser) {
         req.log.info("Handling invite from user directed at %s on %s",
-        invited.nick, invited.server.domain);
+            invited.nick, invited.server.domain);
         const invitedUser = await this.ircBridge.getMatrixUser(invited);
         const mxRoom = new MatrixRoom(event.room_id);
         const intent = this.ircBridge.getAppServiceBridge().getIntent(invitedUser.getId());
@@ -224,7 +224,7 @@ export class MatrixHandler {
 
     // === Admin room handling ===
     private async onAdminMessage(req: BridgeRequest, event: MatrixSimpleMessage,
-        adminRoom: MatrixRoom): Promise<void> {
+                                 adminRoom: MatrixRoom): Promise<void> {
         req.log.info("Received admin message from %s", event.sender);
 
         const botUser = new MatrixUser(this.ircBridge.appServiceUserId, undefined, false);
@@ -259,8 +259,8 @@ export class MatrixHandler {
             await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
 
             await this.ircBridge.getAppServiceBridge().getIntent(
-                    botUser.getId()
-                ).leave(adminRoom.getId());
+                botUser.getId()
+            ).leave(adminRoom.getId());
             return;
         }
 
@@ -269,7 +269,7 @@ export class MatrixHandler {
     }
 
     public async quitUser(req: BridgeRequest, userId: string, clientList: BridgedClient[],
-        ircServer: IrcServer|null, reason: string) {
+                          ircServer: IrcServer|null, reason: string) {
         let clients = clientList;
         if (ircServer) {
             // Filter to get the clients for the [specified] server
@@ -380,7 +380,7 @@ export class MatrixHandler {
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     private async handleInviteToPMRoom(req: BridgeRequest, event: MatrixEventInvite,
-        inviter: MatrixUser, invitee: MatrixUser): Promise<BridgeRequestErr|null> {
+                                       inviter: MatrixUser, invitee: MatrixUser): Promise<BridgeRequestErr|null> {
         // We don't support this
         req.log.warn(
             `User ${inviter.getId()} tried to invite ${invitee.getId()} to a PM room. Disconnecting from room`
@@ -948,7 +948,7 @@ export class MatrixHandler {
     }
 
     private async sendIrcAction(req: BridgeRequest, ircRoom: IrcRoom, ircClient: BridgedClient, ircAction: IrcAction,
-        event: MatrixMessageEvent) {
+                                event: MatrixMessageEvent) {
         // Send the action as is if it is not a text message
         if (event.content.msgtype !== "m.text" || !event.content.body) {
             await this.ircBridge.sendIrcAction(ircRoom, ircClient, ircAction);

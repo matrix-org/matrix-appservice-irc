@@ -340,7 +340,7 @@ export class PgDataStore implements DataStore {
     }
 
     public async setPmRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom, userId: string,
-        virtualUserId: string
+                           virtualUserId: string
     ): Promise<void> {
         log.debug(`setPmRoom (matrix_user_id=${userId}, virtual_user_id=${virtualUserId}, ` +
             `room_id=${matrixRoom.getId()}, irc_nick=${ircRoom.getChannel()})`);

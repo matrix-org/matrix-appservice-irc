@@ -202,7 +202,7 @@ export class RoomAccessSyncer {
      * @param {string|null} arg This is usually the affected user, if applicable.
      */
     public async onMode(req: BridgeRequest, server: IrcServer, channel: string, by: string,
-        mode: string, enabled: boolean, arg: string|null) {
+                        mode: string, enabled: boolean, arg: string|null) {
         if (PRIVATE_MODES.includes(mode)) {
             await this.onPrivateMode(req, server, channel, mode, enabled);
             return;
@@ -395,7 +395,7 @@ export class RoomAccessSyncer {
      * @param {boolean} enabled Was the mode enabled or disabled.
      */
     private async onPrivateMode(req: BridgeRequest, server: IrcServer, channel: string,
-        mode: string, enabled: boolean) {
+                                mode: string, enabled: boolean) {
         // 'k' = Channel requires 'keyword' to join.
         // 'i' = Channel is invite-only.
         // 's' = Channel is secret

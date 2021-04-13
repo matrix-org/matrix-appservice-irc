@@ -383,7 +383,7 @@ export class AdminRoomHandler {
     }
 
     private async handleStorePass(req: BridgeRequest, args: string[], server: IrcServer,
-        userId: string, clientList: BridgedClient[]) {
+                                  userId: string, clientList: BridgedClient[]) {
         const domain = server.domain;
         let notice;
 
@@ -471,7 +471,7 @@ export class AdminRoomHandler {
     }
 
     private async handleNick(req: BridgeRequest, args: string[], ircServer: IrcServer, clientList: BridgedClient[],
-        sender: string) {
+                             sender: string) {
         // Format is: "!nick irc.example.com NewNick"
         if (!ircServer.allowsNickChanges()) {
             return new MatrixAction("notice",
