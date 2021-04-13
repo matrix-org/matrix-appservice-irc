@@ -1,5 +1,5 @@
 const envBundle = require("../util/env-bundle");
-const BridgeEventType = require("../../lib/bridge/BridgeStateSyncer").BridgeStateSyncer.EventType;
+const BridgeEventType = require("matrix-appservice-bridge").BridgeInfoStateSyncer.EventType;
 
 describe("Room upgrades", function() {
     const {env, roomMapping, botUserId, test} = envBundle();

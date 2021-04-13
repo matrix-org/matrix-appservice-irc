@@ -23,6 +23,122 @@ const GROUP_ID_REGEX = /^\+\S+:\S+$/
 
 export type MembershipSyncKind = "incremental"|"initial";
 
+export interface IrcServerConfig {
+    // These are determined to be always defined or possibly undefined
+    // by the existence of the keys in IrcServer.DEFAULT_CONFIG.
+    name?: string;
+    port?: number;
+    icon?: string;
+    ca?: string;
+    networkId?: string;
+    ssl?: boolean;
+    sslselfsign?: boolean;
+    sasl?: boolean;
+    password?: string;
+    allowExpiredCerts?: boolean;
+    additionalAddresses?: string[];
+    dynamicChannels: {
+        enabled: boolean;
+        published: boolean;
+        createAlias: boolean;
+        joinRule: "public"|"invite";
+        federate: boolean;
+        aliasTemplate: string;
+        whitelist: string[];
+        exclude: string[];
+        roomVersion?: string;
+        groupId?: string;
+    };
+    quitDebounce: {
+        enabled: boolean;
+        quitsPerSecond: number;
+        delayMinMs: number;
+        delayMaxMs: number;
+        dropJoinsDuringDebounce: boolean;
+    };
+    mappings: {
+        [channel: string]: {
+            roomIds: string[];
+            key?: string;
+        };
+    };
+    modePowerMap?: {[mode: string]: number};
+    sendConnectionMessages: boolean;
+    botConfig: {
+        nick: string;
+        joinChannelsIfNoUsers: boolean;
+        enabled: boolean;
+        password?: string;
+        username: string;
+    };
+    privateMessages: {
+        enabled: boolean;
+        exclude: string[];
+        federate: boolean;
+    };
+    matrixClients: {
+        userTemplate: string;
+        displayName: string;
+        joinAttempts: number;
+    };
+    ircClients: {
+        nickTemplate: string;
+        maxClients: number;
+        idleTimeout: number;
+        reconnectIntervalMs: number;
+        concurrentReconnectLimit: number;
+        allowNickChanges: boolean;
+        ipv6: {
+            only: boolean;
+            prefix?: string;
+        };
+        lineLimit: number;
+        userModes?: string;
+        realnameFormat?: "mxid"|"reverse-mxid";
+        pingTimeoutMs: number;
+        pingRateMs: number;
+    };
+    excludedUsers: Array<
+        {
+            regex: string;
+            kickReason?: string;
+        }
+    >;
+    membershipLists: {
+        enabled: boolean;
+        floodDelayMs: number;
+        ignoreIdleOnStartup?: {
+            enabled: true;
+            idleForHours: number;
+            exclude: string;
+        };
+        global: {
+            ircToMatrix: {
+                initial: boolean;
+                incremental: boolean;
+            };
+            matrixToIrc: {
+                initial: boolean;
+                incremental: boolean;
+            };
+        };
+        channels: {
+            channel: string;
+            ircToMatrix: {
+                initial: boolean;
+                incremental: boolean;
+            };
+        }[];
+        rooms: {
+            room: string;
+            matrixToIrc: {
+                initial: boolean;
+                incremental: boolean;
+            };
+        }[];
+    };
+}
+
 /*
  * Represents a single IRC server from config.yaml
  */
@@ -64,6 +180,14 @@ export class IrcServer {
      */
     public getReadableName() {
         return this.config.name || "";
+    }
+
+    /**
+     * Get an icon to represent the network
+     * The icon URL, if configured.
+     */
+    public getIcon(): string|undefined {
+        return this.config.icon;
     }
 
     /**
@@ -678,120 +802,4 @@ export class IrcServer {
         // https://developer.mozilla.org/en/docs/Web/JavaScript/Guide/Regular_Expressions
         return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
-}
-
-export interface IrcServerConfig {
-    // These are determined to be always defined or possibly undefined
-    // by the existence of the keys in IrcServer.DEFAULT_CONFIG.
-    name?: string;
-    port?: number;
-    icon?: string;
-    ca?: string;
-    networkId?: string;
-    ssl?: boolean;
-    sslselfsign?: boolean;
-    sasl?: boolean;
-    password?: string;
-    allowExpiredCerts?: boolean;
-    additionalAddresses?: string[];
-    dynamicChannels: {
-        enabled: boolean;
-        published: boolean;
-        createAlias: boolean;
-        joinRule: "public"|"invite";
-        federate: boolean;
-        aliasTemplate: string;
-        whitelist: string[];
-        exclude: string[];
-        roomVersion?: string;
-        groupId?: string;
-    };
-    quitDebounce: {
-        enabled: boolean;
-        quitsPerSecond: number;
-        delayMinMs: number;
-        delayMaxMs: number;
-        dropJoinsDuringDebounce: boolean;
-    };
-    mappings: {
-        [channel: string]: {
-            roomIds: string[];
-            key?: string;
-        };
-    };
-    modePowerMap?: {[mode: string]: number};
-    sendConnectionMessages: boolean;
-    botConfig: {
-        nick: string;
-        joinChannelsIfNoUsers: boolean;
-        enabled: boolean;
-        password?: string;
-        username: string;
-    };
-    privateMessages: {
-        enabled: boolean;
-        exclude: string[];
-        federate: boolean;
-    };
-    matrixClients: {
-        userTemplate: string;
-        displayName: string;
-        joinAttempts: number;
-    };
-    ircClients: {
-        nickTemplate: string;
-        maxClients: number;
-        idleTimeout: number;
-        reconnectIntervalMs: number;
-        concurrentReconnectLimit: number;
-        allowNickChanges: boolean;
-        ipv6: {
-            only: boolean;
-            prefix?: string;
-        };
-        lineLimit: number;
-        userModes?: string;
-        realnameFormat?: "mxid"|"reverse-mxid";
-        pingTimeoutMs: number;
-        pingRateMs: number;
-    };
-    excludedUsers: Array<
-        {
-            regex: string;
-            kickReason?: string;
-        }
-    >;
-    membershipLists: {
-        enabled: boolean;
-        floodDelayMs: number;
-        ignoreIdleOnStartup?: {
-            enabled: true;
-            idleForHours: number;
-            exclude: string;
-        };
-        global: {
-            ircToMatrix: {
-                initial: boolean;
-                incremental: boolean;
-            };
-            matrixToIrc: {
-                initial: boolean;
-                incremental: boolean;
-            };
-        };
-        channels: {
-            channel: string;
-            ircToMatrix: {
-                initial: boolean;
-                incremental: boolean;
-            };
-        }[];
-        rooms: {
-            room: string;
-            matrixToIrc: {
-                initial: boolean;
-                incremental: boolean;
-            };
-        }[];
-    };
 }

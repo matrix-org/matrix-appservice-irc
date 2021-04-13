@@ -17,6 +17,7 @@
     "plugin:@typescript-eslint/recommended"
   ],
   "rules": {
+    "camelcase": 0, // Rule is bugged atm
     "consistent-return": 2,
     "curly": 1,
     "default-case": 2,
@@ -54,7 +55,7 @@
     "no-regex-spaces": 2,
     "no-return-assign": 2,
     "no-self-compare": 2,
-    "no-shadow": 2,
+    "no-shadow": "off",
     "no-unreachable": 2,
     "no-unexpected-multiline": 2,
     "no-unused-expressions": 2,
@@ -79,9 +80,10 @@
     "no-trailing-spaces": 1,
     "keyword-spacing": [1, {"before": true, "after": true}],
     "space-before-blocks": [1, "always"],
-    "@typescript-eslint/explicit-function-return-type": 0,
-    "@typescript-eslint/camelcase": ["error", { "properties": "never" }],
     "@typescript-eslint/ban-ts-ignore": 0,
+    "@typescript-eslint/explicit-function-return-type": 0,
+    "@typescript-eslint/explicit-module-boundary-types": 0,
+    "@typescript-eslint/no-shadow": ["error"],
     "no-unused-vars": 0, // covered by @typescript-eslint/no-unused-vars
     "strict": ["error", "never" ],
     "eqeqeq": 2,

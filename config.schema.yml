@@ -113,7 +113,7 @@ properties:
                     enableReload:
                         type: "boolean"
                     roomLimit:
-                        type: "number" 
+                        type: "number"
             passwordEncryptionKeyPath:
                 type: "string"
             matrixHandler:
@@ -137,8 +137,8 @@ properties:
             permissions:
                 type: "object"
                 additionalProperties:
-                    - type: "string"
-                      enum: ["admin"]
+                    type: "string"
+                    enum: ["admin"]
             servers:
                 type: "object"
                 # all properties must follow the following

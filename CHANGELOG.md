@@ -1,3 +1,42 @@
+ 0.25.0 (2021-03-16)
+====================
+
+No significant changes.
+
+
+0.25.0-rc1 (2021-03-05)
+========================
+
+Bugfixes
+--------
+
+- MXC urls are now properly URL encoded when sent to IRC. ([\#1237](https://github.com/matrix-org/matrix-appservice-irc/issues/1237))
+- Fixed an issue where users would not be rejoined to some channels on reconnect if they failed to rejoin any channel. ([\#1255](https://github.com/matrix-org/matrix-appservice-irc/issues/1255))
+- Fix an issue where IRC membership would not be bridged to new rooms when `botConfig.enabled` is `true`. ([\#1256](https://github.com/matrix-org/matrix-appservice-irc/issues/1256))
+- Update powerlevels immediately when unbridging to avoid rejoining the bridge bot to the room. ([\#1257](https://github.com/matrix-org/matrix-appservice-irc/issues/1257))
+- Fix Docker `start.sh` script to use port `9999` instead of `9995` ([\#1259](https://github.com/matrix-org/matrix-appservice-irc/issues/1259))
+- Fix invalid JSON schema for `ircService.permissions` ([\#1261](https://github.com/matrix-org/matrix-appservice-irc/issues/1261))
+
+
+Improved Documentation
+----------------------
+
+- Add new bridge documentation under /docs. This can be viewed by visiting https://matrix-org.github.io/matrix-appservice-irc/ ([\#1235](https://github.com/matrix-org/matrix-appservice-irc/issues/1235))
+- Add documentation on IRC bridge mode handling. ([\#1251](https://github.com/matrix-org/matrix-appservice-irc/issues/1251))
+
+
+Internal Changes
+----------------
+
+- Leave DM rooms and admin rooms if the Matrix user leaves so that a homeserver may clear them up later. ([\#1258](https://github.com/matrix-org/matrix-appservice-irc/issues/1258))
+- Update to matrix-appservice-bridge 2.6.0-rc1 and use it's implementation of the BridgeInfoStateSyncer ([\#1262](https://github.com/matrix-org/matrix-appservice-irc/issues/1262))
+
+0.24.0 (2021-02-12)
+====================
+
+No significant changes.
+
+
 0.24.0-rc1 (2021-02-02)
 ========================
 
