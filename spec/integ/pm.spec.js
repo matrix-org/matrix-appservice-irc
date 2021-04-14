@@ -283,7 +283,6 @@ describe("IRC-to-Matrix PMing", function() {
         const createRoomPromise = new Promise(function(resolve) {
             sdk.createRoom.and.callFake(function(opts) {
                 expect(opts.visibility).toEqual("private");
-                expect(opts.invite).toEqual([tRealUserId]);
                 expect(opts.creation_content["m.federate"]).toEqual(true);
                 expect(opts.preset).not.toBeDefined();
                 expect(opts.initial_state).toEqual([{
@@ -446,7 +445,6 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
         let createRoomPromise = new Promise(function(resolve, reject) {
             sdk.createRoom.and.callFake(function(opts) {
                 expect(opts.visibility).toEqual("private");
-                expect(opts.invite).toEqual([tRealUserId]);
                 expect(opts.creation_content["m.federate"]).toEqual(false);
                 resolve();
                 return Promise.resolve({
