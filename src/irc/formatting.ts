@@ -329,6 +329,24 @@ export function ircToHtml(text: string): string {
     });
 }
 
+/**
+ * Returns a trimmed string if the input text is a Markdown-style code block.
+ * This is used to allow small code snippets to look nice in IRC and not be
+ * transformed into an upload.
+ */
+export function markdownCodeToIrc(text: string): string|null {
+    let trimmedText = text.trim();
+    // If this post isn't all code, ignore it.
+    if (!/^```.*\n.*```$/s.test(trimmedText)) {
+        return null;
+    }
+    // Remove the first line (e.g. ```js) and the ``` at the end
+    trimmedText = trimmedText.substring(trimmedText.indexOf("\n"), trimmedText.length - 3);
+    // Trim whitespaces but not indentation
+    trimmedText = trimmedText.replace(/^\s*?\n/, "").replace(/\s*$/, "");
+    return trimmedText;
+}
+
 export function toIrcLowerCase(str: string, caseMapping: "strict-rfc1459"|"rfc1459" = "rfc1459") {
     const lower = str.toLowerCase();
     if (caseMapping === "rfc1459") {

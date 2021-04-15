@@ -3,6 +3,7 @@ import { IrcBridge } from "./IrcBridge";
 import { MatrixRoom, Intent } from "matrix-appservice-bridge";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { RoomOrigin } from "../datastore/DataStore";
+import { IrcRoom } from "../models/IrcRoom";
 
 interface TrackChannelOpts {
     server: IrcServer;
@@ -23,7 +24,7 @@ interface TrackChannelOpts {
 export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: BridgeRequest, opts: TrackChannelOpts) {
     const { server, ircChannel, key, inviteList, origin, roomAliasName } = opts;
     const intent = opts.intent || ircBridge.getAppServiceBridge().getIntent();
-    const initialState: ({type: string; state_key: string; content: object})[] = [
+    const initialState: ({type: string; state_key: string; content: unknown})[] = [
         {
             type: "m.room.join_rules",
             state_key: "",
@@ -50,15 +51,19 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
     }
     if (ircBridge.stateSyncer) {
         initialState.push(
-            ircBridge.stateSyncer.createInitialState(
-                server,
-                ircChannel,
-            )
+            // RoomId isn't used by this bridge
+            await ircBridge.stateSyncer.createInitialState("", {
+                channel: ircChannel, networkId: server.getNetworkId()
+            }),
         )
     }
-    req.log.info("Going to track IRC channel %s", ircChannel);
-    const ircRoom = await ircBridge.trackChannel(server, ircChannel, key);
-    req.log.info("Bot is now tracking IRC channel.");
+    if (server.isExcludedChannel(ircChannel)) {
+        throw Error('Channel is excluded');
+    }
+    // See https://github.com/matrix-org/matrix-appservice-irc/pull/1256
+    // for context on why we don't join the room here.
+    req.log.debug("Going to track IRC channel %s", ircChannel);
+    const ircRoom = new IrcRoom(server, ircChannel);
     let roomId;
     try {
         const response = await intent.createRoom({
@@ -76,7 +81,7 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
             }
         });
         roomId = response.room_id;
-        req.log.info("Matrix room %s created.", roomId);
+        req.log.info("Matrix room %s created for %s", roomId, ircChannel);
     }
     catch (ex) {
         req.log.error("Failed to create room: %s", ex.stack);
@@ -85,6 +90,17 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
 
     const mxRoom = new MatrixRoom(roomId);
     await ircBridge.getStore().storeRoom(ircRoom, mxRoom, origin);
+    // Join the room now we've stored it, if we're the bot user.
+    if (server.isBotEnabled()) {
+        try {
+            const client = await ircBridge.getBotClient(server)
+            await client.joinChannel(ircChannel, key);
+            req.log.info(`Bot joined channel`);
+        }
+        catch (ex) {
+            req.log.error(`Bot failed to join channel: ${ex}`);
+        }
+    }
     // /mode the channel AFTER we have created the mapping so we process
     // +s and +i correctly. This is done asyncronously.
     ircBridge.publicitySyncer.initModeForChannel({server, channel: ircChannel}).catch(() => {

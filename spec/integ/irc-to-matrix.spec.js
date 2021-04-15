@@ -631,7 +631,7 @@ describe("IRC-to-Matrix name bridging", function() {
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             return Promise.resolve();
         });
-        sdk.register.and.callFake(function(username, password) {
+        sdk.registerRequest.and.callFake(function() {
             return Promise.resolve({
                 user_id: tUserId
             });

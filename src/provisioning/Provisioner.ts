@@ -13,7 +13,6 @@ import * as express from "express";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcUser } from "../models/IrcUser";
 import { GetNicksResponseOperators } from "../irc/BridgedClient";
-import { BridgeStateSyncer } from "../bridge/BridgeStateSyncer";
 
 const log = logging("Provisioner");
 
@@ -50,8 +49,6 @@ interface PendingRequest {
 }
 
 export class Provisioner {
-    // Cache bot clients so as not to create duplicates
-    private botClients: {} = {};
     private pendingRequests: {
         [domain: string]: {
             [nick: string]: PendingRequest;
@@ -580,11 +577,15 @@ export class Provisioner {
         // Send bridge info state event
         if (this.ircBridge.stateSyncer) {
             const intent = this.ircBridge.getAppServiceBridge().getIntent();
+            const infoMapping = await this.ircBridge.stateSyncer.createInitialState(roomId, {
+                channel: ircChannel,
+                networkId: server.getNetworkId(),
+            })
             await intent.sendStateEvent(
                 roomId,
-                BridgeStateSyncer.EventType,
-                BridgeStateSyncer.createStateKey(server.domain, ircChannel),
-                this.ircBridge.stateSyncer.createBridgeInfoContent(server, ircChannel, userId)
+                infoMapping.type,
+                infoMapping.state_key,
+                infoMapping.content as unknown as Record<string, unknown>,
             );
         }
     }
@@ -942,13 +943,13 @@ export class Provisioner {
         }
         catch (err) {
             // keep going, we still need to part the bot; this is just cleanup
-            req.log.error(err.stack);
+            req.log.error(`Failed to unlink matrix/remote users from channel: ${err}`);
         }
 
         // Cause the bot to part the channel if there are no other rooms being mapped to this
         // channel
         const mxRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, ircChannel);
-        if (mxRooms.length === 0) {
+        if (mxRooms.length === 0 && server.isBotEnabled()) {
             const botClient = await this.ircBridge.getBotClient(server);
             req.log.info(`Leaving channel ${ircChannel} as there are no more provisioned mappings`);
             await botClient.leaveChannel(ircChannel);
@@ -1039,6 +1040,9 @@ export class Provisioner {
             roomId
         );
         if (roomChannels.length > 0) {
+            req.log.warn(
+                `Not leaving matrix virtuals from room, room is still bridged to ${roomChannels.length} channel(s)`
+            );
             // We can't determine who should and shouldn't be in the room.
             return;
         }
