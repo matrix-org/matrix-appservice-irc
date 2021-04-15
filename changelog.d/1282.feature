@@ -1,1 +1,1 @@
-Add retry mechanism to the creation of PM rooms
+The bridge will now retry creating a room for a PM if the initial attempt fails.
