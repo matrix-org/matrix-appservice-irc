@@ -164,7 +164,7 @@ export class IrcEventBroker {
 
     private hookIfClaimed (client: BridgedClient, connInst: ConnectionInstance,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        eventName: string, fn: (...args: Array<any>) => void) {
+                           eventName: string, fn: (...args: Array<any>) => void) {
         if (client.isBot && !client.server.isBotEnabled()) {
             return; // don't both attaching listeners we'll never invoke.
         }
@@ -287,8 +287,8 @@ export class IrcEventBroker {
         // We want to listen for PMs for individual clients regardless of whether the
         // bot is enabled or disabled, as only they will receive the event. We handle
         // PMs to the bot now for provisioning.
-            // listen for PMs for clients. If you listen for rooms, you'll get
-            // duplicates since the bot will also invoke the callback fn!
+        // listen for PMs for clients. If you listen for rooms, you'll get
+        // duplicates since the bot will also invoke the callback fn!
         connInst.addListener("message", (from: string, to: string, text: string) => {
             if (to.startsWith("#")) { return; }
             const req = createRequest();

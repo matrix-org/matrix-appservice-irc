@@ -8,7 +8,7 @@ const log = getLogger("RoomAccessSyncer");
 
 const MODES_TO_WATCH = [
     "m", // This channel is "moderated" - only voiced users can speak.
-         // We want to ensure we do not miss rooms that get unmoderated.
+    // We want to ensure we do not miss rooms that get unmoderated.
     "k", // keylock - needs a password
     "i", // invite only
     "s", // secret - don't show in channel lisitings
@@ -202,7 +202,7 @@ export class RoomAccessSyncer {
      * @param {string|null} arg This is usually the affected user, if applicable.
      */
     public async onMode(req: BridgeRequest, server: IrcServer, channel: string, by: string,
-        mode: string, enabled: boolean, arg: string|null) {
+                        mode: string, enabled: boolean, arg: string|null) {
         if (PRIVATE_MODES.includes(mode)) {
             await this.onPrivateMode(req, server, channel, mode, enabled);
             return;
@@ -446,7 +446,7 @@ export class RoomAccessSyncer {
                 case "i":
                     req.log.info((enabled ? "Locking room %s" :
                         "Reverting %s back to default join_rule"),
-                        room.getId()
+                    room.getId()
                     );
                     if (enabled) {
                         await this.setMatrixRoomAsInviteOnly(room, true);
@@ -502,8 +502,8 @@ export class RoomAccessSyncer {
                 plContent.events_default = eventsDefault;
                 await botClient.sendStateEvent(roomId, "m.room.power_levels", plContent, "");
                 req.log.info(
-                "onModeratedChannelToggle: (channel=%s,enabled=%s) power levels updated in room %s",
-                channel, enabled, roomId
+                    "onModeratedChannelToggle: (channel=%s,enabled=%s) power levels updated in room %s",
+                    channel, enabled, roomId
                 );
                 ircStore.setModeForRoom(roomId, "m", enabled);
             }

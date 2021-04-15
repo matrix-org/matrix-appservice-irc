@@ -131,7 +131,7 @@ async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgS
                     new MatrixRoom(entry.matrix_id),
                     entry.data.real_user_id,
                     entry.data.virtual_user_id,
-               );
+                );
             }
             catch (ex) {
                 log.warn("Not migrating %s", entry.matrix_id);

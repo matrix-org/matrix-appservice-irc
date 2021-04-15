@@ -549,8 +549,8 @@ export class BridgedClient extends EventEmitter {
             const idle = whois.idle ? `${whois.idle} seconds idle` : "";
             const chans = (
                 (whois.channels && whois.channels.length) > 0 ?
-                `On channels: ${JSON.stringify(whois.channels)}` :
-                ""
+                    `On channels: ${JSON.stringify(whois.channels)}` :
+                    ""
             );
 
             const info = `${whois.user}@${whois.host}
@@ -745,8 +745,8 @@ export class BridgedClient extends EventEmitter {
         this.lastActionTs = Date.now();
         if (this.server.shouldSyncMembershipToIrc("initial") ||
             this.isBot) {
-                // If we are mirroring matrix membership OR
-                // we are a bot, do not disconnect.
+            // If we are mirroring matrix membership OR
+            // we are a bot, do not disconnect.
             return;
         }
         const idleTimeout = this.server.getIdleTimeout();

@@ -802,7 +802,7 @@ export class IrcBridge {
         if (action.replyEvent) {
             extraContent["m.relates_to"] = {
                 "m.in_reply_to": {
-                  event_id: action.replyEvent,
+                    event_id: action.replyEvent,
                 }
             }
         }

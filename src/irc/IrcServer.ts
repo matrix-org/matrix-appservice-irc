@@ -745,7 +745,7 @@ export class IrcServer {
             this.groupIdValid = GROUP_ID_REGEX.test(config.dynamicChannels.groupId);
             if (!this.groupIdValid) {
                 log.warn(
-    `${this.domain} has an incorrectly configured groupId for dynamicChannels and will not set groups.`
+                    `${this.domain} has an incorrectly configured groupId for dynamicChannels and will not set groups.`
                 );
             }
         }
@@ -754,8 +754,8 @@ export class IrcServer {
         }
         this.idleUsersStartupExcludeRegex =
             this.config.membershipLists.ignoreIdleOnStartup?.exclude ?
-            new RegExp(this.config.membershipLists.ignoreIdleOnStartup.exclude)
-            : undefined;
+                new RegExp(this.config.membershipLists.ignoreIdleOnStartup.exclude)
+                : undefined;
     }
 
     private static templateToRegex(template: string, literalVars: {[key: string]: string},
