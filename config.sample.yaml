@@ -384,6 +384,12 @@ ircService:
         # Whilst the IRCd *should* be sending pings to us to keep the connection alive, it appears
         # that sometimes they don't get around to it and end up ping timing us out.
         # pingRateMs: 60000
+        # Choose 
+        kickOn:
+          channelJoinFailure: true
+          ircConnectionFailure: true
+          userQuit: true
+
 
   # Set information about the bridged channel in the room state, so that client's may
   # present relevant UI to the user. MSC2346

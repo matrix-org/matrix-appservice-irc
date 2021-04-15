@@ -96,6 +96,11 @@ export interface IrcServerConfig {
         realnameFormat?: "mxid"|"reverse-mxid";
         pingTimeoutMs: number;
         pingRateMs: number;
+        kickOn: {
+            channelJoinFailure: boolean;
+            ircConnectionFailure: boolean;
+            userQuit: boolean;
+        }
     };
     excludedUsers: Array<
         {
@@ -694,6 +699,11 @@ export class IrcServer {
                 lineLimit: 3,
                 pingTimeoutMs: 1000 * 60 * 10,
                 pingRateMs: 1000 * 60,
+                kickOn: {
+                    ircConnectionFailure: true,
+                    channelJoinFailure: true,
+                    userQuit: true
+                }
             },
             membershipLists: {
                 enabled: false,

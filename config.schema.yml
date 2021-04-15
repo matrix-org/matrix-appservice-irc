@@ -383,6 +383,15 @@ properties:
                                     type: "integer"
                                 pingRateMs:
                                     type: "integer"
+                                kickOn:
+                                    type: "object"
+                                    properties:
+                                        channelJoinFailure:
+                                            type: "boolean"
+                                        ircConnectionFailure:
+                                            type: "boolean"
+                                        userQuit:
+                                            type: "boolean"
                         excludeUsers:
                             type: "array"
                             properties:
