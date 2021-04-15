@@ -131,7 +131,7 @@ export class MatrixAction {
             }
             userId = ircFormatting.escapeHtmlChars(userId);
 
-            /* Due to how Riot and friends do push notifications,
+            /* Due to how Element and friends do push notifications,
             we need the plain text to match something.*/
             let identifier;
             try {

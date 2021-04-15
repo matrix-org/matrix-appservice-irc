@@ -66,7 +66,7 @@ ircService:
       # networkId: "example"
 
       # MXC URL to an icon used as the network icon whenever this network appear in
-      # a network list. (Like in the riot room directory, for instance.)
+      # a network list. (Like in the Element room directory, for instance.)
       # icon: mxc://matrix.org/LpsSLrbANVrEIEOgEaVteItf
 
       # The port to connect to. Optional.
