@@ -844,8 +844,9 @@ export class Provisioner {
     }
 
     // Unlink an IRC channel from a matrix room ID
-    public async unlink(req: ProvisionRequest) {
-        const options = req.body;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public async unlink(req: ProvisionRequest, optionsOverride?: any) {
+        const options = req.body || optionsOverride;
         try {
             this.unlinkValidator.validate(options);
         }

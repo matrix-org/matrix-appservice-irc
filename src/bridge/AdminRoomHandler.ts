@@ -79,6 +79,11 @@ const COMMANDS: {[command: string]: {example: string; summary: string; requiresP
         example: `!plumb !room:example.com irc.example.net #foobar`,
         summary: "Plumb an IRC channel into a Matrix room.",
         requiresPermission: 'admin'
+    },
+    '!unlink': {
+        example: `!unlink !room:example.com irc.example.net #foobar`,
+        summary: "Unlink an IRC channel from a Matrix room.",
+        requiresPermission: 'admin'
     }
 };
 
@@ -161,6 +166,9 @@ export class AdminRoomHandler {
             case "!plumb":
                 response = await this.handlePlumb(args, event.sender, userPermission)
                 break;
+            case "!unlink":
+                response = await this.handleUnlink(args, event.sender, userPermission)
+                break;
             case "!help":
                 response = await this.showHelp(userPermission);
                 break;
@@ -204,6 +212,45 @@ export class AdminRoomHandler {
                 undefined,
                 matrixRoomId,
                 sender,
+            );
+        }
+        catch (ex) {
+            log.error(`Failed to handle !plumb command:`, ex);
+            return new MatrixAction("notice", "Failed to plumb room. Check the logs for details.");
+        }
+        return new MatrixAction("notice", "Room plumbed.");
+    }
+
+    private async handleUnlink(args: string[], sender: string, userPermission: string | undefined) {
+        if (userPermission !== 'admin') {
+            return new MatrixAction("notice", "You must be an admin to use this command");
+        }
+        const [matrixRoomId, serverDomain, ircChannel] = args;
+        const server = serverDomain && this.ircBridge.getServer(serverDomain);
+        if (!server) {
+            return new MatrixAction("notice", "The server provided is not configured on this bridge");
+        }
+        if (!ircChannel || !ircChannel.startsWith("#")) {
+            return new MatrixAction("notice", "The channel name must start with a #");
+        }
+        // Check if the room exists and the user is invited.
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
+        try {
+            await intent.getStateEvent(matrixRoomId, 'm.room.create');
+        }
+        catch (ex) {
+            log.error(`Could not join the target room of a !plumb command`, ex);
+            return new MatrixAction("notice", "Could not join the target room, you may need to invite the bot");
+        }
+        try {
+            await this.ircBridge.getProvisioner().unlink(
+                ProvisionRequest.createFake("adminCommand", log),
+                {
+                    remote_room_server: serverDomain,
+                    remote_room_channel: ircChannel,
+                    matrix_room_id: matrixRoomId,
+                    user_id: sender,
+                },
             );
         }
         catch (ex) {
