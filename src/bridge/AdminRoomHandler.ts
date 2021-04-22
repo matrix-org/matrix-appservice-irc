@@ -82,8 +82,7 @@ const COMMANDS: {[command: string]: {example: string; summary: string; requiresP
     },
     '!unlink': {
         example: `!unlink !room:example.com irc.example.net #foobar`,
-        summary: "Unlink an IRC channel from a Matrix room.",
-        requiresPermission: 'admin'
+        summary: "Unlink an IRC channel from a Matrix room. You need to be a Moderator of the Matrix room.",
     }
 };
 
