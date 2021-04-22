@@ -238,7 +238,7 @@ export class AdminRoomHandler {
             await intent.getStateEvent(matrixRoomId, 'm.room.create');
         }
         catch (ex) {
-            log.error(`Could not join the target room of a !plumb command`, ex);
+            log.error(`Could not join the target room of an !unlink command`, ex);
             return new MatrixAction("notice", "Could not join the target room, you may need to invite the bot");
         }
         try {
@@ -253,10 +253,10 @@ export class AdminRoomHandler {
             );
         }
         catch (ex) {
-            log.error(`Failed to handle !plumb command:`, ex);
-            return new MatrixAction("notice", "Failed to plumb room. Check the logs for details.");
+            log.error(`Failed to handle !unlink command:`, ex);
+            return new MatrixAction("notice", "Failed to unlink room. Check the logs for details.");
         }
-        return new MatrixAction("notice", "Room plumbed.");
+        return new MatrixAction("notice", "Room unlinked.");
     }
 
     private async handleJoin(req: BridgeRequest, args: string[], server: IrcServer, sender: string) {
