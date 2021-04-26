@@ -1,6 +1,6 @@
 ## How to use the Dockerfile
 
-Ensure you have docker installed. The version this was tested
+Ensure you have Docker installed. The version this was tested
 with is `18.06.1-ce`.
 
 Create `./dockerdata`

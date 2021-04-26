@@ -1,5 +1,5 @@
 # Freebind build
-# node:12-slim uses debian:stretch-slim as a base, so it's safe to build on here.
+# node:14-slim uses debian:stretch-slim as a base, so it's safe to build on here.
 FROM debian:stretch-slim as freebind 
 
 RUN apt-get update \
@@ -9,7 +9,7 @@ RUN git clone https://github.com/matrix-org/freebindfree.git
 RUN cd freebindfree && make
 
 # Typescript build
-FROM node:12-slim as builder
+FROM node:14-slim as builder
 
 WORKDIR /build
 
@@ -22,7 +22,7 @@ RUN npm ci
 RUN npm run build
 
 # App
-FROM node:12-slim
+FROM node:14-slim
 
 RUN apt-get update && apt-get install -y sipcalc iproute2 openssl --no-install-recommends
 RUN rm -rf /var/lib/apt/lists/*
