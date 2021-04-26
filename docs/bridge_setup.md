@@ -4,11 +4,11 @@ This guide is written for server administrators who would like to set up their o
 
 ## Before setting up
 
-We recommend using Node.JS `v12` or greater when setting up the bridge, as we use `worker_threads` to handle 
+We recommend using Node.JS `v14` or greater when setting up the bridge, as we use `worker_threads` to handle 
 some of the traffic for larger bridges.
 
 If you wish to use Node.JS v10, you should enable the `--experimental-worker` on the commandline.
-Plase note that we offer no support for Node 10.
+Please note that we offer no support for Node 10.
 
 You should also ensure you have a recent Matrix homeserver that you have permission to bridge to. This can 
 either be your own, or one that you have the ability to setup Application Services with.
