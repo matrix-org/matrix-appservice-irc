@@ -81,8 +81,9 @@ const COMMANDS: {[command: string]: {example: string; summary: string; requiresP
         requiresPermission: 'admin'
     },
     '!unlink': {
-        example: `!unlink !room:example.com irc.example.net #foobar`,
-        summary: "Unlink an IRC channel from a Matrix room. You need to be a Moderator of the Matrix room.",
+        example: "!unlink !room:example.com irc.example.net #foobar",
+        summary: "Unlink an IRC channel from a Matrix room. " +
+                "You need to be a moderator of the Matrix room or an administrator of this bridge.",
     }
 };
 
@@ -243,13 +244,15 @@ export class AdminRoomHandler {
         }
         try {
             await this.ircBridge.getProvisioner().unlink(
-                ProvisionRequest.createFake("adminCommand", log),
-                {
-                    remote_room_server: serverDomain,
-                    remote_room_channel: ircChannel,
-                    matrix_room_id: matrixRoomId,
-                    user_id: sender,
-                },
+                ProvisionRequest.createFake("adminCommand", log,
+                    {
+                        remote_room_server: serverDomain,
+                        remote_room_channel: ircChannel,
+                        matrix_room_id: matrixRoomId,
+                        user_id: sender,
+                    },
+                ),
+                userPermission === 'admin'
             );
         }
         catch (ex) {
