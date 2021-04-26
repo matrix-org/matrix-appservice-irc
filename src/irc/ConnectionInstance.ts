@@ -173,7 +173,7 @@ export class ConnectionInstance {
         });
     }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public addListener(eventName: string, fn: (...args: Array<any>) => void) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.client.addListener(eventName, (...args: unknown[]) => {
@@ -326,9 +326,9 @@ export class ConnectionInstance {
 
     private listenForCTCPVersions() {
         this.client.addListener("ctcp-version", (from: string) => {
-           if (from) { // Ensure the sender is valid before we try to respond
-               this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
-           }
+            if (from) { // Ensure the sender is valid before we try to respond
+                this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
+            }
         });
     }
 

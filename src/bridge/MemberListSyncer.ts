@@ -436,8 +436,8 @@ export class MemberListSyncer {
     }
 
     private static getRoomMemberData(server: IrcServer, roomId: string,
-                                    stateEvents: MemberStateEvent[],
-                                    appServiceUserId: string) {
+                                     stateEvents: MemberStateEvent[],
+                                     appServiceUserId: string) {
         stateEvents = stateEvents || [];
         const data: { roomId: string; virtuals: string[]; reals: string[] } = {
             roomId: roomId,

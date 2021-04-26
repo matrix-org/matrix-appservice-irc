@@ -22,7 +22,7 @@ import escapeStringRegexp from "escape-string-regexp";
 import logging from "../logging";
 const log = logging("MatrixAction");
 
-const ACTION_TYPES = ["message", "emote", "topic", "notice", "file", "image", "video", "audio"];
+const ACTION_TYPES = ["message", "emote", "topic", "notice", "file", "image", "video", "audio", "command"];
 const EVENT_TO_TYPE: {[mxKey: string]: string} = {
     "m.room.message": "message",
     "m.room.topic": "topic"
@@ -86,7 +86,7 @@ export class MatrixAction {
         public htmlText: string|null = null,
         public readonly ts: number = 0,
         public replyEvent?: string,
-        ) {
+    ) {
         if (!ACTION_TYPES.includes(type)) {
             throw new Error("Unknown MatrixAction type: " + type);
         }
@@ -131,7 +131,7 @@ export class MatrixAction {
             }
             userId = ircFormatting.escapeHtmlChars(userId);
 
-            /* Due to how Riot and friends do push notifications,
+            /* Due to how Element and friends do push notifications,
             we need the plain text to match something.*/
             let identifier;
             try {
@@ -167,6 +167,11 @@ export class MatrixAction {
             text = event.content.topic;
         }
         else if (event.type === "m.room.message") {
+            if (event.content.msgtype === 'm.text' && event.content.body?.startsWith('!irc ')) {
+                // This might be a command
+                type = "command";
+                return new MatrixAction(type, text, null, event.origin_server_ts, event.event_id);
+            }
             if (event.content.format === "org.matrix.custom.html") {
                 htmlText = event.content.formatted_body;
             }

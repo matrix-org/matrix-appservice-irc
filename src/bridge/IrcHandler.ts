@@ -430,7 +430,7 @@ export class IrcHandler {
                     item.req.log.error(`Error storing room ${matrixRoom.getId()} (${err.message})`);
                 }
             );
-            }
+        }
         );
         try {
             await Promise.all(promises);

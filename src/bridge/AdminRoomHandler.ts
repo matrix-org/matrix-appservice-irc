@@ -166,7 +166,7 @@ export class AdminRoomHandler {
                 break;
             default: {
                 response = new MatrixAction("notice",
-                "The command was not recognised. Available commands are listed by !help");
+                    "The command was not recognised. Available commands are listed by !help");
             }
         }
         if (response) {
@@ -356,8 +356,8 @@ export class AdminRoomHandler {
                 return new MatrixAction(
                     "notice",
                     whoisClient ?
-                    `${whoisNick} is connected to ${server.domain} as '${whoisClient.nick}'.` :
-                    `${whoisNick} has no IRC connection via this bridge.`);
+                        `${whoisNick} is connected to ${server.domain} as '${whoisClient.nick}'.` :
+                        `${whoisNick} has no IRC connection via this bridge.`);
             }
             catch (err) {
                 if (err.stack) {
@@ -383,7 +383,7 @@ export class AdminRoomHandler {
     }
 
     private async handleStorePass(req: BridgeRequest, args: string[], server: IrcServer,
-        userId: string, clientList: BridgedClient[]) {
+                                  userId: string, clientList: BridgedClient[]) {
         const domain = server.domain;
         let notice;
 
@@ -471,7 +471,7 @@ export class AdminRoomHandler {
     }
 
     private async handleNick(req: BridgeRequest, args: string[], ircServer: IrcServer, clientList: BridgedClient[],
-        sender: string) {
+                             sender: string) {
         // Format is: "!nick irc.example.com NewNick"
         if (!ircServer.allowsNickChanges()) {
             return new MatrixAction("notice",

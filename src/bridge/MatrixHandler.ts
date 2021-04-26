@@ -160,7 +160,7 @@ export class MatrixHandler {
 
     private async handleInviteFromUser(req: BridgeRequest, event: MatrixEventInvite, invited: IrcUser) {
         req.log.info("Handling invite from user directed at %s on %s",
-        invited.nick, invited.server.domain);
+            invited.nick, invited.server.domain);
         const invitedUser = await this.ircBridge.getMatrixUser(invited);
         const mxRoom = new MatrixRoom(event.room_id);
         const intent = this.ircBridge.getAppServiceBridge().getIntent(invitedUser.getId());
@@ -224,7 +224,7 @@ export class MatrixHandler {
 
     // === Admin room handling ===
     private async onAdminMessage(req: BridgeRequest, event: MatrixSimpleMessage,
-        adminRoom: MatrixRoom): Promise<void> {
+                                 adminRoom: MatrixRoom): Promise<void> {
         req.log.info("Received admin message from %s", event.sender);
 
         const botUser = new MatrixUser(this.ircBridge.appServiceUserId, undefined, false);
@@ -259,8 +259,8 @@ export class MatrixHandler {
             await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
 
             await this.ircBridge.getAppServiceBridge().getIntent(
-                    botUser.getId()
-                ).leave(adminRoom.getId());
+                botUser.getId()
+            ).leave(adminRoom.getId());
             return;
         }
 
@@ -269,7 +269,7 @@ export class MatrixHandler {
     }
 
     public async quitUser(req: BridgeRequest, userId: string, clientList: BridgedClient[],
-        ircServer: IrcServer|null, reason: string) {
+                          ircServer: IrcServer|null, reason: string) {
         let clients = clientList;
         if (ircServer) {
             // Filter to get the clients for the [specified] server
@@ -380,7 +380,7 @@ export class MatrixHandler {
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     private async handleInviteToPMRoom(req: BridgeRequest, event: MatrixEventInvite,
-        inviter: MatrixUser, invitee: MatrixUser): Promise<BridgeRequestErr|null> {
+                                       inviter: MatrixUser, invitee: MatrixUser): Promise<BridgeRequestErr|null> {
         // We don't support this
         req.log.warn(
             `User ${inviter.getId()} tried to invite ${invitee.getId()} to a PM room. Disconnecting from room`
@@ -787,6 +787,46 @@ export class MatrixHandler {
         return null;
     }
 
+    private async onCommand(req: BridgeRequest, event: MatrixMessageEvent): Promise<BridgeRequestErr|null> {
+        req.log.info(`Handling command from ${event.sender}`);
+        if (!event.content.body) {
+            throw Error('Cannot handle command with no text');
+        }
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
+        const [command, ...args] = event.content.body.trim().substr("!irc ".length).split(" ");
+        // We currently only check the first room.
+        const [targetRoom] = await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
+        if (command === "nick") {
+            const newNick = args[0];
+            // We need to get the context of this room.
+            if (!targetRoom) {
+                await intent.sendMessage(event.room_id, {
+                    'msgtype': 'm.notice',
+                    'body': 'Room is not bridged, cannot set nick without a target server'
+                });
+            }
+            const bridgedClient = await this.ircBridge.getBridgedClient(targetRoom.server, event.sender);
+            req.log.info("Matrix user wants to change nick from %s to %s", bridgedClient.nick, newNick);
+            try {
+                await bridgedClient.changeNick(newNick, true);
+            }
+            catch (e) {
+                await intent.sendMessage(event.room_id, {
+                    'msgtype': 'm.notice',
+                    'body': `Unable to change nick: ${e.message}`
+                });
+                req.log.warn(`Didn't change nick on the IRC side: ${e}`);
+            }
+        }
+        else {
+            await intent.sendMessage(event.room_id, {
+                'msgtype': 'm.notice',
+                'body': 'Command not known'
+            });
+        }
+        return null;
+    }
+
     /**
      * Called when the AS receives a new Matrix Event.
      * @return {Promise} which is resolved/rejected when the request finishes.
@@ -807,11 +847,6 @@ export class MatrixHandler {
         const mxAction = MatrixAction.fromEvent(
             event, this.mediaUrl
         );
-        const ircAction = IrcAction.fromMatrixAction(mxAction);
-        if (ircAction === null) {
-            req.log.info("IrcAction couldn't determine an action type.");
-            return BridgeRequestErr.ERR_DROPPED;
-        }
 
         // check if this message is from one of our virtual users
         const servers = this.ircBridge.getServers();
@@ -821,6 +856,17 @@ export class MatrixHandler {
                     event.sender, servers[i].domain);
                 return BridgeRequestErr.ERR_VIRTUAL_USER;
             }
+        }
+
+
+        if (mxAction.type === "command") {
+            return this.onCommand(req, event);
+        }
+
+        const ircAction = IrcAction.fromMatrixAction(mxAction);
+        if (ircAction === null) {
+            req.log.info("IrcAction couldn't determine an action type.");
+            return BridgeRequestErr.ERR_DROPPED;
         }
 
         // wait a while if we just got an invite else we may not have the mapping stored
@@ -948,7 +994,7 @@ export class MatrixHandler {
     }
 
     private async sendIrcAction(req: BridgeRequest, ircRoom: IrcRoom, ircClient: BridgedClient, ircAction: IrcAction,
-        event: MatrixMessageEvent) {
+                                event: MatrixMessageEvent) {
         // Send the action as is if it is not a text message
         if (event.content.msgtype !== "m.text" || !event.content.body) {
             await this.ircBridge.sendIrcAction(ircRoom, ircClient, ircAction);

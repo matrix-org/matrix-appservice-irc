@@ -802,7 +802,7 @@ export class IrcBridge {
         if (action.replyEvent) {
             extraContent["m.relates_to"] = {
                 "m.in_reply_to": {
-                  event_id: action.replyEvent,
+                    event_id: action.replyEvent,
                 }
             }
         }
@@ -1209,7 +1209,7 @@ export class IrcBridge {
         await client.leaveChannel(ircRoom.channel);
     }
 
-    public sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction) {
+    public async sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction) {
         log.info(
             "Sending IRC message in %s as %s (connected=%s)",
             ircRoom.channel, bridgedClient.nick, Boolean(bridgedClient.status === BridgedClientStatus.CONNECTED)

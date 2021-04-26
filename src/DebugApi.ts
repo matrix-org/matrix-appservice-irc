@@ -58,7 +58,13 @@ export class DebugApi {
     }
 
     private onRequest(req: IncomingMessage, response: ServerResponse) {
-        const reqPath = req.url!.split("?");
+        if (!req.url) {
+            response.writeHead(500, { "Content-Type": "text/plain" });
+            response.write("Your request reached our server without a URL.");
+            response.end();
+            throw Error('URL is required but was falsy.');
+        }
+        const reqPath = req.url.split("?");
         const path = reqPath[0];
         const query = querystring.parse(reqPath[1]);
         log.debug(req.method + " " + path);
@@ -150,7 +156,7 @@ export class DebugApi {
                 response.write(r);
                 response.end();
             }, (err: Error) => {
-                log.error(err.stack!);
+                log.error(err.stack);
                 response.writeHead(500, {"Content-Type": "text/plain"});
                 response.write(err + "\n");
                 response.end();
@@ -183,7 +189,7 @@ export class DebugApi {
                 response.write(r + "\n");
                 response.end();
             }, (err: Error) => {
-                log.error(err.stack!);
+                log.error(err.stack);
                 response.writeHead(500, {"Content-Type": "text/plain"});
                 response.write(err + "\n");
                 response.end();
@@ -441,6 +447,7 @@ export class DebugApi {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private wrapJsonReq (req: IncomingMessage, response: ServerResponse): Bluebird<unknown> {
         let body = "";
         req.on("data", (chunk) => { body += chunk; });

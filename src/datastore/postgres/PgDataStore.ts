@@ -57,7 +57,7 @@ export class PgDataStore implements DataStore {
             this.cryptoStore = new StringCrypto();
             this.cryptoStore.load(pkeyPath);
         }
-        process.on("beforeExit", (e) => {
+        process.on("beforeExit", () => {
             if (this.hasEnded) {
                 return;
             }
@@ -107,7 +107,15 @@ export class PgDataStore implements DataStore {
         );
     }
 
-    public async upsertRoom(origin: RoomOrigin, type: string, domain: string, channel: string, roomId: string, ircJson: string, matrixJson: string) {
+    public async upsertRoom(
+        origin: RoomOrigin,
+        type: string,
+        domain: string,
+        channel: string,
+        roomId: string,
+        ircJson: string,
+        matrixJson: string
+    ) {
         const parameters = {
             origin,
             type,
@@ -117,7 +125,8 @@ export class PgDataStore implements DataStore {
             irc_json: ircJson,
             matrix_json: matrixJson,
         };
-        const statement = PgDataStore.BuildUpsertStatement("rooms", "ON CONSTRAINT cons_rooms_unique", Object.keys(parameters));
+        const statement = PgDataStore.BuildUpsertStatement("rooms",
+            "ON CONSTRAINT cons_rooms_unique", Object.keys(parameters));
         await this.pgPool.query(statement, Object.values(parameters));
     }
 
@@ -126,19 +135,24 @@ export class PgDataStore implements DataStore {
             id: NeDBDataStore.createMappingId(pgEntry.room_id, pgEntry.irc_domain, pgEntry.irc_channel),
             matrix: new MatrixRoom(pgEntry.room_id, pgEntry.matrix_json),
             remote: new RemoteRoom("",
-            {
-                ...pgEntry.irc_json,
-                channel: pgEntry.irc_channel,
-                domain: pgEntry.irc_domain,
-                type: pgEntry.type,
-            }),
+                {
+                    ...pgEntry.irc_json,
+                    channel: pgEntry.irc_channel,
+                    domain: pgEntry.irc_domain,
+                    type: pgEntry.type,
+                }),
             data: {
                 origin: pgEntry.origin,
             },
         };
     }
 
-    public async getRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<Entry | null> {
+    public async getRoom(
+        roomId: string,
+        ircDomain: string,
+        ircChannel: string,
+        origin?: RoomOrigin
+    ): Promise<Entry | null> {
         let statement = "SELECT * FROM rooms WHERE room_id = $1 AND irc_domain = $2 AND irc_channel = $3";
         let params = [roomId, ircDomain, ircChannel];
         if (origin) {
@@ -153,7 +167,9 @@ export class PgDataStore implements DataStore {
     }
 
     public async getAllChannelMappings(): Promise<ChannelMappings> {
-        const entries = (await this.pgPool.query("SELECT irc_domain, room_id, irc_channel FROM rooms WHERE type = 'channel'")).rows;
+        const entries = (await this.pgPool.query(
+            "SELECT irc_domain, room_id, irc_channel FROM rooms WHERE type = 'channel'"
+        )).rows;
 
         const mappings: ChannelMappings = {};
         const validDomains = Object.keys(this.serverMappings);
@@ -205,20 +221,21 @@ export class PgDataStore implements DataStore {
             // Could be a PM room, if it's not a channel.
             entries = await this.pgPool.query("SELECT irc_domain, irc_nick FROM pm_rooms WHERE room_id = $1", [roomId]);
         }
-        return entries.rows.map((e) => {
-            const server = this.serverMappings[e.irc_domain];
-            if (!server) {
-                // ! is used here because typescript doesn't understand the .filter
-                return undefined!;
+        const rooms: IrcRoom[] = [];
+        for (const row of entries.rows) {
+            const server = this.serverMappings[row.irc_domain];
+            if (server) {
+                rooms.push(new IrcRoom(server, row.irc_channel || row.irc_nick));
             }
-            return new IrcRoom(server, e.irc_channel || e.irc_nick);
-        }).filter((i) => i !== undefined);
+        }
+        return rooms;
     }
 
     public async getIrcChannelsForRoomIds(roomIds: string[]): Promise<{ [roomId: string]: IrcRoom[] }> {
-        const entries = await this.pgPool.query("SELECT room_id, irc_domain, irc_channel FROM rooms WHERE room_id IN $1", [
-            roomIds
-        ]);
+        const entries = await this.pgPool.query(
+            "SELECT room_id, irc_domain, irc_channel FROM rooms WHERE room_id IN $1",
+            [roomIds]
+        );
         const mapping: { [roomId: string]: IrcRoom[] } = {};
         entries.rows.forEach((e) => {
             const server = this.serverMappings[e.irc_domain];
@@ -235,27 +252,33 @@ export class PgDataStore implements DataStore {
     }
 
     public async getMatrixRoomsForChannel(server: IrcServer, channel: string): Promise<MatrixRoom[]> {
-        const entries = await this.pgPool.query("SELECT room_id, matrix_json FROM rooms WHERE irc_domain = $1 AND irc_channel = $2",
-        [
-            server.domain,
-            // Channels must be lowercase
-            toIrcLowerCase(channel),
-        ]);
+        const entries = await this.pgPool.query(
+            "SELECT room_id, matrix_json FROM rooms WHERE irc_domain = $1 AND irc_channel = $2",
+            [
+                server.domain,
+                // Channels must be lowercase
+                toIrcLowerCase(channel),
+            ]);
         return entries.rows.map((e) => new MatrixRoom(e.room_id, e.matrix_json));
     }
 
-    public async getMappingsForChannelByOrigin(server: IrcServer, channel: string, origin: RoomOrigin | RoomOrigin[], allowUnset: boolean): Promise<Entry[]> {
+    public async getMappingsForChannelByOrigin(
+        server: IrcServer,
+        channel: string,
+        origin: RoomOrigin | RoomOrigin[],
+        allowUnset: boolean,
+    ): Promise<Entry[]> {
         if (!Array.isArray(origin)) {
             origin = [origin];
         }
         const inStatement = origin.map((_, i) => `\$${i + 3}`).join(", ");
-        const statement = `SELECT * FROM rooms WHERE irc_domain = $1 AND irc_channel = $2 AND origin IN (${inStatement})`;
-        const entries = await this.pgPool.query(statement,
-        [
-            server.domain,
-            // Channels must be lowercase
-            toIrcLowerCase(channel),
-        ].concat(origin));
+        const entries = await this.pgPool.query(
+            `SELECT * FROM rooms WHERE irc_domain = $1 AND irc_channel = $2 AND origin IN (${inStatement})`,
+            [
+                server.domain,
+                // Channels must be lowercase
+                toIrcLowerCase(channel),
+            ].concat(origin));
         return entries.rows.map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
@@ -265,11 +288,11 @@ export class PgDataStore implements DataStore {
         const entries = await this.pgPool.query(
             "SELECT room_id, irc_json->>'modes' AS modes FROM rooms " +
             "WHERE irc_domain = $1 AND irc_channel = $2",
-        [
-            server.domain,
-            // Channels must be lowercase
-            toIrcLowerCase(channel),
-        ]);
+            [
+                server.domain,
+                // Channels must be lowercase
+                toIrcLowerCase(channel),
+            ]);
         entries.rows.forEach((e) => {
             mapping[e.room_id] = e.modes || [];
         });
@@ -304,31 +327,37 @@ export class PgDataStore implements DataStore {
             delete ircRoomSerial.domain;
             delete ircRoomSerial.channel;
             delete ircRoomSerial.type;
-            await this.pgPool.query("UPDATE rooms SET irc_json = $4 WHERE room_id = $1 AND irc_channel = $2 AND irc_domain = $3", [
-                roomId,
-                entry.remote.get("channel"),
-                entry.remote.get("domain"),
-                JSON.stringify(ircRoomSerial),
-            ]);
+            await this.pgPool.query(
+                "UPDATE rooms SET irc_json = $4 WHERE room_id = $1 AND irc_channel = $2 AND irc_domain = $3",
+                [
+                    roomId,
+                    entry.remote.get("channel"),
+                    entry.remote.get("domain"),
+                    JSON.stringify(ircRoomSerial),
+                ]
+            );
         }
     }
 
-    public async setPmRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom, userId: string, virtualUserId: string): Promise<void> {
-        log.debug(`setPmRoom (matrix_user_id=${userId}, virtual_user_id=${virtualUserId}, room_id=${matrixRoom.getId()}, irc_nick=${ircRoom.getChannel()})`);
+    public async setPmRoom(ircRoom: IrcRoom, matrixRoom: MatrixRoom, userId: string,
+                           virtualUserId: string
+    ): Promise<void> {
+        log.debug(`setPmRoom (matrix_user_id=${userId}, virtual_user_id=${virtualUserId}, ` +
+            `room_id=${matrixRoom.getId()}, irc_nick=${ircRoom.getChannel()})`);
         await this.pgPool.query(
             PgDataStore.BuildUpsertStatement("pm_rooms", "ON CONSTRAINT cons_pm_rooms_matrix_irc_unique", [
-            "room_id",
-            "irc_domain",
-            "irc_nick",
-            "matrix_user_id",
-            "virtual_user_id",
-        ]), [
-            matrixRoom.getId(),
-            ircRoom.getDomain(),
-            ircRoom.getChannel(),
-            userId,
-            virtualUserId,
-        ]);
+                "room_id",
+                "irc_domain",
+                "irc_nick",
+                "matrix_user_id",
+                "virtual_user_id",
+            ]), [
+                matrixRoom.getId(),
+                ircRoom.getDomain(),
+                ircRoom.getChannel(),
+                userId,
+                virtualUserId,
+            ]);
     }
 
     public async removePmRoom(roomId: string): Promise<void> {
@@ -338,10 +367,13 @@ export class PgDataStore implements DataStore {
 
     public async getMatrixPmRoom(realUserId: string, virtualUserId: string): Promise<MatrixRoom|null> {
         log.debug(`getMatrixPmRoom (matrix_user_id=${realUserId}, virtual_user_id=${virtualUserId})`);
-        const res = await this.pgPool.query("SELECT room_id FROM pm_rooms WHERE matrix_user_id = $1 AND virtual_user_id = $2", [
-            realUserId,
-            virtualUserId,
-        ]);
+        const res = await this.pgPool.query(
+            "SELECT room_id FROM pm_rooms WHERE matrix_user_id = $1 AND virtual_user_id = $2",
+            [
+                realUserId,
+                virtualUserId,
+            ]
+        );
         if (res.rowCount === 0) {
             return null;
         }
@@ -352,8 +384,8 @@ export class PgDataStore implements DataStore {
         log.debug(`getMatrixPmRoom (roomId=${roomId})`);
         const res = await this.pgPool.query(
             "SELECT room_id, matrix_user_id, virtual_user_id FROM pm_rooms WHERE room_id = $1", [
-            roomId,
-        ]);
+                roomId,
+            ]);
         if (res.rowCount === 0) {
             return null;
         }
@@ -366,7 +398,8 @@ export class PgDataStore implements DataStore {
             return [];
         }
         log.info(`Fetching all channels for ${domain}`);
-        const chanSet = await this.pgPool.query("SELECT DISTINCT irc_channel FROM rooms WHERE irc_domain = $1", [domain]);
+        const chanSet = await this.pgPool.query(
+            "SELECT DISTINCT irc_channel FROM rooms WHERE irc_domain = $1", [domain]);
         return chanSet.rows.map((e) => e.irc_channel as string);
     }
 
@@ -436,11 +469,12 @@ export class PgDataStore implements DataStore {
     }
 
     public async getIrcClientConfig(userId: string, domain: string): Promise<IrcClientConfig | null> {
-        const res = await this.pgPool.query("SELECT config, password FROM client_config WHERE user_id = $1 and domain = $2",
-        [
-            userId,
-            domain
-        ]);
+        const res = await this.pgPool.query(
+            "SELECT config, password FROM client_config WHERE user_id = $1 and domain = $2",
+            [
+                userId,
+                domain
+            ]);
         if (res.rowCount === 0) {
             return null;
         }
@@ -471,7 +505,8 @@ export class PgDataStore implements DataStore {
             password: password || config.getPassword()!,
             config: JSON.stringify(config.serialize(true)),
         };
-        const statement = PgDataStore.BuildUpsertStatement("client_config", "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
+        const statement = PgDataStore.BuildUpsertStatement(
+            "client_config", "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
         await this.pgPool.query(statement, Object.values(parameters));
     }
 
@@ -518,18 +553,20 @@ export class PgDataStore implements DataStore {
             domain,
             password,
         };
-        const statement = PgDataStore.BuildUpsertStatement("client_config", "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
+        const statement = PgDataStore.BuildUpsertStatement("client_config",
+            "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
         await this.pgPool.query(statement, Object.values(parameters));
     }
 
     public async removePass(userId: string, domain: string): Promise<void> {
         await this.pgPool.query("UPDATE client_config SET password = NULL WHERE user_id = $1 AND domain = $2",
-        [userId, domain]);
+            [userId, domain]);
     }
 
     public async getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined> {
         // This will need a join
-        const res = await this.pgPool.query("SELECT client_config.user_id, matrix_users.data FROM client_config, matrix_users " +
+        const res = await this.pgPool.query(
+            "SELECT client_config.user_id, matrix_users.data FROM client_config, matrix_users " +
             "WHERE config->>'username' = $1 AND domain = $2 AND client_config.user_id = matrix_users.user_id",
             [username, domain]
         );
@@ -661,7 +698,8 @@ export class PgDataStore implements DataStore {
         const keys = keyNames.join(", ");
         const keysValues = `\$${keyNames.map((k, i) => i + 1).join(", $")}`;
         const keysSets = keyNames.map((k, i) => `${k} = \$${i + 1}`).join(", ");
-        const statement = `INSERT INTO ${table} (${keys}) VALUES (${keysValues}) ON CONFLICT ${constraint} DO UPDATE SET ${keysSets}`;
+        const statement = `INSERT INTO ${table} (${keys}) VALUES (${keysValues}) ` +
+            `ON CONFLICT ${constraint} DO UPDATE SET ${keysSets}`;
         return statement;
     }
 }
