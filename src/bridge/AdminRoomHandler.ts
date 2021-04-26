@@ -222,9 +222,6 @@ export class AdminRoomHandler {
     }
 
     private async handleUnlink(args: string[], sender: string, userPermission: string | undefined) {
-        if (userPermission !== 'admin') {
-            return new MatrixAction("notice", "You must be an admin to use this command");
-        }
         const [matrixRoomId, serverDomain, ircChannel] = args;
         const server = serverDomain && this.ircBridge.getServer(serverDomain);
         if (!server) {
@@ -252,7 +249,7 @@ export class AdminRoomHandler {
                         user_id: sender,
                     },
                 ),
-                userPermission === 'admin'
+                userPermission === "admin"
             );
         }
         catch (ex) {
