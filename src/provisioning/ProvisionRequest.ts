@@ -18,7 +18,7 @@ export class ProvisionRequest {
         return this.req.params;
     }
 
-    public static createFake(fnName: string, log: RequestLogger, body: Record<string, unknown> = {}) {
+    public static createFake(fnName: string, log: RequestLogger, body: Record<string, string> = {}) {
         // This is a DANGEROUS operation, used to create a fake request object
         // to make internal requests to the provisioner.
         const r = new ProvisionRequest({
