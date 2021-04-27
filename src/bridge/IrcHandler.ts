@@ -114,12 +114,14 @@ export class IrcHandler {
                 sender: userId,
                 membership: "leave"
             };
-            this.roomIdToPrivateMember[roomId] = priv;
 
             // query room state to see if the user is actually joined.
             log.debug("Querying PM room state (%s) between %s and %s",
                 roomId, userId, virtUserId);
-            priv = (await intent.getStateEvent(roomId, "m.room.member", userId));
+            const result = (await intent.getStateEvent(roomId, "m.room.member", userId, true));
+            if (result) {
+                priv = result;
+            }
             this.roomIdToPrivateMember[roomId] = priv;
         }
 
@@ -167,7 +169,6 @@ export class IrcHandler {
                         visibility: "private",
                         // We deliberately set our own power levels below.
                         // preset: "trusted_private_chat",
-                        invite: [toUserId],
                         creation_content: {
                             "m.federate": server.shouldFederatePMs()
                         },
