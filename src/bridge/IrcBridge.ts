@@ -42,6 +42,7 @@ import { spawnMetricsWorker } from "../workers/MetricsWorker";
 import { getBridgeVersion } from "../util/PackageInfo";
 import { globalAgent as gAHTTP } from "http";
 import { globalAgent as gAHTTPS } from "https";
+import { RoomConfig } from "./RoomConfig";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -64,6 +65,7 @@ export class IrcBridge {
     public readonly ircHandler: IrcHandler;
     public readonly publicitySyncer: PublicitySyncer;
     public readonly activityTracker: MatrixActivityTracker|null = null;
+    public readonly roomConfigs: RoomConfig;
     private clientPool!: ClientPool; // This gets defined in the `run` function
     private ircServers: IrcServer[] = [];
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
@@ -206,6 +208,7 @@ export class IrcBridge {
             homeserverToken,
             httpMaxSizeBytes: (this.config.advanced || { }).maxTxnSize || TXN_SIZE_DEFAULT,
         });
+        this.roomConfigs = new RoomConfig(this.bridge);
     }
 
     public async onConfigChanged(newConfig: BridgeConfig) {
@@ -942,6 +945,9 @@ export class IrcBridge {
         else if (event.type === "m.room.topic" && event.state_key === "") {
             await this.matrixHandler.onMessage(request, event as unknown as MatrixMessageEvent);
         }
+        else if (event.type === RoomConfig.STATE_EVENT_TYPE && typeof event.state_key === 'string') {
+            this.roomConfigs.invalidateConfig(event.room_id, event.state_key);
+        } 
         else if (event.type === "m.room.member" && event.state_key) {
             if (!event.content || !event.content.membership) {
                 return BridgeRequestErr.ERR_NOT_MAPPED;

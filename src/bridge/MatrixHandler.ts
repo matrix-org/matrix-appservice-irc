@@ -1031,7 +1031,8 @@ export class MatrixHandler {
 
         // Generate an array of individual messages that would be sent
         const potentialMessages = ircClient.getSplitMessages(ircRoom.channel, ircAction.text);
-        const lineLimit = ircRoom.server.getLineLimit();
+        const roomLineLimit = await this.ircBridge.roomConfigs.getLineLimit(event.room_id, ircRoom);
+        const lineLimit = roomLineLimit === null ? ircRoom.server.getLineLimit() : roomLineLimit;
 
         if (potentialMessages.length <= lineLimit) {
             await this.ircBridge.sendIrcAction(ircRoom, ircClient, ircAction);
