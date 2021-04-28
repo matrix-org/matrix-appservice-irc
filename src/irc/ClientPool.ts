@@ -670,6 +670,9 @@ export class ClientPool {
         if (!userId || bridgedClient.isBot) {
             return; // the bot itself can get these join errors
         }
+        if (!bridgedClient.server.config.ircClients.kickOn.channelJoinFailure) {
+            return; // The bridge is configured not to kick on failure.
+        }
         // TODO: this is a bit evil, no one in their right mind would expect
         // the client pool to be kicking matrix users from a room :(
         log.info(`Kicking ${userId} from room due to ${err}`);

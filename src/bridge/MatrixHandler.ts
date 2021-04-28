@@ -284,8 +284,18 @@ export class MatrixHandler {
 
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
 
-        for (let i = 0; i < clients.length; i++) {
-            const bridgedClient = clients[i];
+        for (const bridgedClient of clients) {
+            req.log.info(
+                `Killing bridgedClient (nick = ${bridgedClient.nick}) for ${bridgedClient.userId}`
+            );
+            if (!bridgedClient.server.config.ircClients.kickOn.userQuit) {
+                req.log.info(
+                    `Not leaving ${userId} from rooms on ${bridgedClient.server.domain}`
+                );
+                await bridgedClient.kill(reason);
+                continue;
+            }
+
             if (bridgedClient.chanList.size === 0) {
                 req.log.info(
                     `Bridged client for ${userId} is not in any channels ` +
@@ -339,9 +349,6 @@ export class MatrixHandler {
                 }));
             }
 
-            req.log.info(
-                `Killing bridgedClient (nick = ${bridgedClient.nick}) for ${bridgedClient.userId}`
-            );
             // The success message will effectively be 'Your connection to ... has been lost.`
             await bridgedClient.kill(reason);
         }
@@ -529,18 +536,24 @@ export class MatrixHandler {
                     );
                 }
                 catch (e) {
-                    // We need to kick on failure to get a client.
-                    req.log.info(`${user.getId()} failed to get a IRC connection. Kicking from room: ${e}`);
-                    this.incrementMetric(room.server.domain, "connection_failure_kicks");
-                    const excluded = room.server.isExcludedUser(user.getId());
-                    await this.membershipQueue.leave(
-                        event.room_id,
-                        user.getId(),
-                        req,
-                        true,
-                        excluded && excluded.kickReason ? excluded.kickReason : `IRC connection failure.`,
-                        this.ircBridge.appServiceUserId,
-                    );
+                    req.log.info(`${user.getId()} failed to get a IRC connection.`, e);
+                    if (room.server.config.ircClients.kickOn.ircConnectionFailure) {
+                        // We need to kick on failure to get a client.
+                        req.log.info(`Kicking from room`);
+                        this.incrementMetric(room.server.domain, "connection_failure_kicks");
+                        const excluded = room.server.isExcludedUser(user.getId());
+                        await this.membershipQueue.leave(
+                            event.room_id,
+                            user.getId(),
+                            req,
+                            true,
+                            excluded && excluded.kickReason ? excluded.kickReason : `IRC connection failure.`,
+                            this.ircBridge.appServiceUserId,
+                        );
+                    }
+                    else {
+                        req.log.info(`Not kicking - disabled in config`);
+                    }
                 }
 
                 if (!bridgedClient || !bridgedClient.userId) {
