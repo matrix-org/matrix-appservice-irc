@@ -50,7 +50,7 @@ export class RoomConfig {
      */
     public async getLineLimit(roomId: string, ircRoom?: IrcRoom) {
         const roomState = await this.getRoomState(roomId, ircRoom);
-        if (typeof roomState?.lineLimit !== 'number' || roomState.lineLimit > 0) {
+        if (typeof roomState?.lineLimit !== 'number' || roomState.lineLimit <= 0) {
             // A missing line limit or an invalid one is considered invalid.
             return null;
         }

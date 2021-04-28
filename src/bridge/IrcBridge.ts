@@ -947,7 +947,7 @@ export class IrcBridge {
         }
         else if (event.type === RoomConfig.STATE_EVENT_TYPE && typeof event.state_key === 'string') {
             this.roomConfigs.invalidateConfig(event.room_id, event.state_key);
-        } 
+        }
         else if (event.type === "m.room.member" && event.state_key) {
             if (!event.content || !event.content.membership) {
                 return BridgeRequestErr.ERR_NOT_MAPPED;
