@@ -46,6 +46,23 @@ describe("MatrixAction", function() {
             );
         });
     });
+    it("should highlight a possessive mention", () => {
+        let action = new MatrixAction(
+            "message",
+            "Did you get JCDenton's report?",
+            "Did you get JCDenton's report?",
+            null
+        );
+        return action.formatMentions({
+            "JCDenton": "@jc.denton:unatco.gov"
+        }, FakeIntent).then(() => {
+            expect(action.text).toEqual("Did you get TheJCDenton's report?");
+            expect(action.htmlText).toEqual(
+                "Did you get <a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
+                "TheJCDenton</a>'s report?"
+            );
+        });
+    });
     it("should highlight a user, regardless of case", () => {
         let action = new MatrixAction(
             "message",
