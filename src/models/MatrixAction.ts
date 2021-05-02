@@ -71,7 +71,11 @@ export interface MatrixMessageEvent {
 }
 
 const MentionRegex = function(matcher: string): RegExp {
-    return new RegExp( `\\b@?(${matcher})\\b`, "igm");
+    const WORD_BOUNDARY = "^|:|#|```|\\s|$|,";
+    return new RegExp(
+        `(${WORD_BOUNDARY})(@?(${matcher}))(?=${WORD_BOUNDARY})`,
+        "igm"
+    );
 }
 
 export class MatrixAction {
@@ -101,7 +105,7 @@ export class MatrixAction {
         const matched = new Set(); // lowercased nicknames we have matched already.
         let match;
         for (let i = 0; i < MAX_MATCHES && (match = usersRegex.exec(this.text)) !== null; i++) {
-            let matchName = match[0];
+            let matchName = match[2];
             // Deliberately have a minimum length to match on,
             // so we don't match smaller nicks accidentally.
             if (matchName.length < PILL_MIN_LENGTH_TO_MATCH || matched.has(matchName.toLowerCase())) {
@@ -144,7 +148,7 @@ export class MatrixAction {
 
             const regex = MentionRegex(escapeStringRegexp(matchName));
             this.htmlText = this.htmlText.replace(regex,
-                `<a href="https://matrix.to/#/${userId}">`+
+                `$1<a href="https://matrix.to/#/${userId}">`+
                 `${ircFormatting.escapeHtmlChars(identifier)}</a>`
             );
             this.text = this.text.replace(regex, `$1${identifier}`);
