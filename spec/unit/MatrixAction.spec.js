@@ -67,7 +67,7 @@ describe("MatrixAction", function() {
         let action = new MatrixAction(
             "message",
             "Hey, you missed: <JCDenton> it's a bomb!",
-            "Hey, you missed: <JCDenton> it's a bomb!",
+            "Hey, you missed: &lt;JCDenton&gt; it's a bomb!",
             null
         );
         return action.formatMentions({
