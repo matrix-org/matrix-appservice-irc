@@ -147,7 +147,7 @@ export class MatrixAction {
                 `<a href="https://matrix.to/#/${userId}">`+
                 `${ircFormatting.escapeHtmlChars(identifier)}</a>`
             );
-            this.text = this.text.replace(regex, `$1${identifier}`);
+            this.text = this.text.replace(regex, `${identifier}`);
             // Don't match this name twice, we've already replaced all entries.
             matched.add(matchName.toLowerCase());
         }
