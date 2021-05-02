@@ -63,6 +63,23 @@ describe("MatrixAction", function() {
             );
         });
     });
+    it("should highlight a quote", () => {
+        let action = new MatrixAction(
+            "message",
+            "Hey, you missed: <JCDenton> it's a bomb!",
+            "Hey, you missed: <JCDenton> it's a bomb!",
+            null
+        );
+        return action.formatMentions({
+            "JCDenton": "@jc.denton:unatco.gov"
+        }, FakeIntent).then(() => {
+            expect(action.text).toEqual("Hey, you missed: <TheJCDenton> it's a bomb!");
+            expect(action.htmlText).toEqual(
+                "Hey, you missed: &lt;<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
+                "TheJCDenton</a>&gt; it's a bomb!"
+            );
+        });
+    });
     it("should highlight a user, regardless of case", () => {
         let action = new MatrixAction(
             "message",
