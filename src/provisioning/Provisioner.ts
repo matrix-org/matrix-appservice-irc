@@ -845,7 +845,7 @@ export class Provisioner {
 
     /**
      * Unlink an IRC channel from a matrix room ID
-     * @param req An Express Request which triggered the action. Its body should contain
+     * @param req An ExpressJS-Request-like object which triggered the action. Its body should contain
      * the parameters for this unlink action.
      * @param ignorePermissions If true, permissions are ignored (e.g. for bridge admins).
      * Otherwise, the user needs to be a Moderator in the Matrix room.
