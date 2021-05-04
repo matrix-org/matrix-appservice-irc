@@ -230,15 +230,6 @@ export class AdminRoomHandler {
         if (!ircChannel || !ircChannel.startsWith("#")) {
             return new MatrixAction("notice", "The channel name must start with a #");
         }
-        // Check if the room exists and the user is invited.
-        const intent = this.ircBridge.getAppServiceBridge().getIntent();
-        try {
-            await intent.getStateEvent(matrixRoomId, 'm.room.create');
-        }
-        catch (ex) {
-            log.error(`Could not join the target room of an !unlink command`, ex);
-            return new MatrixAction("notice", "Could not join the target room, you may need to invite the bot");
-        }
         try {
             await this.ircBridge.getProvisioner().unlink(
                 ProvisionRequest.createFake("adminCommand", log,
