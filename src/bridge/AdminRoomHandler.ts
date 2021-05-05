@@ -167,6 +167,7 @@ export class AdminRoomHandler {
                 response = await this.handlePlumb(args, event.sender, userPermission)
                 break;
             case "!unlink":
+            case "!unplumb": // alias for convinience
                 response = await this.handleUnlink(args, event.sender, userPermission)
                 break;
             case "!help":
