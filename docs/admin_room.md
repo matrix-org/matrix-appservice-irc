@@ -99,7 +99,7 @@ commands are reserved for bridge administrators, which can be configured in the 
 
 ### `!plumb`
 
-`!feature !room:example.com irc.network.net #channel`
+`!plumb !room:example.com irc.network.net #channel`
 
 *This command only works for bridge administrators*
 
@@ -108,6 +108,17 @@ validate that you have permission to do this on the IRC channel so please take c
 aware of your actions.
 
 You must invite the bridge bot into the Matrix room for this to work.
+
+
+### `!unlink`
+
+`!unlink !room:example.com irc.network.net #channel`
+
+*This command only works for moderators of a bridged Matrix room and bridge administrators*
+
+This command allows you to unlink a IRC channel from a room without using the HTTP provisioning API. For bridge
+administrators this command does NOT validate that you have permission to do this on the IRC channel so please
+take care to ensure that the IRC channel is aware of your actions.
 
 
 ### `!help`
