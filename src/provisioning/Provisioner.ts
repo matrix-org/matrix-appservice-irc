@@ -843,8 +843,14 @@ export class Provisioner {
         }
     }
 
-    // Unlink an IRC channel from a matrix room ID
-    public async unlink(req: ProvisionRequest) {
+    /**
+     * Unlink an IRC channel from a matrix room ID
+     * @param req An ExpressJS-Request-like object which triggered the action. Its body should contain
+     * the parameters for this unlink action.
+     * @param ignorePermissions If true, permissions are ignored (e.g. for bridge admins).
+     * Otherwise, the user needs to be a Moderator in the Matrix room.
+     */
+    public async unlink(req: ProvisionRequest, ignorePermissions = false) {
         const options = req.body;
         try {
             this.unlinkValidator.validate(options);
@@ -877,40 +883,42 @@ export class Provisioner {
             throw new Error("Server requested for linking not found");
         }
 
-        // Make sure the requester is a mod in the room
-        const botCli = this.ircBridge.getAppServiceBridge().getBot().getClient();
-        const stateEvents = await botCli.roomState(roomId);
-        // user_id must be JOINED and must have permission to modify power levels
-        let isJoined = false;
-        let hasPower = false;
-        stateEvents.forEach((e: { type: string; state_key: string; content: {
-            state_default?: number;
-            users_default?: number;
-            membership: string;
-            users?: Record<string, number>;
-            events?: Record<string, number>;
-        };}) => {
-            if (e.type === "m.room.member" && e.state_key === options.user_id) {
-                isJoined = e.content.membership === "join";
-            }
-            else if (e.type === "m.room.power_levels" && e.state_key === "") {
-                // https://matrix.org/docs/spec/client_server/r0.6.0#m-room-power-levels
-                let powerRequired = e.content.state_default || 50; // Can be empty. Assume 50 as per spec.
-                if (e.content.events && e.content.events["m.room.power_levels"]) {
-                    powerRequired = e.content.events["m.room.power_levels"];
+        if (!ignorePermissions) {
+            // Make sure the requester is a mod in the room
+            const botCli = this.ircBridge.getAppServiceBridge().getBot().getClient();
+            const stateEvents = await botCli.roomState(roomId);
+            // user_id must be JOINED and must have permission to modify power levels
+            let isJoined = false;
+            let hasPower = false;
+            stateEvents.forEach((e: { type: string; state_key: string; content: {
+                state_default?: number;
+                users_default?: number;
+                membership: string;
+                users?: Record<string, number>;
+                events?: Record<string, number>;
+            };}) => {
+                if (e.type === "m.room.member" && e.state_key === options.user_id) {
+                    isJoined = e.content.membership === "join";
                 }
-                let power = e.content.users_default || 0; // Can be empty. Assume 0 as per spec.
-                if (e.content.users && e.content.users[options.user_id]) {
-                    power = e.content.users[options.user_id];
+                else if (e.type === "m.room.power_levels" && e.state_key === "") {
+                    // https://matrix.org/docs/spec/client_server/r0.6.0#m-room-power-levels
+                    let powerRequired = e.content.state_default || 50; // Can be empty. Assume 50 as per spec.
+                    if (e.content.events && e.content.events["m.room.power_levels"]) {
+                        powerRequired = e.content.events["m.room.power_levels"];
+                    }
+                    let power = e.content.users_default || 0; // Can be empty. Assume 0 as per spec.
+                    if (e.content.users && e.content.users[options.user_id]) {
+                        power = e.content.users[options.user_id];
+                    }
+                    hasPower = power >= powerRequired;
                 }
-                hasPower = power >= powerRequired;
+            });
+            if (!isJoined) {
+                throw new Error(`${options.user_id} is not in the room`);
             }
-        });
-        if (!isJoined) {
-            throw new Error(`${options.user_id} is not in the room`);
-        }
-        if (!hasPower) {
-            throw new Error(`${options.user_id} is not a moderator in the room.`);
+            if (!hasPower) {
+                throw new Error(`${options.user_id} is not a moderator in the room.`);
+            }
         }
 
 
