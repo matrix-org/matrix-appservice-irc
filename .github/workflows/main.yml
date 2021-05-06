@@ -13,6 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: get-npm-version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@master
+
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v1
         with:
@@ -25,4 +29,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./book
+          keep_files: true
+          # Set to the right place
+          publish_dir: ./v${{ steps.package-version.outputs.current-version }}
