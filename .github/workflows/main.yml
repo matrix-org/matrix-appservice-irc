@@ -22,7 +22,6 @@ jobs:
         uses: peaceiris/actions-mdbook@v1
         with:
           mdbook-version: '0.4.7'
-          # mdbook-version: 'latest'
 
       - run: mdbook build
 
@@ -31,8 +30,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           keep_files: true
-          # Set to the right place
-          publish_dir: ./v${{ steps.package-version.outputs.current-version }}
+          publish_dir: /book
+          destination_dir: ./v${{ steps.package-version.outputs.current-version }}
 
       # TODO: We can't update the config so we have to push twice, it's clearly not
       # the best solution but it is A solution.
@@ -41,4 +40,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           keep_files: true
-          publish_dir: ./latest
+          publish_dir: /book
+          destination_dir: ./latest
