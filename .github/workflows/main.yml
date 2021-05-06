@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - hs/docs-autobuild
 
   workflow_dispatch:
 
