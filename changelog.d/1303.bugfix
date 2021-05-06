@@ -1,1 +1,1 @@
-Also detect username mentions bounded by ',<,>,&
+Detect IRC username mentions bounded by ',<,> or &
