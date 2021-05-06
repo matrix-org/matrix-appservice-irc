@@ -850,7 +850,6 @@ export class Provisioner {
      * @param ignorePermissions If true, permissions are ignored (e.g. for bridge admins).
      * Otherwise, the user needs to be a Moderator in the Matrix room.
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public async unlink(req: ProvisionRequest, ignorePermissions = false) {
         const options = req.body;
         try {
