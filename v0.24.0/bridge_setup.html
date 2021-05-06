@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html" class="active"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li><li class="chapter-item expanded "><a href="room_commands.html"><strong aria-hidden="true">2.2.</strong> Room Commands</a></li><li class="chapter-item expanded "><a href="irc_modes.html"><strong aria-hidden="true">2.3.</strong> IRC Modes</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html" class="active"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -163,34 +163,34 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#bridge-setup" id="bridge-setup">Bridge Setup</a></h1>
+                        <h1 id="bridge-setup"><a class="header" href="#bridge-setup">Bridge Setup</a></h1>
 <p>This guide is written for server administrators who would like to set up their own IRC bridge to one or more networks.</p>
-<h2><a class="header" href="#before-setting-up" id="before-setting-up">Before setting up</a></h2>
-<p>We recommend using Node.JS <code>v12</code> or greater when setting up the bridge, as we use <code>worker_threads</code> to handle 
+<h2 id="before-setting-up"><a class="header" href="#before-setting-up">Before setting up</a></h2>
+<p>We recommend using Node.JS <code>v14</code> or greater when setting up the bridge, as we use <code>worker_threads</code> to handle 
 some of the traffic for larger bridges.</p>
 <p>If you wish to use Node.JS v10, you should enable the <code>--experimental-worker</code> on the commandline.
-Plase note that we offer no support for Node 10.</p>
+Please note that we offer no support for Node 10.</p>
 <p>You should also ensure you have a recent Matrix homeserver that you have permission to bridge to. This can 
 either be your own, or one that you have the ability to setup Application Services with.</p>
 <p>Finally <strong>you should seek permission from the operator of the bridged IRC network before running this bridge.</strong>
 <strong>Bridging may be against the IRC network's Terms of Use.</strong>. Failure to do so may get your bridge banned and 
 your IP address blocked by the IRC network. Networks like Freenode will only allow 3 IRC connections from a 
 single IP, so you should ask them for permission before bridging.</p>
-<h2><a class="header" href="#1-installation" id="1-installation">1. Installation</a></h2>
-<h3><a class="header" href="#install-from-git-preferred" id="install-from-git-preferred">Install from git (preferred)</a></h3>
+<h2 id="1-installation"><a class="header" href="#1-installation">1. Installation</a></h2>
+<h3 id="install-from-git-preferred"><a class="header" href="#install-from-git-preferred">Install from git (preferred)</a></h3>
 <pre><code class="language-sh">git clone https://github.com/matrix-org/matrix-appservice-irc.git
 cd matrix-appservice-irc
 git checkout master # or 0.x.x to pin to a version
 npm i
 </code></pre>
 <p>The bridge can now be started by: <code>node app.js</code></p>
-<h3><a class="header" href="#global-install" id="global-install">Global Install</a></h3>
+<h3 id="global-install"><a class="header" href="#global-install">Global Install</a></h3>
 <pre><code class="language-sh"># --global requires super user on most systems
 $ npm install matrix-appservice-irc --global
 </code></pre>
-<h3><a class="header" href="#docker" id="docker">Docker</a></h3>
+<h3 id="docker"><a class="header" href="#docker">Docker</a></h3>
 <p>The bridge has a <a href="https://hub.docker.com/r/matrixdotorg/matrix-appservice-irc">Docker image</a>.</p>
-<h2><a class="header" href="#2-configuration" id="2-configuration">2. Configuration</a></h2>
+<h2 id="2-configuration"><a class="header" href="#2-configuration">2. Configuration</a></h2>
 <p>The bridge must be configured before it can be run. This tells the bridge where to find the homeserver
 and how to bridge IRC channels/users.</p>
 <ul>
@@ -202,7 +202,7 @@ and how to bridge IRC channels/users.</p>
 <li>Modify <code>config.yaml</code> to point to your homeserver and IRC network of choice.</li>
 </ul>
 <p>The sample config has detailed information about each option. Please read them carefully.</p>
-<h2><a class="header" href="#3-database" id="3-database">3. Database</a></h2>
+<h2 id="3-database"><a class="header" href="#3-database">3. Database</a></h2>
 <p>The bridge comes with support for either PostgreSQL or NEDB. PostgreSQL is preferred as it is faster,
 easier to handle than flat files and allows you to inspect the state of it while the bridge is running.</p>
 <p>Setting up PostgresSQL for the bridge is as easy as doing:</p>
@@ -213,12 +213,15 @@ CREATE USER ircbridge WITH PASSWORD 's3cr3t';
 GRANT ALL ON DATABASE ircbridge TO ircbridge;
 -- Then modify your config.yaml to include the database connection string.
 </code></pre>
-<h2><a class="header" href="#4-registration" id="4-registration">4. Registration</a></h2>
+<h2 id="4-registration"><a class="header" href="#4-registration">4. Registration</a></h2>
 <p>The bridge needs to generate a registration file which can be passed to the homeserver to tell the
 homeserver which Matrix events the bridge should receive.</p>
 <p>Execute the following command:</p>
 <pre><code>node app.js -r -f appservice-registration-irc.yaml -u &quot;http://where.the.appservice.listens:9999&quot; -c config.yaml -l my_bot
 </code></pre>
+<p>Change <code>-u &quot;http://localhost:8090&quot;</code> to whereever your Matrix server can contact this IRC bridge.
+By changing the option <code>-l my_bot</code> you can modify the localpart of the bridge bot user. It contacts
+Matrix users of your bridge to control their usage of the bridge (e.g. to change their nickname).</p>
 <p>You should get something like:</p>
 <pre><code>id: irc
 hs_token: 82c7a893d020b5f28eaf7ba31e1d1091b12ebafc5ceb1b6beac2b93defc1b301
@@ -230,7 +233,7 @@ namespaces:
   aliases:
     - exclusive: true
       regex: '#irc_.*:yourhomeserverdomain'
-url: 'http://localhost:9995'
+url: 'http://localhost:9999'
 sender_localpart: appservice-irc
 rate_limited: false
 protocols:
@@ -243,13 +246,13 @@ point to this registration file:</p>
 <pre><code class="language-yaml"># homeserver.yaml
 app_service_config_files: [&quot;appservice-registration-irc.yaml&quot;]
 </code></pre>
-<h2><a class="header" href="#5-running" id="5-running">5. Running</a></h2>
+<h2 id="5-running"><a class="header" href="#5-running">5. Running</a></h2>
 <p>Finally, the bridge can be run using the following command:</p>
-<pre><code>$ node app.js -c config.yaml -f my_registration_file.yaml -p 9995
+<pre><code>$ node app.js -c config.yaml -f appservice-registration-irc.yaml -p 9999
 </code></pre>
 <p>Or for Docker:</p>
 <pre><code># Remember to expose ports for metrics, debug API if you need to.
-docker run -v $PWD/data:/data -p 9995 matrixdotorg/matrix-appservice-irc
+docker run --volume $PWD/data:/data --publish 9999 matrixdotorg/matrix-appservice-irc
 </code></pre>
 
                     </main>
@@ -257,7 +260,7 @@ docker run -v $PWD/data:/data -p 9995 matrixdotorg/matrix-appservice-irc
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                            <a rel="prev" href="admin_room.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="irc_modes.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
@@ -275,7 +278,7 @@ docker run -v $PWD/data:/data -p 9995 matrixdotorg/matrix-appservice-irc
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                    <a rel="prev" href="admin_room.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="irc_modes.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 

@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html" class="active"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li><li class="chapter-item expanded "><a href="room_commands.html"><strong aria-hidden="true">2.2.</strong> Room Commands</a></li><li class="chapter-item expanded "><a href="irc_modes.html"><strong aria-hidden="true">2.3.</strong> IRC Modes</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html" class="active"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -163,25 +163,25 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#irc-operators" id="irc-operators">IRC Operators</a></h1>
+                        <h1 id="irc-operators"><a class="header" href="#irc-operators">IRC Operators</a></h1>
 <p>This chapter describes useful information about the bridge for IRC operators or IRC users.</p>
 <p>The IRC bridge provides each Matrix user with one IRC connection in order to bridge them &quot;natively&quot;
 into the IRC network, as so they can largely be treated as real users. Due to the 1:1 connection system,
 it is often useful that the IRCD network provides the bridge host with a more relaxed ILINE limit depending
 on the number of Matrix users they'd expect to use the bridge.</p>
-<h3><a class="header" href="#the-matrix-experience" id="the-matrix-experience">The Matrix experience</a></h3>
+<h3 id="the-matrix-experience"><a class="header" href="#the-matrix-experience">The Matrix experience</a></h3>
 <p>When a Matrix room is bridged to IRC, all users (by default) on the Matrix side will be provided with a connection
 to the room and will show up in the user list on IRC. The IRC users will also appear as &quot;ghosts&quot; on the Matrix side,
 bearing a Matrix ID like <code>@irc_alice:matrix.org</code>. This allows a &quot;native&quot; feeling so that users do not have to worry
 about the complexities of the protocols. </p>
 <p>However as with all bridges, the native feeling can catch IRC or Matrix users unaware when things do not bridge well
 (such as replies/threading or reactions).</p>
-<h3><a class="header" href="#the-m-m-suffix" id="the-m-m-suffix">The [m]/-M suffix</a></h3>
+<h3 id="the-m-m-suffix"><a class="header" href="#the-m-m-suffix">The [m]/-M suffix</a></h3>
 <p>By default, the IRC bridge will append a <code>-M</code> to nicks for Matrix users. This is to avoid clashes with a users
 real identity on IRC as well as to highlight that the users are on the bridge (and may not even know the conversation is bridged to IRC).
 The user has the option to change this by going to the bot and sending a <code>!nick</code> command, so the suffix should not
 be used as a blanket detection method.</p>
-<h3><a class="header" href="#whois-information" id="whois-information">Whois information</a></h3>
+<h3 id="whois-information"><a class="header" href="#whois-information">Whois information</a></h3>
 <p>The bridge sets various bits of information about users:</p>
 <p>The realname of a user will be their MxID. By default this will look like:</p>
 <pre><code>* [Half-Shot] (half-shoth@gateway/shell/matrix.org/x-foo): @Half-Shot:half-shot.uk
@@ -190,7 +190,7 @@ be used as a blanket detection method.</p>
 * [Half-Shot] is logged in as Half-Shot
 * [Half-Shot] End of WHOIS list.
 </code></pre>
-<h3><a class="header" href="#portals-and-plumbed" id="portals-and-plumbed">Portals and Plumbed</a></h3>
+<h3 id="portals-and-plumbed"><a class="header" href="#portals-and-plumbed">Portals and Plumbed</a></h3>
 <p>A Matrix room can be connected to a IRC network in one of two ways:</p>
 <ul>
 <li>A portal room, which is a Matrix room created by the bridge on demand when a Matrix user attempts
@@ -208,11 +208,11 @@ bridged both ways.</li>
 <p>Additionally, a channel may be connected to one portal and multiple plumbed rooms without issue as the 
 messages from Matrix users are replicated to the other rooms for them. We typically do not recommend
 multiple points of entry to the channel due to the obvious confusion this causes.</p>
-<h3><a class="header" href="#connection-failure" id="connection-failure">Connection failure</a></h3>
+<h3 id="connection-failure"><a class="header" href="#connection-failure">Connection failure</a></h3>
 <p>If a Matrix user fails to join a channel due to a ban, they are kicked from it. If the Matrix user
 fails to get a connection to IRC at all, they are also kicked from any rooms they are part of. The exception
 to this rule is if the bridge bot (which does the kicking) lacks permission to kick members of the room.</p>
-<h3><a class="header" href="#line-limits" id="line-limits">Line limits</a></h3>
+<h3 id="line-limits"><a class="header" href="#line-limits">Line limits</a></h3>
 <p>The IRC bridge allows admins to configure a maximum amount of lines that can be sent at a time to a channel
 by a Matrix user. The Matrix spec allows events to be sent by users up to 65k in size, so with some margin for
 event padding, a message could feasibly be over 64k in size. The Matrix spec has no limit on how many lines
