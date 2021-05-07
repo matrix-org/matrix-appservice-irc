@@ -25,7 +25,7 @@ If an event does not exist yet, you can instead do:
 - Click the Event button to change the type to a **State Event**.
 - The event type must be `org.matrix.appservice-irc.config`
 - The state key can be left blank.
-- Entering the `Event Content` as described below.
+- Enter the `Event Content` as a JSON object. The schema is described in the following section.
 - You may now hit Send to apply the config.
 
 ## Configuration Options

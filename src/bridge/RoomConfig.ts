@@ -56,7 +56,7 @@ export class RoomConfig {
         // We don't want to spend too long trying to fetch the state, so return null.
         return Promise.race([
             internalFunc(),
-            new Promise<null>(res => setTimeout(() => res(null), STATE_TIMEOUT_MS)),
+            new Promise<null>(res => setTimeout(res, STATE_TIMEOUT_MS)),
         // We *never* want this function to throw, as it's critical for the bridging of messages.
         // Instead we return null for any errors.
         ]).catch(ex => {
@@ -68,7 +68,7 @@ export class RoomConfig {
     /**
      * Invalidate the cache for a room. Provide the key
      * @param roomId The Matrix roomId
-     * @param stateKey The state event's key.
+     * @param stateKey The state event's key
      */
     public invalidateConfig(roomId: string, stateKey = 'global') {
         log.info(`Invalidating config for ${roomId}:${stateKey}`);
@@ -87,6 +87,6 @@ export class RoomConfig {
             // A missing line limit or an invalid one is considered invalid.
             return null;
         }
-        return Math.min(roomState.lineLimit, this.config?.lineLimitMax || roomState.lineLimit);
+        return Math.min(roomState.lineLimit, this.config?.lineLimitMax ?? roomState.lineLimit);
     }
 }
