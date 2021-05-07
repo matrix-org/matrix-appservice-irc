@@ -16,7 +16,13 @@ limitations under the License.
 
 import { Pool } from "pg";
 
-import { MatrixUser, MatrixRoom, RemoteRoom, RoomBridgeStoreEntry as Entry } from "matrix-appservice-bridge";
+import {
+    MatrixUser,
+    MatrixRoom,
+    RemoteRoom,
+    RoomBridgeStoreEntry as Entry,
+    MatrixRoomData
+} from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
 import { IrcRoom } from "../../models/IrcRoom";
 import { IrcClientConfig } from "../../models/IrcClientConfig";
@@ -32,6 +38,16 @@ import QuickLRU from "quick-lru";
 const log = getLogger("PgDatastore");
 
 const FEATURE_CACHE_SIZE = 512;
+
+interface RoomRecord {
+    room_id: string;
+    irc_domain: string;
+    irc_channel: string;
+    matrix_json?: MatrixRoomData;
+    irc_json: Record<string, unknown>;
+    type: string;
+    origin: RoomOrigin;
+}
 
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
@@ -130,7 +146,7 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query(statement, Object.values(parameters));
     }
 
-    private static pgToRoomEntry(pgEntry: any): Entry {
+    private static pgToRoomEntry(pgEntry: RoomRecord): Entry {
         return {
             id: NeDBDataStore.createMappingId(pgEntry.room_id, pgEntry.irc_domain, pgEntry.irc_channel),
             matrix: new MatrixRoom(pgEntry.room_id, pgEntry.matrix_json),
@@ -159,7 +175,7 @@ export class PgDataStore implements DataStore {
             statement += " AND origin = $4";
             params = params.concat(origin);
         }
-        const pgEntry = await this.pgPool.query(statement, params);
+        const pgEntry = await this.pgPool.query<RoomRecord>(statement, params);
         if (!pgEntry.rowCount) {
             return null;
         }
@@ -266,13 +282,12 @@ export class PgDataStore implements DataStore {
         server: IrcServer,
         channel: string,
         origin: RoomOrigin | RoomOrigin[],
-        allowUnset: boolean,
     ): Promise<Entry[]> {
         if (!Array.isArray(origin)) {
             origin = [origin];
         }
         const inStatement = origin.map((_, i) => `\$${i + 3}`).join(", ");
-        const entries = await this.pgPool.query(
+        const entries = await this.pgPool.query<RoomRecord>(
             `SELECT * FROM rooms WHERE irc_domain = $1 AND irc_channel = $2 AND origin IN (${inStatement})`,
             [
                 server.domain,
@@ -494,15 +509,15 @@ export class PgDataStore implements DataStore {
         log.debug(`Storing client configuration for ${userId}`);
         // We need to make sure we have a matrix user in the store.
         await this.pgPool.query("INSERT INTO matrix_users VALUES ($1, NULL) ON CONFLICT DO NOTHING", [userId]);
-        let password = undefined;
-        if (config.getPassword() && this.cryptoStore) {
-            password = this.cryptoStore.encrypt(config.getPassword()!);
+        let password = config.getPassword();
+        if (password && this.cryptoStore) {
+            password = this.cryptoStore.encrypt(password);
         }
         const parameters = {
             user_id: userId,
             domain: config.getDomain(),
             // either use the decrypted password, or whatever is stored already.
-            password: password || config.getPassword()!,
+            password,
             config: JSON.stringify(config.serialize(true)),
         };
         const statement = PgDataStore.BuildUpsertStatement(
