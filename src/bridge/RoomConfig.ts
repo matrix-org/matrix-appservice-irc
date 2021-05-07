@@ -87,6 +87,6 @@ export class RoomConfig {
             // A missing line limit or an invalid one is considered invalid.
             return null;
         }
-        return roomState.lineLimit;
+        return Math.min(roomState.lineLimit, this.config?.lineLimitMax || roomState.lineLimit);
     }
 }
