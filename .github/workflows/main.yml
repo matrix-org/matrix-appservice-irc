@@ -1,0 +1,43 @@
+name: Build docs
+
+on:
+  push:
+    branches:
+      - master
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: get-npm-version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@master
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: '0.4.7'
+
+      - run: mdbook build
+
+      - name: Deploy v${{ steps.package-version.outputs.current-version }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          keep_files: true
+          publish_dir: ./book
+          destination_dir: ./v${{ steps.package-version.outputs.current-version }}
+
+      # TODO: We can't update the config so we have to push twice, it's clearly not
+      # the best solution but it is A solution.
+      - name: Deploy latest
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          keep_files: true
+          publish_dir: ./book
+          destination_dir: ./latest
