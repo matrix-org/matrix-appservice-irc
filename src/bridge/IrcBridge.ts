@@ -208,7 +208,7 @@ export class IrcBridge {
             homeserverToken,
             httpMaxSizeBytes: (this.config.advanced || { }).maxTxnSize || TXN_SIZE_DEFAULT,
         });
-        this.roomConfigs = new RoomConfig(this.bridge);
+        this.roomConfigs = new RoomConfig(this.bridge, this.config.ircService.perRoomConfig);
     }
 
     public async onConfigChanged(newConfig: BridgeConfig) {
@@ -238,6 +238,7 @@ export class IrcBridge {
         this.ircHandler.onConfigChanged(newConfig.ircHandler || {});
         this.config.ircHandler = newConfig.ircHandler;
         this.config.ircService.permissions = newConfig.ircService.permissions;
+        this.roomConfigs.config = newConfig.ircService.perRoomConfig;
 
         const hasLoggingChanged = JSON.stringify(oldConfig.ircService.logging)
             !== JSON.stringify(newConfig.ircService.logging);

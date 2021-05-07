@@ -532,6 +532,16 @@ ircService:
   # 'matrix.org': admin
   # '@fibble:matrix.org': admin
 
+  # Allow room moderators to adjust the configuration of the bridge via room state.
+  # See docs/room_commands.md
+  # Optional: Off by default
+  perRoomConfig:
+    # Should the bridge use per-room configuration state. If false, the state
+    # events will be ignored.
+    enabled: false
+    # The maximum number that can be set for the `lineLimit` configuration option
+    # lineLimitMax: 5
+
 # Options here are generally only applicable to large-scale bridges and may have
 # consequences greater than other options in this configuration file.
 advanced:

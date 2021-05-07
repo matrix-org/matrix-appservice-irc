@@ -1,6 +1,7 @@
 import { IrcServerConfig } from "../irc/IrcServer";
 import { LoggerConfig } from "../logging";
 import { IrcHandlerConfig } from "../bridge/IrcHandler";
+import { RoomConfigConfig } from "../bridge/RoomConfig";
 
 export interface BridgeConfig {
     matrixHandler: {
@@ -57,6 +58,7 @@ export interface BridgeConfig {
         permissions?: {
             [userIdOrDomain: string]: "admin";
         };
+        perRoomConfig?: RoomConfigConfig;
     };
     sentry?: {
         enabled: boolean;

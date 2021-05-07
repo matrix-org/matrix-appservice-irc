@@ -7,6 +7,11 @@ interface RoomConfigContent {
     lineLimit?: number;
 }
 
+export interface RoomConfigConfig {
+    enabled: boolean;
+    lineLimitMax?: number;
+}
+
 const MAX_CACHE_SIZE = 512;
 const STATE_TIMEOUT_MS = 2000;
 
@@ -14,7 +19,7 @@ const log = getLogger("RoomConfig");
 export class RoomConfig {
     public static readonly STATE_EVENT_TYPE = 'org.matrix.appservice-irc.config';
     private cache = new QuickLRU<string, RoomConfigContent|undefined>({maxSize: MAX_CACHE_SIZE});
-    constructor(private bridge: Bridge) { }
+    constructor(private bridge: Bridge, public config?: RoomConfigConfig) { }
 
     /**
      * Fetch the state for the room, preferring a keyed state event over a global one.
@@ -25,6 +30,10 @@ export class RoomConfig {
      *          request timed out.
      */
     private async getRoomState(roomId: string, ircRoom?: IrcRoom): Promise<RoomConfigContent|null> {
+        if (!this.config?.enabled) {
+            // If not enabled, always return null
+            return null;
+        }
         const cacheKey = `${roomId}:${ircRoom?.getId() || 'global'}`;
         let keyedConfig = this.cache.get(cacheKey);
         if (keyedConfig) {
