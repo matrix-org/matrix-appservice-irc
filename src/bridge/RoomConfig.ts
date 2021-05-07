@@ -66,7 +66,7 @@ export class RoomConfig {
     }
 
     /**
-     * Invalidate the cache for a room. Provide the key
+     * Invalidate the cache for a room.
      * @param roomId The Matrix roomId
      * @param stateKey The state event's key
      */
