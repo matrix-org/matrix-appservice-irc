@@ -69,7 +69,7 @@ To publish a release candidate, follow these steps:
 * `npm install` to update package-lock.json
 * `./scripts/changelog-release.sh`
 * `git commit CHANGELOG.md changelog.d package.json package-lock.json -m 'v0.V.0-rc1'`
-* `git tag --signed --message 'v0.V.0-rc1' 'v0.V.0-rc1'
+* `git tag --signed --message 'v0.V.0-rc1' 'v0.V.0-rc1'`
 * `git push origin release-v0.V.0`
 * `git push origin v0.V.0-rc1`
 * [Make a release on GitHub](https://github.com/matrix-org/matrix-appservice-irc/releases), copying the changelog into the body and marking it as pre-release
