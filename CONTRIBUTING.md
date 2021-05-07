@@ -57,3 +57,20 @@ new code.
    directly onto the `package.json` (NPM) version.
  - Releases are also tagged so they are present on the Releases page on Github.
  - Releases should be signed by the maintainer's key.
+
+### Release process
+
+To publish a release candidate, follow these steps:
+
+* `git checkout develop`
+* `git pull`
+* `git switch -c release-v0.V.0`
+* update package.json version number
+* `npm install` to update package-lock.json
+* `./scripts/changelog-release.sh`
+* `git commit CHANGELOG.md changelog.d package.json package-lock.json -m 'v0.V.0-rc1'`
+* `git tag --signed --message 'v0.V.0-rc1' 'v0.V.0-rc1'
+* `git push origin release-v0.V.0`
+* `git push origin v0.V.0-rc1`
+* [Make a release on GitHub](https://github.com/matrix-org/matrix-appservice-irc/releases), copying the changelog into the body and marking it as pre-release
+* `npm publish` which requires you to be added to the matrix-org npm project
