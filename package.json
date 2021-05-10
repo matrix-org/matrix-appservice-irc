@@ -32,7 +32,7 @@
     "extend": "^2.0.0",
     "he": "^1.1.1",
     "iconv": "^2.3.4",
-    "irc": "github:matrix-org/node-irc#9028c2197c216dd8e6fc2cb3cc07ce2d6bf741a7",
+    "irc": "git+https://github.com:matrix-org/node-irc.git#9028c2197c216dd8e6fc2cb3cc07ce2d6bf741a7",
     "js-yaml": "^3.14.0",
     "logform": "^2.2.0",
     "matrix-appservice": "^0.8.0",
