@@ -1,4 +1,13 @@
- 0.26.0-rc1 (2021-05-07)
+ 0.26.0-rc2 (2021-05-10)
+========================
+
+Internal Changes
+----------------
+
+- For NPM 7 to properly fetch the irc dependency, we switch to a git+https:// url. Before it defaulted to SSH which needs some authentication. ([\#1311](https://github.com/matrix-org/matrix-appservice-irc/issues/1311))
+
+
+0.26.0-rc1 (2021-05-07)
 ========================
 
 Features

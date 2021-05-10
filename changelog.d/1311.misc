@@ -1,1 +1,0 @@
-For NPM 7 to properly fetch the irc dependency, we switch to a git+https:// url. Before it defaulted to SSH which needs some authentication.
