@@ -71,6 +71,6 @@ To publish a release candidate, follow these steps:
 * `git commit CHANGELOG.md changelog.d package.json package-lock.json -m 'v0.V.0-rc1'`
 * `git tag --sign --message 'v0.V.0-rc1' '0.V.0-rc1'`
 * `git push origin release-v0.V.0`
-* `git push origin v0.V.0-rc1`
+* `git push origin 0.V.0-rc1`
 * [Make a release on GitHub](https://github.com/matrix-org/matrix-appservice-irc/releases), copying the changelog into the body and marking it as pre-release
 * `npm publish` which requires you to be added to the matrix-org npm project
