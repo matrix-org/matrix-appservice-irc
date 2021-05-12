@@ -71,7 +71,7 @@ export interface MatrixMessageEvent {
 }
 
 const MentionRegex = function(matcher: string): RegExp {
-    const WORD_BOUNDARY = "^|:|#|```|\\s|$|,";
+    const WORD_BOUNDARY = "^|:|#|```|\\s|'|<|>|;|&|$|,";
     return new RegExp(
         `(${WORD_BOUNDARY})(@?(${matcher}))(?=${WORD_BOUNDARY})`,
         "igm"
