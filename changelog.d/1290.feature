@@ -1,1 +1,0 @@
-Decouple invite from the creation of a PM room
