@@ -3,10 +3,8 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title></title>
+        <title>Room Configuration - Matrix IRC Bridge</title>
         
-        
-        <base href="/">
         
 
 
@@ -97,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li><li class="chapter-item expanded "><a href="room_commands.html"><strong aria-hidden="true">2.2.</strong> Room Commands</a></li><li class="chapter-item expanded "><a href="room_configuration.html"><strong aria-hidden="true">2.3.</strong> Room Configuration</a></li><li class="chapter-item expanded "><a href="irc_modes.html"><strong aria-hidden="true">2.4.</strong> IRC Modes</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li><li class="chapter-item expanded "><a href="room_commands.html"><strong aria-hidden="true">2.2.</strong> Room Commands</a></li><li class="chapter-item expanded "><a href="room_configuration.html" class="active"><strong aria-hidden="true">2.3.</strong> Room Configuration</a></li><li class="chapter-item expanded "><a href="irc_modes.html"><strong aria-hidden="true">2.4.</strong> IRC Modes</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -165,15 +163,52 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="document-not-found-404"><a class="header" href="#document-not-found-404">Document not found (404)</a></h1>
-<p>This URL is invalid, sorry. Please use the navigation bar or search to continue.</p>
+                        <h1 id="room-configuration"><a class="header" href="#room-configuration">Room Configuration</a></h1>
+<p>You can now configure certain options on a per-room basis from within your Matrix client. Currently
+this requires a bit of technical know-how as no clients expose an interface to changing the
+bridge configuration.</p>
+<h2 id="the-orgmatrixappservice-ircconfig-event"><a class="header" href="#the-orgmatrixappservice-ircconfig-event">The <code>org.matrix.appservice-irc.config</code> event</a></h2>
+<p>The bridge allows room moderators to create a state event in the room to change the way the bridge
+behaves in that room. </p>
+<p>In Element you can modify the room state by:</p>
+<ul>
+<li>Opening the room you wish to configure.</li>
+<li>Typing <code>/devtools</code>.</li>
+<li>Click Explore Room State.</li>
+<li>Look for the <code>org.matrix.appservice-irc.config</code> event.</li>
+<li>You should be able to click Edit to edit the content, and then hit Send to adjust the config.</li>
+</ul>
+<p>If an event does not exist yet, you can instead do:</p>
+<ul>
+<li>Typing <code>/devtools</code>.</li>
+<li>Click Send Custom Event.</li>
+<li>Click the Event button to change the type to a <strong>State Event</strong>.</li>
+<li>The event type must be <code>org.matrix.appservice-irc.config</code></li>
+<li>The state key can be left blank.</li>
+<li>Enter the <code>Event Content</code> as a JSON object. The schema is described in the following section.</li>
+<li>You may now hit Send to apply the config.</li>
+</ul>
+<h2 id="configuration-options"><a class="header" href="#configuration-options">Configuration Options</a></h2>
+<h3 id="linelimit"><a class="header" href="#linelimit"><code>lineLimit</code></a></h3>
+<p>Type: <code>number</code></p>
+<p>This allows you to modify the minimum number of lines permitted in a room before the
+message is pastebinned. The setting is analogous to the <code>lineLimit</code> config option in
+the bridge config file.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
+                            <a rel="prev" href="room_commands.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
 
+                        
+                            <a rel="next" href="irc_modes.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
                         
 
                         <div style="clear: both"></div>
@@ -183,7 +218,15 @@
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
+                    <a rel="prev" href="room_commands.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
 
+                
+                    <a rel="next" href="irc_modes.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
                 
             </nav>
 
