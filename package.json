@@ -31,7 +31,7 @@
     "escape-string-regexp": "^2.0.0",
     "extend": "^2.0.0",
     "he": "^1.1.1",
-    "irc": "git+https://matrix-org@github.com/matrix-org/node-irc.git#5a5a1d7a43de09aa4e4bffba8353cb376cebed7f",
+    "irc": "git+https://matrix-org@github.com/matrix-org/node-irc.git#hs/ts",
     "js-yaml": "^3.14.0",
     "logform": "^2.2.0",
     "matrix-appservice": "^0.8.0",
