@@ -120,7 +120,7 @@ function Client(addr, nick, opts) {
         });
     };
 
-    this._toLowerCase = function(channel) {
+    this.toLowerCase = function(channel) {
         return channel.toLowerCase();
     }
 
