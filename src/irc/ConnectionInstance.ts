@@ -378,7 +378,7 @@ export class ConnectionInstance {
             selfSigned: server.useSslSelfSigned(),
             certExpired: server.allowExpiredCerts(),
             retryCount: 0,
-            family: server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null,
+            family: (server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null) as 6|null,
             bustRfc3484: true,
             sasl: opts.password ? server.useSasl() : false,
             secure: server.useSsl() ? { ca: server.getCA() } : undefined,
