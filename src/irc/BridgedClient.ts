@@ -28,7 +28,7 @@ import { IrcAction } from "../models/IrcAction";
 import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
-import { Client, WhoisResponse } from "irc";
+import { Client, WhoisResponse } from "matrix-org-irc";
 
 const log = getLogger("BridgedClient");
 
@@ -548,7 +548,7 @@ export class BridgedClient extends EventEmitter {
             }
             const idle = whois.idle ? `${whois.idle} seconds idle` : "";
             const chans = (
-                (whois.channels && whois.channels.length) > 0 ?
+                (whois.channels?.length ?? 0) > 0 ?
                     `On channels: ${JSON.stringify(whois.channels)}` :
                     ""
             );
@@ -1029,7 +1029,7 @@ export class BridgedClient extends EventEmitter {
             log.warn(`Could not case map ${channel} - BridgedClient has no IRC client`);
             return channel;
         }
-        return this.state.client._toLowerCase(channel);
+        return this.state.client.toLowerCase(channel);
     }
 
     public modeForPrefix(prefix: string) {
