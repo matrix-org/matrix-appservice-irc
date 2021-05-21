@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Client } from "irc";
+import { Client } from "matrix-org-irc";
 import * as promiseutil from "../promiseutil";
 import Scheduler from "./Scheduler";
 import * as logging from "../logging";

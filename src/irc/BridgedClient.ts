@@ -28,7 +28,7 @@ import { IrcAction } from "../models/IrcAction";
 import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
-import { Client, WhoisResponse } from "irc";
+import { Client, WhoisResponse } from "matrix-org-irc";
 
 const log = getLogger("BridgedClient");
 

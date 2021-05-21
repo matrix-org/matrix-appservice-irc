@@ -18,7 +18,7 @@ const main = proxyquire("../../lib/main.js", {
         "@global": true
     },
     "matrix-js-sdk": clientMock,
-    "irc": ircMock,
+    "matrix-org-irc": ircMock,
 });
 
 // Log the test case. Jasmine is a global var.
