@@ -381,7 +381,7 @@ export class BridgedClient extends EventEmitter {
 
         if (await this.checkNickExists(validNick)) {
             throw Error(
-                `The nickname ${newNick} is taken on ${this.server.domain}.` +
+                `The nickname ${newNick} is taken on ${this.server.domain}. ` +
                 "Please pick a different nick."
             );
         }
@@ -798,6 +798,29 @@ export class BridgedClient extends EventEmitter {
                 Ident.setMapping(nameInfo.username, localPort);
             }
             identResolver();
+        });
+        // Emitters for SASL
+        connInst.client.on("sasl_loggedin", (...args: string[]) => {
+            const msg = args.pop();
+            this.eventBroker.sendMetadata(this,
+                `SASL authentication successful: ${msg}`
+            );
+        })
+        // Emitters for SASL
+        connInst.client.on("sasl_loggedout", (...args: string[]) => {
+            const msg = args.pop();
+            this.eventBroker.sendMetadata(this,
+                `Authentication has expired: ${msg}`,
+                true,
+            );
+        });
+        // Emitters for SASL
+        connInst.client.on("sasl_error", (errType: string, _nickname: string, errorMsg: string) => {
+            this.eventBroker.sendMetadata(this,
+                "There was an error authenticating you over SASL. " +
+                "You may need to update your details and !reconnect. " +
+                `The error was: ${errType} ${errorMsg}`
+            );
         });
 
         connInst.onDisconnect = (reason) => {
