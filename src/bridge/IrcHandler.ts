@@ -132,7 +132,11 @@ export class IrcHandler {
         if (priv.membership !== "join" && priv.membership !== "invite") {
             log.info("Inviting %s to the existing PM room with %s (current membership=%s)",
                 userId, virtUserId, priv.membership);
-            await intent.invite(roomId, userId);
+            // We have to send a state event to ensure they get an is_direct.
+            await intent.sendStateEvent(roomId, "m.room.member", userId, {
+                membership: "invite",
+                is_direct: true,
+            });
             // this should also be echoed back to us via onMatrixMemberEvent but hey,
             // let's do this now as well.
             priv.membership = "invite";
