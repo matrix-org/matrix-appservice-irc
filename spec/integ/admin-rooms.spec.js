@@ -1278,7 +1278,7 @@ describe("Admin rooms", function() {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             expect(content.body).toEqual(
-                "Successfully stored password for irc.example. You will now be reconnected to IRC."
+                "Successfully stored password for irc.example. Use !reconnect to use this password now."
             );
             return {};
         });
@@ -1308,7 +1308,7 @@ describe("Admin rooms", function() {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             expect(content.body).toEqual(
-                "Successfully stored password for irc.example. You will now be reconnected to IRC."
+                "Successfully stored password for irc.example. Use !reconnect to use this password now."
             );
             return {};
         });
@@ -1340,7 +1340,7 @@ describe("Admin rooms", function() {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             expect(content.body).toEqual(
-                "Successfully stored password for irc.example. You will now be reconnected to IRC."
+                "Successfully stored password for irc.example. Use !reconnect to use this password now."
             );
             return {};
         });
