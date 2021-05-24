@@ -27,7 +27,7 @@ export class IdentGenerator {
     // The max length of <realname> in USER commands
     private static readonly MAX_REAL_NAME_LENGTH = 48;
     // The max length of <username> in USER commands
-    private static readonly MAX_USER_NAME_LENGTH = 10;
+    public static readonly MAX_USER_NAME_LENGTH = 10;
     // The delimiter of the username.
     private static readonly USER_NAME_DELIMITER = "_";
     // The delimiter of the username.
@@ -221,7 +221,7 @@ export class IdentGenerator {
         throw Error("Ran out of entries: " + username);
     }
 
-    private static sanitiseUsername(username: string, replacementChar = "") {
+    public static sanitiseUsername(username: string, replacementChar = "") {
         username = username.toLowerCase();
         // strip illegal chars according to RFC 1459 Sect 2.3.1
         // (technically it's any <nonwhite> ascii for <user> but meh)
