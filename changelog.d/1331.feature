@@ -1,0 +1,1 @@
+Add support for setting a username, and reconnecting through the admin room. This change also changes `!storepass` to no longer reconnect you by default.
