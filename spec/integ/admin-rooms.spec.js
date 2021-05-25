@@ -1288,6 +1288,33 @@ describe("Admin rooms", function() {
         await connectPromise;
     });
 
+    it("should be able to store a username with !username", async function() {
+        const sdk = env.clientMock._client(botUserId);
+
+        const sendPromise = sdk.sendEvent.and.callFake(async (roomId, _, content) => {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).toEqual(
+                "Successfully stored username for irc.example. Use !reconnect to use this username now."
+            );
+            return {};
+        });
+
+        // Ensure that the user reconnects
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!username foobar",
+                msgtype: "m.text"
+            },
+            sender: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+        await sendPromise;
+        const userCfg = await env.ircBridge.getStore().getIrcClientConfig(userId, roomMapping.server);
+        expect(userCfg.getUsername()).toEqual("foobar");
+    });
+
     it("should be able to store a password with !storepass", async function() {
         const sdk = env.clientMock._client(botUserId);
 

@@ -493,8 +493,7 @@ export class AdminRoomHandler {
                 config.setUsername(username);
                 await this.ircBridge.getStore().storeIrcClientConfig(config);
                 notice = new MatrixAction(
-                    "notice", `Successfully stored username for ${domain} for future connections. `
-                    + "Use !reconnect to use this username now."
+                    "notice", `Successfully stored username for ${domain}. Use !reconnect to use this username now.`
                 );
             }
         }
