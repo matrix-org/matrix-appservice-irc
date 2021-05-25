@@ -811,12 +811,20 @@ export class MatrixHandler {
         const [targetRoom] = await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
         if (command === "nick") {
             const newNick = args[0];
+            if (!(newNick?.length > 0)) {
+                await intent.sendMessage(event.room_id, {
+                    msgtype: "m.notice",
+                    body: "You must specify a valid nickname",
+                });
+                return BridgeRequestErr.ERR_DROPPED;
+            }
             // We need to get the context of this room.
             if (!targetRoom) {
                 await intent.sendMessage(event.room_id, {
                     'msgtype': 'm.notice',
                     'body': 'Room is not bridged, cannot set nick without a target server'
                 });
+                return BridgeRequestErr.ERR_NOT_MAPPED;
             }
             const bridgedClient = await this.ircBridge.getBridgedClient(targetRoom.server, event.sender);
             req.log.info("Matrix user wants to change nick from %s to %s", bridgedClient.nick, newNick);
@@ -830,13 +838,12 @@ export class MatrixHandler {
                 });
                 req.log.warn(`Didn't change nick on the IRC side: ${e}`);
             }
+            return null;
         }
-        else {
-            await intent.sendMessage(event.room_id, {
-                'msgtype': 'm.notice',
-                'body': 'Command not known'
-            });
-        }
+        await intent.sendMessage(event.room_id, {
+            'msgtype': 'm.notice',
+            'body': 'Command not known'
+        });
         return null;
     }
 
