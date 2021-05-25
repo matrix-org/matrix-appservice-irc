@@ -811,7 +811,7 @@ export class MatrixHandler {
         const [targetRoom] = await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
         if (command === "nick") {
             const newNick = args[0];
-            if (newNick?.length > 0) {
+            if (!(newNick?.length > 0)) {
                 await intent.sendMessage(event.room_id, {
                     msgtype: "m.notice",
                     body: "You must specify a valid nickname",
