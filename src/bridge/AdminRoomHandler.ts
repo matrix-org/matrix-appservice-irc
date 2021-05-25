@@ -464,7 +464,7 @@ export class AdminRoomHandler {
         try {
             // Allow passwords with spaces
             const username = args[0]?.trim();
-            if (!username || username.length === 0) {
+            if (!username) {
                 notice = new MatrixAction(
                     "notice",
                     "Format: '!username username' " +
@@ -493,7 +493,7 @@ export class AdminRoomHandler {
                 config.setUsername(username);
                 await this.ircBridge.getStore().storeIrcClientConfig(config);
                 notice = new MatrixAction(
-                    "notice", `Successfully stored username for ${domain} for future connections.`
+                    "notice", `Successfully stored username for ${domain} for future connections. `
                     + "Use !reconnect to use this username now."
                 );
             }
