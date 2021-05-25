@@ -1,6 +1,7 @@
 "use strict";
 const Cli = require("matrix-appservice-bridge").Cli;
 const log = require("./lib/logging").get("CLI");
+const {logErr} = require("./lib/logging");
 const main = require("./lib/main");
 const path = require("path");
 
@@ -58,7 +59,7 @@ new Cli({
             bridge = resultBridge;
         }).catch(function(err) {
             log.error("Failed to run bridge.");
-            log.error(err);
+            logErr(log, err);
             process.exit(1);
         });
 
