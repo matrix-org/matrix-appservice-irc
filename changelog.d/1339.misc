@@ -1,0 +1,1 @@
+Fix validation of the config to allow for a single hash in the alias template.
