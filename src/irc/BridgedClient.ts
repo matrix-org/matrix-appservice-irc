@@ -88,6 +88,7 @@ export class BridgedClient extends EventEmitter {
     private lastActionTs: number;
     private _explicitDisconnect = false;
     private _disconnectReason: string|null = null;
+    private channelJoinDefers = new Map<string, Bluebird<IrcRoom>>();
     private _chanList: Set<string> = new Set();
     private connectDefer: promiseutil.Defer<void>;
     public readonly log: BridgedClientLogger;
@@ -320,8 +321,6 @@ export class BridgedClient extends EventEmitter {
     }
 
     public async reconnect(reconnectChanList: string[]) {
-        // XXX: Why do we add these here?
-        reconnectChanList.forEach((c) => this._chanList.add(c));
         await this.connect();
         this.log.info(
             "Reconnected %s@%s", this.nick, this.server.domain
@@ -329,11 +328,12 @@ export class BridgedClient extends EventEmitter {
         this.log.info("Rejoining %s channels", this._chanList.size);
         // This needs to be synchronous to avoid spamming the IRCD
         // with lots of reconnects.
-        for (const channel of this._chanList) {
+        for (const channel of reconnectChanList) {
             try {
                 await this.joinChannel(channel);
             }
             catch (ex) {
+                // TODO: We might need to kick here.
                 this.log.error(`Failed to rejoin channel: ${ex}`);
             }
         }
@@ -454,10 +454,10 @@ export class BridgedClient extends EventEmitter {
             return Promise.resolve(); // we were never joined to it.
         }
         const defer = promiseutil.defer();
-        this.removeChannel(channel);
         this.log.debug("Leaving channel %s", channel);
         this.state.client.part(channel, reason, () => {
             this.log.debug("Left channel %s", channel);
+            this.removeChannel(channel);
             defer.resolve();
         });
 
@@ -855,7 +855,7 @@ export class BridgedClient extends EventEmitter {
             throw Error("unsafeClient not ready yet");
         }
         // join the room if we haven't already
-        await this.joinChannel(room.channel)
+        await this.joinChannel(room.channel);
         this.log.info("Setting topic to %s in channel %s", topic, room.channel);
         return this.state.client.send("TOPIC", room.channel, topic);
     }
@@ -896,12 +896,25 @@ export class BridgedClient extends EventEmitter {
         await defer.promise;
     }
 
-    public joinChannel(channel: string, key?: string, attemptCount = 1): Bluebird<IrcRoom> {
+    public joinChannel(channel: string, key?: string, attemptCount = 1) {
+        // Wrap the join.
+        const existing = this.channelJoinDefers.get(channel);
+        if (existing) {
+            return existing;
+        }
+        const promise = this._joinChannel(channel, key, attemptCount).finally(() => {
+            this.channelJoinDefers.delete(channel);
+        });
+        this.channelJoinDefers.set(channel, promise);
+        return promise;
+    }
+
+    private _joinChannel(channel: string, key?: string, attemptCount = 1): Bluebird<IrcRoom> {
         if (this.state.status !== BridgedClientStatus.CONNECTED) {
             // we may be trying to join before we've connected, so check and wait
             if (this.connectDefer && this.connectDefer.promise.isPending()) {
                 return this.connectDefer.promise.then(() => {
-                    return this.joinChannel(channel, key, attemptCount);
+                    return this._joinChannel(channel, key, attemptCount);
                 });
             }
             return Bluebird.reject(new Error("No client"));
@@ -918,7 +931,6 @@ export class BridgedClient extends EventEmitter {
         }
         const defer = promiseutil.defer() as promiseutil.Defer<IrcRoom>;
         this.log.debug("Joining channel %s", channel);
-        this.addChannel(channel);
         const client = this.state.client;
         // listen for failures to join a channel (e.g. +i, +k)
         const failFn = (err: IrcMessage) => {
@@ -969,7 +981,7 @@ export class BridgedClient extends EventEmitter {
                 this.log.error("Timed out trying to join %s - trying again.", channel);
                 // try joining again.
                 attemptCount += 1;
-                this.joinChannel(channel, key, attemptCount).then((s) => {
+                this._joinChannel(channel, key, attemptCount).then((s) => {
                     defer.resolve(s);
                 }).catch((e: Error) => {
                     defer.reject(e);
@@ -986,6 +998,7 @@ export class BridgedClient extends EventEmitter {
             this.log.debug("Joined channel %s", channel);
             client.removeListener("error", failFn);
             const room = new IrcRoom(this.server, channel);
+            this.addChannel(channel);
             defer.resolve(room);
         });
 
