@@ -31,7 +31,7 @@
     "escape-string-regexp": "^2.0.0",
     "extend": "^2.0.0",
     "he": "^1.1.1",
-    "matrix-org-irc": "1.0.0-alpha2",
+    "matrix-org-irc": "1.0.0-alpha3",
     "js-yaml": "^3.14.0",
     "logform": "^2.2.0",
     "matrix-appservice": "^0.8.0",
