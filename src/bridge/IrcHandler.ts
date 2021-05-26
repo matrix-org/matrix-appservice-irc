@@ -449,6 +449,56 @@ export class IrcHandler {
     }
 
     /**
+     * If configured, check to see if the all Matrix users in a given room are
+     * joined to a channel. If they are not, drop the message.
+     * @param req The IRC request
+     * @param server The IRC server.
+     */
+    private async requiresAllMatrixUsersJoined(server: IrcServer, channel: string, roomId: string): Promise<boolean> {
+        // The room state takes priority.
+        const stateRequires =
+            await this.ircBridge.roomConfigs.allowUnconnectedMatrixUsers(roomId, new IrcRoom(server, channel));
+        if (stateRequires !== null) {
+            console.log("fooy", stateRequires);
+            return stateRequires;
+        }
+        return server.shouldRequireMatrixUserJoined(channel);
+    }
+
+    /**
+     * See if every joined Matrix user is also joined to the IRC channel. If they are not,
+     * this returns false. A seperate mechanism should be use to join the user if this fails.
+     * @param req The IRC request
+     * @param server The IRC server.
+     * @param channel The IRC channel.
+     * @param roomId The Matrix room.
+     * @returns True if all users are connected and joined, or false otherwise.
+     */
+    private async areAllMatrixUsersJoined(
+        req: BridgeRequest, server: IrcServer, channel: string, roomId: string): Promise<boolean> {
+        // Look for all the Matrix users in the room.
+        const members = await this.ircBridge.getMatrixUsersForRoom(roomId);
+        const pool = this.ircBridge.getClientPool();
+        for (const userId of members) {
+            if (userId === this.ircBridge.appServiceUserId) {
+                continue;
+            }
+            const client = pool.getBridgedClientByUserId(server, userId);
+            if (!client) {
+                req.log.warn(`${userId} has not connected to IRC yet, not bridging message`);
+                return false;
+            }
+            if (!client.inChannel(channel)) {
+                // TODO: Should we poke them into joining?
+                req.log.warn(`${userId} has not joined the channel yet, not bridging message`);
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    /**
      * Called when the AS receives an IRC topic event.
      * @param {IrcServer} server The sending IRC server.
      * @param {IrcUser} fromUser The sender.
@@ -527,7 +577,24 @@ export class IrcHandler {
             return BridgeRequestErr.ERR_DROPPED;
         }
 
-        const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
+        req.log.info("onMessage: %s from=%s to=%s",
+            server.domain, fromUser, channel
+        );
+        req.log.debug("action=%s", JSON.stringify(action).substring(0, 80))
+
+        // Some setups require that we check all matrix users are joined before we bridge
+        // messages.
+        const matrixRooms = await Promise.all((
+            await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel)
+        ).filter(async (room) => {
+            const required = await this.requiresAllMatrixUsersJoined(server, channel, room.roomId);
+            req.log.debug(`${room.roomId} ${required ? "requires" : "does not require"} Matrix users to be joined`);
+            if (required) {
+                return this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
+            }
+            return true;
+        }));
+
 
         if (matrixRooms.length === 0) {
             req.log.info(
@@ -537,10 +604,6 @@ export class IrcHandler {
             return undefined;
         }
 
-        req.log.info("onMessage: %s from=%s to=%s",
-            server.domain, fromUser, channel
-        );
-        req.log.debug("action=%s", JSON.stringify(action).substring(0, 80))
 
 
         let mapping = null;

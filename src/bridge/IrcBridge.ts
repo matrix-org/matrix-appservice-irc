@@ -800,6 +800,21 @@ export class IrcBridge {
         await promiseutil.allSettled(promises);
     }
 
+    /**
+     * Get a cached copy of all Matrix (not IRC) users in a room.
+     * @param roomId The Matrix room to inspect.
+     * @returns An array of Matrix userIDs.
+     */
+    public async getMatrixUsersForRoom(roomId: string) {
+        const bot = this.bridge.getBot();
+        let members = this.membershipCache.getMembersForRoom(roomId, "join");
+        if (!members) {
+            members = Object.keys(await this.bridge.getBot().getJoinedMembers(roomId));
+        }
+        return members.filter(m => !bot.isRemoteUser(m));
+
+    }
+
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
         const intent = this.bridge.getIntent(from.userId);
         const extraContent: Record<string, unknown> = {};
