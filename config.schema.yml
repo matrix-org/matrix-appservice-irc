@@ -317,7 +317,7 @@ properties:
                                     type: "string"
                                 aliasTemplate:
                                     type: "string"
-                                    pattern: "^#.*\\$CHANNEL"
+                                    pattern: "^(#.*)?\\$CHANNEL"
                                 whitelist:
                                     type: "array"
                                     items:
