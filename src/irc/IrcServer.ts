@@ -511,10 +511,14 @@ export class IrcServer {
      */
     public shouldRequireMatrixUserJoined(channel: string) {
         let shouldSync = this.config.membershipLists.global.ircToMatrix.requireMatrixJoined;
-        this.config.membershipLists.channels.forEach((chan) => {
-            if (chan.channel === channel && typeof chan.ircToMatrix?.requireMatrixJoined === "boolean") {
-                shouldSync = chan.ircToMatrix.requireMatrixJoined;
+        this.config.membershipLists.channels.find((chan) => {
+            if (chan.channel === channel) {
+                if (typeof chan.ircToMatrix?.requireMatrixJoined === "boolean") {
+                    shouldSync = chan.ircToMatrix.requireMatrixJoined;
+                }
+                return true;
             }
+            return false;
         });
         return shouldSync;
     }
