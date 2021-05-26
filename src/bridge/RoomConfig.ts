@@ -91,4 +91,23 @@ export class RoomConfig {
         }
         return Math.min(roomState.lineLimit, this.config?.lineLimitMax ?? roomState.lineLimit);
     }
+
+    /**
+     * Get the per-room configuration for the paste bin limit for a room.
+     * @param roomId The Matrix roomId
+     * @param ircRoom The IRC roomId. Optional.
+     * @returns Whether unconnected Matrix users are allowed in the room. Will return null if not set.
+     */
+    public async allowUnconnectedMatrixUsers(roomId: string, ircRoom?: IrcRoom) {
+        if (this.config?.allowUnconnectedMatrixUsers !== true) {
+            // If not allowed by config, return null.
+            return null;
+        }
+        const roomState = await this.getRoomState(roomId, ircRoom);
+        if (typeof roomState?.allowUnconnectedMatrixUsers !== "boolean") {
+            // If not set or null, return null.
+            return null;
+        }
+        return roomState.allowUnconnectedMatrixUsers;
+    }
 }
