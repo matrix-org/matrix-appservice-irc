@@ -459,7 +459,6 @@ export class IrcHandler {
         const stateRequires =
             await this.ircBridge.roomConfigs.allowUnconnectedMatrixUsers(roomId, new IrcRoom(server, channel));
         if (stateRequires !== null) {
-            console.log("fooy", stateRequires);
             return stateRequires;
         }
         return server.shouldRequireMatrixUserJoined(channel);
