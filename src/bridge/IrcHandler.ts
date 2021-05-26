@@ -43,6 +43,7 @@ export interface IrcHandlerConfig {
 
 type MetricNames = "join.names"|"join"|"part"|"pm"|"invite"|"topic"|"message"|"kick"|"mode";
 
+
 export class IrcHandler {
     // maintain a map of which user ID is in which PM room, so we know if we
     // need to re-invite them if they bail.
@@ -73,6 +74,8 @@ export class IrcHandler {
     private mentionMode: "on"|"off"|"force-off";
 
     public readonly roomAccessSyncer: RoomAccessSyncer;
+
+    private readonly roomBlockedSet = new Set<string>();
 
     private callCountMetrics?: {
         [key in MetricNames]: number;
@@ -454,7 +457,7 @@ export class IrcHandler {
      * @param req The IRC request
      * @param server The IRC server.
      */
-    private async requiresAllMatrixUsersJoined(server: IrcServer, channel: string, roomId: string): Promise<boolean> {
+    private async shouldRequireMatrixUserJoined(server: IrcServer, channel: string, roomId: string): Promise<boolean> {
         // The room state takes priority.
         const stateRequires =
             await this.ircBridge.roomConfigs.allowUnconnectedMatrixUsers(roomId, new IrcRoom(server, channel));
@@ -468,9 +471,9 @@ export class IrcHandler {
      * See if every joined Matrix user is also joined to the IRC channel. If they are not,
      * this returns false. A seperate mechanism should be use to join the user if this fails.
      * @param req The IRC request
-     * @param server The IRC server.
-     * @param channel The IRC channel.
-     * @param roomId The Matrix room.
+     * @param server The IRC server
+     * @param channel The IRC channel
+     * @param roomId The Matrix room
      * @returns True if all users are connected and joined, or false otherwise.
      */
     private async areAllMatrixUsersJoined(
@@ -494,6 +497,32 @@ export class IrcHandler {
             }
         }
         return true;
+    }
+
+    /**
+     * Send a `org.matrix.appservice-irc.connection` state event into the room when a channel
+     * is blocked or unblocked. Subsequent calls with the same state will no-op.
+     * @param req The IRC request
+     * @param roomId The Matrix room
+     * @param channel The IRC room
+     * @param blocked Is the channel blocked
+     * @returns A promise, but it will always resolve.
+     */
+    private async setBlockedStateInRoom(req: BridgeRequest, roomId: string, ircRoom: IrcRoom, blocked: boolean) {
+        if (this.roomBlockedSet.has(ircRoom.getId()) === blocked) {
+            return;
+        }
+        this.roomBlockedSet[blocked ? 'add' : 'delete'](ircRoom.getId());
+        try {
+            const intent = this.ircBridge.getAppServiceBridge().getIntent();
+            // This is set *approximately* for when the room is unblocked, as we don't do when a new user joins.
+            await intent.sendStateEvent(roomId, "org.matrix.appservice-irc.connection", ircRoom.getId(), {
+                blocked,
+            });
+        }
+        catch (ex) {
+            req.log.warn(`Could not set org.matrix.appservice-irc.connection in room`, ex);
+        }
     }
 
 
@@ -586,10 +615,13 @@ export class IrcHandler {
         const matrixRooms = await Promise.all((
             await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel)
         ).filter(async (room) => {
-            const required = await this.requiresAllMatrixUsersJoined(server, channel, room.roomId);
+            const required = await this.shouldRequireMatrixUserJoined(server, channel, room.roomId);
             req.log.debug(`${room.roomId} ${required ? "requires" : "does not require"} Matrix users to be joined`);
             if (required) {
-                return this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
+                const blocked = await this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
+                // Do so asyncronously, as we don't want to block message handling on this.
+                this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), blocked);
+                return blocked;
             }
             return true;
         }));
