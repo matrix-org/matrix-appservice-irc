@@ -5,11 +5,13 @@ import getLogger from "../logging";
 
 interface RoomConfigContent {
     lineLimit?: number;
+    allowUnconnectedMatrixUsers: boolean|null;
 }
 
 export interface RoomConfigConfig {
     enabled: boolean;
     lineLimitMax?: number;
+    allowUnconnectedMatrixUsers?: boolean;
 }
 
 const MAX_CACHE_SIZE = 512;

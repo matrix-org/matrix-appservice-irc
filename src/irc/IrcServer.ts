@@ -120,6 +120,7 @@ export interface IrcServerConfig {
             ircToMatrix: {
                 initial: boolean;
                 incremental: boolean;
+                requireMatrixJoined: boolean;
             };
             matrixToIrc: {
                 initial: boolean;
@@ -131,6 +132,7 @@ export interface IrcServerConfig {
             ircToMatrix: {
                 initial: boolean;
                 incremental: boolean;
+                requireMatrixJoined: boolean;
             };
         }[];
         rooms: {
@@ -502,6 +504,23 @@ export class IrcServer {
         return shouldSync;
     }
 
+    /**
+     * Does the server/channel require all Matrix users to be joined.
+     * @param channel The IRC channel.
+     * @returns If the server requires all Matrix users to be joined.
+     */
+    public shouldRequireMatrixUserJoined(channel: string) {
+        let shouldSync = this.config.membershipLists.global.ircToMatrix.requireMatrixJoined;
+        console.log("shouldSync", shouldSync);
+        this.config.membershipLists.channels.forEach((chan) => {
+            if (chan.channel === channel && typeof chan.ircToMatrix?.requireMatrixJoined === "boolean") {
+                shouldSync = chan.ircToMatrix.requireMatrixJoined;
+            }
+            console.log("shouldSync", chan);
+        });
+        return shouldSync;
+    }
+
     public shouldJoinChannelsIfNoUsers() {
         return this.config.botConfig.joinChannelsIfNoUsers;
     }
@@ -711,7 +730,8 @@ export class IrcServer {
                 global: {
                     ircToMatrix: {
                         initial: false,
-                        incremental: false
+                        incremental: false,
+                        requireMatrixJoined: false,
                     },
                     matrixToIrc: {
                         initial: false,

@@ -139,6 +139,15 @@ properties:
                 additionalProperties:
                     type: "string"
                     enum: ["admin"]
+            perRoomConfig:
+                type: "object"
+                properties:
+                    enabled:
+                        type: "boolean"
+                    lineLimitMax:
+                        type: "number"
+                    allowUnconnectedMatrixUsers:
+                        type: "boolean"
             servers:
                 type: "object"
                 # all properties must follow the following
@@ -244,6 +253,8 @@ properties:
                                                     type: "boolean"
                                                 incremental:
                                                     type: "boolean"
+                                                requireMatrixJoined:
+                                                    type: "boolean"
                                         matrixToIrc:
                                             type: "object"
                                             properties:
@@ -282,6 +293,8 @@ properties:
                                                     initial:
                                                         type: "boolean"
                                                     incremental:
+                                                        type: "boolean"
+                                                    requireMatrixJoined:
                                                         type: "boolean"
                                         additionalProperties: false
                         dynamicChannels:
