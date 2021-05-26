@@ -505,9 +505,9 @@ export class IrcServer {
     }
 
     /**
-     * Does the server/channel require all Matrix users to be joined.
+     * Does the server/channel require all Matrix users to be joined?
      * @param channel The IRC channel.
-     * @returns If the server requires all Matrix users to be joined.
+     * @returns True if the server requires all Matrix users to be joined.
      */
     public shouldRequireMatrixUserJoined(channel: string) {
         let shouldSync = this.config.membershipLists.global.ircToMatrix.requireMatrixJoined;
