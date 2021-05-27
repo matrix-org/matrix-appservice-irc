@@ -806,13 +806,10 @@ export class IrcBridge {
      * @returns An array of Matrix userIDs.
      */
     public async getMatrixUsersForRoom(roomId: string) {
+        // TODO: This needs caching.
         const bot = this.bridge.getBot();
-        let members = this.membershipCache.getMembersForRoom(roomId, "join");
-        if (!members) {
-            members = Object.keys(await this.bridge.getBot().getJoinedMembers(roomId));
-        }
+        const members = Object.keys(await this.bridge.getBot().getJoinedMembers(roomId));
         return members.filter(m => !bot.isRemoteUser(m));
-
     }
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
