@@ -513,6 +513,12 @@ export class IrcHandler {
             return;
         }
         this.roomBlockedSet[blocked ? 'add' : 'delete'](ircRoom.getId());
+        if (blocked) {
+            req.log.warn(`${roomId} ${ircRoom.getId()} is now blocking IRC messages`);
+        }
+        else {
+            req.log.warn(`${roomId} ${ircRoom.getId()} has now unblocked IRC messages`);
+        }
         try {
             const intent = this.ircBridge.getAppServiceBridge().getIntent();
             // This is set *approximately* for when the room is unblocked, as we don't do when a new user joins.
