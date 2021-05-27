@@ -40,6 +40,7 @@ export interface IrcServerConfig {
     dynamicChannels: {
         enabled: boolean;
         published: boolean;
+        useHomeserverDirectory: boolean;
         createAlias: boolean;
         joinRule: "public"|"invite";
         federate: boolean;
@@ -361,6 +362,10 @@ export class IrcServer {
         return this.config.dynamicChannels.published;
     }
 
+    public shouldPublishRoomsToHomeserverDirectory() {
+        return this.config.dynamicChannels.useHomeserverDirectory;
+    }
+
     public allowsNickChanges() {
         return this.config.ircClients.allowNickChanges;
     }
@@ -672,6 +677,7 @@ export class IrcServer {
             dynamicChannels: {
                 enabled: false,
                 published: true,
+                useHomeserverDirectory: false,
                 createAlias: true,
                 joinRule: "public",
                 federate: true,
