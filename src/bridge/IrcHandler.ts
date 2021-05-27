@@ -936,7 +936,7 @@ export class IrcHandler {
                 else {
                     req.log.info(`Not kicking user ${userId}, not in ${room.roomId}`);
                 }
-                return;
+                return undefined;
             }
 
             // Show a reason if the part is not a regular part, or reason text was given.
