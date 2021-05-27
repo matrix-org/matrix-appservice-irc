@@ -906,7 +906,7 @@ export class IrcHandler {
             const bridgedClient = this.ircBridge.getClientPool().getBridgedClientByNick(
                 server, nick
             );
-            if (!bridgedClient|| !bridgedClient.userId || !bridgedClient.inChannel(chan)) {
+            if (!bridgedClient?.userId) {
                 req.log.info("Not kicking user from room, user is not in channel");
                 // We don't need to send a leave to a channel we were never in.
                 return BridgeRequestErr.ERR_DROPPED;
@@ -922,8 +922,21 @@ export class IrcHandler {
         req.log.info("Mapped nick %s to %s (leaving %s room(s))", nick, userId, matrixRooms.length);
         await Promise.all(matrixRooms.map(async (room) => {
             if (leavingUser.isVirtual) {
-                return this.membershipQueue.leave(
-                    room.getId(), userId, req, true, this.ircBridge.appServiceUserId);
+                const isInRoom = (
+                    await this.ircBridge.getAppServiceBridge().getIntent().getStateEvent(
+                        room.roomId, 'm.room.member', userId, true
+                    )
+                )?.membership === 'join';
+                if (isInRoom) {
+                    await this.membershipQueue.leave(
+                        room.getId(), userId, req, true, 'user left',
+                        this.ircBridge.appServiceUserId
+                    );
+                }
+                else {
+                    req.log.info(`Not kicking user ${userId}, not in ${room.roomId}`);
+                }
+                return;
             }
 
             // Show a reason if the part is not a regular part, or reason text was given.
