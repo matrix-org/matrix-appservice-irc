@@ -626,11 +626,11 @@ export class IrcHandler {
             if (required) {
                 const allowed = await this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
                 // Do so asyncronously, as we don't want to block message handling on this.
-                this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), allowed);
+                this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), !allowed);
                 return allowed ? room : undefined;
             }
             return room;
-        }))).filter(r => !!r);
+        }))).filter(r => !!r) as MatrixRoom[];
 
 
         if (matrixRooms.length === 0) {
