@@ -513,6 +513,12 @@ export class IrcHandler {
             return;
         }
         this.roomBlockedSet[blocked ? 'add' : 'delete'](ircRoom.getId());
+        if (blocked) {
+            req.log.warn(`${roomId} ${ircRoom.getId()} is now blocking IRC messages`);
+        }
+        else {
+            req.log.warn(`${roomId} ${ircRoom.getId()} has now unblocked IRC messages`);
+        }
         try {
             const intent = this.ircBridge.getAppServiceBridge().getIntent();
             // This is set *approximately* for when the room is unblocked, as we don't do when a new user joins.
@@ -612,19 +618,19 @@ export class IrcHandler {
 
         // Some setups require that we check all matrix users are joined before we bridge
         // messages.
-        const matrixRooms = await Promise.all((
+        const matrixRooms = (await Promise.all((
             await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel)
-        ).filter(async (room) => {
+        ).map(async (room) => {
             const required = await this.shouldRequireMatrixUserJoined(server, channel, room.roomId);
             req.log.debug(`${room.roomId} ${required ? "requires" : "does not require"} Matrix users to be joined`);
             if (required) {
-                const blocked = await this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
+                const allowed = await this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
                 // Do so asyncronously, as we don't want to block message handling on this.
-                this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), blocked);
-                return blocked;
+                this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), !allowed);
+                return allowed ? room : undefined;
             }
-            return true;
-        }));
+            return room;
+        }))).filter(r => !!r) as MatrixRoom[];
 
 
         if (matrixRooms.length === 0) {
@@ -900,7 +906,7 @@ export class IrcHandler {
             const bridgedClient = this.ircBridge.getClientPool().getBridgedClientByNick(
                 server, nick
             );
-            if (!bridgedClient|| !bridgedClient.userId || !bridgedClient.inChannel(chan)) {
+            if (!bridgedClient?.userId) {
                 req.log.info("Not kicking user from room, user is not in channel");
                 // We don't need to send a leave to a channel we were never in.
                 return BridgeRequestErr.ERR_DROPPED;
@@ -916,8 +922,21 @@ export class IrcHandler {
         req.log.info("Mapped nick %s to %s (leaving %s room(s))", nick, userId, matrixRooms.length);
         await Promise.all(matrixRooms.map(async (room) => {
             if (leavingUser.isVirtual) {
-                return this.membershipQueue.leave(
-                    room.getId(), userId, req, true, this.ircBridge.appServiceUserId);
+                const isInRoom = (
+                    await this.ircBridge.getAppServiceBridge().getIntent().getStateEvent(
+                        room.roomId, 'm.room.member', userId, true
+                    )
+                )?.membership === 'join';
+                if (isInRoom) {
+                    await this.membershipQueue.leave(
+                        room.getId(), userId, req, true, 'user left',
+                        this.ircBridge.appServiceUserId
+                    );
+                }
+                else {
+                    req.log.info(`Not kicking user ${userId}, not in ${room.roomId}`);
+                }
+                return undefined;
             }
 
             // Show a reason if the part is not a regular part, or reason text was given.

@@ -325,7 +325,7 @@ export class BridgedClient extends EventEmitter {
         this.log.info(
             "Reconnected %s@%s", this.nick, this.server.domain
         );
-        this.log.info("Rejoining %s channels", this._chanList.size);
+        this.log.info("Rejoining %s channels", reconnectChanList.length);
         // This needs to be synchronous to avoid spamming the IRCD
         // with lots of reconnects.
         for (const channel of reconnectChanList) {
@@ -333,8 +333,7 @@ export class BridgedClient extends EventEmitter {
                 await this.joinChannel(channel);
             }
             catch (ex) {
-                // TODO: We might need to kick here.
-                this.log.error(`Failed to rejoin channel: ${ex}`);
+                this.log.error(`Failed to rejoin channel ${channel}: ${ex}`);
             }
         }
         this.log.info("Rejoined channels");
@@ -821,6 +820,21 @@ export class BridgedClient extends EventEmitter {
                 "You may need to update your details and !reconnect. " +
                 `The error was: ${errType} ${errorMsg}`
             );
+        });
+        connInst.client.on("join", (channel, nick) => {
+            if (this.nick !== nick) { return; }
+            log.debug(`Joined ${channel}`);
+            this.chanList.add(channel);
+        });
+        connInst.client.on("part", (channel, nick) => {
+            if (this.nick !== nick) { return; }
+            log.debug(`Parted ${channel}`);
+            this.chanList.delete(channel);
+        });
+        connInst.client.on("kick", (channel, nick) => {
+            if (this.nick !== nick) { return; }
+            log.debug(`Kicked from ${channel}`);
+            this.chanList.delete(channel);
         });
 
         connInst.onDisconnect = (reason) => {

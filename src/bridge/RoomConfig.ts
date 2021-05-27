@@ -93,7 +93,7 @@ export class RoomConfig {
     }
 
     /**
-     * Get the per-room configuration for the paste bin limit for a room.
+     * Check if the room allows or denys unconnected matrix users.
      * @param roomId The Matrix roomId
      * @param ircRoom The IRC roomId. Optional.
      * @returns Whether unconnected Matrix users are allowed in the room. Will return null if not set.
