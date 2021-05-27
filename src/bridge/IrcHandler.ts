@@ -618,19 +618,19 @@ export class IrcHandler {
 
         // Some setups require that we check all matrix users are joined before we bridge
         // messages.
-        const matrixRooms = await Promise.all((
+        const matrixRooms = (await Promise.all((
             await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel)
-        ).filter(async (room) => {
+        ).map(async (room) => {
             const required = await this.shouldRequireMatrixUserJoined(server, channel, room.roomId);
             req.log.debug(`${room.roomId} ${required ? "requires" : "does not require"} Matrix users to be joined`);
             if (required) {
                 const blocked = await this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
                 // Do so asyncronously, as we don't want to block message handling on this.
                 this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), blocked);
-                return blocked;
+                return blocked ? undefined : room;
             }
-            return true;
-        }));
+            return room;
+        }))).filter(r => !!r);
 
 
         if (matrixRooms.length === 0) {
