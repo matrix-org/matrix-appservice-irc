@@ -30,6 +30,9 @@ import { IdentGenerator } from "../irc/IdentGenerator";
 
 const log = logging("AdminRoomHandler");
 
+// This is just a length to avoid silly long usernames
+const SANE_USERNAME_LENGTH = 64;
+
 const COMMANDS: {[command: string]: {example: string; summary: string; requiresPermission?: string}} = {
     "!join": {
         example: `!join [irc.example.net] #channel [key]`,
@@ -471,10 +474,10 @@ export class AdminRoomHandler {
                     "or '!username irc.server.name username'\n"
                 );
             }
-            else if (username.length > IdentGenerator.MAX_USER_NAME_LENGTH) {
+            else if (username.length > SANE_USERNAME_LENGTH) {
                 notice = new MatrixAction(
                     "notice",
-                    `Username is longer than the maximum permitted by IRC (${IdentGenerator.MAX_USER_NAME_LENGTH}).`
+                    `Username is longer than the maximum permitted by the bridge (${SANE_USERNAME_LENGTH}).`
                 );
             }
             else if (IdentGenerator.sanitiseUsername(username) !== username) {
