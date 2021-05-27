@@ -243,6 +243,13 @@ ircService:
             # Make virtual matrix clients join and leave rooms as their real IRC
             # counterparts join/part channels. Default: false.
             incremental: false
+            # Should the bridge check if all Matrix users are connected to IRC and
+            # joined to the channel before relaying messages into the room.
+            #
+            # This is considered a safety net to avoid any leakages by the bridge to
+            # unconnected users, but given it ignores all IRC messages while users
+            # are still connecting it may be overkill.
+            requireMatrixJoined: false
 
           matrixToIrc:
             # Get a snapshot of all real Matrix users in the room and join all of
@@ -266,6 +273,7 @@ ircService:
             ircToMatrix:
               initial: false
               incremental: false
+              requireMatrixJoined: false
 
         # Should the bridge ignore users which are not considered active on the bridge
         # during startup
@@ -552,6 +560,13 @@ ircService:
     enabled: false
     # The maximum number that can be set for the `lineLimit` configuration option
     # lineLimitMax: 5
+    # Allow matrix admins to disable or require Matrix users to be connected to the
+    # channel before any messages can be bridged. i.e. this is the per room
+    # version of `membershipLists.[].ircToMatrix.requireMatrixJoined`.
+    # 
+    # If this is true, configuration in the room state will take priority over
+    # the configuration in the config file.
+    # allowUnconnectedMatrixUsers: true
 
 # Options here are generally only applicable to large-scale bridges and may have
 # consequences greater than other options in this configuration file.

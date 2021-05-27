@@ -5,11 +5,13 @@ import getLogger from "../logging";
 
 interface RoomConfigContent {
     lineLimit?: number;
+    allowUnconnectedMatrixUsers: boolean|null;
 }
 
 export interface RoomConfigConfig {
     enabled: boolean;
     lineLimitMax?: number;
+    allowUnconnectedMatrixUsers?: boolean;
 }
 
 const MAX_CACHE_SIZE = 512;
@@ -88,5 +90,24 @@ export class RoomConfig {
             return null;
         }
         return Math.min(roomState.lineLimit, this.config?.lineLimitMax ?? roomState.lineLimit);
+    }
+
+    /**
+     * Check if the room allows or denys unconnected matrix users.
+     * @param roomId The Matrix roomId
+     * @param ircRoom The IRC roomId. Optional.
+     * @returns Whether unconnected Matrix users are allowed in the room. Will return null if not set.
+     */
+    public async allowUnconnectedMatrixUsers(roomId: string, ircRoom?: IrcRoom) {
+        if (this.config?.allowUnconnectedMatrixUsers !== true) {
+            // If not allowed by config, return null.
+            return null;
+        }
+        const roomState = await this.getRoomState(roomId, ircRoom);
+        if (typeof roomState?.allowUnconnectedMatrixUsers !== "boolean") {
+            // If not set or null, return null.
+            return null;
+        }
+        return roomState.allowUnconnectedMatrixUsers;
     }
 }
