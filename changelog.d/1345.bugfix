@@ -1,0 +1,1 @@
+Fix an issue where the IRC username was incorrectly required to be 10 characters or less.
