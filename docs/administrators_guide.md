@@ -36,7 +36,6 @@ bridge leads to a more pleasant experience for users. However as the setting req
 of the member lists on both sides of the bridge it can be more intensive on homeserver resources. You can
 also adjust the membership settings of individual rooms or channels to lessen the effect.
 
-
 ## Hot Reloading
 
 The bridge supports hot-reloading of the configuration file by sending a `SIGHUP` signal. Some configuration 
@@ -56,6 +55,27 @@ $ kill -SIGHUP 31960
 
 The logs will then mention `Bridge config was reloaded, applying changes` which confirms
 that the reload has taken place.
+
+## Enforcing Matrix users to be connected to IRC
+
+When configured to do so, the IRC bridge typically tries to join all Matrix users to the IRC channels
+as soon as they join and will avoid leaking messages to users not connected to IRC. However it's possible
+to race where a Matrix user will be in a room but not connected to IRC.
+
+Administatators can choose the default behaviour of allowing messages to continue to be bridged to the 
+room (potentially leaking history) or enforcing strict rules to ensure that all Matrix users are joined
+before *anyone* can read messages. This can be enabled by setting
+
+```yaml
+...
+membershipLists:
+  global:
+    ircToMatrix:
+      requireMatrixJoined: true
+```
+
+in the config. Users can choose to disable this on a per-room basis by modfiying their
+[room config](./room_configuration.md#allowunconnectedmatrixusers) options, if the bridge permits it.
 
 ## Metrics / Grafana
 
