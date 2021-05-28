@@ -181,6 +181,10 @@ ircService:
         # Should the AS publish the new Matrix room to the public room list so
         # anyone can see it? Default: true.
         published: true
+        # Publish the rooms to the homeserver directory, as oppose to the appservice
+        # room directory. Only used if `published` is on.
+        # Default: false
+        useHomeserverDirectory: true
         # What should the join_rule be for the new Matrix room? If 'public',
         # anyone can join the room. If 'invite', only users with an invite can
         # join the room. Note that if an IRC channel has +k or +i set on it,
