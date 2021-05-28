@@ -58,9 +58,9 @@ that the reload has taken place.
 
 ## Enforcing Matrix users to be connected to IRC
 
-When configured to do so, the IRC bridge typically tries to join all Matrix users to the IRC channels
-as soon as they join and will avoid leaking messages to users not connected to IRC. However it's possible
-to race where a Matrix user will be in a room but not connected to IRC.
+When configured to do so, the IRC bridge typically tries to join all Matrix users to
+the IRC channels to avoid Matrix users being able to read a conversation without being visible to IRC users.
+However since it is not always possible to ensure this happens in a timely manner, there is a safety net feature.
 
 Administatators can choose the default behaviour of allowing messages to continue to be bridged to the 
 room (potentially leaking history) or enforcing strict rules to ensure that all Matrix users are joined

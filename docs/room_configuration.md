@@ -8,7 +8,7 @@ bridge configuration.
 ## The `org.matrix.appservice-irc.config` event
 
 *Not all bridges support all configuration options listed. Check with the bridge administrator before
-filing a bug with the repository.*
+creating an issue.*
 
 The bridge allows room moderators to create a state event in the room to change the way the bridge
 behaves in that room. 

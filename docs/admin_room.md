@@ -56,7 +56,7 @@ Store a password, or a `username:password` combination to be sent as a PASS comm
 If you are authenticating with a SASL enable bridge (such as libera.chat), you MUST specify a `!username`
 before you can authenticate.
  
-To authenticate with your new settings, run `!reconnect`.
+To authenticate with your new settings, use [`!reconnect`](#reconnect).
 
 
 ### `!reconnect`
