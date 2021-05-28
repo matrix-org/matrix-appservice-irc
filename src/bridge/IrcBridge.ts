@@ -1342,12 +1342,17 @@ export class IrcBridge {
     }
 
     public async syncMembersInRoomToIrc(roomId: string, ircRoom: IrcRoom) {
-        const members = await this.getAppServiceBridge().getBot().getJoinedMembers(roomId);
+        const bot = this.getAppServiceBridge().getBot();
+        const members = await bot.getJoinedMembers(roomId);
         log.info(
             `Syncing Matrix users to ${ircRoom.server.domain} ${ircRoom.channel} (${Object.keys(members).length})`
         );
         for (const [userId, {display_name}] of Object.entries(members)) {
             try {
+                if (bot.isRemoteUser(userId)) {
+                    // Don't bridge remote.
+                    continue;
+                }
                 const client = await this.getClientPool().getBridgedClient(ircRoom.server, userId, display_name);
                 if (client.inChannel(ircRoom.channel)) {
                     continue;
