@@ -836,6 +836,14 @@ export class Provisioner {
                 },
                 event_id: "!injected_provisioner",
             }, target);
+            // Sync matrix users
+            if (server.shouldSyncMembershipToMatrix("initial", ircChannel)) {
+                await this.ircBridge.syncMembersInRoomToIrc(roomId, ircRoom);
+            }
+            // Sync IRC users.
+            if (server.shouldSyncMembershipToIrc("initial")) {
+                await (await this.ircBridge.getClientPool().getBridgedClient(server, userId)).getNicks(ircChannel);
+            }
         }
         catch (err) {
             // Not fatal, so log error and return success
