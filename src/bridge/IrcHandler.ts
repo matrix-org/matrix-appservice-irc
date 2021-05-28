@@ -509,10 +509,10 @@ export class IrcHandler {
      * @returns A promise, but it will always resolve.
      */
     private async setBlockedStateInRoom(req: BridgeRequest, roomId: string, ircRoom: IrcRoom, blocked: boolean) {
-        if (this.roomBlockedSet.has(ircRoom.getId()) === blocked) {
+        if (this.roomBlockedSet.has(roomId + ircRoom.getId()) === blocked) {
             return;
         }
-        this.roomBlockedSet[blocked ? 'add' : 'delete'](ircRoom.getId());
+        this.roomBlockedSet[blocked ? 'add' : 'delete'](roomId + ircRoom.getId());
         if (blocked) {
             req.log.warn(`${roomId} ${ircRoom.getId()} is now blocking IRC messages`);
         }
