@@ -60,7 +60,8 @@ new code.
 
 ### Release process
 
-To publish a release candidate, follow these steps:
+These steps are for the maintainers of the IRC bridge to refer to when doing a release.
+When doing an RC release, suffix a `-rcV` to the tag and version but NOT the branch.
 
 * `git checkout develop`
 * `git pull`
