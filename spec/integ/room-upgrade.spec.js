@@ -51,20 +51,17 @@ describe("Room upgrades", function() {
         const store = env.ircBridge.getStore();
         const newRoomId = "!new_room:bar.com";
         env.clientMock._client(botUserId).getStateEvent.and.callFake(async (roomId, eventType, key) => {
-            if (roomId !== newRoomId) {
-                throw Error('Wrong room ID');
+            if (eventType === 'm.room.create') {
+                expect(roomId).toEqual(newRoomId);
+                expect(key).toEqual('');
+                return {
+                    predecessor: {
+                        room_id: roomMapping.roomId,
+                    }
+                };
             }
-            if (eventType !== 'm.room.create') {
-                throw Error('Wrong event type');
-            }
-            if (key && key !== '') {
-                throw Error('Key should be blank')
-            }
-            return {
-                predecessor: {
-                    room_id: roomMapping.roomId,
-                }
-            };
+            // Pass through others
+            return {};
         });
         await env.mockAppService._trigger("type:m.room.tombstone", {
             content: {
@@ -126,6 +123,9 @@ describe("Room upgrades", function() {
             });
         });
 
+        expect(
+            env.clientMock._client(botUserId).getStateEvent.calls.any(newRoomId, 'm.room.create', '')
+        ).toBeTrue();
         const oldRoom = await store.getRoom(roomMapping.roomId, roomMapping.server, roomMapping.channel);
         const newRoom = await store.getRoom(newRoomId, roomMapping.server, roomMapping.channel);
         await allLeft;
