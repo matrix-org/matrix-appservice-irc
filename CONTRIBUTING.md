@@ -58,9 +58,10 @@ new code.
  - Releases are also tagged so they are present on the Releases page on Github.
  - Releases should be signed by the maintainer's key.
 
-### Release process
+### Doing a release
 
-To publish a release candidate, follow these steps:
+These steps are for the maintainers of the IRC bridge to refer to when doing a release.
+When doing an RC release, suffix a `-rcV` to the tag and version but NOT the branch.
 
 * `git checkout develop`
 * `git pull`
@@ -68,9 +69,9 @@ To publish a release candidate, follow these steps:
 * update package.json version number
 * `npm install` to update package-lock.json
 * `./scripts/changelog-release.sh`
-* `git commit CHANGELOG.md changelog.d package.json package-lock.json -m 'v0.V.0-rc1'`
-* `git tag --signed --message 'v0.V.0-rc1' 'v0.V.0-rc1'`
+* `git commit CHANGELOG.md changelog.d package.json package-lock.json -m 'v0.V.0'`
+* `git tag --sign --message 'v0.V.0' '0.V.0'`
 * `git push origin release-v0.V.0`
-* `git push origin v0.V.0-rc1`
+* `git push origin 0.V.0`
 * [Make a release on GitHub](https://github.com/matrix-org/matrix-appservice-irc/releases), copying the changelog into the body and marking it as pre-release
-* `npm publish` which requires you to be added to the matrix-org npm project
+* `npm publish`
