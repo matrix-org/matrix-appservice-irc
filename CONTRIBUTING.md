@@ -58,7 +58,7 @@ new code.
  - Releases are also tagged so they are present on the Releases page on Github.
  - Releases should be signed by the maintainer's key.
 
-### Release process
+### Doing a release
 
 These steps are for the maintainers of the IRC bridge to refer to when doing a release.
 When doing an RC release, suffix a `-rcV` to the tag and version but NOT the branch.
