@@ -1,3 +1,14 @@
+0.26.1 (2021-06-03)
+===================
+
+This update features a **security** fix for a bug in `matrix-appservice-bridge`. Server administrators are encouraged to update the bridge. See https://github.com/matrix-org/matrix-appservice-bridge/releases/tag/2.6.1 for details. If you have any questions, please contact [security@matrix.org](security@matrix.org).
+
+Bugfixes
+--------
+
+- Update a number of packages to latest versions, including `matrix-appservice-bridge@2.6.1` containing a security fix. ([\#1365](https://github.com/matrix-org/matrix-appservice-irc/issues/1365))
+
+
 0.26.0 (2021-05-13)
 ===================
 
