@@ -69,7 +69,7 @@ When doing an RC release, suffix a `-rcV` to the tag and version but NOT the bra
 * update package.json version number
 * `npm install` to update package-lock.json
 * `./scripts/changelog-release.sh`
-* `git commit CHANGELOG.md changelog.d package.json package-lock.json -m 'v0.V.0-rc1'`
+* `git commit CHANGELOG.md changelog.d package.json package-lock.json -m 'v0.V.0'`
 * `git tag --sign --message 'v0.V.0-rc1' '0.V.0-rc1'`
 * `git push origin release-v0.V.0`
 * `git push origin 0.V.0-rc1`
