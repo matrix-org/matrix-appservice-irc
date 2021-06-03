@@ -70,7 +70,7 @@ When doing an RC release, suffix a `-rcV` to the tag and version but NOT the bra
 * `npm install` to update package-lock.json
 * `./scripts/changelog-release.sh`
 * `git commit CHANGELOG.md changelog.d package.json package-lock.json -m 'v0.V.0'`
-* `git tag --sign --message 'v0.V.0-rc1' '0.V.0-rc1'`
+* `git tag --sign --message 'v0.V.0' '0.V.0'`
 * `git push origin release-v0.V.0`
 * `git push origin 0.V.0-rc1`
 * [Make a release on GitHub](https://github.com/matrix-org/matrix-appservice-irc/releases), copying the changelog into the body and marking it as pre-release
