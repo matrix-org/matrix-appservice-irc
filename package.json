@@ -28,7 +28,7 @@
   "dependencies": {
     "@sentry/node": "^5.27.1",
     "bluebird": "^3.7.2",
-    "escape-string-regexp": "^5.0.0",
+    "escape-string-regexp": "^4.0.0",
     "extend": "^3.0.2",
     "he": "^1.2.0",
     "logform": "^2.2.0",
