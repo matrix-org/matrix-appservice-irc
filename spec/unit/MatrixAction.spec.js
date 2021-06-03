@@ -46,6 +46,40 @@ describe("MatrixAction", function() {
             );
         });
     });
+    it("should highlight a possessive mention", () => {
+        let action = new MatrixAction(
+            "message",
+            "Did you get JCDenton's report?",
+            "Did you get JCDenton's report?",
+            null
+        );
+        return action.formatMentions({
+            "JCDenton": "@jc.denton:unatco.gov"
+        }, FakeIntent).then(() => {
+            expect(action.text).toEqual("Did you get TheJCDenton's report?");
+            expect(action.htmlText).toEqual(
+                "Did you get <a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
+                "TheJCDenton</a>'s report?"
+            );
+        });
+    });
+    it("should highlight a quote", () => {
+        let action = new MatrixAction(
+            "message",
+            "Hey, you missed: <JCDenton> it's a bomb!",
+            "Hey, you missed: &lt;JCDenton&gt; it's a bomb!",
+            null
+        );
+        return action.formatMentions({
+            "JCDenton": "@jc.denton:unatco.gov"
+        }, FakeIntent).then(() => {
+            expect(action.text).toEqual("Hey, you missed: <TheJCDenton> it's a bomb!");
+            expect(action.htmlText).toEqual(
+                "Hey, you missed: &lt;<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
+                "TheJCDenton</a>&gt; it's a bomb!"
+            );
+        });
+    });
     it("should highlight a user, regardless of case", () => {
         let action = new MatrixAction(
             "message",

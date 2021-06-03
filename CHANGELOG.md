@@ -1,4 +1,49 @@
- 0.25.0 (2021-03-16)
+0.26.0 (2021-05-13)
+===================
+
+No significant changes.
+
+
+0.26.0-rc2 (2021-05-10)
+========================
+
+Internal Changes
+----------------
+
+- For NPM 7 to properly fetch the irc dependency, we switch to a git+https:// url. Before it defaulted to SSH which needs some authentication. ([\#1311](https://github.com/matrix-org/matrix-appservice-irc/issues/1311))
+
+
+0.26.0-rc1 (2021-05-07)
+========================
+
+Features
+--------
+
+- Allow changing nickname in any room ([\#1217](https://github.com/matrix-org/matrix-appservice-irc/issues/1217))
+- The bridge will now retry creating a room for a PM if the initial attempt fails. ([\#1282](https://github.com/matrix-org/matrix-appservice-irc/issues/1282))
+- Decouple invite from the creation of a PM room ([\#1290](https://github.com/matrix-org/matrix-appservice-irc/issues/1290))
+- Add new `kickOn` config option to disable kicking Matrix users under certain conditions ([\#1294](https://github.com/matrix-org/matrix-appservice-irc/issues/1294))
+- Added an !unlink command for Matrix users to unbridge a channel from Matrix ([\#1298](https://github.com/matrix-org/matrix-appservice-irc/issues/1298))
+- Add support for specifying the paste bin limit in room state with the `org.matrix.appservice-irc.config` event type. ([\#1301](https://github.com/matrix-org/matrix-appservice-irc/issues/1301))
+
+
+Bugfixes
+--------
+
+- [M->I]: Trim Markdown code block syntax ([\#1275](https://github.com/matrix-org/matrix-appservice-irc/issues/1275))
+
+
+Internal Changes
+----------------
+
+- Doc changes: Unify use of port 9999, the registration file name, and other minor changes ([\#1274](https://github.com/matrix-org/matrix-appservice-irc/issues/1274))
+- Fixed a bug where our linter would miss several files ([\#1288](https://github.com/matrix-org/matrix-appservice-irc/issues/1288))
+- Fix linter warnings ([\#1289](https://github.com/matrix-org/matrix-appservice-irc/issues/1289))
+- Docker image: Upgrade to NodeJS 14 ([\#1299](https://github.com/matrix-org/matrix-appservice-irc/issues/1299))
+- Add GitHub action to push documentation upon release ([\#1306](https://github.com/matrix-org/matrix-appservice-irc/issues/1306))
+
+
+0.25.0 (2021-03-16)
 ====================
 
 No significant changes.

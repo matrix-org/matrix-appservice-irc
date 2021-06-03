@@ -1,0 +1,1 @@
+Validate that the nickname is provided to `!irc nick` before trying to change nick.
