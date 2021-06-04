@@ -51,6 +51,12 @@ describe("Formatting", function() {
             ).toBe("The quick brown <b>fox</b> jumps over the lazy <b>dog</b>.");
         });
     });
+    describe("stripIrcFormatting", function() {
+        it("should not strip ZWSP characters", () => {
+            const text = "Lorem​Ipsum​Dolor​Sit​";
+            expect(formatting.stripIrcFormatting(text)).withContext("ZWSPs missing").toBe(text);
+        });
+    });
     describe("markdownCodeToIrc", function() {
         it("should return null for a non-code input", function() {
             expect(
