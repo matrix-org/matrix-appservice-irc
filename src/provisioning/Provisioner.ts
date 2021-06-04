@@ -838,7 +838,7 @@ export class Provisioner {
             }, target);
             // Sync matrix users
             if (server.shouldSyncMembershipToMatrix("initial", ircChannel)) {
-                await this.ircBridge.syncMembersInRoomToIrc(roomId, ircRoom);
+                await this.ircBridge.syncMembersInRoomToIrc(req, roomId, ircRoom);
             }
             // Sync IRC users.
             if (server.shouldSyncMembershipToIrc("initial")) {
