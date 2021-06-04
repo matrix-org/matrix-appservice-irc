@@ -372,6 +372,12 @@ export class IrcBridge {
             labels: ["method"]
         });
 
+        const ircHandlerBlockedRooms = metrics.addGauge({
+            name: "irchandler_blocked_rooms",
+            help: "Track number of blocked rooms",
+            labels: ["method"]
+        });
+
         const matrixHandlerConnFailureKicks = metrics.addCounter({
             name: "matrixhandler_connection_failure_kicks",
             help: "Track IRC connection failures resulting in kicks",
@@ -436,7 +442,7 @@ export class IrcBridge {
                     this.memberListSyncers[server].getUsersWaitingToJoin()
                 );
             });
-
+            ircHandlerBlockedRooms.set(this.ircHandler.blockedRoomCount);
             const ircMetrics = this.ircHandler.getMetrics();
             Object.entries(ircMetrics).forEach((kv) => {
                 ircHandlerCalls.inc({method: kv[0]}, kv[1]);

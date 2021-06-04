@@ -91,6 +91,10 @@ export class IrcHandler {
         this.getMetrics();
     }
 
+    public get blockedRoomCount() {
+        return this.roomBlockedSet.size;
+    }
+
     public onMatrixMemberEvent(event: {room_id: string; state_key: string; content: {membership: MatrixMembership}}) {
         const priv = this.roomIdToPrivateMember[event.room_id];
         if (!priv) {
