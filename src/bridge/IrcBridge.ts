@@ -869,7 +869,8 @@ export class IrcBridge {
                 await new Promise(r => setTimeout(r, ircRoom.server.getMemberListFloodDelayMs()));
             }
             catch (ex) {
-                if (!kickFailures) {
+                if (!kickFailures || !this.startedUp) {
+                    // Don't kick if we're not started up.
                     req.log.warn(`Failed to sync ${userId} to IRC channel`);
                     continue;
                 }
