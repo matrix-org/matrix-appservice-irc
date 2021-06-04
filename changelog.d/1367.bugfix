@@ -1,0 +1,1 @@
+Fix a bug preventing users from using the `!username` command with a username that contains underscores.
