@@ -304,7 +304,7 @@ describe("IRC-to-Matrix message bridging", function() {
         let tIrcFormattedText = "This text is \u0002bold\u000f and has " +
             "<div> tags & characters like ' and \"";
         let tHtmlMain = "This text is <b>bold</b> and has " +
-            "&lt;div&gt; tags &amp; characters like &#39; and &quot;";
+            "&lt;div&gt; tags &amp; characters like &apos; and &quot;";
         let tFallback = "This text is bold and has <div> tags & characters like ' and \"";
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(roomMapping.roomId);
