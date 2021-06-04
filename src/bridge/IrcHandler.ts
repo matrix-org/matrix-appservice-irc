@@ -516,11 +516,12 @@ export class IrcHandler {
         if (this.roomBlockedSet.has(ircRoom.getId()) === blocked) {
             return;
         }
-        this.roomBlockedSet[blocked ? 'add' : 'delete'](ircRoom.getId());
         if (blocked) {
+            this.roomBlockedSet.add(ircRoom.getId());
             req.log.warn(`${roomId} ${ircRoom.getId()} is now blocking IRC messages`);
         }
         else {
+            this.roomBlockedSet.delete(ircRoom.getId());
             req.log.warn(`${roomId} ${ircRoom.getId()} has now unblocked IRC messages`);
         }
         try {
@@ -622,19 +623,19 @@ export class IrcHandler {
 
         // Some setups require that we check all matrix users are joined before we bridge
         // messages.
-        const matrixRooms = (await Promise.all((
+        const matrixRooms = await Promise.all((
             await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel)
-        ).map(async (room) => {
+        ).filter(async (room) => {
             const required = await this.shouldRequireMatrixUserJoined(server, channel, room.roomId);
             req.log.debug(`${room.roomId} ${required ? "requires" : "does not require"} Matrix users to be joined`);
-            if (required) {
-                const allowed = await this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
-                // Do so asyncronously, as we don't want to block message handling on this.
-                this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), !allowed);
-                return allowed ? room : undefined;
+            if (!required) {
+                return true;
             }
-            return room;
-        }))).filter(r => !!r) as MatrixRoom[];
+            const allowed = await this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
+            // Do so asyncronously, as we don't want to block message handling on this.
+            this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), !allowed);
+            return allowed;
+        }));
 
 
         if (matrixRooms.length === 0) {
