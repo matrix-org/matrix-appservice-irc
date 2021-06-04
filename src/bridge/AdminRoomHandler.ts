@@ -465,8 +465,10 @@ export class AdminRoomHandler {
         let notice;
 
         try {
-            // Allow passwords with spaces
+            // Allow usernames with spaces
             const username = args[0]?.trim();
+            // Allow usernames with trailing underscores
+            const usernameWithoutUnderscores = username.replace(/_/g, "");
             if (!username) {
                 notice = new MatrixAction(
                     "notice",
@@ -480,7 +482,7 @@ export class AdminRoomHandler {
                     `Username is longer than the maximum permitted by the bridge (${SANE_USERNAME_LENGTH}).`
                 );
             }
-            else if (IdentGenerator.sanitiseUsername(username) !== username) {
+            else if (IdentGenerator.sanitiseUsername(username) !== usernameWithoutUnderscores) {
                 notice = new MatrixAction(
                     "notice",
                     `Username contained invalid characters not supported by IRC.`
