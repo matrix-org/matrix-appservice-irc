@@ -952,7 +952,7 @@ export class BridgedClient extends EventEmitter {
             const failCodes = [
                 "err_nosuchchannel", "err_toomanychannels", "err_channelisfull",
                 "err_inviteonlychan", "err_bannedfromchan", "err_badchannelkey",
-                "err_needreggednick"
+                "err_needreggednick", "err_useronchannel"
             ];
             this.log.error("Join channel %s : %s", channel, JSON.stringify(err));
             if (err.command && failCodes.includes(err.command) && err.args.includes(channel)) {
