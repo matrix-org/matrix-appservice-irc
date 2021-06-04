@@ -16,6 +16,10 @@ export class PrivacyProtection {
 
     }
 
+    public get blockedRoomCount() {
+        return this.roomBlockedSet.size;
+    }
+
     /**
      * Clear the membership cache for a room.
      * @param roomId The Matrix room ID.

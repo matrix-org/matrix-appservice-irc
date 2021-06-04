@@ -76,8 +76,6 @@ export class IrcHandler {
 
     public readonly roomAccessSyncer: RoomAccessSyncer;
 
-    private readonly roomBlockedSet = new Set<string>();
-
     private callCountMetrics?: {
         [key in MetricNames]: number;
     };
@@ -91,10 +89,6 @@ export class IrcHandler {
         this.roomAccessSyncer = new RoomAccessSyncer(ircBridge);
         this.mentionMode = config.mapIrcMentionsToMatrix || "on";
         this.getMetrics();
-    }
-
-    public get blockedRoomCount() {
-        return this.roomBlockedSet.size;
     }
 
     public onMatrixMemberEvent(event: {room_id: string; state_key: string; content: {membership: MatrixMembership}}) {
