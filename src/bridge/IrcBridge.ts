@@ -44,6 +44,7 @@ import { globalAgent as gAHTTP } from "http";
 import { globalAgent as gAHTTPS } from "https";
 import { RoomConfig } from "./RoomConfig";
 import { PrivacyProtection } from "../irc/PrivacyProtection";
+import { ProvisionRequest } from "../provisioning/ProvisionRequest";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -847,7 +848,8 @@ export class IrcBridge {
         throw Error("Unknown action: " + action.type);
     }
 
-    public async syncMembersInRoomToIrc(req: BridgeRequest, roomId: string, ircRoom: IrcRoom, kickFailures = false) {
+    public async syncMembersInRoomToIrc(
+        req: BridgeRequest|ProvisionRequest, roomId: string, ircRoom: IrcRoom, kickFailures = false) {
         const bot = this.getAppServiceBridge().getBot();
         const members = await bot.getJoinedMembers(roomId);
         req.log.info(
@@ -1367,31 +1369,6 @@ export class IrcBridge {
             })
         }));
         log.info(`Ghost migration to ${newRoomId} complete`);
-    }
-
-    public async syncMembersInRoomToIrc(roomId: string, ircRoom: IrcRoom) {
-        const bot = this.getAppServiceBridge().getBot();
-        const members = await bot.getJoinedMembers(roomId);
-        log.info(
-            `Syncing Matrix users to ${ircRoom.server.domain} ${ircRoom.channel} (${Object.keys(members).length})`
-        );
-        for (const [userId, {display_name}] of Object.entries(members)) {
-            try {
-                if (bot.isRemoteUser(userId)) {
-                    // Don't bridge remote.
-                    continue;
-                }
-                const client = await this.getClientPool().getBridgedClient(ircRoom.server, userId, display_name);
-                if (client.inChannel(ircRoom.channel)) {
-                    continue;
-                }
-                await client.joinChannel(ircRoom.channel);
-                await new Promise(r => setTimeout(r, ircRoom.server.getMemberListFloodDelayMs()));
-            }
-            catch (ex) {
-                log.warn(`Failed to sync ${userId} to IRC channel`);
-            }
-        }
     }
 
     public async connectionReap(logCb: (line: string) => void, reqServerName: string,

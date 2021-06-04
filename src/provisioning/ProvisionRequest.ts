@@ -10,6 +10,10 @@ export class ProvisionRequest {
         this.log = newRequestLogger(rootLogger, `${this.id} ${fnName}`, false);
     }
 
+    public getId() {
+        return this.id;
+    }
+
     get body () {
         return this.req.body;
     }
