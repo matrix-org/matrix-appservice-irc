@@ -1040,6 +1040,7 @@ export class IrcHandler {
                             "the connection. ",
                     preset: "trusted_private_chat",
                     visibility: "private",
+                    is_direct: true,
                     invite: [client.userId]
                 }
             });
