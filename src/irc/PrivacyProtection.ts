@@ -135,25 +135,24 @@ export class PrivacyProtection {
     }
 
     /**
-     * Get rooms which are safe to bridge IRC messages to. 
+     * Get rooms which are safe to bridge IRC messages to.
      * @param req The bridge request
      * @param server The IRC server
      * @param channel The IRC channel
      * @returns An array of Matrix rooms
      */
     async getSafeRooms(req: BridgeRequest, server: IrcServer, channel: string): Promise<MatrixRoom[]> {
-        return await Promise.all((
-            await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel)
-        ).filter(async (room) => {
+        const allRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
+        return (await Promise.all((allRooms).map(async (room) => {
             const required = await this.shouldRequireMatrixUserJoined(server, channel, room.roomId);
             req.log.debug(`${room.roomId} ${required ? "requires" : "does not require"} Matrix users to be joined`);
             if (!required) {
-                return true;
+                return room;
             }
             const allowed = await this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
             // Do so asyncronously, as we don't want to block message handling on this.
             this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), !allowed);
-            return allowed;
-        }));
+            return allowed ? room : undefined;
+        }))).filter(r => r !== undefined) as MatrixRoom[];
     }
 }
