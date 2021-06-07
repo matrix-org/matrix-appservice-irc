@@ -414,6 +414,10 @@ export class IrcServer {
         return this.idleUsersStartupExcludeRegex;
     }
 
+    public get aliasTemplateHasHashPrefix() {
+        return this.config.dynamicChannels.aliasTemplate.startsWith("#");
+    }
+
     /**
      * The amount of time to allow for inactivty on the connection, before considering the connection
      * dead. This usually happens if the IRCd doesn't ping us.
@@ -600,6 +604,9 @@ export class IrcServer {
     }
 
     public getAliasFromChannel(channel: string) {
+        if (!channel.startsWith("#") && !this.aliasTemplateHasHashPrefix) {
+            throw Error('Cannot get an alias for a channel not starting with a hash');
+        }
         const template = this.config.dynamicChannels.aliasTemplate;
         let alias = template.replace(/\$CHANNEL/g, channel);
         alias = alias.replace(/\$SERVER/g, this.domain);
@@ -739,6 +746,16 @@ export class IrcServer {
             for (const [channelId, roomIds] of stringMappings) {
                 config.mappings[channelId] = { roomIds: roomIds }
             }
+        }
+
+        if (!this.aliasTemplateHasHashPrefix) {
+            if (this.config.dynamicChannels.aliasTemplate !== "$CHANNEL") {
+                throw Error(
+                    "If no hash prefix is given in 'aliasTemplate', then the aliasTemplate must be exactly '$CHANNEL'"
+                );
+            }
+            log.warn(`You have configured your aliasTemplate to not include a prefix hash. This means that only
+            channels starting with a hash are supported by the bridge.`)
         }
 
         this.addresses = config.additionalAddresses || [];
