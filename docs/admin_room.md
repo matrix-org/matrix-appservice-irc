@@ -1,12 +1,12 @@
 # Admin Room
 
-Most bridges will send you an invite to an admin room once you connectto control your connection 
-to IRC, but larger bridges like matrix.org's Freenode bridge will not (you will need to start a
-conversation with the bot manually).
+Most bridges will invite you to an admin room once you connect. Larger bridges like matrix.org's
+Freenode bridge may not, in which case you will need to start a conversation with the bot manually.
+
 
 ## Bot Commands
 
-The admin room allows you to send commands to a room to manipulate your IRC session. 
+The admin room allows you to send commands to a room, to manipulate your IRC session. 
 
 Some commands take a `[irc.example.net]` which lets you choose which IRC network to direct the
 request to, as some bridges host multiple IRC networks. Typically matrix.org bridges only host
