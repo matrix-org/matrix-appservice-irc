@@ -7,6 +7,9 @@ bridge configuration.
 
 ## The `org.matrix.appservice-irc.config` event
 
+*Not all bridges support all configuration options listed. Check with the bridge administrator before
+creating an issue.*
+
 The bridge allows room moderators to create a state event in the room to change the way the bridge
 behaves in that room. 
 
@@ -37,3 +40,11 @@ Type: `number`
 This allows you to modify the minimum number of lines permitted in a room before the
 message is pastebinned. The setting is analogous to the `lineLimit` config option in
 the bridge config file.
+
+### `allowUnconnectedMatrixUsers`
+
+Type: `boolean`
+
+Some IRC networks require that Matrix users must be joined to the IRC channel before
+*any* messages can bridge into the room. You can override this by setting this key
+to `true`.

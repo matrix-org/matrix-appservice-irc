@@ -37,16 +37,34 @@ text, so commands will happen silently.
 A powerful command to either lookup a nickname *or* a Matrix UserID and return information about that user.
 
 
+### `!username`
+
+`!username [irc.example.net] username`
+
+Store the username you wish to identify with on the bridge. Please note that this must abide by the
+rules [of RFC2812](https://datatracker.ietf.org/doc/html/rfc2812#section-2.3.1) which means the username
+should be lowercase, and contain only some special characters.
+
 ### `!storepass`
 
 `!storepass [irc.example.net] passw0rd`
 
 Store a password, or a `username:password` combination to be sent as a PASS command on connection to the server.
-This will also reconnect you to IRC so the PASS command can be sent.
 
-**This action will store your password in encrypted form on the IRC bridge**, so be sure to use a unique password
-for the IRC service. 
+**This action will store your password in encrypted form on the IRC bridge**, so be sure to use a unique password for the IRC service. 
 
+If you are authenticating with a SASL enable bridge (such as libera.chat), you MUST specify a `!username`
+before you can authenticate.
+ 
+To authenticate with your new settings, use [`!reconnect`](#reconnect).
+
+
+### `!reconnect`
+
+`!reconnect [irc.example.net]`
+
+This command will reconnect you to IRC without kicking you from rooms. This is useful if you
+need to authenticate after setting your password (and username).
 
 ### `!removepass`
 

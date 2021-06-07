@@ -76,3 +76,17 @@ than send the message line by line.
 This can be confusing for IRC users, so we typically try to have a sensible limit to line count. By default
 the bridge only pastebins a message that is over 3 lines in length to avoid problems, but this can be increased
 at the discretion of the bridge admin.
+
+
+### History protection
+
+Matrix is naturally history preserving, so that any message sent to a Matrix room is sent to all
+participating users/servers. They will be able to read these messsages for as long as they
+are joined to the room.
+
+Bridged IRC rooms do not share history to Matrix users from before they have joined by default,
+but history visibility can be changed by users with the correct power level on Matrix.
+
+The bridge can also be configured to stop bridging all traffic from a channel to Matrix if it
+cannot garuntee that a Matrix user is joined to the IRC channel, which is usually a step of last
+resort should the bridge have failed to connect them. See the [administrators guide](administrators_guide.md#enforcing-matrix-users-to-be-connected-to-irc).

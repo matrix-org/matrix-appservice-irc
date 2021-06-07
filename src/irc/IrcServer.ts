@@ -40,6 +40,7 @@ export interface IrcServerConfig {
     dynamicChannels: {
         enabled: boolean;
         published: boolean;
+        useHomeserverDirectory: boolean;
         createAlias: boolean;
         joinRule: "public"|"invite";
         federate: boolean;
@@ -120,6 +121,7 @@ export interface IrcServerConfig {
             ircToMatrix: {
                 initial: boolean;
                 incremental: boolean;
+                requireMatrixJoined: boolean;
             };
             matrixToIrc: {
                 initial: boolean;
@@ -131,6 +133,7 @@ export interface IrcServerConfig {
             ircToMatrix: {
                 initial: boolean;
                 incremental: boolean;
+                requireMatrixJoined: boolean;
             };
         }[];
         rooms: {
@@ -361,6 +364,10 @@ export class IrcServer {
         return this.config.dynamicChannels.published;
     }
 
+    public shouldPublishRoomsToHomeserverDirectory() {
+        return this.config.dynamicChannels.useHomeserverDirectory;
+    }
+
     public allowsNickChanges() {
         return this.config.ircClients.allowNickChanges;
     }
@@ -503,6 +510,25 @@ export class IrcServer {
             });
         }
 
+        return shouldSync;
+    }
+
+    /**
+     * Does the server/channel require all Matrix users to be joined?
+     * @param channel The IRC channel.
+     * @returns True if the server requires all Matrix users to be joined.
+     */
+    public shouldRequireMatrixUserJoined(channel: string) {
+        let shouldSync = this.config.membershipLists.global.ircToMatrix.requireMatrixJoined;
+        this.config.membershipLists.channels.find((chan) => {
+            if (chan.channel === channel) {
+                if (typeof chan.ircToMatrix?.requireMatrixJoined === "boolean") {
+                    shouldSync = chan.ircToMatrix.requireMatrixJoined;
+                }
+                return true;
+            }
+            return false;
+        });
         return shouldSync;
     }
 
@@ -679,6 +705,7 @@ export class IrcServer {
             dynamicChannels: {
                 enabled: false,
                 published: true,
+                useHomeserverDirectory: false,
                 createAlias: true,
                 joinRule: "public",
                 federate: true,
@@ -718,7 +745,8 @@ export class IrcServer {
                 global: {
                     ircToMatrix: {
                         initial: false,
-                        incremental: false
+                        incremental: false,
+                        requireMatrixJoined: false,
                     },
                     matrixToIrc: {
                         initial: false,

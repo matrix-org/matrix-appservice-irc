@@ -87,10 +87,8 @@ export class IdentGenerator {
                     ircClientConfig.getUsername(), matrixUser.getId(), ircClientConfig.getDomain()
                 );
                 return {
-                    username:IdentGenerator.sanitiseUsername(username).substring(
-                        0, IdentGenerator.MAX_USER_NAME_LENGTH
-                    ),
-                    realname: realname,
+                    username,
+                    realname,
                 };
             }
             try {
