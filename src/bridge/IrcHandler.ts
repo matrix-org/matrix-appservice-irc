@@ -1062,12 +1062,13 @@ export class IrcHandler {
                                     `letting you control the connection. Type !help for more information`
                     const notice = new MatrixAction("notice", newRoomMsg);
                     await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
+                    // This is stored now so we can delete the promise.
+                    this.pendingAdminRooms.delete(userId);
                     return adminRoom;
                 })();
                 this.pendingAdminRooms.set(client.userId, adminRoomNewPromise);
                 adminRoom = await adminRoomNewPromise;
             }
-
         }
         else {
             adminRoom = fetchedAdminRoom;
