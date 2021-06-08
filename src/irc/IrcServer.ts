@@ -37,6 +37,7 @@ export interface IrcServerConfig {
     password?: string;
     allowExpiredCerts?: boolean;
     additionalAddresses?: string[];
+    onlyAdditionalAddresses?: boolean;
     dynamicChannels: {
         enabled: boolean;
         published: boolean;
@@ -678,6 +679,7 @@ export class IrcServer {
     public static get DEFAULT_CONFIG(): IrcServerConfig {
         return {
             sendConnectionMessages: true,
+            onlyAdditionalAddresses: false,
             quitDebounce: {
                 enabled: false,
                 quitsPerSecond: 5,
@@ -770,7 +772,10 @@ export class IrcServer {
         }
 
         this.addresses = config.additionalAddresses || [];
-        this.addresses.push(this.domain);
+        // Don't include the original domain if not configured to.
+        if (!config.onlyAdditionalAddresses) {
+            this.addresses.push(this.domain);
+        }
         this.excludedUsers = config.excludedUsers.map((excluded) => {
             return {
                 ...excluded,
