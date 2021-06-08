@@ -1,0 +1,1 @@
+Add `tlsOptions` key to the config to override the IRC connection parameters.
