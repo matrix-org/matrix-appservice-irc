@@ -782,8 +782,8 @@ export class IrcServer {
                     "If no hash prefix is given in 'aliasTemplate', then the aliasTemplate must be exactly '$CHANNEL'"
                 );
             }
-            log.warn(`You have configured your aliasTemplate to not include a prefix hash. This means that only
-            channels starting with a hash are supported by the bridge.`)
+            log.warn("You have configured your aliasTemplate to not include a prefix hash. This means that only " +
+                "channels starting with a hash are supported by the bridge.`)
         }
 
         this.addresses = config.additionalAddresses || [];
