@@ -81,11 +81,17 @@ ircService:
       # Whether to allow expired certs when connecting to the IRC server.
       # Usually this should be off. Default: false.
       allowExpiredCerts: false
-      # A specific CA to trust instead of the default CAs. Optional.
-      #ca: |
-      #  -----BEGIN CERTIFICATE-----
-      #  ...
-      #  -----END CERTIFICATE-----
+      # Set additional TLS options for the connections to the IRC server.
+      tlsOptions:
+        # A specific CA to trust instead of the default CAs. Optional.
+        #ca: |
+        #  -----BEGIN CERTIFICATE-----
+        #  ...
+        #  -----END CERTIFICATE-----
+        # Server name for the SNI (Server Name Indication) TLS extension. If the address you
+        # are using does not report the correct certificate name, you can override it here.
+        # servername: real.server.name
+        # ...or any options in https://nodejs.org/api/tls.html#tls_tls_connect_options_callback
 
       #
       # The connection password to send for all clients as a PASS (or SASL, if enabled above) command. Optional.
