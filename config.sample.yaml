@@ -209,6 +209,12 @@ ircService:
         # $SERVER => The IRC server address (e.g. "irc.example.com")
         # $CHANNEL => The IRC channel (e.g. "#python")
         # This MUST have $CHANNEL somewhere in it.
+        #
+        # In certain circumstances you might want to bridge your whole IRC network as a
+        # homeserver (e.g. #matrix:libera.chat). For these use cases, you can set the 
+        # template to just be $CHANNEL. Doing so will preclude you from supporting
+        # other prefix characters though.
+        #
         # Default: '#irc_$SERVER_$CHANNEL'
         aliasTemplate: "#irc_$CHANNEL"
         # A list of user IDs which the AS bot will send invites to in response
