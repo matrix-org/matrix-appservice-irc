@@ -162,6 +162,10 @@ properties:
                                 type: "string"
                         ssl:
                             type: "boolean"
+                        ca:
+                            type: "string"
+                        tlsOptions:
+                            type: "object"
                         sslselfsign:
                             type: "boolean"
                         sasl:

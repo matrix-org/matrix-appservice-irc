@@ -381,7 +381,7 @@ export class ConnectionInstance {
             family: (server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null) as 6|null,
             bustRfc3484: true,
             sasl: opts.password ? server.useSasl() : false,
-            secure: server.useSsl() ? { ca: server.getCA() } : undefined,
+            secure: server.useSsl() ? server.getSecureOptions() : undefined,
             encodingFallback: opts.encodingFallback
         };
 

@@ -34,6 +34,7 @@ export interface IrcServerConfig {
     ssl?: boolean;
     sslselfsign?: boolean;
     sasl?: boolean;
+    tlsOptions?: Record<string, unknown>;
     password?: string;
     allowExpiredCerts?: boolean;
     additionalAddresses?: string[];
@@ -320,8 +321,8 @@ export class IrcServer {
         return this.config.dynamicChannels.whitelist.includes(userId);
     }
 
-    public getCA() {
-        return this.config.ca;
+    public getSecureOptions() {
+        return this.config.tlsOptions;
     }
 
     public useSsl() {
@@ -761,6 +762,15 @@ export class IrcServer {
 
     public reconfigure(config: IrcServerConfig, expiryTimeSeconds = 0) {
         log.info(`Reconfiguring ${this.domain}`);
+
+        if (config.ca) {
+            log.warn("** The IrcServer.ca is now deprecated, please use tlsOptions.ca. **");
+            config.tlsOptions = {
+                ...config.tlsOptions,
+                ca: config.ca,
+            };
+        }
+
         this.config = config;
         this.expiryTimeSeconds = expiryTimeSeconds;
         // This ensures that legacy mappings still work, but we prod the user to update.
