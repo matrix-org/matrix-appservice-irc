@@ -1,9 +1,12 @@
 import { MatrixRoom } from "matrix-appservice-bridge";
+import QuickLRU from "quick-lru";
 import { IrcBridge } from "../bridge/IrcBridge";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcServer } from "./IrcServer";
 
+
+const MAX_CACHE_SIZE = 64;
 /**
  * This class manages the visiblity of IRC messages on Matrix. It will check upon each IRC message
  * that all Matrix users are connected to the channel to avoid messages leaking to the Matrix side.
@@ -11,7 +14,7 @@ import { IrcServer } from "./IrcServer";
  */
 export class PrivacyProtection {
     private roomBlockedSet = new Set<string>();
-    private memberListCache = new Map<string, string[]>();
+    private memberListCache = new QuickLRU<string, string[]>({ maxSize: MAX_CACHE_SIZE });
     constructor(private ircBridge: IrcBridge) {
 
     }
