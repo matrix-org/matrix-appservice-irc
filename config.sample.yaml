@@ -55,8 +55,13 @@ ircService:
       # It is also used in the Third Party Lookup API as the instance `desc`
       # property, where each server is an instance.
       name: "ExampleNet"
-
+      # Additional addresses to connect to, used for load balancing between IRCDs.
       additionalAddresses: [ "irc2.example.com" ]
+      # Typically additionalAddresses would be in addition to the address key given above,
+      # but some configurations wish to exclusively use additional addresses while reserving
+      # the top key for identification purposes. Set this to true to exclusively use the
+      # additionalAddresses array when connecting to servers.
+      onlyAdditionalAddresses: false
       #
       # [DEPRECATED] Use `name`, above, instead.
       # A human-readable description string

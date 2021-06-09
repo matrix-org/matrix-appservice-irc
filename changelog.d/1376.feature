@@ -1,0 +1,1 @@
+Allow only using the `additionalAddresses` field when connecting to IRC.

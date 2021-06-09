@@ -160,6 +160,8 @@ properties:
                             type: "array"
                             items:
                                 type: "string"
+                        onlyAdditionalAddresses:
+                            type: "boolean"
                         ssl:
                             type: "boolean"
                         ca:
