@@ -1046,7 +1046,7 @@ export class IrcHandler {
                             name: `${client.server.getReadableName()} IRC Bridge status`,
                             topic:  `This room shows any errors or status messages from ` +
                                     `${client.server.domain}, as well as letting you control ` +
-                                    "the connection. ",
+                                    "the connection.",
                             preset: "trusted_private_chat",
                             visibility: "private",
                             is_direct: true,
