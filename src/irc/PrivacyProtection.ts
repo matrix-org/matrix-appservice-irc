@@ -16,7 +16,7 @@ export class PrivacyProtection {
 
     }
 
-    public get blockedRoomCount() {
+    public get blockedRoomCount(): number {
         return this.roomBlockedSet.size;
     }
 
@@ -24,7 +24,7 @@ export class PrivacyProtection {
      * Clear the membership cache for a room.
      * @param roomId The Matrix room ID.
      */
-    public clearRoomFromCache(roomId: string) {
+    public clearRoomFromCache(roomId: string): void {
         this.memberListCache.delete(roomId);
     }
 
@@ -33,7 +33,7 @@ export class PrivacyProtection {
      * @param roomId The Matrix room to inspect.
      * @returns An array of Matrix userIDs.
      */
-    private async getMatrixUsersForRoom(roomId: string) {
+    private async getMatrixUsersForRoom(roomId: string): string[] {
         let members = this.memberListCache.get(roomId);
         if (members) {
             return members;
@@ -41,7 +41,7 @@ export class PrivacyProtection {
         const bot = this.ircBridge.getAppServiceBridge().getBot();
         members =
             Object.keys(await bot.getJoinedMembers(roomId)).filter(m => !bot.isRemoteUser(m));
-        this.memberListCache.set(roomId, members)
+        this.memberListCache.set(roomId, members);
         return members;
     }
 
@@ -150,7 +150,7 @@ export class PrivacyProtection {
                 return room;
             }
             const allowed = await this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
-            // Do so asyncronously, as we don't want to block message handling on this.
+            // Do so asynchronously, as we don't want to block message handling on this.
             this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), !allowed);
             return allowed ? room : undefined;
         }))).filter(r => r !== undefined) as MatrixRoom[];
