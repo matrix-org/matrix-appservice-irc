@@ -33,60 +33,74 @@ const log = logging("AdminRoomHandler");
 // This is just a length to avoid silly long usernames
 const SANE_USERNAME_LENGTH = 64;
 
-const COMMANDS: {[command: string]: {example: string; summary: string; requiresPermission?: string}} = {
-    "!join": {
-        example: `!join [irc.example.net] #channel [key]`,
-        summary: `Join a channel (with optional channel key)`,
-    },
+interface Command {
+    example: string;
+    summary: string;
+    requiresPermission?: string;
+}
+
+interface Heading {
+    heading: true;
+}
+
+const COMMANDS: {[command: string]: Command|Heading} = {
+    'Actions': { heading: true },
     "!cmd": {
         example: `!cmd [irc.example.net] COMMAND [arg0 [arg1 [...]]]`,
         summary: "Issue a raw IRC command. These will not produce a reply." +
                 "(Note that the command must be all uppercase.)",
-    },
-    "!whois": {
-        example: `!whois [irc.example.net] NickName|@alice:matrix.org`,
-        summary: "Do a /whois lookup. If a Matrix User ID is supplied, " +
-                "return information about that user's IRC connection.",
-    },
-    "!reconnect": {
-        example: `!reconnect [irc.example.net]`,
-        summary: "Reconnect to an IRC network.",
-    },
-    "!username": {
-        example: `!username [irc.example.net] username`,
-        summary: "Store a username to use for future connections.",
-    },
-    "!storepass": {
-        example: `!storepass [irc.example.net] passw0rd`,
-        summary: `Store a NickServ OR SASL password (server password)`,
-    },
-    "!removepass": {
-        example: `!removepass [irc.example.net]`,
-        summary: `Remove a previously stored NickServ password`,
-    },
-    "!listrooms": {
-        example: `!listrooms [irc.example.net]`,
-        summary: "List all of your joined channels, and the rooms they are bridged into.",
-    },
-    "!quit": {
-        example: `!quit`,
-        summary: "Leave all bridged channels, on all networks, and remove your " +
-                "connections to all networks.",
-    },
-    "!nick": {
-        example: `!nick [irc.example.net] DesiredNick`,
-        summary: "Change your nick. If no arguments are supplied, " +
-                "your current nick is shown.",
     },
     "!feature": {
         example: `!feature feature-name [true/false/default]`,
         summary: `Enable, disable or default a feature's status for your account.` +
                 `Will display the current feature status if true/false/default not given.`,
     },
+    "!join": {
+        example: `!join [irc.example.net] #channel [key]`,
+        summary: `Join a channel (with optional channel key)`,
+    },
+    "!nick": {
+        example: `!nick [irc.example.net] DesiredNick`,
+        summary: "Change your nick. If no arguments are supplied, " +
+                "your current nick is shown.",
+    },
+    "!quit": {
+        example: `!quit`,
+        summary: "Leave all bridged channels, on all networks, and remove your " +
+                "connections to all networks.",
+    },
+    'Authentication': { heading: true },
+    "!storepass": {
+        example: `!storepass [irc.example.net] passw0rd`,
+        summary: `Store a NickServ OR SASL password (server password)`,
+    },
+    "!reconnect": {
+        example: `!reconnect [irc.example.net]`,
+        summary: "Reconnect to an IRC network.",
+    },
+    "!removepass": {
+        example: `!removepass [irc.example.net]`,
+        summary: `Remove a previously stored NickServ password`,
+    },
+    "!username": {
+        example: `!username [irc.example.net] username`,
+        summary: "Store a username to use for future connections.",
+    },
+    'Info': { heading: true},
     "!bridgeversion": {
         example: `!bridgeversion`,
         summary: "Return the version from matrix-appservice-irc bridge.",
     },
+    "!listrooms": {
+        example: `!listrooms [irc.example.net]`,
+        summary: "List all of your joined channels, and the rooms they are bridged into.",
+    },
+    "!whois": {
+        example: `!whois [irc.example.net] NickName|@alice:matrix.org`,
+        summary: "Do a /whois lookup. If a Matrix User ID is supplied, " +
+                "return information about that user's IRC connection.",
+    },
+    'Management': { heading: true },
     '!plumb': {
         example: `!plumb !room:example.com irc.example.net #foobar`,
         summary: "Plumb an IRC channel into a Matrix room.",
@@ -96,7 +110,7 @@ const COMMANDS: {[command: string]: {example: string; summary: string; requiresP
         example: "!unlink !room:example.com irc.example.net #foobar",
         summary: "Unlink an IRC channel from a Matrix room. " +
                 "You need to be a moderator of the Matrix room or an administrator of this bridge.",
-    }
+    },
 };
 
 const USER_FEATURES = ["mentions"];
@@ -703,20 +717,22 @@ export class AdminRoomHandler {
         );
     }
 
-    private async showBridgeVersion() {
+    private showBridgeVersion() {
         return new MatrixAction("notice", `BridgeVersion: ${getBridgeVersion()}`);
     }
 
-    private async showHelp(userPermission: string|undefined) {
-        return new MatrixAction("notice", null,
-            "This is an IRC admin room for controlling your IRC connection and sending " +
-            "commands directly to IRC. " +
-            "The following commands are available:<br/><ul>\n\t" +
-            Object.values(COMMANDS).filter(
-                (c) => !c.requiresPermission || c.requiresPermission === userPermission).map((c) =>
-                `<li><strong>${c.example}</strong> : ${c.summary}</li>`
-            ).join(`\n\t`) +
-            `</ul>`,
-        );
+    private showHelp(userPermission: string|undefined): MatrixAction {
+        let body = "This is an IRC admin room for controlling your IRC connection and sending " +
+        "commands directly to IRC. The following commands are available:<br/><ul>";
+        for (const [key, command] of Object.entries(COMMANDS)) {
+            if ("heading" in command) {
+                body += `</ul>\n<h3>${key}</h3>\n<ul>`;
+                continue;
+            }
+            if (!command.requiresPermission || command.requiresPermission === userPermission) {
+                body += `<li><strong>${command.example}</strong> : ${command.summary}</li>\n\t`;
+            }
+        }
+        return new MatrixAction("notice", null, body + "</ul>");
     }
 }
