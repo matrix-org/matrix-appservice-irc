@@ -154,7 +154,7 @@ export class PrivacyProtection {
             }
             const allowed = await this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
             // Do so asynchronously, as we don't want to block message handling on this.
-            this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), !allowed);
+            this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), !allowed).catch(req.log.error);
             return allowed ? room : undefined;
         }))).filter(r => r !== undefined) as MatrixRoom[];
     }
