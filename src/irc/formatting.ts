@@ -83,7 +83,8 @@ export function escapeHtmlChars(text: string): string {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;"); // to work on HTML4 (&apos; is HTML5 only)
+        .replace(/\u200B/g, "&ZeroWidthSpace;")
+        .replace(/'/g, "&apos;");
 }
 
 /**
@@ -150,7 +151,7 @@ export function htmlTag(state: StyleState, name: string, open?: boolean): string
 export function stripIrcFormatting(text: string) {
     return text
         // eslint-disable-next-line no-control-regex
-        .replace(/(\x03\d{0,2}(,\d{0,2})?|\u200B)/g, '') // strip colors
+        .replace(/(\x03\d{0,2}(,\d{0,2})?)/g, '') // strip colors
         // eslint-disable-next-line no-control-regex
         .replace(/[\x0F\x02\x16\x1F\x1D]/g, ''); // styles too
 }
