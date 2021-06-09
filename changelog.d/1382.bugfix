@@ -1,0 +1,1 @@
+Fix a bug where the bridge user would rejoin shortly after unbridging a room.

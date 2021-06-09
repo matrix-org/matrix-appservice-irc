@@ -930,10 +930,14 @@ export class Provisioner {
             throw new Error(`Provisioned room mapping does not exist (${mappingLogId})`);
         }
         await this.ircBridge.getStore().removeRoom(roomId, ircDomain, ircChannel, 'provision');
+
         // Leaving rooms should not cause unlink to fail
-        await this.leaveIfUnprovisioned(req, roomId, server, ircChannel).catch((ex) => {
-            req.log.error(`Failed to cleanup after unlinking:`, ex);
-        });
+        try {
+            await this.leaveIfUnprovisioned(req, roomId, server, ircChannel);
+        }
+        catch (err) {
+            req.log.error(`Failed to cleanup after unlinking:`, err);
+        }
     }
 
     // Force the bot to leave both sides of a provisioned mapping if there are no more mappings that
