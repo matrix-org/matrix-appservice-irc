@@ -53,7 +53,7 @@ describe("Formatting", function() {
     });
     describe("stripIrcFormatting", function() {
         it("should not strip ZWSP characters", () => {
-            const text = "Lorem​Ipsum​Dolor​Sit​";
+            const text = "Lorem\u200bIpsum\u200bDolor\u200bSit";
             expect(formatting.stripIrcFormatting(text)).withContext("ZWSPs missing").toBe(text);
         });
     });
