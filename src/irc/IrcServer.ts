@@ -34,7 +34,7 @@ export interface IrcServerConfig {
     ssl?: boolean;
     sslselfsign?: boolean;
     sasl?: boolean;
-    tlsOptions?: {};
+    tlsOptions?: Record<string, unknown>;
     password?: string;
     allowExpiredCerts?: boolean;
     additionalAddresses?: string[];
