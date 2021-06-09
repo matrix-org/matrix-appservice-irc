@@ -1011,21 +1011,29 @@ export class IrcHandler {
 
         const botUser = new MatrixUser(this.ircBridge.appServiceUserId);
 
-        if (ircMsg?.command === "err_nosuchnick") {
+        if (ircMsg && ["err_nosuchnick", "err_nononreg"].includes(ircMsg.command || "")) {
             const otherNick = ircMsg.args[1];
             const otherUser = new MatrixUser(client.server.getUserIdFromNick(otherNick));
             const room = await this.ircBridge.getStore().getMatrixPmRoom(client.userId, otherUser.userId);
             if (room) {
-                return this.ircBridge.sendMatrixAction(
-                    room, otherUser, new MatrixAction(
-                        "notice", `User is not online or does not exist. Message not sent.`
-                    ),
-                );
+                if (ircMsg.command === "err_nosuchnick") {
+                    return this.ircBridge.sendMatrixAction(
+                        room, otherUser, new MatrixAction(
+                            "notice", `User is not online or does not exist. Message not sent.`
+                        ),
+                    );
+                }
+                else if (ircMsg.command === "err_nononreg") {
+                    return this.ircBridge.sendMatrixAction(
+                        room, otherUser, new MatrixAction(
+                            "notice", `User is blocking messages from unregistered users, and you are not registered.`
+                        ),
+                    );
+                }
             }
             req.log.warn(`No existing PM found for ${client.userId} <--> ${otherUser.userId}`);
             // No room associated, fall through
         }
-
 
         let adminRoom: MatrixRoom;
         const fetchedAdminRoom = await this.ircBridge.getStore().getAdminRoomByUserId(client.userId);
