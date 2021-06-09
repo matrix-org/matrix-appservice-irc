@@ -1059,7 +1059,7 @@ export class IrcHandler {
                                     `'${client.server.domain}', where you ` +
                                     `are now connected as ${client.nick}. ` +
                                     `This room shows any errors or status messages from IRC, as well as ` +
-                                    `letting you control the connection. Type !help for more information`
+                                    `letting you control the connection. Type !help for more information.`
                     const notice = new MatrixAction("notice", newRoomMsg);
                     await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
                     // This is stored now so we can delete the promise.
