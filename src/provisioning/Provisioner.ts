@@ -930,14 +930,10 @@ export class Provisioner {
             throw new Error(`Provisioned room mapping does not exist (${mappingLogId})`);
         }
         await this.ircBridge.getStore().removeRoom(roomId, ircDomain, ircChannel, 'provision');
-
         // Leaving rooms should not cause unlink to fail
-        try {
-            await this.leaveIfUnprovisioned(req, roomId, server, ircChannel);
-        }
-        catch (err) {
-            req.log.error(err.stack);
-        }
+        await this.leaveIfUnprovisioned(req, roomId, server, ircChannel).catch((ex) => {
+            req.log.error(`Failed to cleanup after unlinking:`, ex);
+        });
     }
 
     // Force the bot to leave both sides of a provisioned mapping if there are no more mappings that
@@ -1042,7 +1038,7 @@ export class Provisioner {
         );
     }
 
-    private async leaveMatrixVirtuals(req: ProvisionRequest, roomId: string, server: IrcServer) {
+    private async leaveMatrixVirtuals(req: ProvisionRequest, roomId: string, server: IrcServer): Promise<void> {
         const asBot = this.ircBridge.getAppServiceBridge().getBot();
         const roomChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(
             roomId
@@ -1052,7 +1048,7 @@ export class Provisioner {
                 `Not leaving matrix virtuals from room, room is still bridged to ${roomChannels.length} channel(s)`
             );
             // We can't determine who should and shouldn't be in the room.
-            return;
+            return undefined;
         }
         const stateEvents = await asBot.getClient().roomState(roomId);
         const roomInfo = await asBot.getRoomInfo(roomId, {
@@ -1061,7 +1057,7 @@ export class Provisioner {
             }
         });
         req.log.info(`Leaving ${roomInfo.remoteJoinedUsers.length} virtual users from ${roomId}.`);
-        this.ircBridge.getMemberListSyncer(server).addToLeavePool(
+        return this.ircBridge.getMemberListSyncer(server).addToLeavePool(
             roomInfo.remoteJoinedUsers,
             roomId
         );
