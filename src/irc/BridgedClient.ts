@@ -948,14 +948,21 @@ export class BridgedClient extends EventEmitter {
         const client = this.state.client;
         // listen for failures to join a channel (e.g. +i, +k)
         const failFn = (err: IrcMessage) => {
-            if (!err || !err.args) { return; }
+            if (!err || !err.args || !err.args.includes(channel)) { return; }
             const failCodes = [
                 "err_nosuchchannel", "err_toomanychannels", "err_channelisfull",
                 "err_inviteonlychan", "err_bannedfromchan", "err_badchannelkey",
-                "err_needreggednick"
+                "err_needreggednick",
             ];
             this.log.error("Join channel %s : %s", channel, JSON.stringify(err));
-            if (err.command && failCodes.includes(err.command) && err.args.includes(channel)) {
+            if (err.command === "err_useronchannel") {
+                // This error happens when a client is joined to the channel
+                this.log.info("Discovered already joined to channel %s", channel);
+                client.removeListener("error", failFn);
+                this.addChannel(channel);
+                defer.resolve(new IrcRoom(this.server, channel));
+            }
+            else if (err.command && failCodes.includes(err.command)) {
                 this.log.error("Cannot track channel %s: %s", channel, err.command);
                 client.removeListener("error", failFn);
                 defer.reject(new Error(err.command));
@@ -965,7 +972,7 @@ export class BridgedClient extends EventEmitter {
                 );
             }
         }
-        client.once("error", failFn);
+        client.on("error", failFn);
 
         // add a timeout to try joining again
         setTimeout(() => {

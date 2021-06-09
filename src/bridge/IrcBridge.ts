@@ -43,6 +43,7 @@ import { getBridgeVersion } from "../util/PackageInfo";
 import { globalAgent as gAHTTP } from "http";
 import { globalAgent as gAHTTPS } from "https";
 import { RoomConfig } from "./RoomConfig";
+import { PrivacyProtection } from "../irc/PrivacyProtection";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -86,6 +87,7 @@ export class IrcBridge {
         channel: string;
         networkId: string;
     }>;
+    private privacyProtection: PrivacyProtection;
 
     constructor(public readonly config: BridgeConfig, private registration: AppServiceRegistration) {
         // TODO: Don't log this to stdout
@@ -192,7 +194,8 @@ export class IrcBridge {
             defaultTtlMs: 10 * 60 * 1000, // 10 mins
         });
         this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
-        this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue);
+        this.privacyProtection = new PrivacyProtection(this);
+        this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue, this.privacyProtection);
 
         // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
         MatrixUser.ESCAPE_DEFAULT = false;
@@ -372,6 +375,12 @@ export class IrcBridge {
             labels: ["method"]
         });
 
+        const ircBlockedRooms = metrics.addGauge({
+            name: "irc_blocked_rooms",
+            help: "Track number of blocked rooms for I->M traffic",
+            labels: ["method"]
+        });
+
         const matrixHandlerConnFailureKicks = metrics.addCounter({
             name: "matrixhandler_connection_failure_kicks",
             help: "Track IRC connection failures resulting in kicks",
@@ -436,7 +445,7 @@ export class IrcBridge {
                     this.memberListSyncers[server].getUsersWaitingToJoin()
                 );
             });
-
+            ircBlockedRooms.set(this.privacyProtection.blockedRoomCount);
             const ircMetrics = this.ircHandler.getMetrics();
             Object.entries(ircMetrics).forEach((kv) => {
                 ircHandlerCalls.inc({method: kv[0]}, kv[1]);
@@ -800,21 +809,6 @@ export class IrcBridge {
         await promiseutil.allSettled(promises);
     }
 
-    /**
-     * Get a cached copy of all Matrix (not IRC) users in a room.
-     * @param roomId The Matrix room to inspect.
-     * @returns An array of Matrix userIDs.
-     */
-    public async getMatrixUsersForRoom(roomId: string) {
-        const bot = this.bridge.getBot();
-        let members = this.membershipCache.getMembersForRoom(roomId, "join");
-        if (!members) {
-            members = Object.keys(await this.bridge.getBot().getJoinedMembers(roomId));
-        }
-        return members.filter(m => !bot.isRemoteUser(m));
-
-    }
-
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
         const intent = this.bridge.getIntent(from.userId);
         const extraContent: Record<string, unknown> = {};
@@ -851,6 +845,39 @@ export class IrcBridge {
             return;
         }
         throw Error("Unknown action: " + action.type);
+    }
+
+    public async syncMembersInRoomToIrc(req: BridgeRequest, roomId: string, ircRoom: IrcRoom, kickFailures = false) {
+        const bot = this.getAppServiceBridge().getBot();
+        const members = await bot.getJoinedMembers(roomId);
+        req.log.info(
+            `Syncing Matrix users to ${ircRoom.server.domain} ${ircRoom.channel} (${Object.keys(members).length})`
+        );
+        for (const [userId, {display_name}] of Object.entries(members)) {
+            try {
+                if (bot.isRemoteUser(userId)) {
+                    // Don't bridge remote.
+                    continue;
+                }
+                const client = await this.getClientPool().getBridgedClient(ircRoom.server, userId, display_name);
+                if (client.inChannel(ircRoom.channel)) {
+                    continue;
+                }
+                await client.joinChannel(ircRoom.channel);
+                await new Promise(r => setTimeout(r, ircRoom.server.getMemberListFloodDelayMs()));
+            }
+            catch (ex) {
+                if (!kickFailures) {
+                    req.log.warn(`Failed to sync ${userId} to IRC channel`);
+                    continue;
+                }
+                req.log.warn(`Failed to sync ${userId} to IRC channel, kicking from room.`);
+                this.membershipQueue.leave(
+                    roomId, userId, req, true,
+                    "Couldn't connect you to this channel. Please try again later.", this.appServiceUserId
+                );
+            }
+        }
     }
 
     public uploadTextFile(fileName: string, plaintext: string) {
@@ -968,6 +995,7 @@ export class IrcBridge {
             if (!event.content || !event.content.membership) {
                 return BridgeRequestErr.ERR_NOT_MAPPED;
             }
+            this.privacyProtection.clearRoomFromCache(event.room_id);
             this.ircHandler.onMatrixMemberEvent({...event, state_key: event.state_key, content: {
                 membership: event.content.membership as MatrixMembership,
             }});

@@ -14,6 +14,7 @@ import { RoomOrigin } from "../datastore/DataStore";
 import QuickLRU from "quick-lru";
 import { IrcMessage } from "../irc/ConnectionInstance";
 import { trackChannelAndCreateRoom } from "../bridge/RoomCreation";
+import { PrivacyProtection } from "../irc/PrivacyProtection";
 const NICK_USERID_CACHE_MAX = 512;
 const PM_POWERLEVEL_MATRIXUSER = 10;
 const PM_POWERLEVEL_IRCUSER = 100;
@@ -75,8 +76,6 @@ export class IrcHandler {
 
     public readonly roomAccessSyncer: RoomAccessSyncer;
 
-    private readonly roomBlockedSet = new Set<string>();
-
     private callCountMetrics?: {
         [key in MetricNames]: number;
     };
@@ -87,7 +86,8 @@ export class IrcHandler {
     constructor (
         private readonly ircBridge: IrcBridge,
         config: IrcHandlerConfig = {},
-        private readonly membershipQueue: MembershipQueue) {
+        private readonly membershipQueue: MembershipQueue,
+        private readonly privacyProtection: PrivacyProtection,) {
         this.roomAccessSyncer = new RoomAccessSyncer(ircBridge);
         this.mentionMode = config.mapIrcMentionsToMatrix || "on";
         this.getMetrics();
@@ -454,87 +454,6 @@ export class IrcHandler {
     }
 
     /**
-     * If configured, check to see if the all Matrix users in a given room are
-     * joined to a channel. If they are not, drop the message.
-     * @param req The IRC request
-     * @param server The IRC server.
-     */
-    private async shouldRequireMatrixUserJoined(server: IrcServer, channel: string, roomId: string): Promise<boolean> {
-        // The room state takes priority.
-        const stateRequires =
-            await this.ircBridge.roomConfigs.allowUnconnectedMatrixUsers(roomId, new IrcRoom(server, channel));
-        if (stateRequires !== null) {
-            return stateRequires;
-        }
-        return server.shouldRequireMatrixUserJoined(channel);
-    }
-
-    /**
-     * See if every joined Matrix user is also joined to the IRC channel. If they are not,
-     * this returns false. A seperate mechanism should be use to join the user if this fails.
-     * @param req The IRC request
-     * @param server The IRC server
-     * @param channel The IRC channel
-     * @param roomId The Matrix room
-     * @returns True if all users are connected and joined, or false otherwise.
-     */
-    private async areAllMatrixUsersJoined(
-        req: BridgeRequest, server: IrcServer, channel: string, roomId: string): Promise<boolean> {
-        // Look for all the Matrix users in the room.
-        const members = await this.ircBridge.getMatrixUsersForRoom(roomId);
-        const pool = this.ircBridge.getClientPool();
-        for (const userId of members) {
-            if (userId === this.ircBridge.appServiceUserId) {
-                continue;
-            }
-            const client = pool.getBridgedClientByUserId(server, userId);
-            if (!client) {
-                req.log.warn(`${userId} has not connected to IRC yet, not bridging message`);
-                return false;
-            }
-            if (!client.inChannel(channel)) {
-                // TODO: Should we poke them into joining?
-                req.log.warn(`${userId} has not joined the channel yet, not bridging message`);
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Send a `org.matrix.appservice-irc.connection` state event into the room when a channel
-     * is blocked or unblocked. Subsequent calls with the same state will no-op.
-     * @param req The IRC request
-     * @param roomId The Matrix room
-     * @param channel The IRC room
-     * @param blocked Is the channel blocked
-     * @returns A promise, but it will always resolve.
-     */
-    private async setBlockedStateInRoom(req: BridgeRequest, roomId: string, ircRoom: IrcRoom, blocked: boolean) {
-        if (this.roomBlockedSet.has(ircRoom.getId()) === blocked) {
-            return;
-        }
-        this.roomBlockedSet[blocked ? 'add' : 'delete'](ircRoom.getId());
-        if (blocked) {
-            req.log.warn(`${roomId} ${ircRoom.getId()} is now blocking IRC messages`);
-        }
-        else {
-            req.log.warn(`${roomId} ${ircRoom.getId()} has now unblocked IRC messages`);
-        }
-        try {
-            const intent = this.ircBridge.getAppServiceBridge().getIntent();
-            // This is set *approximately* for when the room is unblocked, as we don't do when a new user joins.
-            await intent.sendStateEvent(roomId, "org.matrix.appservice-irc.connection", ircRoom.getId(), {
-                blocked,
-            });
-        }
-        catch (ex) {
-            req.log.warn(`Could not set org.matrix.appservice-irc.connection in room`, ex);
-        }
-    }
-
-
-    /**
      * Called when the AS receives an IRC topic event.
      * @param {IrcServer} server The sending IRC server.
      * @param {IrcUser} fromUser The sender.
@@ -620,21 +539,7 @@ export class IrcHandler {
 
         // Some setups require that we check all matrix users are joined before we bridge
         // messages.
-        const matrixRooms = (await Promise.all((
-            await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel)
-        ).map(async (room) => {
-            const required = await this.shouldRequireMatrixUserJoined(server, channel, room.roomId);
-            req.log.debug(`${room.roomId} ${required ? "requires" : "does not require"} Matrix users to be joined`);
-            if (required) {
-                const allowed = await this.areAllMatrixUsersJoined(req, server, channel, room.roomId);
-                // Do so asyncronously, as we don't want to block message handling on this.
-                this.setBlockedStateInRoom(req, room.roomId, new IrcRoom(server, channel), !allowed);
-                return allowed ? room : undefined;
-            }
-            return room;
-        }))).filter(r => !!r) as MatrixRoom[];
-
-
+        const matrixRooms = await this.privacyProtection.getSafeRooms(req, server, channel);
         if (matrixRooms.length === 0) {
             req.log.info(
                 "No mapped matrix rooms for IRC channel %s",
