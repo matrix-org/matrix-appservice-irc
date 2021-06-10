@@ -218,8 +218,8 @@ export class IrcBridge {
         log.info(`Bridge config was reloaded, applying changes`);
         const oldConfig = this.config;
 
-        if (oldConfig.advanced.maxHttpSockets !== newConfig.advanced.maxHttpSockets) {
             const maxSockets = (newConfig.advanced || {maxHttpSockets: 1000}).maxHttpSockets;
+        if (oldConfig.advanced?.maxHttpSockets !== newConfig.advanced?.maxHttpSockets) {
             gAHTTP.maxSockets = maxSockets;
             gAHTTPS.maxSockets = maxSockets;
             log.info(`Adjusted max sockets to ${maxSockets}`);
