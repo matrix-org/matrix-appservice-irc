@@ -209,7 +209,7 @@ export class IrcBridge {
 
         this.appservice = new AppService({
             homeserverToken,
-            httpMaxSizeBytes: (this.config.advanced || { }).maxTxnSize || TXN_SIZE_DEFAULT,
+            httpMaxSizeBytes: this.config.advanced?.maxTxnSize ?? TXN_SIZE_DEFAULT,
         });
         this.roomConfigs = new RoomConfig(this.bridge, this.config.ircService.perRoomConfig);
     }
@@ -218,8 +218,8 @@ export class IrcBridge {
         log.info(`Bridge config was reloaded, applying changes`);
         const oldConfig = this.config;
 
-            const maxSockets = (newConfig.advanced || {maxHttpSockets: 1000}).maxHttpSockets;
         if (oldConfig.advanced?.maxHttpSockets !== newConfig.advanced?.maxHttpSockets) {
+            const maxSockets = newConfig.advanced?.maxHttpSockets ?? 1000
             gAHTTP.maxSockets = maxSockets;
             gAHTTPS.maxSockets = maxSockets;
             log.info(`Adjusted max sockets to ${maxSockets}`);
