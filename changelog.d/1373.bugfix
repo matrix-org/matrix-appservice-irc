@@ -1,1 +1,0 @@
-Fix the bridge never syncing membership if it cannot get the joined users for a room on startup.

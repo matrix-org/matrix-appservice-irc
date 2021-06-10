@@ -1,1 +1,0 @@
-Fix zero width spaces (ZWSPs) being filtered out of messages from IRC.

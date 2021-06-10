@@ -1,1 +1,0 @@
-Add `requireMatrixJoined` membership option to block IRC messages until all Matrix users are joined to the channel.
