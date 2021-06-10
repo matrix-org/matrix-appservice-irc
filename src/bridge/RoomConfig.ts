@@ -79,11 +79,15 @@ export class RoomConfig {
 
     /**
      * Get the per-room configuration for the paste bin limit for a room.
+     * Only "channel" room types are supported. Non "channel" types will return null.
      * @param roomId The Matrix roomId
      * @param ircRoom The IRC roomId. Optional.
      * @returns The number of lines required for a pastebin. `null` means no limit set in the room.
      */
     public async getLineLimit(roomId: string, ircRoom?: IrcRoom) {
+        if (ircRoom?.getType() !== "channel") {
+            return null;
+        }
         const roomState = await this.getRoomState(roomId, ircRoom);
         if (typeof roomState?.lineLimit !== 'number' || roomState.lineLimit <= 0) {
             // A missing line limit or an invalid one is considered invalid.
