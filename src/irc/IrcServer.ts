@@ -323,7 +323,8 @@ export class IrcServer {
     }
 
     public getSecureOptions() {
-        return this.config.tlsOptions;
+        // Return undefined here, as a falsy secure opts will disable SSL.
+        return this.config.tlsOptions ?? {};
     }
 
     public useSsl() {
