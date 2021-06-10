@@ -1,4 +1,13 @@
- 0.27.0-rc1 (2021-06-10)
+ 0.27.0-rc2 (2021-06-10)
+========================
+
+Bugfixes
+--------
+
+- Fix an issue introduced in 0.27.0-rc1 where the SSL option would not work without also providing a `tlsOptions` value. ([\#1384](https://github.com/matrix-org/matrix-appservice-irc/issues/1384))
+
+
+0.27.0-rc1 (2021-06-10)
 ========================
 
 This release contains many more changes and features than normal, so please be extra careful when testing this RC and please
