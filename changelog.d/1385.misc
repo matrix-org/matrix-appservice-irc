@@ -1,0 +1,2 @@
+Handle known error-codes when OPER command fails instead of disconnecting.
+
