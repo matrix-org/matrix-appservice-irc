@@ -205,7 +205,8 @@ export class ConnectionInstance {
                 "err_banonchan", "err_nickcollision", "err_nicknameinuse",
                 "err_erroneusnickname", "err_nonicknamegiven", "err_eventnickchange",
                 "err_nicktoofast", "err_unknowncommand", "err_unavailresource",
-                "err_umodeunknownflag", "err_nononreg"
+                "err_umodeunknownflag", "err_nononreg",
+                "err_nooperhost", "err_passwdmismatch",
             ];
             if (err && err.command) {
                 if (failCodes.includes(err.command)) {
