@@ -433,7 +433,7 @@ export class MemberListSyncer {
 
     public addToLeavePool(userIds: string[], roomId: string) {
         this.usersToLeave += userIds.length;
-        this.leaveUsersInRoom({
+        return this.leaveUsersInRoom({
             roomId,
             userIds
         });
