@@ -1,4 +1,13 @@
- 0.27.0-rc2 (2021-06-10)
+0.27.0-rc3 (2021-06-11)
+=======================
+
+Bugfixes
+--------
+
+- Update `matrix-org-irc` to `1.0.0` to fix a bug where the bridge can crash. ([\#1388](https://github.com/matrix-org/matrix-appservice-irc/issues/1388))
+
+
+0.27.0-rc2 (2021-06-10)
 ========================
 
 Bugfixes
