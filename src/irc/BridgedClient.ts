@@ -957,6 +957,7 @@ export class BridgedClient extends EventEmitter {
         const failTimeout = setTimeout(() => {
             if (!defer.promise.isPending()) {
                 // We either failed or completed this action, so do not do anything.
+                return;
             }
             if (this.state.status !== BridgedClientStatus.CONNECTED) {
                 // We would have expected this to fail above but for typing purposes
