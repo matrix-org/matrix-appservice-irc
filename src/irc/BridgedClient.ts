@@ -442,22 +442,28 @@ export class BridgedClient extends EventEmitter {
         });
     }
 
-    public async leaveChannel(channel: string, reason = "User left") {
+    public async leaveChannel(channel: string, reason = "User left"): Promise<void> {
         if (this.state.status !== BridgedClientStatus.CONNECTED) {
-            return Promise.resolve(); // we were never connected to the network.
+            return undefined; // we were never connected to the network.
         }
         if (!channel.startsWith("#")) {
-            return Promise.resolve(); // PM room
+            return undefined; // PM room
         }
         const deferredChannelJoin = this.channelJoinDefers.get(channel);
         if (deferredChannelJoin) {
             // We are in the process of joining this channel, so await the join before trying to leave.
-            await deferredChannelJoin;
+            try {
+                await deferredChannelJoin;
+            }
+            catch (ex) {
+                // Given we're trying to leave, this isn't critical.
+                this.log.debug(`Channel join failed to complete while leaving channel`, ex);
+            }
         }
         if (!this.inChannel(channel)) {
-            return Promise.resolve(); // we were never joined to it.
+            return undefined; // we were never joined to it.
         }
-        const defer = promiseutil.defer();
+        const defer = promiseutil.defer<void>();
         this.log.debug("Leaving channel %s", channel);
         this.state.client.part(channel, reason, () => {
             this.log.debug("Left channel %s", channel);
