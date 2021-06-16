@@ -1,0 +1,1 @@
+Update `matrix-org-irc` to `1.0.0` to fix a bug where the bridge can crash.
