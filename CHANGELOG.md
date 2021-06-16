@@ -1,3 +1,20 @@
+ 0.27.0 (2021-06-16)
+====================
+
+Bugfixes
+--------
+
+- Fix an issue where a hot reload would fail if `advanced` was not defined in the original config. ([\#1383](https://github.com/matrix-org/matrix-appservice-irc/issues/1383))
+- Update `matrix-org-irc` to `1.0.0` to fix a bug where the bridge can crash. ([\#1388](https://github.com/matrix-org/matrix-appservice-irc/issues/1388))
+- Fix an issue where a Matrix user's IRC connection is stuck and unable to join some channels. ([\#1394](https://github.com/matrix-org/matrix-appservice-irc/issues/1394))
+
+
+Internal Changes
+----------------
+
+- Handle known error-codes when OPER command fails instead of disconnecting. ([\#1385](https://github.com/matrix-org/matrix-appservice-irc/issues/1385))
+
+
 0.27.0-rc3 (2021-06-11)
 =======================
 
