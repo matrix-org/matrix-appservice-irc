@@ -5,11 +5,13 @@ import getLogger from "../logging";
 
 interface RoomConfigContent {
     lineLimit?: number;
+    allowUnconnectedMatrixUsers: boolean|null;
 }
 
 export interface RoomConfigConfig {
     enabled: boolean;
     lineLimitMax?: number;
+    allowUnconnectedMatrixUsers?: boolean;
 }
 
 const MAX_CACHE_SIZE = 512;
@@ -77,16 +79,39 @@ export class RoomConfig {
 
     /**
      * Get the per-room configuration for the paste bin limit for a room.
+     * Only "channel" room types are supported. Non "channel" types will return null.
      * @param roomId The Matrix roomId
      * @param ircRoom The IRC roomId. Optional.
      * @returns The number of lines required for a pastebin. `null` means no limit set in the room.
      */
     public async getLineLimit(roomId: string, ircRoom?: IrcRoom) {
+        if (ircRoom?.getType() !== "channel") {
+            return null;
+        }
         const roomState = await this.getRoomState(roomId, ircRoom);
         if (typeof roomState?.lineLimit !== 'number' || roomState.lineLimit <= 0) {
             // A missing line limit or an invalid one is considered invalid.
             return null;
         }
         return Math.min(roomState.lineLimit, this.config?.lineLimitMax ?? roomState.lineLimit);
+    }
+
+    /**
+     * Check if the room allows or denys unconnected matrix users.
+     * @param roomId The Matrix roomId
+     * @param ircRoom The IRC roomId. Optional.
+     * @returns Whether unconnected Matrix users are allowed in the room. Will return null if not set.
+     */
+    public async allowUnconnectedMatrixUsers(roomId: string, ircRoom?: IrcRoom) {
+        if (this.config?.allowUnconnectedMatrixUsers !== true) {
+            // If not allowed by config, return null.
+            return null;
+        }
+        const roomState = await this.getRoomState(roomId, ircRoom);
+        if (typeof roomState?.allowUnconnectedMatrixUsers !== "boolean") {
+            // If not set or null, return null.
+            return null;
+        }
+        return roomState.allowUnconnectedMatrixUsers;
     }
 }

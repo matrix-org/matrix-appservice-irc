@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Client } from "irc";
+import { Client } from "matrix-org-irc";
 import * as promiseutil from "../promiseutil";
 import Scheduler from "./Scheduler";
 import * as logging from "../logging";
@@ -205,7 +205,8 @@ export class ConnectionInstance {
                 "err_banonchan", "err_nickcollision", "err_nicknameinuse",
                 "err_erroneusnickname", "err_nonicknamegiven", "err_eventnickchange",
                 "err_nicktoofast", "err_unknowncommand", "err_unavailresource",
-                "err_umodeunknownflag", "err_nononreg"
+                "err_umodeunknownflag", "err_nononreg",
+                "err_nooperhost", "err_passwdmismatch",
             ];
             if (err && err.command) {
                 if (failCodes.includes(err.command)) {
@@ -378,10 +379,10 @@ export class ConnectionInstance {
             selfSigned: server.useSslSelfSigned(),
             certExpired: server.allowExpiredCerts(),
             retryCount: 0,
-            family: server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null,
+            family: (server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null) as 6|null,
             bustRfc3484: true,
             sasl: opts.password ? server.useSasl() : false,
-            secure: server.useSsl() ? { ca: server.getCA() } : undefined,
+            secure: server.useSsl() ? server.getSecureOptions() : undefined,
             encodingFallback: opts.encodingFallback
         };
 

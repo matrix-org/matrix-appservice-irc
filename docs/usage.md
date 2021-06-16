@@ -52,6 +52,13 @@ More commands can be found in the [Admin Room](./admin_room.md) section.
 Most networks provide a mechanism for one to authenticate themselves. You can do this manually by messaging NickServ
 or by providing a password to the bridge itself. See the [Admin Room](./admin_room.md) section for help.
 
+### SASL authentication
+
+SASL authentication is a new mechanism to authenticate with certain bridges, which requires you to also 
+set a `!username` as well as password before authenticating. Bridges such as the **libera.chat** bridge 
+require this authentication type. If you fail to authenticate, the bridge will notify you in the admin 
+room.
+
 ## Message behaviours
 
 Messages from IRC to Matrix appear in roughly as you'd expect them to. Emotes (`/me` text) are applied as Matrix supports

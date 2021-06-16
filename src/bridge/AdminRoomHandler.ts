@@ -26,55 +26,81 @@ import logging from "../logging";
 import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "../util/PackageInfo";
 import { ProvisionRequest } from "../provisioning/ProvisionRequest";
+import { IdentGenerator } from "../irc/IdentGenerator";
 
 const log = logging("AdminRoomHandler");
 
-const COMMANDS: {[command: string]: {example: string; summary: string; requiresPermission?: string}} = {
-    "!join": {
-        example: `!join [irc.example.net] #channel [key]`,
-        summary: `Join a channel (with optional channel key)`,
-    },
+// This is just a length to avoid silly long usernames
+const SANE_USERNAME_LENGTH = 64;
+
+interface Command {
+    example: string;
+    summary: string;
+    requiresPermission?: string;
+}
+
+interface Heading {
+    heading: true;
+}
+
+const COMMANDS: {[command: string]: Command|Heading} = {
+    'Actions': { heading: true },
     "!cmd": {
         example: `!cmd [irc.example.net] COMMAND [arg0 [arg1 [...]]]`,
         summary: "Issue a raw IRC command. These will not produce a reply." +
                 "(Note that the command must be all uppercase.)",
-    },
-    "!whois": {
-        example: `!whois [irc.example.net] NickName|@alice:matrix.org`,
-        summary: "Do a /whois lookup. If a Matrix User ID is supplied, " +
-                "return information about that user's IRC connection.",
-    },
-    "!storepass": {
-        example: `!storepass [irc.example.net] passw0rd`,
-        summary: `Store a NickServ password (server password)`,
-    },
-    "!removepass": {
-        example: `!removepass [irc.example.net]`,
-        summary: `Remove a previously stored NickServ password`,
-    },
-    "!listrooms": {
-        example: `!listrooms [irc.example.net]`,
-        summary: "List all of your joined channels, and the rooms they are bridged into.",
-    },
-    "!quit": {
-        example: `!quit`,
-        summary: "Leave all bridged channels, on all networks, and remove your " +
-                "connections to all networks.",
-    },
-    "!nick": {
-        example: `!nick [irc.example.net] DesiredNick`,
-        summary: "Change your nick. If no arguments are supplied, " +
-                "your current nick is shown.",
     },
     "!feature": {
         example: `!feature feature-name [true/false/default]`,
         summary: `Enable, disable or default a feature's status for your account.` +
                 `Will display the current feature status if true/false/default not given.`,
     },
+    "!join": {
+        example: `!join [irc.example.net] #channel [key]`,
+        summary: `Join a channel (with optional channel key)`,
+    },
+    "!nick": {
+        example: `!nick [irc.example.net] DesiredNick`,
+        summary: "Change your nick. If no arguments are supplied, " +
+                "your current nick is shown.",
+    },
+    "!quit": {
+        example: `!quit`,
+        summary: "Leave all bridged channels, on all networks, and remove your " +
+                "connections to all networks.",
+    },
+    'Authentication': { heading: true },
+    "!storepass": {
+        example: `!storepass [irc.example.net] passw0rd`,
+        summary: `Store a NickServ OR SASL password (server password)`,
+    },
+    "!reconnect": {
+        example: `!reconnect [irc.example.net]`,
+        summary: "Reconnect to an IRC network.",
+    },
+    "!removepass": {
+        example: `!removepass [irc.example.net]`,
+        summary: `Remove a previously stored NickServ password`,
+    },
+    "!username": {
+        example: `!username [irc.example.net] username`,
+        summary: "Store a username to use for future connections.",
+    },
+    'Info': { heading: true},
     "!bridgeversion": {
         example: `!bridgeversion`,
         summary: "Return the version from matrix-appservice-irc bridge.",
     },
+    "!listrooms": {
+        example: `!listrooms [irc.example.net]`,
+        summary: "List all of your joined channels, and the rooms they are bridged into.",
+    },
+    "!whois": {
+        example: `!whois [irc.example.net] NickName|@alice:matrix.org`,
+        summary: "Do a /whois lookup. If a Matrix User ID is supplied, " +
+                "return information about that user's IRC connection.",
+    },
+    'Management': { heading: true },
     '!plumb': {
         example: `!plumb !room:example.com irc.example.net #foobar`,
         summary: "Plumb an IRC channel into a Matrix room.",
@@ -84,7 +110,7 @@ const COMMANDS: {[command: string]: {example: string; summary: string; requiresP
         example: "!unlink !room:example.com irc.example.net #foobar",
         summary: "Unlink an IRC channel from a Matrix room. " +
                 "You need to be a moderator of the Matrix room or an administrator of this bridge.",
-    }
+    },
 };
 
 const USER_FEATURES = ["mentions"];
@@ -142,8 +168,14 @@ export class AdminRoomHandler {
             case "!whois":
                 response = await this.handleWhois(req, args, ircServer, event.sender);
                 break;
+            case "!reconnect":
+                response = await this.handleReconnect(req, ircServer, clientList);
+                break;
+            case "!username":
+                response = await this.handleUsername(req, args, event.sender, ircServer)
+                break;
             case "!storepass":
-                response = await this.handleStorePass(req, args, ircServer, event.sender, clientList);
+                response = await this.handleStorePass(req, args, ircServer, event.sender);
                 break;
             case "!removepass":
                 response = await this.handleRemovePass(ircServer, event.sender);
@@ -420,8 +452,80 @@ export class AdminRoomHandler {
         }
     }
 
+    private async handleReconnect(req: BridgeRequest, server: IrcServer, clientList: BridgedClient[]) {
+        const client = clientList.find((c) => c.server.domain === server.domain);
+        try {
+            if (client) {
+                await client.disconnect("iwanttoreconnect", "Reconnecting", false);
+                return new MatrixAction(
+                    "notice", `Reconnecting to network...`
+                );
+            }
+            return new MatrixAction(
+                "notice", `No clients connected to this network, not reconnecting`
+            );
+        }
+        catch (err) {
+            req.log.error(err.stack);
+            return new MatrixAction(
+                "notice", `Failed to reconnect`
+            );
+        }
+    }
+
+    private async handleUsername(req: BridgeRequest, args: string[], userId: string, server: IrcServer) {
+        const domain = server.domain;
+        const store = this.ircBridge.getStore();
+        let notice;
+
+        try {
+            // Allow passwords with spaces
+            const username = args[0]?.trim();
+            if (!username) {
+                notice = new MatrixAction(
+                    "notice",
+                    "Format: '!username username' " +
+                    "or '!username irc.server.name username'\n"
+                );
+            }
+            else if (username.length > SANE_USERNAME_LENGTH) {
+                notice = new MatrixAction(
+                    "notice",
+                    `Username is longer than the maximum permitted by the bridge (${SANE_USERNAME_LENGTH}).`
+                );
+            }
+            else if (IdentGenerator.sanitiseUsername(username) !== username) {
+                notice = new MatrixAction(
+                    "notice",
+                    `Username contained invalid characters not supported by IRC.`
+                );
+            }
+            else {
+                let config = await store.getIrcClientConfig(userId, server.domain);
+                if (!config) {
+                    config = IrcClientConfig.newConfig(
+                        new MatrixUser(userId), server.domain
+                    );
+                }
+                config.setUsername(username);
+                await this.ircBridge.getStore().storeIrcClientConfig(config);
+                notice = new MatrixAction(
+                    "notice", `Successfully stored username for ${domain}. Use !reconnect to use this username now.`
+                );
+            }
+        }
+        catch (err) {
+            req.log.error(err.stack);
+            return new MatrixAction(
+                "notice", `Failed to store username: ${err.message}`
+            );
+        }
+        return notice;
+
+    }
+
     private async handleStorePass(req: BridgeRequest, args: string[], server: IrcServer,
-                                  userId: string, clientList: BridgedClient[]) {
+                                  userId: string) {
         const domain = server.domain;
         let notice;
 
@@ -431,19 +535,14 @@ export class AdminRoomHandler {
             if (pass.length === 0) {
                 notice = new MatrixAction(
                     "notice",
-                    "Format: '!storepass password' " +
-                    "or '!storepass irc.server.name password'\n"
+                    "Format: '!storepass password' or '!storepass irc.server.name password'\n"
                 );
             }
             else {
                 await this.ircBridge.getStore().storePass(userId, domain, pass);
                 notice = new MatrixAction(
-                    "notice", `Successfully stored password for ${domain}. You will now be reconnected to IRC.`
+                    "notice", `Successfully stored password for ${domain}. Use !reconnect to use this password now.`
                 );
-                const client = clientList.find((c) => c.server.domain === server.domain);
-                if (client) {
-                    await client.disconnect("iwanttoreconnect", "authenticating", false);
-                }
             }
         }
         catch (err) {
@@ -618,20 +717,22 @@ export class AdminRoomHandler {
         );
     }
 
-    private async showBridgeVersion() {
+    private showBridgeVersion() {
         return new MatrixAction("notice", `BridgeVersion: ${getBridgeVersion()}`);
     }
 
-    private async showHelp(userPermission: string|undefined) {
-        return new MatrixAction("notice", null,
-            "This is an IRC admin room for controlling your IRC connection and sending " +
-            "commands directly to IRC. " +
-            "The following commands are available:<br/><ul>\n\t" +
-            Object.values(COMMANDS).filter(
-                (c) => !c.requiresPermission || c.requiresPermission === userPermission).map((c) =>
-                `<li><strong>${c.example}</strong> : ${c.summary}</li>`
-            ).join(`\n\t`) +
-            `</ul>`,
-        );
+    private showHelp(userPermission: string|undefined): MatrixAction {
+        let body = "This is an IRC admin room for controlling your IRC connection and sending " +
+        "commands directly to IRC. The following commands are available:<br/><ul>";
+        for (const [key, command] of Object.entries(COMMANDS)) {
+            if ("heading" in command) {
+                body += `</ul>\n<h3>${key}</h3>\n<ul>`;
+                continue;
+            }
+            if (!command.requiresPermission || command.requiresPermission === userPermission) {
+                body += `<li><strong>${command.example}</strong> : ${command.summary}</li>\n\t`;
+            }
+        }
+        return new MatrixAction("notice", null, body + "</ul>");
     }
 }

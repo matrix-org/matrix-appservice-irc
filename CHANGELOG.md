@@ -1,3 +1,87 @@
+ 0.27.0 (2021-06-16)
+====================
+
+Bugfixes
+--------
+
+- Fix an issue where a hot reload would fail if `advanced` was not defined in the original config. ([\#1383](https://github.com/matrix-org/matrix-appservice-irc/issues/1383))
+- Update `matrix-org-irc` to `1.0.0` to fix a bug where the bridge can crash. ([\#1388](https://github.com/matrix-org/matrix-appservice-irc/issues/1388))
+- Fix an issue where a Matrix user's IRC connection is stuck and unable to join some channels. ([\#1394](https://github.com/matrix-org/matrix-appservice-irc/issues/1394))
+
+
+Internal Changes
+----------------
+
+- Handle known error-codes when OPER command fails instead of disconnecting. ([\#1385](https://github.com/matrix-org/matrix-appservice-irc/issues/1385))
+
+
+0.27.0-rc3 (2021-06-11)
+=======================
+
+Bugfixes
+--------
+
+- Update `matrix-org-irc` to `1.0.0` to fix a bug where the bridge can crash. ([\#1388](https://github.com/matrix-org/matrix-appservice-irc/issues/1388))
+
+
+0.27.0-rc2 (2021-06-10)
+========================
+
+Bugfixes
+--------
+
+- Fix an issue introduced in 0.27.0-rc1 where the SSL option would not work without also providing a `tlsOptions` value. ([\#1384](https://github.com/matrix-org/matrix-appservice-irc/issues/1384))
+
+
+0.27.0-rc1 (2021-06-10)
+========================
+
+This release contains many more changes and features than normal, so please be extra careful when testing this RC and please
+report any issues to us as always.
+
+Features
+--------
+
+- Add support for setting a username, and reconnecting through the admin room. This change also changes `!storepass` to no longer reconnect you by default. ([\#1331](https://github.com/matrix-org/matrix-appservice-irc/issues/1331))
+- Add `requireMatrixJoined` membership option to block IRC messages until all Matrix users are joined to the channel. ([\#1337](https://github.com/matrix-org/matrix-appservice-irc/issues/1337))
+- Add config option `useHomeserverDirectory` to allow rooms to be published to the homeserver room directory, rather than just the appservice directory. ([\#1344](https://github.com/matrix-org/matrix-appservice-irc/issues/1344))
+- Add `tlsOptions` key to the config to override the IRC connection parameters. ([\#1375](https://github.com/matrix-org/matrix-appservice-irc/issues/1375))
+- Allow only using the `additionalAddresses` field when connecting to IRC. ([\#1376](https://github.com/matrix-org/matrix-appservice-irc/issues/1376))
+
+
+Bugfixes
+--------
+
+- Detect IRC username mentions bounded by ',<,> or & ([\#1303](https://github.com/matrix-org/matrix-appservice-irc/issues/1303))
+- Comment out `permissions` from the sample config. ([\#1315](https://github.com/matrix-org/matrix-appservice-irc/issues/1315))
+- Fix an issue where invites to DM rooms are not marked as direct message invites. ([\#1329](https://github.com/matrix-org/matrix-appservice-irc/issues/1329))
+- Validate that the nickname is provided to `!irc nick` before trying to change nick. ([\#1330](https://github.com/matrix-org/matrix-appservice-irc/issues/1330))
+- Fix "CLI undefined" being spit out from cli on generic errors ([\#1333](https://github.com/matrix-org/matrix-appservice-irc/issues/1333))
+- Fix an issue where the IRC username was incorrectly required to be 10 characters or less. ([\#1345](https://github.com/matrix-org/matrix-appservice-irc/issues/1345))
+- Update a number of packages to latest versions, including `matrix-appservice-bridge@2.6.1` containing a security fix. ([\#1365](https://github.com/matrix-org/matrix-appservice-irc/issues/1365))
+- Fix zero width spaces (ZWSPs) being filtered out of messages from IRC. ([\#1366](https://github.com/matrix-org/matrix-appservice-irc/issues/1366))
+- Admin rooms are now correctly created as DMs, and only one will be created per-user. ([\#1372](https://github.com/matrix-org/matrix-appservice-irc/issues/1372))
+- Fix the bridge never syncing membership if it cannot get the joined users for a room on startup. ([\#1373](https://github.com/matrix-org/matrix-appservice-irc/issues/1373))
+- Do not attempt to fetch per-room config for a PM. ([\#1379](https://github.com/matrix-org/matrix-appservice-irc/issues/1379))
+- Fix a bug where the bridge user would rejoin shortly after unbridging a room. ([\#1382](https://github.com/matrix-org/matrix-appservice-irc/issues/1382))
+
+
+Improved Documentation
+----------------------
+
+- Document release process in CONTRIBUTING.md ([\#1308](https://github.com/matrix-org/matrix-appservice-irc/issues/1308))
+- Update documentation for SASL support, and safety net features. ([\#1352](https://github.com/matrix-org/matrix-appservice-irc/issues/1352))
+
+
+Internal Changes
+----------------
+
+- Use latest version of matrix-org/node-irc which was rewritten in Typescript. ([\#1319](https://github.com/matrix-org/matrix-appservice-irc/issues/1319))
+- Fix validation of the config to allow for a single hash in the alias template. ([\#1339](https://github.com/matrix-org/matrix-appservice-irc/issues/1339))
+- Improve blocked room feature (such as kicking users who cannot get connected to the channel), and add metrics to track. ([\#1369](https://github.com/matrix-org/matrix-appservice-irc/issues/1369))
+- Show an error in the PM room when the IRC user has blocked unregistered users from messaging. ([\#1380](https://github.com/matrix-org/matrix-appservice-irc/issues/1380))
+- Add headers to the admin room help text. ([\#1381](https://github.com/matrix-org/matrix-appservice-irc/issues/1381))
+
 0.26.1 (2021-06-03)
 ===================
 

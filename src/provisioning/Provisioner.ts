@@ -936,7 +936,7 @@ export class Provisioner {
             await this.leaveIfUnprovisioned(req, roomId, server, ircChannel);
         }
         catch (err) {
-            req.log.error(err.stack);
+            req.log.error(`Failed to cleanup after unlinking:`, err);
         }
     }
 
@@ -1042,7 +1042,7 @@ export class Provisioner {
         );
     }
 
-    private async leaveMatrixVirtuals(req: ProvisionRequest, roomId: string, server: IrcServer) {
+    private async leaveMatrixVirtuals(req: ProvisionRequest, roomId: string, server: IrcServer): Promise<void> {
         const asBot = this.ircBridge.getAppServiceBridge().getBot();
         const roomChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(
             roomId
@@ -1052,7 +1052,7 @@ export class Provisioner {
                 `Not leaving matrix virtuals from room, room is still bridged to ${roomChannels.length} channel(s)`
             );
             // We can't determine who should and shouldn't be in the room.
-            return;
+            return undefined;
         }
         const stateEvents = await asBot.getClient().roomState(roomId);
         const roomInfo = await asBot.getRoomInfo(roomId, {
@@ -1061,7 +1061,7 @@ export class Provisioner {
             }
         });
         req.log.info(`Leaving ${roomInfo.remoteJoinedUsers.length} virtual users from ${roomId}.`);
-        this.ircBridge.getMemberListSyncer(server).addToLeavePool(
+        return this.ircBridge.getMemberListSyncer(server).addToLeavePool(
             roomInfo.remoteJoinedUsers,
             roomId
         );

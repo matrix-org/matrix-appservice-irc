@@ -13,8 +13,6 @@ FROM node:14-slim as builder
 
 WORKDIR /build
 
-RUN apt-get update && apt-get install -y git python3 libicu-dev build-essential
-
 COPY src/ /build/src/ 
 COPY .eslintrc *json /build/
 

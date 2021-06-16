@@ -185,6 +185,10 @@ export class MemberListSyncer {
                     }
                     catch (err) {
                         log.error(`Failed to getJoinedMembers in room ${roomId}: ${err}`);
+                        if (err.data?.errcode === "M_FORBIDDEN") {
+                            // If we're not allowed to, just give up.
+                            return;
+                        }
                         await Bluebird.delay(3000); // wait a bit before retrying
                     }
                 }
@@ -429,7 +433,7 @@ export class MemberListSyncer {
 
     public addToLeavePool(userIds: string[], roomId: string) {
         this.usersToLeave += userIds.length;
-        this.leaveUsersInRoom({
+        return this.leaveUsersInRoom({
             roomId,
             userIds
         });

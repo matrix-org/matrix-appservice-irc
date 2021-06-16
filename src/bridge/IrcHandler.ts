@@ -14,6 +14,7 @@ import { RoomOrigin } from "../datastore/DataStore";
 import QuickLRU from "quick-lru";
 import { IrcMessage } from "../irc/ConnectionInstance";
 import { trackChannelAndCreateRoom } from "../bridge/RoomCreation";
+import { PrivacyProtection } from "../irc/PrivacyProtection";
 const NICK_USERID_CACHE_MAX = 512;
 const PM_POWERLEVEL_MATRIXUSER = 10;
 const PM_POWERLEVEL_IRCUSER = 100;
@@ -42,6 +43,7 @@ export interface IrcHandlerConfig {
 }
 
 type MetricNames = "join.names"|"join"|"part"|"pm"|"invite"|"topic"|"message"|"kick"|"mode";
+
 
 export class IrcHandler {
     // maintain a map of which user ID is in which PM room, so we know if we
@@ -79,10 +81,13 @@ export class IrcHandler {
     };
     private registeredNicks: {[userId: string]: boolean} = {};
 
+    private pendingAdminRooms = new Map<string, Promise<MatrixRoom>>(); // userId -> adminRoom.
+
     constructor (
         private readonly ircBridge: IrcBridge,
         config: IrcHandlerConfig = {},
-        private readonly membershipQueue: MembershipQueue) {
+        private readonly membershipQueue: MembershipQueue,
+        private readonly privacyProtection: PrivacyProtection,) {
         this.roomAccessSyncer = new RoomAccessSyncer(ircBridge);
         this.mentionMode = config.mapIrcMentionsToMatrix || "on";
         this.getMetrics();
@@ -132,7 +137,11 @@ export class IrcHandler {
         if (priv.membership !== "join" && priv.membership !== "invite") {
             log.info("Inviting %s to the existing PM room with %s (current membership=%s)",
                 userId, virtUserId, priv.membership);
-            await intent.invite(roomId, userId);
+            // We have to send a state event to ensure they get an is_direct.
+            await intent.sendStateEvent(roomId, "m.room.member", userId, {
+                membership: "invite",
+                is_direct: true,
+            });
             // this should also be echoed back to us via onMatrixMemberEvent but hey,
             // let's do this now as well.
             priv.membership = "invite";
@@ -523,8 +532,14 @@ export class IrcHandler {
             return BridgeRequestErr.ERR_DROPPED;
         }
 
-        const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
+        req.log.info("onMessage: %s from=%s to=%s",
+            server.domain, fromUser, channel
+        );
+        req.log.debug("action=%s", JSON.stringify(action).substring(0, 80))
 
+        // Some setups require that we check all matrix users are joined before we bridge
+        // messages.
+        const matrixRooms = await this.privacyProtection.getSafeRooms(req, server, channel);
         if (matrixRooms.length === 0) {
             req.log.info(
                 "No mapped matrix rooms for IRC channel %s",
@@ -533,10 +548,6 @@ export class IrcHandler {
             return undefined;
         }
 
-        req.log.info("onMessage: %s from=%s to=%s",
-            server.domain, fromUser, channel
-        );
-        req.log.debug("action=%s", JSON.stringify(action).substring(0, 80))
 
 
         let mapping = null;
@@ -802,7 +813,7 @@ export class IrcHandler {
             const bridgedClient = this.ircBridge.getClientPool().getBridgedClientByNick(
                 server, nick
             );
-            if (!bridgedClient|| !bridgedClient.userId || !bridgedClient.inChannel(chan)) {
+            if (!bridgedClient?.userId) {
                 req.log.info("Not kicking user from room, user is not in channel");
                 // We don't need to send a leave to a channel we were never in.
                 return BridgeRequestErr.ERR_DROPPED;
@@ -818,8 +829,21 @@ export class IrcHandler {
         req.log.info("Mapped nick %s to %s (leaving %s room(s))", nick, userId, matrixRooms.length);
         await Promise.all(matrixRooms.map(async (room) => {
             if (leavingUser.isVirtual) {
-                return this.membershipQueue.leave(
-                    room.getId(), userId, req, true, this.ircBridge.appServiceUserId);
+                const isInRoom = (
+                    await this.ircBridge.getAppServiceBridge().getIntent().getStateEvent(
+                        room.roomId, 'm.room.member', userId, true
+                    )
+                )?.membership === 'join';
+                if (isInRoom) {
+                    await this.membershipQueue.leave(
+                        room.getId(), userId, req, true, 'user left',
+                        this.ircBridge.appServiceUserId
+                    );
+                }
+                else {
+                    req.log.info(`Not kicking user ${userId}, not in ${room.roomId}`);
+                }
+                return undefined;
             }
 
             // Show a reason if the part is not a regular part, or reason text was given.
@@ -886,6 +910,7 @@ export class IrcHandler {
             // Probably the bot
             return undefined;
         }
+        const userId = client.userId;
         req.log.info("%s : Sending metadata '%s'", client, msg);
         if (!this.ircBridge.isStartedUp && !force) {
             req.log.info("Suppressing metadata: not started up.");
@@ -894,48 +919,69 @@ export class IrcHandler {
 
         const botUser = new MatrixUser(this.ircBridge.appServiceUserId);
 
-        if (ircMsg?.command === "err_nosuchnick") {
+        if (ircMsg && ["err_nosuchnick", "err_nononreg"].includes(ircMsg.command || "")) {
             const otherNick = ircMsg.args[1];
             const otherUser = new MatrixUser(client.server.getUserIdFromNick(otherNick));
-            const room = await this.ircBridge.getStore().getMatrixPmRoom(client.userId, otherUser.userId);
+            const room = await this.ircBridge.getStore().getMatrixPmRoom(userId, otherUser.userId);
             if (room) {
-                return this.ircBridge.sendMatrixAction(
-                    room, otherUser, new MatrixAction(
-                        "notice", `User is not online or does not exist. Message not sent.`
-                    ),
-                );
+                if (ircMsg.command === "err_nosuchnick") {
+                    return this.ircBridge.sendMatrixAction(
+                        room, otherUser, new MatrixAction(
+                            "notice", `User is not online or does not exist. Message not sent.`
+                        ),
+                    );
+                }
+                else if (ircMsg.command === "err_nononreg") {
+                    return this.ircBridge.sendMatrixAction(
+                        room, otherUser, new MatrixAction(
+                            "notice", `User is blocking messages from unregistered users, and you are not registered.`
+                        ),
+                    );
+                }
             }
-            req.log.warn(`No existing PM found for ${client.userId} <--> ${otherUser.userId}`);
+            req.log.warn(`No existing PM found for ${userId} <--> ${otherUser.userId}`);
             // No room associated, fall through
         }
 
-
         let adminRoom: MatrixRoom;
-        const fetchedAdminRoom = await this.ircBridge.getStore().getAdminRoomByUserId(client.userId);
+        const fetchedAdminRoom = await this.ircBridge.getStore().getAdminRoomByUserId(userId);
         if (!fetchedAdminRoom) {
-            req.log.info("Creating an admin room with %s", client.userId);
-            const response = await this.ircBridge.getAppServiceBridge().getIntent().createRoom({
-                createAsClient: false,
-                options: {
-                    name: `${client.server.getReadableName()} IRC Bridge status`,
-                    topic:  `This room shows any errors or status messages from ` +
-                            `${client.server.domain}, as well as letting you control ` +
-                            "the connection. ",
-                    preset: "trusted_private_chat",
-                    visibility: "private",
-                    invite: [client.userId]
-                }
-            });
-            adminRoom = new MatrixRoom(response.room_id);
-            await this.ircBridge.getStore().storeAdminRoom(adminRoom, client.userId);
-            const newRoomMsg = `You've joined a Matrix room which is bridged to the IRC network ` +
-                            `'${client.server.domain}', where you ` +
-                            `are now connected as ${client.nick}. ` +
-                            `This room shows any errors or status messages from IRC, as well as ` +
-                            `letting you control the connection. Type !help for more information`
-
-            const notice = new MatrixAction("notice", newRoomMsg);
-            await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
+            const adminRoomPromise = this.pendingAdminRooms.get(client.userId);
+            if (adminRoomPromise) {
+                adminRoom = await adminRoomPromise;
+            }
+            else {
+                const adminRoomNewPromise = (async () => {
+                    req.log.info("Creating an admin room with %s", userId);
+                    const response = await this.ircBridge.getAppServiceBridge().getIntent().createRoom({
+                        createAsClient: false,
+                        options: {
+                            name: `${client.server.getReadableName()} IRC Bridge status`,
+                            topic:  `This room shows any errors or status messages from ` +
+                                    `${client.server.domain}, as well as letting you control ` +
+                                    "the connection.",
+                            preset: "trusted_private_chat",
+                            visibility: "private",
+                            is_direct: true,
+                            invite: [userId]
+                        }
+                    });
+                    adminRoom = new MatrixRoom(response.room_id);
+                    await this.ircBridge.getStore().storeAdminRoom(adminRoom, userId);
+                    const newRoomMsg = `You've joined a Matrix room which is bridged to the IRC network ` +
+                                    `'${client.server.domain}', where you ` +
+                                    `are now connected as ${client.nick}. ` +
+                                    `This room shows any errors or status messages from IRC, as well as ` +
+                                    `letting you control the connection. Type !help for more information.`
+                    const notice = new MatrixAction("notice", newRoomMsg);
+                    await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
+                    // This is stored now so we can delete the promise.
+                    this.pendingAdminRooms.delete(userId);
+                    return adminRoom;
+                })();
+                this.pendingAdminRooms.set(client.userId, adminRoomNewPromise);
+                adminRoom = await adminRoomNewPromise;
+            }
         }
         else {
             adminRoom = fetchedAdminRoom;

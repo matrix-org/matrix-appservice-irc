@@ -18,14 +18,14 @@ const main = proxyquire("../../lib/main.js", {
         "@global": true
     },
     "matrix-js-sdk": clientMock,
-    "irc": ircMock,
+    "matrix-org-irc": ircMock,
 });
 
 // Log the test case. Jasmine is a global var.
 jasmine.getEnv().addReporter({
     specStarted: function(result) {
         console.log(result.fullName);
-        console.log(new Array(2 + result.fullName.length).join("="));
+        console.log("=".repeat(result.fullName.length + 1));
     }
 });
 

@@ -34,12 +34,15 @@ export interface IrcServerConfig {
     ssl?: boolean;
     sslselfsign?: boolean;
     sasl?: boolean;
+    tlsOptions?: Record<string, unknown>;
     password?: string;
     allowExpiredCerts?: boolean;
     additionalAddresses?: string[];
+    onlyAdditionalAddresses: boolean;
     dynamicChannels: {
         enabled: boolean;
         published: boolean;
+        useHomeserverDirectory: boolean;
         createAlias: boolean;
         joinRule: "public"|"invite";
         federate: boolean;
@@ -120,6 +123,7 @@ export interface IrcServerConfig {
             ircToMatrix: {
                 initial: boolean;
                 incremental: boolean;
+                requireMatrixJoined: boolean;
             };
             matrixToIrc: {
                 initial: boolean;
@@ -131,6 +135,7 @@ export interface IrcServerConfig {
             ircToMatrix: {
                 initial: boolean;
                 incremental: boolean;
+                requireMatrixJoined: boolean;
             };
         }[];
         rooms: {
@@ -317,8 +322,9 @@ export class IrcServer {
         return this.config.dynamicChannels.whitelist.includes(userId);
     }
 
-    public getCA() {
-        return this.config.ca;
+    public getSecureOptions() {
+        // Return an empty object here if not defined, as a falsy secure opts will disable SSL.
+        return this.config.tlsOptions ?? {};
     }
 
     public useSsl() {
@@ -359,6 +365,10 @@ export class IrcServer {
 
     public shouldPublishRooms() {
         return this.config.dynamicChannels.published;
+    }
+
+    public shouldPublishRoomsToHomeserverDirectory() {
+        return this.config.dynamicChannels.useHomeserverDirectory;
     }
 
     public allowsNickChanges() {
@@ -412,6 +422,10 @@ export class IrcServer {
 
     public get ignoreIdleUsersOnStartupExcludeRegex() {
         return this.idleUsersStartupExcludeRegex;
+    }
+
+    public get aliasTemplateHasHashPrefix() {
+        return this.config.dynamicChannels.aliasTemplate.startsWith("#");
     }
 
     /**
@@ -499,6 +513,25 @@ export class IrcServer {
             });
         }
 
+        return shouldSync;
+    }
+
+    /**
+     * Does the server/channel require all Matrix users to be joined?
+     * @param channel The IRC channel.
+     * @returns True if the server requires all Matrix users to be joined.
+     */
+    public shouldRequireMatrixUserJoined(channel: string) {
+        let shouldSync = this.config.membershipLists.global.ircToMatrix.requireMatrixJoined;
+        this.config.membershipLists.channels.find((chan) => {
+            if (chan.channel === channel) {
+                if (typeof chan.ircToMatrix?.requireMatrixJoined === "boolean") {
+                    shouldSync = chan.ircToMatrix.requireMatrixJoined;
+                }
+                return true;
+            }
+            return false;
+        });
         return shouldSync;
     }
 
@@ -600,6 +633,9 @@ export class IrcServer {
     }
 
     public getAliasFromChannel(channel: string) {
+        if (!channel.startsWith("#") && !this.aliasTemplateHasHashPrefix) {
+            throw Error('Cannot get an alias for a channel not starting with a hash');
+        }
         const template = this.config.dynamicChannels.aliasTemplate;
         let alias = template.replace(/\$CHANNEL/g, channel);
         alias = alias.replace(/\$SERVER/g, this.domain);
@@ -652,6 +688,7 @@ export class IrcServer {
     public static get DEFAULT_CONFIG(): IrcServerConfig {
         return {
             sendConnectionMessages: true,
+            onlyAdditionalAddresses: false,
             quitDebounce: {
                 enabled: false,
                 quitsPerSecond: 5,
@@ -672,6 +709,7 @@ export class IrcServer {
             dynamicChannels: {
                 enabled: false,
                 published: true,
+                useHomeserverDirectory: false,
                 createAlias: true,
                 joinRule: "public",
                 federate: true,
@@ -711,7 +749,8 @@ export class IrcServer {
                 global: {
                     ircToMatrix: {
                         initial: false,
-                        incremental: false
+                        incremental: false,
+                        requireMatrixJoined: false,
                     },
                     matrixToIrc: {
                         initial: false,
@@ -726,6 +765,15 @@ export class IrcServer {
 
     public reconfigure(config: IrcServerConfig, expiryTimeSeconds = 0) {
         log.info(`Reconfiguring ${this.domain}`);
+
+        if (config.ca) {
+            log.warn("** The IrcServer.ca is now deprecated, please use tlsOptions.ca. **");
+            config.tlsOptions = {
+                ...config.tlsOptions,
+                ca: config.ca,
+            };
+        }
+
         this.config = config;
         this.expiryTimeSeconds = expiryTimeSeconds;
         // This ensures that legacy mappings still work, but we prod the user to update.
@@ -741,8 +789,23 @@ export class IrcServer {
             }
         }
 
+        if (!this.aliasTemplateHasHashPrefix) {
+            if (this.config.dynamicChannels.aliasTemplate !== "$CHANNEL") {
+                throw Error(
+                    "If no hash prefix is given in 'aliasTemplate', then the aliasTemplate must be exactly '$CHANNEL'"
+                );
+            }
+            log.warn("You have configured your aliasTemplate to not include a prefix hash. This means that only " +
+                "channels starting with a hash are supported by the bridge.")
+        }
+
         this.addresses = config.additionalAddresses || [];
-        this.addresses.push(this.domain);
+        // Don't include the original domain if not configured to.
+        if (!config.onlyAdditionalAddresses) {
+            this.addresses.push(this.domain);
+        } else if (this.addresses.length === 0) {
+            throw Error("onlyAdditionalAddresses is true, but no additional addresses are provided in the config");
+        }
         this.excludedUsers = config.excludedUsers.map((excluded) => {
             return {
                 ...excluded,

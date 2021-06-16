@@ -139,6 +139,15 @@ properties:
                 additionalProperties:
                     type: "string"
                     enum: ["admin"]
+            perRoomConfig:
+                type: "object"
+                properties:
+                    enabled:
+                        type: "boolean"
+                    lineLimitMax:
+                        type: "number"
+                    allowUnconnectedMatrixUsers:
+                        type: "boolean"
             servers:
                 type: "object"
                 # all properties must follow the following
@@ -151,8 +160,14 @@ properties:
                             type: "array"
                             items:
                                 type: "string"
+                        onlyAdditionalAddresses:
+                            type: "boolean"
                         ssl:
                             type: "boolean"
+                        ca:
+                            type: "string"
+                        tlsOptions:
+                            type: "object"
                         sslselfsign:
                             type: "boolean"
                         sasl:
@@ -244,6 +259,8 @@ properties:
                                                     type: "boolean"
                                                 incremental:
                                                     type: "boolean"
+                                                requireMatrixJoined:
+                                                    type: "boolean"
                                         matrixToIrc:
                                             type: "object"
                                             properties:
@@ -283,6 +300,8 @@ properties:
                                                         type: "boolean"
                                                     incremental:
                                                         type: "boolean"
+                                                    requireMatrixJoined:
+                                                        type: "boolean"
                                         additionalProperties: false
                         dynamicChannels:
                             type: "object"
@@ -304,7 +323,7 @@ properties:
                                     type: "string"
                                 aliasTemplate:
                                     type: "string"
-                                    pattern: "^#.*\\$CHANNEL"
+                                    pattern: "^(#.*\\$CHANNEL|\\$CHANNEL)$"
                                 whitelist:
                                     type: "array"
                                     items:

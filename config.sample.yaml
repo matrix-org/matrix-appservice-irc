@@ -55,8 +55,13 @@ ircService:
       # It is also used in the Third Party Lookup API as the instance `desc`
       # property, where each server is an instance.
       name: "ExampleNet"
-
+      # Additional addresses to connect to, used for load balancing between IRCDs.
       additionalAddresses: [ "irc2.example.com" ]
+      # Typically additionalAddresses would be in addition to the address key given above,
+      # but some configurations wish to exclusively use additional addresses while reserving
+      # the top key for identification purposes. Set this to true to exclusively use the
+      # additionalAddresses array when connecting to servers.
+      onlyAdditionalAddresses: false
       #
       # [DEPRECATED] Use `name`, above, instead.
       # A human-readable description string
@@ -81,11 +86,17 @@ ircService:
       # Whether to allow expired certs when connecting to the IRC server.
       # Usually this should be off. Default: false.
       allowExpiredCerts: false
-      # A specific CA to trust instead of the default CAs. Optional.
-      #ca: |
-      #  -----BEGIN CERTIFICATE-----
-      #  ...
-      #  -----END CERTIFICATE-----
+      # Set additional TLS options for the connections to the IRC server.
+      tlsOptions:
+        # A specific CA to trust instead of the default CAs. Optional.
+        #ca: |
+        #  -----BEGIN CERTIFICATE-----
+        #  ...
+        #  -----END CERTIFICATE-----
+        # Server name for the SNI (Server Name Indication) TLS extension. If the address you
+        # are using does not report the correct certificate name, you can override it here.
+        # servername: real.server.name
+        # ...or any options in https://nodejs.org/api/tls.html#tls_tls_connect_options_callback
 
       #
       # The connection password to send for all clients as a PASS (or SASL, if enabled above) command. Optional.
@@ -181,6 +192,10 @@ ircService:
         # Should the AS publish the new Matrix room to the public room list so
         # anyone can see it? Default: true.
         published: true
+        # Publish the rooms to the homeserver directory, as oppose to the appservice
+        # room directory. Only used if `published` is on.
+        # Default: false
+        useHomeserverDirectory: true
         # What should the join_rule be for the new Matrix room? If 'public',
         # anyone can join the room. If 'invite', only users with an invite can
         # join the room. Note that if an IRC channel has +k or +i set on it,
@@ -205,6 +220,12 @@ ircService:
         # $SERVER => The IRC server address (e.g. "irc.example.com")
         # $CHANNEL => The IRC channel (e.g. "#python")
         # This MUST have $CHANNEL somewhere in it.
+        #
+        # In certain circumstances you might want to bridge your whole IRC network as a
+        # homeserver (e.g. #matrix:libera.chat). For these use cases, you can set the 
+        # template to just be $CHANNEL. Doing so will preclude you from supporting
+        # other prefix characters though.
+        #
         # Default: '#irc_$SERVER_$CHANNEL'
         aliasTemplate: "#irc_$CHANNEL"
         # A list of user IDs which the AS bot will send invites to in response
@@ -243,6 +264,13 @@ ircService:
             # Make virtual matrix clients join and leave rooms as their real IRC
             # counterparts join/part channels. Default: false.
             incremental: false
+            # Should the bridge check if all Matrix users are connected to IRC and
+            # joined to the channel before relaying messages into the room.
+            #
+            # This is considered a safety net to avoid any leakages by the bridge to
+            # unconnected users, but given it ignores all IRC messages while users
+            # are still connecting it may be overkill.
+            requireMatrixJoined: false
 
           matrixToIrc:
             # Get a snapshot of all real Matrix users in the room and join all of
@@ -266,6 +294,7 @@ ircService:
             ircToMatrix:
               initial: false
               incremental: false
+              requireMatrixJoined: false
 
         # Should the bridge ignore users which are not considered active on the bridge
         # during startup
@@ -538,7 +567,7 @@ ircService:
   # options. Currently, you may either set the value to be 'admin', or leave the key
   # out to imply that the user does not have special permissions.
   # UserID takes precedence over domain, which takes precedence over wildcard.
-  permissions:
+  # permissions:
   # '*': admin
   # 'matrix.org': admin
   # '@fibble:matrix.org': admin
@@ -552,6 +581,13 @@ ircService:
     enabled: false
     # The maximum number that can be set for the `lineLimit` configuration option
     # lineLimitMax: 5
+    # Allow matrix admins to disable or require Matrix users to be connected to the
+    # channel before any messages can be bridged. i.e. this is the per room
+    # version of `membershipLists.[].ircToMatrix.requireMatrixJoined`.
+    # 
+    # If this is true, configuration in the room state will take priority over
+    # the configuration in the config file.
+    # allowUnconnectedMatrixUsers: true
 
 # Options here are generally only applicable to large-scale bridges and may have
 # consequences greater than other options in this configuration file.
