@@ -1027,7 +1027,7 @@ export class BridgedClient extends EventEmitter {
                     this, `Could not join ${channel} on '${this.server.domain}': ${err.command}`, true
                 );
             }
-            // Otherwise, not a failure we recognise. This will eventually timeout.
+            // Otherwise, not a failure we recognise. This will eventually time out.
         }
         client.on("error", failFn);
 
