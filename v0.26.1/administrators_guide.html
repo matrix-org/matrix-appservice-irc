@@ -202,6 +202,21 @@ $ kill -SIGHUP 31960
 </code></pre>
 <p>The logs will then mention <code>Bridge config was reloaded, applying changes</code> which confirms
 that the reload has taken place.</p>
+<h2 id="enforcing-matrix-users-to-be-connected-to-irc"><a class="header" href="#enforcing-matrix-users-to-be-connected-to-irc">Enforcing Matrix users to be connected to IRC</a></h2>
+<p>When configured to do so, the IRC bridge typically tries to join all Matrix users to
+the IRC channels to avoid Matrix users being able to read a conversation without being visible to IRC users.
+However since it is not always possible to ensure this happens in a timely manner, there is a safety net feature.</p>
+<p>Administatators can choose the default behaviour of allowing messages to continue to be bridged to the 
+room (potentially leaking history) or enforcing strict rules to ensure that all Matrix users are joined
+before <em>anyone</em> can read messages. This can be enabled by setting</p>
+<pre><code class="language-yaml">...
+membershipLists:
+  global:
+    ircToMatrix:
+      requireMatrixJoined: true
+</code></pre>
+<p>in the config. Users can choose to disable this on a per-room basis by modfiying their
+<a href="./room_configuration.html#allowunconnectedmatrixusers">room config</a> options, if the bridge permits it.</p>
 <h2 id="metrics--grafana"><a class="header" href="#metrics--grafana">Metrics / Grafana</a></h2>
 <p>The bridge includes a prometheus compatible metrics endpoint which can be used to inspect
 the state of the bridge. The repository also includes a grafana dashboard; more information

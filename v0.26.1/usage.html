@@ -197,6 +197,11 @@ can do this by PMing the bridge bot user. E.g. the matrix.org freenode bridge us
 <h2 id="authentication"><a class="header" href="#authentication">Authentication</a></h2>
 <p>Most networks provide a mechanism for one to authenticate themselves. You can do this manually by messaging NickServ
 or by providing a password to the bridge itself. See the <a href="./admin_room.html">Admin Room</a> section for help.</p>
+<h3 id="sasl-authentication"><a class="header" href="#sasl-authentication">SASL authentication</a></h3>
+<p>SASL authentication is a new mechanism to authenticate with certain bridges, which requires you to also 
+set a <code>!username</code> as well as password before authenticating. Bridges such as the <strong>libera.chat</strong> bridge 
+require this authentication type. If you fail to authenticate, the bridge will notify you in the admin 
+room.</p>
 <h2 id="message-behaviours"><a class="header" href="#message-behaviours">Message behaviours</a></h2>
 <p>Messages from IRC to Matrix appear in roughly as you'd expect them to. Emotes (<code>/me</code> text) are applied as Matrix supports
 it, and mIRC format colours are applied too. The IRC bridge makes an attempt to replace nicknames in sent messages with 

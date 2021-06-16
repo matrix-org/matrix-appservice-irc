@@ -168,6 +168,8 @@
 this requires a bit of technical know-how as no clients expose an interface to changing the
 bridge configuration.</p>
 <h2 id="the-orgmatrixappservice-ircconfig-event"><a class="header" href="#the-orgmatrixappservice-ircconfig-event">The <code>org.matrix.appservice-irc.config</code> event</a></h2>
+<p><em>Not all bridges support all configuration options listed. Check with the bridge administrator before
+creating an issue.</em></p>
 <p>The bridge allows room moderators to create a state event in the room to change the way the bridge
 behaves in that room. </p>
 <p>In Element you can modify the room state by:</p>
@@ -194,6 +196,11 @@ behaves in that room. </p>
 <p>This allows you to modify the minimum number of lines permitted in a room before the
 message is pastebinned. The setting is analogous to the <code>lineLimit</code> config option in
 the bridge config file.</p>
+<h3 id="allowunconnectedmatrixusers"><a class="header" href="#allowunconnectedmatrixusers"><code>allowUnconnectedMatrixUsers</code></a></h3>
+<p>Type: <code>boolean</code></p>
+<p>Some IRC networks require that Matrix users must be joined to the IRC channel before
+<em>any</em> messages can bridge into the room. You can override this by setting this key
+to <code>true</code>.</p>
 
                     </main>
 
