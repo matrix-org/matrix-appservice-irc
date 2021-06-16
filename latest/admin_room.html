@@ -184,12 +184,22 @@ text, so commands will happen silently.</p>
 <h3 id="whois"><a class="header" href="#whois"><code>!whois</code></a></h3>
 <p><code>!whois [irc.example.net] NickName|@alice:matrix.org</code></p>
 <p>A powerful command to either lookup a nickname <em>or</em> a Matrix UserID and return information about that user.</p>
+<h3 id="username"><a class="header" href="#username"><code>!username</code></a></h3>
+<p><code>!username [irc.example.net] username</code></p>
+<p>Store the username you wish to identify with on the bridge. Please note that this must abide by the
+rules <a href="https://datatracker.ietf.org/doc/html/rfc2812#section-2.3.1">of RFC2812</a> which means the username
+should be lowercase, and contain only some special characters.</p>
 <h3 id="storepass"><a class="header" href="#storepass"><code>!storepass</code></a></h3>
 <p><code>!storepass [irc.example.net] passw0rd</code></p>
-<p>Store a password, or a <code>username:password</code> combination to be sent as a PASS command on connection to the server.
-This will also reconnect you to IRC so the PASS command can be sent.</p>
-<p><strong>This action will store your password in encrypted form on the IRC bridge</strong>, so be sure to use a unique password
-for the IRC service. </p>
+<p>Store a password, or a <code>username:password</code> combination to be sent as a PASS command on connection to the server.</p>
+<p><strong>This action will store your password in encrypted form on the IRC bridge</strong>, so be sure to use a unique password for the IRC service. </p>
+<p>If you are authenticating with a SASL enable bridge (such as libera.chat), you MUST specify a <code>!username</code>
+before you can authenticate.</p>
+<p>To authenticate with your new settings, use <a href="#reconnect"><code>!reconnect</code></a>.</p>
+<h3 id="reconnect"><a class="header" href="#reconnect"><code>!reconnect</code></a></h3>
+<p><code>!reconnect [irc.example.net]</code></p>
+<p>This command will reconnect you to IRC without kicking you from rooms. This is useful if you
+need to authenticate after setting your password (and username).</p>
 <h3 id="removepass"><a class="header" href="#removepass"><code>!removepass</code></a></h3>
 <p><code>!removepass [irc.example.net]</code></p>
 <p>Remove your stored password, will NOT reconnect you.</p>
