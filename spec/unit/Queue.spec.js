@@ -72,9 +72,6 @@ describe("Queue", function() {
             catch (err) {
                 expect(err.message).toEqual("oh no");
             }
-            finally {
-                done();
-            }
         })
     );
 
