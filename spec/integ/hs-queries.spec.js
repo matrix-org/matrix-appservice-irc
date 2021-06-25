@@ -5,9 +5,9 @@ const envBundle = require("../util/env-bundle");
 describe("Homeserver user queries", function() {
     const {env, config, roomMapping, test} = envBundle();
 
-    let testNick = "Alisha";
-    let testLocalpart = roomMapping.server + "_" + testNick;
-    let testUserId = (
+    const testNick = "Alisha";
+    const testLocalpart = roomMapping.server + "_" + testNick;
+    const testUserId = (
         "@" + testLocalpart + ":" + config.homeserver.domain
     );
 
@@ -29,7 +29,7 @@ describe("Homeserver user queries", function() {
     }));
 
     it("should always create a new Matrix user for the specified ID", (done) => {
-        let sdk = env.clientMock._client(config._botUserId);
+        const sdk = env.clientMock._client(config._botUserId);
 
         env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois", (client, nick, cb) => {
             expect(nick).toEqual(testNick);

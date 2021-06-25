@@ -41,7 +41,8 @@ describe("Room upgrades", function() {
                     try {
                         expect(roomId).toBe(roomMapping.roomId);
                         resolve();
-                    } catch (ex) {
+                    }
+                    catch (ex) {
                         reject(ex);
                     }
                 });

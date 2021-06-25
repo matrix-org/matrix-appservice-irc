@@ -36,8 +36,8 @@ describe("IPV6 Generator", function() {
         ircClientConfigs['@foo:example.comirc.example.com'] = config;
         const address = await generator.generate(
             '2001:0db8:85a3::', new IrcClientConfig('@foo:example.com', 'irc.example.com',
-            {ipv6: '2001:0db8:85a3::1a16'}
-        ));
+                {ipv6: '2001:0db8:85a3::1a16'}
+            ));
         expect(address).toEqual('2001:0db8:85a3::1a16');
         const fetchedConfig = ircClientConfigs['@foo:example.comirc.example.com'];
         expect(fetchedConfig.userId).toEqual('@foo:example.com');
