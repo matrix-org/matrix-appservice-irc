@@ -85,7 +85,9 @@ describe("Username generation", function() {
         const uname = "myrea_10";
         storeMock.storeIrcClientConfig(new IrcClientConfig("@someone:else", IRC_DOMAIN, { username: "myreally" }));
         for (let i = 1; i < 10; i++) {
-            storeMock.storeIrcClientConfig(new IrcClientConfig(`@someone${i}:else`, IRC_DOMAIN, { username: "myreal_" + i }));
+            storeMock.storeIrcClientConfig(
+                new IrcClientConfig(`@someone${i}:else`, IRC_DOMAIN, { username: "myreal_" + i })
+            );
         }
         const info = await identGenerator.getIrcNames(ircClientConfig, serverMock, new MatrixUser(userId));
         expect(info.username).toEqual(uname);
