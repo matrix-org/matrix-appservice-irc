@@ -11,7 +11,7 @@
     "prepare": "npm run build",
     "build": "tsc --project ./tsconfig.json",
     "test": "BLUEBIRD_DEBUG=1 jasmine --stop-on-failure=true",
-    "lint": "eslint -c .eslintrc --max-warnings 4 'spec/**/*.js' 'src/**/*.ts'",
+    "lint": "eslint -c .eslintrc --max-warnings 0 'spec/**/*.js' 'src/**/*.ts'",
     "check": "npm test && npm run lint",
     "ci-test": "nyc --report text jasmine",
     "ci": "npm run lint && npm run ci-test"

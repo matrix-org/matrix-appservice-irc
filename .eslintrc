@@ -105,6 +105,7 @@
         "@typescript-eslint/no-var-requires": "off",
         "strict": "off",
         // temporary
+        "@typescript-eslint/no-unused-vars": "off",
         "indent": "off",
         "prefer-const": "off",
         "no-var": "off",
