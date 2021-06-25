@@ -93,5 +93,22 @@
       "FunctionExpression": {"parameters": "first"},
       "SwitchCase": 1}
     ]
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "spec/**/*.js"
+      ],
+      "rules": {
+        "@typescript-eslint/no-this-alias": "off", // I'm unsure if we should disallow this.
+        "@typescript-eslint/no-empty-function": "off",
+        "@typescript-eslint/no-var-requires": "off",
+        "strict": "off",
+        // temporary
+        "indent": "off",
+        "prefer-const": "off",
+        "no-var": "off",
+      }
+    }
+  ]
 }
