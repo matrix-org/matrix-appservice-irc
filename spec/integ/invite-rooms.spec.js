@@ -68,8 +68,7 @@ describe("Invite-only rooms", function() {
         "regardless of the number of people in the room.",
     function(done) {
         // when it queries whois, say they exist
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
-        function(client, nick, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois", (client, nick, cb) => {
             expect(nick).toEqual(testIrcUser.nick);
             // say they exist (presence of user key)
             cb({
@@ -78,7 +77,7 @@ describe("Invite-only rooms", function() {
             });
         });
 
-        let sdk = env.clientMock._client(testIrcUser.id);
+        const sdk = env.clientMock._client(testIrcUser.id);
         // if it tries to register, accept.
         sdk._onHttpRegister({
             expectLocalpart: testIrcUser.localpart,
@@ -104,28 +103,28 @@ describe("Invite-only rooms", function() {
             expect(roomId).toEqual(roomMapping.roomId);
             askedForRoomState = true;
             return Promise.resolve([
-            {
-                content: {membership: "join"},
-                user_id: botUserId,
-                state_key: botUserId,
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            },
-            {
-                content: {membership: "join"},
-                user_id: testIrcUser.id,
-                state_key: testIrcUser.id,
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            },
-            // Group chat, so >2 users!
-            {
-                content: {membership: "join"},
-                user_id: "@someone:else",
-                state_key: "@someone:else",
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            }
+                {
+                    content: {membership: "join"},
+                    user_id: botUserId,
+                    state_key: botUserId,
+                    room_id: roomMapping.roomId,
+                    type: "m.room.member"
+                },
+                {
+                    content: {membership: "join"},
+                    user_id: testIrcUser.id,
+                    state_key: testIrcUser.id,
+                    room_id: roomMapping.roomId,
+                    type: "m.room.member"
+                },
+                // Group chat, so >2 users!
+                {
+                    content: {membership: "join"},
+                    user_id: "@someone:else",
+                    state_key: "@someone:else",
+                    room_id: roomMapping.roomId,
+                    type: "m.room.member"
+                },
             ]);
         });
 

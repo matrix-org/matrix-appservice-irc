@@ -28,12 +28,10 @@ describe("Homeserver user queries", function() {
         yield test.afterEach(env);
     }));
 
-    it("should always create a new Matrix user for the specified ID",
-    function(done) {
+    it("should always create a new Matrix user for the specified ID", (done) => {
         let sdk = env.clientMock._client(config._botUserId);
 
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
-        function(client, nick, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois", (client, nick, cb) => {
             expect(nick).toEqual(testNick);
             // say they exist (presence of user key)
             cb({
@@ -53,9 +51,9 @@ describe("Homeserver user queries", function() {
 
 describe("Homeserver alias queries", function() {
     const {env, config, roomMapping, test} = envBundle();
-    let testChannel = "#tower";
-    let testLocalpart = "irc_" + roomMapping.server + "_" + testChannel;
-    let testAlias = (
+    const testChannel = "#tower";
+    const testLocalpart = "irc_" + roomMapping.server + "_" + testChannel;
+    const testAlias = (
         "#" + testLocalpart + ":" + config.homeserver.domain
     );
 
@@ -81,9 +79,8 @@ describe("Homeserver alias queries", function() {
         yield test.afterEach(env);
     }));
 
-    it("should make the AS start tracking the channel specified in the alias.",
-    function(done) {
-        let sdk = env.clientMock._client(config._botUserId);
+    it("should make the AS start tracking the channel specified in the alias.", (done) => {
+        const sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.and.callFake(function(opts) {
             expect(opts.room_alias_name).toEqual(testLocalpart);
             expect(opts.visibility).toEqual("private");
@@ -99,8 +96,7 @@ describe("Homeserver alias queries", function() {
         });
 
         let botJoined = false;
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
-        function(client, channel, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join", (client, channel, cb) => {
             if (channel === testChannel) {
                 botJoined = true;
                 client._invokeCallback(cb);

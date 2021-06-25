@@ -2,7 +2,7 @@ const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
 describe("Dynamic channels", function() {
-    let testUser = {
+    const testUser = {
         id: "@flibble:wibble",
         nick: "flibble"
     };
@@ -31,18 +31,16 @@ describe("Dynamic channels", function() {
         yield test.afterEach(env);
     }));
 
-    it("should join IRC channels when it receives special alias queries",
-    function(done) {
+    it("should join IRC channels when it receives special alias queries", (done) => {
         // Default mapping => #irc_$SERVER_$CHANNEL
-        let tChannel = "#foobar";
-        let tRoomId = "!newroom:id";
-        let tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
-        let tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
+        const tChannel = "#foobar";
+        const tRoomId = "!newroom:id";
+        const tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
+        const tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
 
         // when we get the connect/join requests, accept them.
         let joinedIrcChannel = false;
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
-        function(client, chan, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join", (client, chan, cb) => {
             if (chan === tChannel) {
                 joinedIrcChannel = true;
                 if (cb) { cb(); }
@@ -50,7 +48,7 @@ describe("Dynamic channels", function() {
         });
 
         // when we get the create room request, process it.
-        let sdk = env.clientMock._client(config._botUserId);
+        const sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.and.callFake(function(opts) {
             expect(opts.room_alias_name).toEqual(tAliasLocalpart);
             return Promise.resolve({
@@ -76,19 +74,17 @@ describe("Dynamic channels", function() {
         });
     });
 
-    it("should create federated room when joining channel and federation is enabled",
-    function(done) {
+    it("should create federated room when joining channel and federation is enabled", (done) => {
         config.ircService.servers[roomMapping.server].dynamicChannels.federate = true;
 
-        let tChannel = "#foobar";
-        let tRoomId = "!newroom:id";
-        let tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
-        let tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
+        const tChannel = "#foobar";
+        const tRoomId = "!newroom:id";
+        const tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
+        const tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
 
         // when we get the connect/join requests, accept them.
         let joinedIrcChannel = false;
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
-        function(client, chan, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join", (client, chan, cb) => {
             if (chan === tChannel) {
                 joinedIrcChannel = true;
                 if (cb) { cb(); }
@@ -96,7 +92,7 @@ describe("Dynamic channels", function() {
         });
 
         // when we get the create room request, process it.
-        let sdk = env.clientMock._client(config._botUserId);
+        const sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.and.callFake(function(opts) {
             expect(opts.roomVersion).toBeUndefined();
             expect(opts.creation_content).toEqual({"m.federate": true});
@@ -120,25 +116,23 @@ describe("Dynamic channels", function() {
         });
     });
 
-    it("should point to the same room ID for aliases with different cases",
-    function(done) {
+    it("should point to the same room ID for aliases with different cases", (done) => {
         // Default mapping => #irc_$SERVER_$CHANNEL
-        let tChannel = "#foobar";
-        let tRoomId = "!newroom:id";
-        let tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
-        let tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
-        let tAliasCapsLocalpart = "irc_" + roomMapping.server + "_#FooBar";
-        let tCapsAlias = "#" + tAliasCapsLocalpart + ":" + config.homeserver.domain;
+        const tChannel = "#foobar";
+        const tRoomId = "!newroom:id";
+        const tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
+        const tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
+        const tAliasCapsLocalpart = "irc_" + roomMapping.server + "_#FooBar";
+        const tCapsAlias = "#" + tAliasCapsLocalpart + ":" + config.homeserver.domain;
 
         // when we get the connect/join requests, accept them.
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
-        function(client, chan, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join", (client, chan, cb) => {
             expect(chan).toEqual(tChannel);
             if (cb) { cb(); }
         });
 
         // when we get the create room request, process it.
-        let sdk = env.clientMock._client(config._botUserId);
+        const sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.and.callFake(function(opts) {
             expect(opts.room_alias_name).toEqual(tAliasLocalpart);
             return Promise.resolve({
@@ -180,8 +174,7 @@ describe("Dynamic channels", function() {
 
         // when we get the connect/join requests, accept them.
         let joinedIrcChannel = false;
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
-        function(client, chan, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join", (client, chan, cb) => {
             if (chan === tChannel) {
                 joinedIrcChannel = true;
                 if (cb) { cb(); }
@@ -189,7 +182,7 @@ describe("Dynamic channels", function() {
         });
 
         // when we get the create room request, process it.
-        let sdk = env.clientMock._client(config._botUserId);
+        const sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.and.callFake(function(opts) {
             expect(opts.room_version).toEqual("the-best-version");
             return Promise.resolve({
@@ -215,7 +208,7 @@ describe("Dynamic channels", function() {
 });
 
 describe("Dynamic channels (federation disabled)", function() {
-    let testUser = {
+    const testUser = {
         id: "@flibble:wibble",
         nick: "flibble"
     };
@@ -247,17 +240,15 @@ describe("Dynamic channels (federation disabled)", function() {
         yield test.afterEach(env);
     }));
 
-    it("should create non federated room when joining channel and federation is disabled",
-    function(done) {
-        let tChannel = "#foobar";
-        let tRoomId = "!newroom:id";
-        let tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
-        let tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
+    it("should create non federated room when joining channel and federation is disabled", (done) => {
+        const tChannel = "#foobar";
+        const tRoomId = "!newroom:id";
+        const tAliasLocalpart = "irc_" + roomMapping.server + "_" + tChannel;
+        const tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
 
         // when we get the connect/join requests, accept them.
         let joinedIrcChannel = false;
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
-        function(client, chan, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join", (client, chan, cb) => {
             if (chan === tChannel) {
                 joinedIrcChannel = true;
                 if (cb) { cb(); }
@@ -265,7 +256,7 @@ describe("Dynamic channels (federation disabled)", function() {
         });
 
         // when we get the create room request, process it.
-        let sdk = env.clientMock._client(config._botUserId);
+        const sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.and.callFake(function(opts) {
             expect(opts.creation_content).toEqual({"m.federate": false});
             return Promise.resolve({
@@ -290,7 +281,7 @@ describe("Dynamic channels (federation disabled)", function() {
 });
 
 describe("Dynamic channels (disabled)", function() {
-    let testUser = {
+    const testUser = {
         id: "@flibble:wibble",
         nick: "flibble"
     };
@@ -320,17 +311,15 @@ describe("Dynamic channels (disabled)", function() {
         yield test.afterEach(env);
     }));
 
-    it("should NOT join IRC channels when it receives special alias queries",
-    function(done) {
-        let tChannel = "#foobar";
-        let tRoomId = "!newroom:id";
-        let tAliasLocalpart = roomMapping.server + "_" + tChannel;
-        let tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
+    it("should NOT join IRC channels when it receives special alias queries", (done) => {
+        const tChannel = "#foobar";
+        const tRoomId = "!newroom:id";
+        const tAliasLocalpart = roomMapping.server + "_" + tChannel;
+        const tAlias = "#" + tAliasLocalpart + ":" + config.homeserver.domain;
 
         // when we get the connect/join requests, accept them.
         let joinedIrcChannel = false;
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join",
-        function(client, chan, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join", (client, chan, cb) => {
             if (chan === tChannel) {
                 joinedIrcChannel = true;
             }
@@ -338,7 +327,7 @@ describe("Dynamic channels (disabled)", function() {
         });
 
         // when we get the create room request, process it.
-        let sdk = env.clientMock._client(config._botUserId);
+        const sdk = env.clientMock._client(config._botUserId);
         sdk.createRoom.and.callFake(function(opts) {
             return Promise.resolve({
                 room_id: tRoomId
