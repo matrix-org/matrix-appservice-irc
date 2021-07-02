@@ -723,7 +723,10 @@ export class AdminRoomHandler {
 
     private showHelp(userPermission: string|undefined): MatrixAction {
         let body = "This is an IRC admin room for controlling your IRC connection and sending " +
-        "commands directly to IRC. The following commands are available:<br/><ul>";
+        "commands directly to IRC.<br/>" +
+        "See the <a href=\"https://matrix-org.github.io/matrix-appservice-irc/latest/usage.html\">" +
+        "Matrix IRC Bridge Usage Guide</a> on how to control the IRC bridge using this room.<br/>" +
+        "The following commands are available:<br/><ul>";
         for (const [key, command] of Object.entries(COMMANDS)) {
             if ("heading" in command) {
                 body += `</ul>\n<h3>${key}</h3>\n<ul>`;
