@@ -85,6 +85,13 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
         <td>#irc:matrix.org</td>
         <td>Matrix.org</td>
     </tr>
+    <tr>
+        <td>libera.chat</td>
+        <td>#channame:libera.chat</td>
+        <td>@appservice:libera.chat</td>
+        <td>#libera-matrix:libera.chat</td>
+        <td>Matrix.org</td>
+    </tr>
 </table>
 
 ### Footnotes
