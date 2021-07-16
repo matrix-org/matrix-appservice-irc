@@ -59,6 +59,12 @@ const TXN_SIZE_DEFAULT = 10000000 // 10MB
 const RECEIPT_CUTOFF_TIME_MS = 60000;
 export const METRIC_ACTIVE_USERS = "active_users";
 
+type Timers = {
+    matrix_request_seconds: Histogram<string>;
+    remote_request_seconds: Histogram<string>;
+    irc_connection_time_ms: Histogram<string>;
+}
+
 export class IrcBridge {
     public static readonly DEFAULT_LOCALPART = "appservice-irc";
     public onAliasQueried: (() => void)|null = null;
@@ -77,10 +83,7 @@ export class IrcBridge {
     private provisioner: Provisioner|null = null;
     private bridge: Bridge;
     private appservice: AppService;
-    private timers: {
-        matrix_request_seconds: Histogram<string>;
-        remote_request_seconds: Histogram<string>;
-    }|null = null;
+    private timers: Timers|null = null;
     private membershipCache: MembershipCache;
     private readonly membershipQueue: MembershipQueue;
     private bridgeStateSyncer?: BridgeInfoStateSyncer<{
@@ -335,7 +338,11 @@ export class IrcBridge {
                 name: "remote_request_seconds",
                 help: "Histogram of processing durations of received remote messages",
                 labels: ["outcome"],
-            })
+            }),
+            irc_connection_time_ms: metrics.addTimer({
+                name: "irc_connection_time_ms",
+                help: "The time it took the user to receive the welcome message",
+            }),
         };
 
         // Custom IRC metrics
@@ -726,6 +733,13 @@ export class IrcBridge {
         if (timer) {
             timer.observe({outcome}, req.getDuration() / 1000);
         }
+    }
+
+    public logTime(key: keyof Timers, time: number) {
+        if (!this.timers) {
+            return; // metrics are disabled
+        }
+        this.timers[key].observe(time);
     }
 
     private addRequestCallbacks() {
