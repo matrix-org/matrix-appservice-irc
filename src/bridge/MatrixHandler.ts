@@ -10,6 +10,7 @@ import { IrcAction } from "../models/IrcAction";
 import { toIrcLowerCase } from "../irc/formatting";
 import { AdminRoomHandler } from "./AdminRoomHandler";
 import { trackChannelAndCreateRoom } from "./RoomCreation";
+import { renderTemplate } from "../util/Template";
 
 async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
     try {
@@ -30,6 +31,12 @@ const MSG_PMS_DISABLED_FEDERATION = "[Bridge] Sorry, PMs are disabled on this br
 const DEFAULT_EVENT_CACHE_SIZE = 4096;
 /* Length of the source text in a formatted reply message */
 const REPLY_SOURCE_MAX_LENGTH = 32;
+// How many seconds needs to pass between a message and a reply to it to switch to the long reply format
+const DEFAULT_SHORT_REPLY_TRESHOLD_SECONDS = 5 * 60;
+// Format of replies sent shortly after the original message
+const DEFAULT_SHORT_REPLY_TEMPLATE = "$NICK: $REPLY";
+// Format of replies sent a while after the original message
+const DEFAULT_LONG_REPLY_TEMPLATE = "<$NICK> \"$ORIGINAL\" <- $REPLY";
 
 export interface MatrixEventInvite {
     room_id: string;
@@ -82,11 +89,24 @@ export interface OnMemberEventData {
     };
 }
 
+interface CachedEvent {
+    body: string;
+    sender: string;
+    timestamp: number;
+}
+
+interface Config {
+    eventCacheSize?: number;
+    shortReplyTresholdSeconds?: number;
+    shortReplyTemplate?: string;
+    longReplyTemplate?: string;
+}
+
 export class MatrixHandler {
     private readonly processingInvitesForRooms: {
         [roomIdUserId: string]: Promise<unknown>;
     } = {};
-    private readonly eventCache: Map<string, {body: string; sender: string}> = new Map();
+    private readonly eventCache: Map<string, CachedEvent> = new Map();
     private readonly eventCacheMaxSize: number;
     private readonly metrics: {[domain: string]: {
         [metricName: string]: number;
@@ -97,7 +117,7 @@ export class MatrixHandler {
 
     constructor(
         private ircBridge: IrcBridge,
-        config: {eventCacheSize?: number} = {},
+        private config: Config = {},
         private readonly membershipQueue: MembershipQueue) {
         // maintain a list of room IDs which are being processed invite-wise. This is
         // required because invites are processed asyncly, so you could get invite->msg
@@ -1037,7 +1057,8 @@ export class MatrixHandler {
         }
         this.eventCache.set(event.event_id, {
             body,
-            sender: event.sender
+            sender: event.sender,
+            timestamp: event.origin_server_ts,
         });
 
         // Cache events in here so we can refer to them for replies.
@@ -1211,7 +1232,7 @@ export class MatrixHandler {
         let rplName: string;
         let rplSource: string;
         const rplText = match[3];
-        const cachedEvent = this.eventCache.get(eventId);
+        let cachedEvent = this.eventCache.get(eventId);
         if (!cachedEvent) {
             // Fallback to fetching from the homeserver.
             try {
@@ -1232,7 +1253,8 @@ export class MatrixHandler {
                     rplSource = eventContent.content.body;
                 }
                 rplSource = rplSource.substring(0, REPLY_SOURCE_MAX_LENGTH);
-                this.eventCache.set(eventId, {sender: rplName, body: rplSource});
+                cachedEvent = {sender: rplName, body: rplSource, timestamp: eventContent.origin_server_ts};
+                this.eventCache.set(eventId, cachedEvent); // TODO can overflow the cache
             }
             catch (err) {
                 // If we couldn't find the event, then frankly we can't
@@ -1257,8 +1279,6 @@ export class MatrixHandler {
             if (lines[0].length > REPLY_SOURCE_MAX_LENGTH) {
                 rplSource = rplSource + "...";
             }
-            // Wrap in formatting
-            rplSource = ` "${rplSource}"`;
         }
         else {
             // Don't show a source because we couldn't format one.
@@ -1279,8 +1299,22 @@ export class MatrixHandler {
             );
         }
 
+        let replyTemplate: string;
+        const tresholdMs = (this.config.shortReplyTresholdSeconds || DEFAULT_SHORT_REPLY_TRESHOLD_SECONDS) * 1000;
+        if (rplSource && event.origin_server_ts - cachedEvent.timestamp > tresholdMs) {
+            replyTemplate = this.config.longReplyTemplate || DEFAULT_LONG_REPLY_TEMPLATE;
+        }
+        else {
+            replyTemplate = this.config.shortReplyTemplate || DEFAULT_SHORT_REPLY_TEMPLATE;
+        }
+
+        const formattedReply = renderTemplate(replyTemplate, {
+            nick: rplName,
+            original: rplSource,
+            reply: rplText,
+        });
         return {
-            formatted: `<${rplName}${rplSource}> ${rplText}`,
+            formatted: formattedReply,
             reply: rplText,
         };
     }

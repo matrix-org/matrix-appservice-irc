@@ -549,6 +549,13 @@ ircService:
     # Cache this many matrix events in memory to be used for m.relates_to messages (usually replies).
     eventCacheSize: 4096
 
+    # format of replies sent shortly after the original message
+    shortReplyTemplate: "$NICK: $REPLY"
+    # format of replies sent a while after the original message
+    longReplyTemplate: "<$NICK> \"$ORIGINAL\" <- $REPLY"
+    # how much time needs to pass between the reply and the original message to switch to the long format
+    shortReplyTresholdSeconds: 300
+
   ircHandler:
     # Should we attempt to match an IRC side mention (nickaname match)
     # with the nickname's owner's matrixId, if we are bridging them?
