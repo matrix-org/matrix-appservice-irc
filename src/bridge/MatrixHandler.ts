@@ -1055,17 +1055,12 @@ export class MatrixHandler {
         if (nextNewLine !== -1) {
             body = body.substring(0, nextNewLine);
         }
-        this.eventCache.set(event.event_id, {
+        // Cache events in here so we can refer to them for replies.
+        this.cacheEvent(event.event_id, {
             body,
             sender: event.sender,
             timestamp: event.origin_server_ts,
         });
-
-        // Cache events in here so we can refer to them for replies.
-        if (this.eventCache.size > this.eventCacheMaxSize) {
-            const delKey = this.eventCache.entries().next().value[0];
-            this.eventCache.delete(delKey);
-        }
 
         // The client might still be connected, for abundance of safety let's wait.
         await ircClient.waitForConnected();
@@ -1232,7 +1227,7 @@ export class MatrixHandler {
         let rplName: string;
         let rplSource: string;
         const rplText = match[3];
-        let cachedEvent = this.eventCache.get(eventId);
+        let cachedEvent = this.getCachedEvent(eventId);
         if (!cachedEvent) {
             // Fallback to fetching from the homeserver.
             try {
@@ -1254,7 +1249,7 @@ export class MatrixHandler {
                 }
                 rplSource = rplSource.substring(0, REPLY_SOURCE_MAX_LENGTH);
                 cachedEvent = {sender: rplName, body: rplSource, timestamp: eventContent.origin_server_ts};
-                this.eventCache.set(eventId, cachedEvent); // TODO can overflow the cache
+                this.cacheEvent(eventId, cachedEvent);
             }
             catch (err) {
                 // If we couldn't find the event, then frankly we can't
@@ -1331,6 +1326,19 @@ export class MatrixHandler {
             metricSet[metricName]++;
         }
         this.metrics[serverDomain] = metricSet;
+    }
+
+    private cacheEvent(id: string, event: CachedEvent) {
+        this.eventCache.set(id, event);
+
+        if (this.eventCache.size > this.eventCacheMaxSize) {
+            const delKey = this.eventCache.entries().next().value[0];
+            this.eventCache.delete(delKey);
+        }
+    }
+
+    private getCachedEvent(id: string): CachedEvent|undefined {
+        return this.eventCache.get(id);
     }
 
     // EXPORTS
