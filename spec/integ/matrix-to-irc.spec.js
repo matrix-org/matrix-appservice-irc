@@ -534,6 +534,53 @@ describe("Matrix-to-IRC message bridging", function() {
         await p;
     });
 
+    it("should bridge multiline matrix replies without losing information (GH-1198)", async function() {
+        // Trigger an original event
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "This is the real message",
+                msgtype: "m.text"
+            },
+            room_id: roomMapping.roomId,
+            sender: repliesUser.id,
+            event_id: "$original:bar.com",
+            origin_server_ts: 1_000,
+            type: "m.room.message"
+        });
+        const p = env.ircMock._whenClient(roomMapping.server, testUser.nick, "say",
+            (client, channel, text) => {
+                expect(client.nick).toEqual(testUser.nick);
+                expect(client.addr).toEqual(roomMapping.server);
+                expect(channel).toEqual(roomMapping.channel);
+                expect(text).toContain('Line one');
+                expect(text).toContain('Line two');
+            }
+        );
+        const formatted_body = constructHTMLReply(
+            "This is the fake message",
+            "@somedude:bar.com",
+            "Line one<br>Line two"
+        );
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "> <@somedude:bar.com> This is the fake message\n\nLine one\nLine two",
+                formatted_body,
+                format: "org.matrix.custom.html",
+                msgtype: "m.text",
+                "m.relates_to": {
+                    "m.in_reply_to": {
+                        "event_id": "$original:bar.com"
+                    }
+                },
+            },
+            sender: testUser.id,
+            room_id: roomMapping.roomId,
+            origin_server_ts: 2_000,
+            type: "m.room.message"
+        });
+        await p;
+    });
+
     it("should bridge matrix images as IRC action with a URL", function(done) {
         let tBody = "the_image.jpg";
         let tMxcSegment = "/somecontentid";
