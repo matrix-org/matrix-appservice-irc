@@ -281,7 +281,6 @@ export class IrcBridge {
         }
 
         const { userActivityThresholdHours, remoteUserAgeBuckets } = this.config.ircService.metrics;
-
         const usingRemoteMetrics = !!this.config.ircService.metrics.port;
 
         const metrics = this.bridge.getPrometheusMetrics(!usingRemoteMetrics, registry);
@@ -339,9 +338,11 @@ export class IrcBridge {
                 help: "Histogram of processing durations of received remote messages",
                 labels: ["outcome"],
             }),
-            irc_connection_time_ms: metrics.addTimer({
+            irc_connection_time_ms: new Histogram({
+                registers: [registry],
                 name: "irc_connection_time_ms",
                 help: "The time it took the user to receive the welcome message",
+                buckets: [100, 500, 1000, 2500, 10000, 30000],
             }),
         };
 
