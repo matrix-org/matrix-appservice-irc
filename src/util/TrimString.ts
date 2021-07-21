@@ -14,20 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// a unicode-aware substring(0, $x)
+// since trimRight()/trimEnd() may break unicode characters
+function trimTrailingWhitespace(input: string): string {
+    return input.replace(/\s*$/u, '');
+}
+
+// a unicode-aware substring(0, $x) that tries to not break words if possible
 export function trimString(input: string, maxLength: number): string {
-    const re = new RegExp(`^([\\s\\S]{0,${maxLength}})`, 'u');
+    const re = new RegExp(`^([\\s\\S]{0,${maxLength}})(\\p{L}?)`, 'u');
     const match = input.match(re);
 
-    let trimmed: string;
-    if (match) {
-        trimmed = match[1];
-    }
-    else {
+    if (!match) {
         // fallback to a dumb substring() if the regex failed for any reason
-        trimmed = input.substring(0, maxLength);
+        return trimTrailingWhitespace(input.substring(0, maxLength));
     }
-    //
-    // trimRight()/trimEnd() may break unicode characters
-    return trimmed.replace(/\s*$/u, '');
+
+    const trimmed = trimTrailingWhitespace(match[1]);
+
+    if (match[2]) {
+        // find as much as you can that is followed by a word boundary,
+        // shorter than what we have now, but at least 75% of the desired length
+        const smallerMatch = trimmed.match(/^([\s\S]*\S)\b[\s\S]/u);
+        const minLength = maxLength * 0.75;
+
+        if (smallerMatch && smallerMatch[1].length >= minLength) {
+            return smallerMatch[1];
+        }
+    }
+
+    return trimmed;
 }
