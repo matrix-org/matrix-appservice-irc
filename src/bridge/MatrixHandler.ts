@@ -1247,7 +1247,6 @@ export class MatrixHandler {
                 else {
                     rplSource = eventContent.content.body;
                 }
-                rplSource = rplSource.substring(0, REPLY_SOURCE_MAX_LENGTH);
                 cachedEvent = {sender: rplName, body: rplSource, timestamp: eventContent.origin_server_ts};
                 this.cacheEvent(eventId, cachedEvent);
             }
