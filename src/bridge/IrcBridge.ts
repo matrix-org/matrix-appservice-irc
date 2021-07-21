@@ -198,7 +198,9 @@ export class IrcBridge {
         });
         this.matrixHandler = new MatrixHandler(this, this.config.ircService.matrixHandler || {}, this.membershipQueue);
         this.privacyProtection = new PrivacyProtection(this);
-        this.ircHandler = new IrcHandler(this, this.config.ircService.ircHandler, this.membershipQueue, this.privacyProtection);
+        this.ircHandler = new IrcHandler(
+            this, this.config.ircService.ircHandler, this.membershipQueue, this.privacyProtection
+        );
 
         // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
         MatrixUser.ESCAPE_DEFAULT = false;
