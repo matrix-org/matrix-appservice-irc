@@ -37,22 +37,19 @@ describe("IRC client cycling", function() {
             {
                 id: "@charles:hs", nick: "M-charles",
                 connects: 0, disconnects: 0, says: 0
-            }
+            },
         ];
 
         testUsers.forEach(function(usr, index) {
             // we'll tally when these clients connect, say or disconnect
-            env.ircMock._whenClient(roomMapping.server, usr.nick, "say",
-            function(client, channel, text) {
+            env.ircMock._whenClient(roomMapping.server, usr.nick, "say", (client, channel, text) => {
                 testUsers[index].says += 1;
             });
-            env.ircMock._whenClient(roomMapping.server, usr.nick, "connect",
-            function(client, cb) {
+            env.ircMock._whenClient(roomMapping.server, usr.nick, "connect", (client, cb) => {
                 testUsers[index].connects += 1;
                 client._invokeCallback(cb);
             });
-            env.ircMock._whenClient(roomMapping.server, usr.nick, "disconnect",
-            function(client, reason, cb) {
+            env.ircMock._whenClient(roomMapping.server, usr.nick, "disconnect", (client, reason, cb) => {
                 testUsers[index].disconnects += 1;
                 client._invokeCallback(cb);
             });
@@ -70,8 +67,7 @@ describe("IRC client cycling", function() {
         yield test.afterEach(env);
     }));
 
-    it("should disconnect the oldest (last message time) client",
-    function(done) {
+    it("should disconnect the oldest (last message time) client", (done) => {
         env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
@@ -169,14 +165,10 @@ describe("IRC client cycling", function() {
             // the first guy should have 2 says, 2 connects and 1 disconnect.
             // We're mainly interested in that there were 2 connect calls. If
             // there is just 1, it indicates it used a cached copy.
-            let first = testUsers[0];
+            const first = testUsers[0];
             expect(first.says).toEqual(2);
-            expect(first.connects).toEqual(
-                2, "client should 2 connects but doesn't"
-            );
-            expect(first.disconnects).toEqual(
-                1, "client should 1 disconnects but doesn't"
-            );
+            expect(first.connects).withContext("client should 2 connects but doesn't").toEqual(2);
+            expect(first.disconnects).withContext("client should 1 disconnects but doesn't").toEqual(1);
             done();
         });
     });

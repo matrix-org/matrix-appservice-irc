@@ -48,18 +48,16 @@ describe("MemberListSyncer", function() {
             });
         });
 
-        let ircUserId = function(nick) {
+        const ircUserId = function(nick) {
             return `@${roomMapping.server}_${nick}:${config.homeserver.domain}`;
         };
-        botClient.getJoinedRooms.and.callFake(
-        () => {
+        botClient.getJoinedRooms.and.callFake(() => {
             return Promise.resolve({joined_rooms: [
                 roomMapping.roomId
             ]});
         });
 
-        botClient.getJoinedRoomMembers.and.callFake(
-        () => {
+        botClient.getJoinedRoomMembers.and.callFake(() => {
             return Promise.resolve({joined: {
                 "@alice:bar": {},
                 [ircUserId("alpha")]: {},
@@ -67,9 +65,9 @@ describe("MemberListSyncer", function() {
             }});
         });
 
-        let promise = new Promise((resolve, reject) => {
+        const promise = new Promise((resolve, reject) => {
             // 'alpha' should leave
-            let alphaClient = env.clientMock._client(ircUserId("alpha"));
+            const alphaClient = env.clientMock._client(ircUserId("alpha"));
             alphaClient.leave.and.callFake((roomId) => {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
@@ -97,8 +95,8 @@ describe("MemberListSyncer", function() {
         botClient.getJoinedRooms.and.callFake(() => {
             return Promise.resolve({joined_rooms: [roomMapping.roomId]});
         });
-        let alicePromise = new Promise((resolve, reject) => {
-            let aliceNick = "M-alice";
+        const alicePromise = new Promise((resolve, reject) => {
+            const aliceNick = "M-alice";
             env.ircMock._whenClient(roomMapping.server, aliceNick, "connect", function(client, cb) {
                 client._invokeCallback(cb);
             });
@@ -109,8 +107,8 @@ describe("MemberListSyncer", function() {
             });
         });
 
-        let bobPromise = new Promise((resolve, reject) => {
-            let bobNick = "M-Bob";
+        const bobPromise = new Promise((resolve, reject) => {
+            const bobNick = "M-Bob";
             env.ircMock._whenClient(roomMapping.server, bobNick, "connect", function(client, cb) {
                 client._invokeCallback(cb);
             });

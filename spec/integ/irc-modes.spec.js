@@ -12,13 +12,13 @@ describe("IRC-to-Matrix mode bridging", function() {
 
     let sdk = null;
 
-    let tFromNick = "mike";
-    let tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
+    const tFromNick = "mike";
+    const tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
                   config.homeserver.domain;
 
-    let configJoinRule = config.ircService.servers[
-            roomMapping.server
-        ].dynamicChannels.joinRule;
+    const configJoinRule = config.ircService.servers[
+        roomMapping.server
+    ].dynamicChannels.joinRule;
 
     beforeEach(test.coroutine(function*() {
         yield test.beforeEach(env);
@@ -46,8 +46,7 @@ describe("IRC-to-Matrix mode bridging", function() {
         yield test.afterEach(env);
     }));
 
-    it("should set join_rules to 'invite' on +k.",
-    function(done) {
+    it("should set join_rules to 'invite' on +k.", (done) => {
         sdk.sendStateEvent.and.callFake(function(roomId, type, content, key) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(type).toEqual("m.room.join_rules");
@@ -59,14 +58,12 @@ describe("IRC-to-Matrix mode bridging", function() {
             return Promise.resolve();
         });
 
-        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
             client.emit("+mode", roomMapping.channel, "anIrcUser", "k");
         });
     });
 
-    it("should set join_rules to 'invite' on +i.",
-    function(done) {
+    it("should set join_rules to 'invite' on +i.", (done) => {
         sdk.sendStateEvent.and.callFake(function(roomId, type, content, key) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(type).toEqual("m.room.join_rules");
@@ -78,14 +75,12 @@ describe("IRC-to-Matrix mode bridging", function() {
             return Promise.resolve();
         });
 
-        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
             client.emit("+mode", roomMapping.channel, "anIrcUser", "i");
         });
     });
 
-    it("should revert join_rules to config value on -i.",
-    function(done) {
+    it("should revert join_rules to config value on -i.", (done) => {
         sdk.sendStateEvent.and.callFake(function(roomId, type, content, key) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(type).toEqual("m.room.join_rules");
@@ -97,14 +92,12 @@ describe("IRC-to-Matrix mode bridging", function() {
             return Promise.resolve();
         });
 
-        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
             client.emit("-mode", roomMapping.channel, "anIrcUser", "i");
         });
     });
 
-    it("should revert join_rules to config value on -k.",
-    function(done) {
+    it("should revert join_rules to config value on -k.", (done) => {
         sdk.sendStateEvent.and.callFake(function(roomId, type, content, key) {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(type).toEqual("m.room.join_rules");
@@ -116,8 +109,7 @@ describe("IRC-to-Matrix mode bridging", function() {
             return Promise.resolve();
         });
 
-        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then(
-        function(client) {
+        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
             client.emit("-mode", roomMapping.channel, "anIrcUser", "k");
         });
     });
