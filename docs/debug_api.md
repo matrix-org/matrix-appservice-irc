@@ -3,8 +3,8 @@ Debug API
 
 
 The Debug API is a powerful HTTP API to make adjustments to the bridge at runtime, and is typically useful
-when administrating large bridges. Some functionality has moved to the [Admin Room](./admin_room.md)
-interface as sending commands over Matrix is preferred, however many powerful commands are exposed here.
+when administrating large bridges. Some functionality has moved to the [Admin Room](admin_room)
+interface as sending commands over Matrix is preferred, however, many powerful commands are exposed here.
 
 You can enable this feature in the config file:
 
@@ -65,7 +65,7 @@ curl http://127.0.0.1:11100/inspectUsers?access_token=AS_TOKEN_FROM_REGISTRATION
 Stop a room from being bridged. This will remove IRC ghost users from the room
 and disconnect Matrix users from the channel.
 
-The [Admin Room](admin_room.html#unlink) features a less
+The [Admin Room](admin_room#unlink) features a less
 powerful version of this command.
 
 #### Request Body
@@ -85,9 +85,22 @@ powerful version of this command.
 The response body will contain a JSON array of stages that were successful and failed as
 it's possible for this command to only be partially successful.
 
+Typical successful response:
+
 ```json5
-error: [],
-stages: [],
+{
+  error: [],
+  stages: ["Removed room from store", "Left notice in room", "Deleted alias for room", "Parted clients where applicable."],
+}
+```
+
+Typical error response:
+
+```json5
+{
+  error: ["Room not found"],
+  stages: [],
+}
 ```
 
 ### `POST /killUser`
@@ -105,7 +118,7 @@ This will kill a connection to IRC for a given user on all networks they are con
 
 #### Response Body
 
-If a disconnection was successful, the bridge will emit "null". Otherwise it may emit an error
+If a disconnection was successful, the bridge will emit "null". Otherwise, it may emit an error
 message in plaintext.
 
 ### `POST /reapUsers`

@@ -87,4 +87,5 @@ can be found in [GRAFANA.md](https://github.com/matrix-org/matrix-appservice-irc
 ## The Debug API
 
 The Debug API allows you to perform administrative actions on the bridge such as killing a IRC
-connection, inspecting connected users or unbridging a room. You can learn more by reading [Bridge Setup](./debug_api.md)
+connection, inspecting connected users or unbridging a room. You can learn more by reading
+the [Debug API](./debug_api.md) documentation.
