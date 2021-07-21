@@ -1,6 +1,7 @@
 # Administrators Guide
 
-This document describes useful information when administering a bridge.
+This document describes useful information when administering a bridge. If you are looking for information
+on how to set up the bridge, please see [Bridge Setup](./bridge_setup.md).
 
 ## Advanced Configuration
 
@@ -86,7 +87,5 @@ can be found in [GRAFANA.md](https://github.com/matrix-org/matrix-appservice-irc
 ## The Debug API
 
 The Debug API allows you to perform administrative actions on the bridge such as killing a IRC
-connection, inspecting connected users or unbridging a room. The API is currently loosely documented
-over in [the GitHub wiki](https://github.com/matrix-org/matrix-appservice-irc/wiki/Debug-API).
-
-This is not enabled by default.
+connection, inspecting connected users or unbridging a room. You can learn more by reading
+the [Debug API](./debug_api.md) documentation.

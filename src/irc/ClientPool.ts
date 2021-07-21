@@ -540,7 +540,7 @@ export class ClientPool {
         }
     }
 
-    private onClientConnected(bridgedClient: BridgedClient): void {
+    private onClientConnected(bridgedClient: BridgedClient, duration: number): void {
         const server = bridgedClient.server;
         const oldNick = bridgedClient.nick;
         if (bridgedClient.status !== BridgedClientStatus.CONNECTED) {
@@ -559,6 +559,7 @@ export class ClientPool {
             log.debug("Connected with nick '%s' instead of desired nick '%s'",
                 actualNick, oldNick);
         }
+        this.ircBridge.logTime('irc_connection_time_ms', duration);
     }
 
     private async onClientDisconnected(bridgedClient: BridgedClient) {

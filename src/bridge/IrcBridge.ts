@@ -59,6 +59,12 @@ const TXN_SIZE_DEFAULT = 10000000 // 10MB
 const RECEIPT_CUTOFF_TIME_MS = 60000;
 export const METRIC_ACTIVE_USERS = "active_users";
 
+type Timers = {
+    matrix_request_seconds: Histogram<string>;
+    remote_request_seconds: Histogram<string>;
+    irc_connection_time_ms: Histogram<string>;
+}
+
 export class IrcBridge {
     public static readonly DEFAULT_LOCALPART = "appservice-irc";
     public onAliasQueried: (() => void)|null = null;
@@ -77,10 +83,7 @@ export class IrcBridge {
     private provisioner: Provisioner|null = null;
     private bridge: Bridge;
     private appservice: AppService;
-    private timers: {
-        matrix_request_seconds: Histogram<string>;
-        remote_request_seconds: Histogram<string>;
-    }|null = null;
+    private timers: Timers|null = null;
     private membershipCache: MembershipCache;
     private readonly membershipQueue: MembershipQueue;
     private bridgeStateSyncer?: BridgeInfoStateSyncer<{
@@ -193,9 +196,11 @@ export class IrcBridge {
             maxActionDelayMs: 5 * 60 * 1000, // 5 mins,
             defaultTtlMs: 10 * 60 * 1000, // 10 mins
         });
-        this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
+        this.matrixHandler = new MatrixHandler(this, this.config.ircService.matrixHandler || {}, this.membershipQueue);
         this.privacyProtection = new PrivacyProtection(this);
-        this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue, this.privacyProtection);
+        this.ircHandler = new IrcHandler(
+            this, this.config.ircService.ircHandler, this.membershipQueue, this.privacyProtection
+        );
 
         // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
         MatrixUser.ESCAPE_DEFAULT = false;
@@ -238,8 +243,12 @@ export class IrcBridge {
             log.info(`Adjusted media_url to ${newConfig.homeserver.media_url}`);
         }
 
-        this.ircHandler.onConfigChanged(newConfig.ircHandler || {});
-        this.config.ircHandler = newConfig.ircHandler;
+        this.ircHandler.onConfigChanged(newConfig.ircService.ircHandler || {});
+        this.config.ircService.ircHandler = newConfig.ircService.ircHandler;
+
+        this.matrixHandler.onConfigChanged(newConfig.ircService.matrixHandler || {});
+        this.config.ircService.matrixHandler = newConfig.ircService.matrixHandler;
+
         this.config.ircService.permissions = newConfig.ircService.permissions;
         this.roomConfigs.config = newConfig.ircService.perRoomConfig;
 
@@ -278,7 +287,6 @@ export class IrcBridge {
         }
 
         const { userActivityThresholdHours, remoteUserAgeBuckets } = this.config.ircService.metrics;
-
         const usingRemoteMetrics = !!this.config.ircService.metrics.port;
 
         const metrics = this.bridge.getPrometheusMetrics(!usingRemoteMetrics, registry);
@@ -335,7 +343,13 @@ export class IrcBridge {
                 name: "remote_request_seconds",
                 help: "Histogram of processing durations of received remote messages",
                 labels: ["outcome"],
-            })
+            }),
+            irc_connection_time_ms: new Histogram({
+                registers: [registry],
+                name: "irc_connection_time_ms",
+                help: "The time it took the user to receive the welcome message",
+                buckets: [100, 500, 1000, 2500, 10000, 30000],
+            }),
         };
 
         // Custom IRC metrics
@@ -726,6 +740,13 @@ export class IrcBridge {
         if (timer) {
             timer.observe({outcome}, req.getDuration() / 1000);
         }
+    }
+
+    public logTime(key: keyof Timers, time: number) {
+        if (!this.timers) {
+            return; // metrics are disabled
+        }
+        this.timers[key].observe(time);
     }
 
     private addRequestCallbacks() {

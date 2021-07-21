@@ -17,6 +17,7 @@ limitations under the License.
 import { getLogger } from "../logging";
 import { illegalCharactersRegex} from "./BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
+import { renderTemplate } from "../util/Template";
 
 const log = getLogger("IrcServer");
 const GROUP_ID_REGEX = /^\+\S+:\S+$/
@@ -546,8 +547,10 @@ export class IrcServer {
     public getUserLocalpart(nick: string) {
         // the template is just a literal string with special vars; so find/replace
         // the vars and strip the @
-        const uid = this.config.matrixClients.userTemplate.replace(/\$SERVER/g, this.domain);
-        return uid.replace(/\$NICK/g, nick).substring(1);
+        return renderTemplate(this.config.matrixClients.userTemplate, {
+            server: this.domain,
+            nick,
+        }).substring(1); // the first character is guaranteed by config schema to be '@'
     }
 
     public claimsUserId(userId: string) {
@@ -636,9 +639,10 @@ export class IrcServer {
         if (!channel.startsWith("#") && !this.aliasTemplateHasHashPrefix) {
             throw Error('Cannot get an alias for a channel not starting with a hash');
         }
-        const template = this.config.dynamicChannels.aliasTemplate;
-        let alias = template.replace(/\$CHANNEL/g, channel);
-        alias = alias.replace(/\$SERVER/g, this.domain);
+        const alias = renderTemplate(this.config.dynamicChannels.aliasTemplate, {
+            channel,
+            server: this.domain,
+        });
         return alias + ":" + this.homeserverDomain;
     }
 
@@ -650,11 +654,9 @@ export class IrcServer {
         if (!display) {
             throw new Error("Could not get nick for user, all characters were invalid");
         }
-        const template = this.config.ircClients.nickTemplate;
-        let nick = template.replace(/\$USERID/g, userId);
-        nick = nick.replace(/\$LOCALPART/g, localpart);
-        nick = nick.replace(/\$DISPLAY/g, display);
-        return nick;
+        return renderTemplate(this.config.ircClients.nickTemplate, {
+            userId, localpart, display
+        });
     }
 
     public getAliasRegex() {

@@ -57,10 +57,10 @@ export class PrivacyProtection {
      */
     private async shouldRequireMatrixUserJoined(server: IrcServer, channel: string, roomId: string): Promise<boolean> {
         // The room state takes priority.
-        const stateRequires =
+        const notRequired =
             await this.ircBridge.roomConfigs.allowUnconnectedMatrixUsers(roomId, new IrcRoom(server, channel));
-        if (stateRequires !== null) {
-            return stateRequires;
+        if (notRequired !== null) {
+            return !notRequired;
         }
         return server.shouldRequireMatrixUserJoined(channel);
     }

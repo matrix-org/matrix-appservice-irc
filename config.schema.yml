@@ -121,6 +121,12 @@ properties:
                 properties:
                     eventCacheSize:
                         type: "integer"
+                    shortReplyTemplate:
+                        type: "string"
+                    longReplyTemplate:
+                        type: "string"
+                    shortReplyTresholdSeconds:
+                        type: "integer"
             ircHandler:
                 type: "object"
                 properties:

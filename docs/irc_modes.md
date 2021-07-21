@@ -54,7 +54,7 @@ directory. The room will still be joinable however.
 ## Key protected (+k)
 
 If a channel is protected by a key, it cannot be entered by joining via an alias. Instead you may join by using
-the [`!join`](admin_room.md#join) command. Be aware that the bridge purposefully does not store channel keys in
+the [`!join`](admin_room#join) command. Be aware that the bridge purposefully does not store channel keys in
 the database as a security precaution so you should be expected to do this again on bridge restart.
 
 ## Channel Forwarding (+f)
