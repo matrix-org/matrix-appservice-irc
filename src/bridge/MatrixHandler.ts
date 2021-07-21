@@ -11,6 +11,7 @@ import { toIrcLowerCase } from "../irc/formatting";
 import { AdminRoomHandler } from "./AdminRoomHandler";
 import { trackChannelAndCreateRoom } from "./RoomCreation";
 import { renderTemplate } from "../util/Template";
+import { trimString } from "../util/TrimString";
 
 async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
     try {
@@ -1267,10 +1268,10 @@ export class MatrixHandler {
         // Get the first non-blank line from the source.
         const lines = rplSource.split('\n').filter((line) => !/^\s*$/.test(line))
         if (lines.length > 0) {
-            // Cut to a maximum length.
-            rplSource = lines[0].substring(0, REPLY_SOURCE_MAX_LENGTH);
+            rplSource = trimString(lines[0], REPLY_SOURCE_MAX_LENGTH);
+
             // Ellipsis if needed.
-            if (lines[0].length > REPLY_SOURCE_MAX_LENGTH) {
+            if (lines.length > 1 || rplSource.length < lines[0].length) {
                 rplSource = rplSource + "...";
             }
         }
