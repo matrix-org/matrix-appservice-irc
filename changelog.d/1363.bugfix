@@ -1,3 +1,0 @@
-Require explicit server selection for !storepass when more than one possibility exists.
-
-This makes the command a bit more verbose, but avoids the situation where a password could've been accidentally specified for the wrong server.
