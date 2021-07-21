@@ -95,7 +95,7 @@ interface CachedEvent {
     timestamp: number;
 }
 
-interface Config {
+export interface MatrixHandlerConfig {
     eventCacheSize?: number;
     shortReplyTresholdSeconds?: number;
     shortReplyTemplate?: string;
@@ -117,7 +117,7 @@ export class MatrixHandler {
 
     constructor(
         private ircBridge: IrcBridge,
-        private config: Config = {},
+        private config: MatrixHandlerConfig = {},
         private readonly membershipQueue: MembershipQueue) {
         // maintain a list of room IDs which are being processed invite-wise. This is
         // required because invites are processed asyncly, so you could get invite->msg
@@ -1342,6 +1342,9 @@ export class MatrixHandler {
     }
 
     // EXPORTS
+    public onConfigChanged(config: MatrixHandlerConfig) {
+        this.config = config;
+    }
 
     public onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {
         return reqHandler(req, this._onMemberEvent(req, event));

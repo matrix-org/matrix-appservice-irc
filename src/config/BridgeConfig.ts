@@ -2,12 +2,9 @@ import { IrcServerConfig } from "../irc/IrcServer";
 import { LoggerConfig } from "../logging";
 import { IrcHandlerConfig } from "../bridge/IrcHandler";
 import { RoomConfigConfig } from "../bridge/RoomConfig";
+import { MatrixHandlerConfig } from "../bridge/MatrixHandler";
 
 export interface BridgeConfig {
-    matrixHandler: {
-
-    };
-    ircHandler?: IrcHandlerConfig;
     database: {
         engine: string;
         connectionString: string;
@@ -23,6 +20,8 @@ export interface BridgeConfig {
     };
     ircService: {
         servers: {[domain: string]: IrcServerConfig};
+        matrixHandler?: MatrixHandlerConfig;
+        ircHandler?: IrcHandlerConfig;
         provisioning: {
             enabled: boolean;
             requestTimeoutSeconds: number;

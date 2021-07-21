@@ -193,9 +193,9 @@ export class IrcBridge {
             maxActionDelayMs: 5 * 60 * 1000, // 5 mins,
             defaultTtlMs: 10 * 60 * 1000, // 10 mins
         });
-        this.matrixHandler = new MatrixHandler(this, this.config.matrixHandler || {}, this.membershipQueue);
+        this.matrixHandler = new MatrixHandler(this, this.config.ircService.matrixHandler || {}, this.membershipQueue);
         this.privacyProtection = new PrivacyProtection(this);
-        this.ircHandler = new IrcHandler(this, this.config.ircHandler, this.membershipQueue, this.privacyProtection);
+        this.ircHandler = new IrcHandler(this, this.config.ircService.ircHandler, this.membershipQueue, this.privacyProtection);
 
         // By default the bridge will escape mxids, but the irc bridge isn't ready for this yet.
         MatrixUser.ESCAPE_DEFAULT = false;
@@ -238,8 +238,12 @@ export class IrcBridge {
             log.info(`Adjusted media_url to ${newConfig.homeserver.media_url}`);
         }
 
-        this.ircHandler.onConfigChanged(newConfig.ircHandler || {});
-        this.config.ircHandler = newConfig.ircHandler;
+        this.ircHandler.onConfigChanged(newConfig.ircService.ircHandler || {});
+        this.config.ircService.ircHandler = newConfig.ircService.ircHandler;
+
+        this.matrixHandler.onConfigChanged(newConfig.ircService.matrixHandler || {});
+        this.config.ircService.matrixHandler = newConfig.ircService.matrixHandler;
+
         this.config.ircService.permissions = newConfig.ircService.permissions;
         this.roomConfigs.config = newConfig.ircService.perRoomConfig;
 
