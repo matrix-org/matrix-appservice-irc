@@ -135,7 +135,7 @@ discover "lurkers".
 
 - `server` is the servername you wish to disconnect users from. This is the key of 
   your server configuration object in the config section.
-- `since` is the number of hours a user has been idle for to be considered `idle`.
+- `since` is the number of hours a user has been idle for to be considered `idle`. This must be an integer.
 - `reason` is the reason string to disconnect users with. E.g. "You have been idle for too long".
 - `dryrun` is whether to actually disconnect users, or just calculate which users 
   should be disconnected and output it to the response.
