@@ -1,6 +1,13 @@
 import { IrcBridge } from "./IrcBridge";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
-import { MatrixUser, MatrixRoom, StateLookup, StateLookupEvent, MembershipQueue } from "matrix-appservice-bridge";
+import {
+    ContentRepo,
+    MatrixUser,
+    MatrixRoom,
+    MembershipQueue,
+    StateLookup,
+    StateLookupEvent,
+} from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { IrcRoom } from "../models/IrcRoom";
@@ -39,6 +46,8 @@ export interface MatrixHandlerConfig {
     shortReplyTemplate: string;
     // Format of replies sent a while after the original message
     longReplyTemplate: string;
+    // Format of the text explaining why a message is truncated and pastebinned
+    truncatedMessageTemplate: string;
 }
 
 const DEFAULTS: MatrixHandlerConfig = {
@@ -47,6 +56,7 @@ const DEFAULTS: MatrixHandlerConfig = {
     shortReplyTresholdSeconds: 5 * 60,
     shortReplyTemplate: "$NICK: $REPLY",
     longReplyTemplate: "<$NICK> \"$ORIGINAL\" <- $REPLY",
+    truncatedMessageTemplate: "(full message at $URL)",
 };
 
 export interface MatrixEventInvite {
@@ -1108,25 +1118,38 @@ export class MatrixHandler {
 
         // This is true if the upload was a success
         if (contentUri) {
-            // Alter event object so that it is treated as if a file has been uploaded
-            event.content.url = contentUri;
-            event.content.msgtype = "m.file";
-            event.content.body = "sent a long message: ";
+            const httpUrl = ContentRepo.getHttpUriForMxc(this.mediaUrl, contentUri);
+            // we check event.content.body since ircAction already has the markers stripped
+            const codeBlockMatch = event.content.body.match(/^```(\w+)?/);
+            if (codeBlockMatch) {
+                const type = codeBlockMatch[1] ? ` ${codeBlockMatch[1]}` : '';
+                event.content = {
+                    msgtype: "m.emote",
+                    body:    `sent a${type} code block: ${httpUrl}`
+                };
+            }
+            else {
+                const explanation = renderTemplate(this.config.truncatedMessageTemplate, { url: httpUrl });
+                let messagePreview = trimString(
+                    potentialMessages[0],
+                    ircClient.getMaxLineLength() - 4 /* "... " */ - explanation.length
+                );
+                if (potentialMessages.length > 1 || messagePreview.length < potentialMessages[0].length) {
+                    messagePreview += '...';
+                }
 
-            // Create a file event to reflect the recent upload
-            const mAction = MatrixAction.fromEvent(event, this.mediaUrl, "message.txt");
-            const bigFileIrcAction = IrcAction.fromMatrixAction(mAction);
-            if (!bigFileIrcAction) {
-                return;
+                event.content = {
+                    msgtype: "m.text",
+                    body: `${messagePreview} ${explanation}`,
+                };
             }
 
-            if (mAction.text) {
-                // Replace "Posted a File with..."
-                bigFileIrcAction.text = mAction.text;
+            const truncatedIrcAction = IrcAction.fromMatrixAction(
+                MatrixAction.fromEvent(event, this.mediaUrl)
+            );
+            if (truncatedIrcAction) {
+                await this.ircBridge.sendIrcAction(ircRoom, ircClient, truncatedIrcAction);
             }
-
-            // Notify the IRC side of the uploaded text file
-            await this.ircBridge.sendIrcAction(ircRoom, ircClient, bigFileIrcAction);
         }
         else {
             req.log.debug("Sending truncated message");
