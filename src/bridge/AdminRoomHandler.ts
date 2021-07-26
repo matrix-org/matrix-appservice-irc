@@ -113,6 +113,10 @@ const COMMANDS: {[command: string]: Command|Heading} = {
     },
 };
 
+class ServerRequiredError extends Error {
+    notice = new MatrixAction("notice", "A server address must be specified.");
+}
+
 const USER_FEATURES = ["mentions"];
 export class AdminRoomHandler {
     private readonly botUser: MatrixUser;
@@ -124,92 +128,70 @@ export class AdminRoomHandler {
         req.log.info("Handling command from %s", event.sender);
         // Assumes all commands have the form "!wxyz [irc.server] [args...]"
         const segments = event.content.body.split(" ");
-        const cmd = segments.shift();
-        const args = segments;
-
-        // Require an IRC server to be specified if there's more than one possible choice
-        let ircServer = this.ircBridge.getServer(args[0]);
-        if (ircServer) {
-            args.shift(); // we'll be passing it to command handlers separately
-        }
-        else if (this.ircBridge.getServers().length === 1) {
-            ircServer = this.ircBridge.getServers()[0];
-        }
-        else {
-            const notice = new MatrixAction("notice",
-                "A server address must be specified."
-            );
-            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
-            return;
-        }
-
-        const clientList = this.ircBridge.getBridgedClientsForUserId(event.sender);
-        const userDomain = event.sender.split(':')[1];
-        const userPermission = this.ircBridge.config.ircService.permissions &&
-                               (this.ircBridge.config.ircService.permissions[event.sender] || // This takes priority
-                               this.ircBridge.config.ircService.permissions[userDomain] || // Then the domain
-                               this.ircBridge.config.ircService.permissions['*']); // Finally wildcard.
+        const [cmd, ...args] = segments;
 
         let response: MatrixAction|void;
-        switch (cmd) {
-            case "!join":
-                response = await this.handleJoin(req, args, ircServer, event.sender);
-                break;
-            case "!cmd":
-                response = await this.handleCmd(req, args, ircServer, event.sender);
-                break;
-            case "!whois":
-                response = await this.handleWhois(req, args, ircServer, event.sender);
-                break;
-            case "!reconnect":
-                response = await this.handleReconnect(req, ircServer, clientList);
-                break;
-            case "!username":
-                response = await this.handleUsername(req, args, event.sender, ircServer)
-                break;
-            case "!storepass":
-                response = await this.handleStorePass(req, args, ircServer, event.sender);
-                break;
-            case "!removepass":
-                response = await this.handleRemovePass(ircServer, event.sender);
-                break;
-            case "!listrooms":
-                response = await this.handleListRooms(ircServer, event.sender);
-                break;
-            case "!quit":
-                response = await this.handleQuit(req, event.sender, ircServer, clientList);
-                break;
-            case "!nick":
-                response = await this.handleNick(req, args, ircServer, clientList, event.sender);
-                break;
-            case "!feature":
-                response = await this.handleFeature(args, event.sender);
-                break;
-            case "!bridgeversion":
-                response = await this.showBridgeVersion();
-                break;
-            case "!plumb":
-                response = await this.handlePlumb(args, event.sender, userPermission)
-                break;
-            case "!unlink":
-            case "!unplumb": // alias for convinience
-                response = await this.handleUnlink(args, event.sender, userPermission)
-                break;
-            case "!help":
-                response = await this.showHelp(userPermission);
-                break;
-            default: {
-                response = new MatrixAction("notice",
-                    "The command was not recognised. Available commands are listed by !help");
+        try {
+            response = await this.handleCommand(cmd, args, req, event);
+        }
+        catch (err) {
+            if (err instanceof ServerRequiredError) {
+                response = err.notice;
+            }
+            else {
+                req.log.error("Exception while handling command %s from %s: %s", cmd, event.sender, err);
+                response = new MatrixAction("notice", "An unknown error happened while handling your command");
             }
         }
+
         if (response) {
             response.replyEvent = event.event_id;
             await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, response);
         }
     }
 
-    private async handlePlumb(args: string[], sender: string, userPermission: string|undefined) {
+    private async handleCommand(cmd: string, args: string[], req: BridgeRequest, event: MatrixSimpleMessage) {
+        switch (cmd) {
+            case "!join":
+                return await this.handleJoin(req, args, event.sender);
+            case "!cmd":
+                return await this.handleCmd(req, args, event.sender);
+            case "!whois":
+                return await this.handleWhois(req, args, event.sender);
+            case "!reconnect":
+                return await this.handleReconnect(req, args, event.sender);
+            case "!username":
+                return await this.handleUsername(req, args, event.sender)
+            case "!storepass":
+                return await this.handleStorePass(req, args, event.sender);
+            case "!removepass":
+                return await this.handleRemovePass(args, event.sender);
+            case "!listrooms":
+                return await this.handleListRooms(args, event.sender);
+            case "!quit":
+                return await this.handleQuit(req, event.sender, args);
+            case "!nick":
+                return await this.handleNick(req, args, event.sender);
+            case "!feature":
+                return await this.handleFeature(args, event.sender);
+            case "!bridgeversion":
+                return this.showBridgeVersion();
+            case "!plumb":
+                return await this.handlePlumb(args, event.sender)
+            case "!unlink":
+            case "!unplumb": // alias for convinience
+                return await this.handleUnlink(args, event.sender)
+            case "!help":
+                return this.showHelp(event.sender);
+            default: {
+                return new MatrixAction("notice",
+                    "The command was not recognised. Available commands are listed by !help");
+            }
+        }
+    }
+
+    private async handlePlumb(args: string[], sender: string) {
+        const userPermission = this.getUserPermission(sender);
         if (userPermission !== 'admin') {
             return new MatrixAction("notice", "You must be an admin to use this command");
         }
@@ -247,7 +229,8 @@ export class AdminRoomHandler {
         return new MatrixAction("notice", "Room plumbed.");
     }
 
-    private async handleUnlink(args: string[], sender: string, userPermission: string | undefined) {
+    private async handleUnlink(args: string[], sender: string) {
+        const userPermission = this.getUserPermission(sender);
         const [matrixRoomId, serverDomain, ircChannel] = args;
         const server = serverDomain && this.ircBridge.getServer(serverDomain);
         if (!server) {
@@ -276,7 +259,8 @@ export class AdminRoomHandler {
         return new MatrixAction("notice", "Room unlinked.");
     }
 
-    private async handleJoin(req: BridgeRequest, args: string[], server: IrcServer, sender: string) {
+    private async handleJoin(req: BridgeRequest, args: string[], sender: string) {
+        const server = this.extractServerFromArgs(args);
         // check that the server exists and that the user_id is on the whitelist
         const ircChannel = args[0];
         const key = args[1]; // keys can't have spaces in them, so we can just do this.
@@ -361,11 +345,12 @@ export class AdminRoomHandler {
         return undefined;
     }
 
-    private async handleCmd(req: BridgeRequest, args: string[], server: IrcServer, sender: string) {
+    private async handleCmd(req: BridgeRequest, args: string[], sender: string) {
         req.log.info(`No valid (old form) admin command, will try new format`);
 
         // Assumes commands have the form
         // !cmd [irc.server] COMMAND [arg0 [arg1 [...]]]
+        const server = this.extractServerFromArgs(args);
 
         const blacklist = ['PROTOCTL'];
 
@@ -403,9 +388,10 @@ export class AdminRoomHandler {
         return undefined;
     }
 
-    private async handleWhois(req: BridgeRequest, args: string[], server: IrcServer, sender: string) {
-        // Format is: "!whois <nick>"
+    private async handleWhois(req: BridgeRequest, args: string[], sender: string) {
+        const server = this.extractServerFromArgs(args);
 
+        // Format is: "!whois <nick>"
         const whoisNick = args.length === 1 ? args[0] : null; // ensure 1 arg
         if (!whoisNick) {
             return new MatrixAction("notice", "Format: '!whois nick|mxid'");
@@ -445,7 +431,10 @@ export class AdminRoomHandler {
         }
     }
 
-    private async handleReconnect(req: BridgeRequest, server: IrcServer, clientList: BridgedClient[]) {
+    private async handleReconnect(req: BridgeRequest, args: string[], userId: string) {
+        const server = this.extractServerFromArgs(args);
+        const clientList = this.getClientList(userId);
+
         const client = clientList.find((c) => c.server.domain === server.domain);
         try {
             if (client) {
@@ -466,7 +455,9 @@ export class AdminRoomHandler {
         }
     }
 
-    private async handleUsername(req: BridgeRequest, args: string[], userId: string, server: IrcServer) {
+    private async handleUsername(req: BridgeRequest, args: string[], userId: string) {
+        const server = this.extractServerFromArgs(args);
+
         const domain = server.domain;
         const store = this.ircBridge.getStore();
         let notice;
@@ -517,8 +508,9 @@ export class AdminRoomHandler {
 
     }
 
-    private async handleStorePass(req: BridgeRequest, args: string[], server: IrcServer,
-                                  userId: string) {
+    private async handleStorePass(req: BridgeRequest, args: string[], userId: string) {
+        const server = this.extractServerFromArgs(args);
+
         const domain = server.domain;
         let notice;
 
@@ -547,7 +539,9 @@ export class AdminRoomHandler {
         return notice;
     }
 
-    private async handleRemovePass(ircServer: IrcServer, userId: string) {
+    private async handleRemovePass(args: string[], userId: string) {
+        const ircServer = this.extractServerFromArgs(args);
+
         const domain = ircServer.domain;
 
         try {
@@ -563,7 +557,9 @@ export class AdminRoomHandler {
         }
     }
 
-    private async handleListRooms(server: IrcServer, sender: string) {
+    private async handleListRooms(args: string[], sender: string) {
+        const server = this.extractServerFromArgs(args);
+
         const client = this.ircBridge.getIrcUserFromCache(server, sender);
         if (!client || client.isDead()) {
             return new MatrixAction(
@@ -593,15 +589,19 @@ export class AdminRoomHandler {
         );
     }
 
-    private async handleQuit(req: BridgeRequest, sender: string, server: IrcServer, clients: BridgedClient[]) {
+    private async handleQuit(req: BridgeRequest, sender: string, args: string[]) {
+        const server = this.extractServerFromArgs(args);
+        const clients = this.getClientList(sender);
         const msgText = await this.matrixHandler.quitUser(
             req, sender, clients, server, "issued !quit command"
         );
         return msgText ? new MatrixAction("notice", msgText) : undefined;
     }
 
-    private async handleNick(req: BridgeRequest, args: string[], ircServer: IrcServer, clientList: BridgedClient[],
-                             sender: string) {
+    private async handleNick(req: BridgeRequest, args: string[], sender: string) {
+        const ircServer = this.extractServerFromArgs(args);
+        const clientList = this.getClientList(sender);
+
         // Format is: "!nick irc.example.com NewNick"
         if (!ircServer.allowsNickChanges()) {
             return new MatrixAction("notice",
@@ -730,5 +730,35 @@ export class AdminRoomHandler {
             }
         }
         return new MatrixAction("notice", null, body + "</ul>");
+    }
+
+    // will mutate args if sucessful
+    private extractServerFromArgs(args: string[]): IrcServer {
+        // Require an IRC server to be specified if there's more than one possible choice
+        let ircServer = this.ircBridge.getServer(args[0]);
+        if (ircServer) {
+            args.shift(); // we'll be passing it to command handlers separately
+        }
+        else if (this.ircBridge.getServers().length === 1) {
+            ircServer = this.ircBridge.getServers()[0];
+        }
+        else {
+            throw new ServerRequiredError();
+        }
+
+        return ircServer;
+    }
+
+    private getClientList(userId: string): BridgedClient[] {
+        return this.ircBridge.getBridgedClientsForUserId(userId);
+    }
+
+    private getUserPermission(userId: string): string|undefined {
+        const userDomain = userId.split(':')[1];
+
+        return this.ircBridge.config.ircService.permissions &&
+               (this.ircBridge.config.ircService.permissions[userId] || // This takes priority
+               this.ircBridge.config.ircService.permissions[userDomain] || // Then the domain
+               this.ircBridge.config.ircService.permissions['*']); // Finally wildcard.
     }
 }
