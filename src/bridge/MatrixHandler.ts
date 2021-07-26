@@ -1371,8 +1371,7 @@ export class MatrixHandler {
 
     // EXPORTS
     public onConfigChanged(config: MatrixHandlerConfig|undefined) {
-        this.config = DEFAULTS;
-        Object.assign(this.config, config);
+        this.config = {...DEFAULTS, ...config};
     }
 
     public onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {
