@@ -625,8 +625,8 @@ describe("Matrix-to-IRC message bridging", function() {
     });
 
     it("should truncate multiline messages and include a full message URL", function(done) {
-        let tBody = "This\nis\na\nmessage\nwith\nmultiple\nline\nbreaks".split('\n');
-        let sdk = env.clientMock._client(config._botUserId);
+        const tBody = "This\nis\na\nmessage\nwith\nmultiple\nline\nbreaks".split('\n');
+        const sdk = env.clientMock._client(config._botUserId);
 
         sdk.uploadContent.and.returnValue(Promise.resolve("mxc://deadbeefcafe"));
 
