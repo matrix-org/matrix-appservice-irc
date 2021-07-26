@@ -34,7 +34,7 @@ given are for Libera.Chat, other IRCds may have different mode letters or not ha
 help documentation of channel for other networks to find out what they support.
 
 If a user is not able to join the IRC channel, they will be kicked from the Matrix room. The reason is given in the 
-Matrix ban, and a more verbose error is given in the user's admin room.
+Matrix kick message, and a more verbose error is given in the user's admin room.
 
 ### Ban (`+b`)
 
