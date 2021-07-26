@@ -647,7 +647,7 @@ describe("Matrix-to-IRC message bridging", function() {
                 body: tBody.join("\n"),
                 msgtype: "m.text"
             },
-            user_id: testUser.id,
+            sender: testUser.id,
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
