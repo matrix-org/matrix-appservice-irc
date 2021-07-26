@@ -1,1 +1,1 @@
-Show message previews for messages too long to be bridged
+Show message previews for uploaded long messages
