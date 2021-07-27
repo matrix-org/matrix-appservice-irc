@@ -1,4 +1,13 @@
- 0.29.0-rc1 (2021-07-21)
+ 0.29.0-rc2 (2021-07-27)
+========================
+
+Internal Changes
+----------------
+
+- Update node-irc to 1.1.1 (see https://github.com/matrix-org/node-irc/blob/master/CHANGELOG.md) ([\#1434](https://github.com/matrix-org/matrix-appservice-irc/issues/1434))
+
+
+0.29.0-rc1 (2021-07-21)
 ========================
 
 **Please note:** `0.28.0(-rc1)` is abandoned as more features became ready to ship before we reached the end of the release candidate stage. Users of `0.28.0-rc1` should upgrade
