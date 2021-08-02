@@ -1,4 +1,13 @@
- 0.29.0-rc2 (2021-07-27)
+ 0.29.0 (2021-08-02)
+====================
+
+Bugfixes
+--------
+
+- Add prometheus metrics for IRC connection times ([\#1442](https://github.com/matrix-org/matrix-appservice-irc/issues/1442))
+
+
+0.29.0-rc2 (2021-07-27)
 ========================
 
 Internal Changes
