@@ -1,6 +1,13 @@
 import { IrcBridge } from "./IrcBridge";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
-import { MatrixUser, MatrixRoom, StateLookup, StateLookupEvent, MembershipQueue } from "matrix-appservice-bridge";
+import {
+    ContentRepo,
+    MatrixUser,
+    MatrixRoom,
+    MembershipQueue,
+    StateLookup,
+    StateLookupEvent,
+} from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { IrcRoom } from "../models/IrcRoom";
@@ -28,16 +35,29 @@ async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
 const MSG_PMS_DISABLED = "[Bridge] Sorry, PMs are disabled on this bridge.";
 const MSG_PMS_DISABLED_FEDERATION = "[Bridge] Sorry, PMs are disabled on this bridge over federation.";
 
-/* Number of events to store in memory for use in replies. */
-const DEFAULT_EVENT_CACHE_SIZE = 4096;
-/* Length of the source text in a formatted reply message */
-const REPLY_SOURCE_MAX_LENGTH = 32;
-// How many seconds needs to pass between a message and a reply to it to switch to the long reply format
-const DEFAULT_SHORT_REPLY_TRESHOLD_SECONDS = 5 * 60;
-// Format of replies sent shortly after the original message
-const DEFAULT_SHORT_REPLY_TEMPLATE = "$NICK: $REPLY";
-// Format of replies sent a while after the original message
-const DEFAULT_LONG_REPLY_TEMPLATE = "<$NICK> \"$ORIGINAL\" <- $REPLY";
+export interface MatrixHandlerConfig {
+    /* Number of events to store in memory for use in replies. */
+    eventCacheSize: number;
+    /* Length of the source text in a formatted reply message */
+    replySourceMaxLength: number;
+    // How many seconds needs to pass between a message and a reply to it to switch to the long reply format
+    shortReplyTresholdSeconds: number;
+    // Format of replies sent shortly after the original message
+    shortReplyTemplate: string;
+    // Format of replies sent a while after the original message
+    longReplyTemplate: string;
+    // Format of the text explaining why a message is truncated and pastebinned
+    truncatedMessageTemplate: string;
+}
+
+const DEFAULTS: MatrixHandlerConfig = {
+    eventCacheSize: 4096,
+    replySourceMaxLength: 32,
+    shortReplyTresholdSeconds: 5 * 60,
+    shortReplyTemplate: "$NICK: $REPLY",
+    longReplyTemplate: "<$NICK> \"$ORIGINAL\" <- $REPLY",
+    truncatedMessageTemplate: "(full message at $URL)",
+};
 
 export interface MatrixEventInvite {
     room_id: string;
@@ -96,34 +116,29 @@ interface CachedEvent {
     timestamp: number;
 }
 
-export interface MatrixHandlerConfig {
-    eventCacheSize?: number;
-    shortReplyTresholdSeconds?: number;
-    shortReplyTemplate?: string;
-    longReplyTemplate?: string;
-}
-
 export class MatrixHandler {
     private readonly processingInvitesForRooms: {
         [roomIdUserId: string]: Promise<unknown>;
     } = {};
+    // maintain a list of room IDs which are being processed invite-wise. This is
+    // required because invites are processed asyncly, so you could get invite->msg
+    // and the message is processed before the room is created.
     private readonly eventCache: Map<string, CachedEvent> = new Map();
-    private readonly eventCacheMaxSize: number;
     private readonly metrics: {[domain: string]: {
         [metricName: string]: number;
     };} = {};
     private readonly mediaUrl: string;
     private memberTracker: StateLookup|null = null;
     private adminHandler: AdminRoomHandler;
+    private config: MatrixHandlerConfig = DEFAULTS;
 
     constructor(
         private ircBridge: IrcBridge,
-        private config: MatrixHandlerConfig = {},
-        private readonly membershipQueue: MembershipQueue) {
-        // maintain a list of room IDs which are being processed invite-wise. This is
-        // required because invites are processed asyncly, so you could get invite->msg
-        // and the message is processed before the room is created.
-        this.eventCacheMaxSize = config.eventCacheSize ?? DEFAULT_EVENT_CACHE_SIZE;
+        config: MatrixHandlerConfig|undefined,
+        private readonly membershipQueue: MembershipQueue
+    ) {
+        this.onConfigChanged(config);
+
         // The media URL to use to transform mxc:// URLs when handling m.room.[file|image]s
         this.mediaUrl = ircBridge.config.homeserver.media_url || ircBridge.config.homeserver.url;
         this.adminHandler = new AdminRoomHandler(ircBridge, this);
@@ -1051,7 +1066,7 @@ export class MatrixHandler {
                 cacheBody = reply.reply;
             }
         }
-        let body = cacheBody.trim().substring(0, REPLY_SOURCE_MAX_LENGTH);
+        let body = cacheBody.trim().substring(0, this.config.replySourceMaxLength);
         const nextNewLine = body.indexOf("\n");
         if (nextNewLine !== -1) {
             body = body.substring(0, nextNewLine);
@@ -1103,25 +1118,38 @@ export class MatrixHandler {
 
         // This is true if the upload was a success
         if (contentUri) {
-            // Alter event object so that it is treated as if a file has been uploaded
-            event.content.url = contentUri;
-            event.content.msgtype = "m.file";
-            event.content.body = "sent a long message: ";
+            const httpUrl = ContentRepo.getHttpUriForMxc(this.mediaUrl, contentUri);
+            // we check event.content.body since ircAction already has the markers stripped
+            const codeBlockMatch = event.content.body.match(/^```(\w+)?/);
+            if (codeBlockMatch) {
+                const type = codeBlockMatch[1] ? ` ${codeBlockMatch[1]}` : '';
+                event.content = {
+                    msgtype: "m.emote",
+                    body:    `sent a${type} code block: ${httpUrl}`
+                };
+            }
+            else {
+                const explanation = renderTemplate(this.config.truncatedMessageTemplate, { url: httpUrl });
+                let messagePreview = trimString(
+                    potentialMessages[0],
+                    ircClient.getMaxLineLength() - 4 /* "... " */ - explanation.length
+                );
+                if (potentialMessages.length > 1 || messagePreview.length < potentialMessages[0].length) {
+                    messagePreview += '...';
+                }
 
-            // Create a file event to reflect the recent upload
-            const mAction = MatrixAction.fromEvent(event, this.mediaUrl, "message.txt");
-            const bigFileIrcAction = IrcAction.fromMatrixAction(mAction);
-            if (!bigFileIrcAction) {
-                return;
+                event.content = {
+                    msgtype: "m.text",
+                    body: `${messagePreview} ${explanation}`,
+                };
             }
 
-            if (mAction.text) {
-                // Replace "Posted a File with..."
-                bigFileIrcAction.text = mAction.text;
+            const truncatedIrcAction = IrcAction.fromMatrixAction(
+                MatrixAction.fromEvent(event, this.mediaUrl)
+            );
+            if (truncatedIrcAction) {
+                await this.ircBridge.sendIrcAction(ircRoom, ircClient, truncatedIrcAction);
             }
-
-            // Notify the IRC side of the uploaded text file
-            await this.ircBridge.sendIrcAction(ircRoom, ircClient, bigFileIrcAction);
         }
         else {
             req.log.debug("Sending truncated message");
@@ -1268,7 +1296,7 @@ export class MatrixHandler {
         // Get the first non-blank line from the source.
         const lines = rplSource.split('\n').filter((line) => !/^\s*$/.test(line))
         if (lines.length > 0) {
-            rplSource = trimString(lines[0], REPLY_SOURCE_MAX_LENGTH);
+            rplSource = trimString(lines[0], this.config.replySourceMaxLength);
 
             // Ellipsis if needed.
             if (lines.length > 1 || rplSource.length < lines[0].length) {
@@ -1295,12 +1323,12 @@ export class MatrixHandler {
         }
 
         let replyTemplate: string;
-        const tresholdMs = (this.config.shortReplyTresholdSeconds || DEFAULT_SHORT_REPLY_TRESHOLD_SECONDS) * 1000;
+        const tresholdMs = (this.config.shortReplyTresholdSeconds) * 1000;
         if (rplSource && event.origin_server_ts - cachedEvent.timestamp > tresholdMs) {
-            replyTemplate = this.config.longReplyTemplate || DEFAULT_LONG_REPLY_TEMPLATE;
+            replyTemplate = this.config.longReplyTemplate;
         }
         else {
-            replyTemplate = this.config.shortReplyTemplate || DEFAULT_SHORT_REPLY_TEMPLATE;
+            replyTemplate = this.config.shortReplyTemplate;
         }
 
         const formattedReply = renderTemplate(replyTemplate, {
@@ -1331,7 +1359,7 @@ export class MatrixHandler {
     private cacheEvent(id: string, event: CachedEvent) {
         this.eventCache.set(id, event);
 
-        if (this.eventCache.size > this.eventCacheMaxSize) {
+        if (this.eventCache.size > this.config.eventCacheSize) {
             const delKey = this.eventCache.entries().next().value[0];
             this.eventCache.delete(delKey);
         }
@@ -1342,8 +1370,8 @@ export class MatrixHandler {
     }
 
     // EXPORTS
-    public onConfigChanged(config: MatrixHandlerConfig) {
-        this.config = config;
+    public onConfigChanged(config: MatrixHandlerConfig|undefined) {
+        this.config = {...DEFAULTS, ...config};
     }
 
     public onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {

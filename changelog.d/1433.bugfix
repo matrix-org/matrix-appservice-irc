@@ -1,0 +1,1 @@
+Make sure that admin commands that don't need a server (like !help) don't require it
