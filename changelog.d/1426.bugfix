@@ -1,1 +1,0 @@
-Ensure the `irc_connection_time_ms` histrogram metric uses sensible bucket sizes.
