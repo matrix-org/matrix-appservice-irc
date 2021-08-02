@@ -346,7 +346,8 @@ export class IrcBridge {
             }),
             irc_connection_time_ms: new Histogram({
                 registers: [registry],
-                name: "irc_connection_time_ms",
+                // Prefix with bridge, because we're not using the m-a-b timer implementation.
+                name: "bridge_irc_connection_time_ms",
                 help: "The time it took the user to receive the welcome message",
                 buckets: [100, 500, 1000, 2500, 10000, 30000],
             }),
