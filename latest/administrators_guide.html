@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Administrators Guide - Matrix IRC Bridge</title>
+        <title>Bridge Administrators - Matrix IRC Bridge</title>
         
         
 
@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li><li class="chapter-item expanded "><a href="room_commands.html"><strong aria-hidden="true">2.2.</strong> Room Commands</a></li><li class="chapter-item expanded "><a href="room_configuration.html"><strong aria-hidden="true">2.3.</strong> Room Configuration</a></li><li class="chapter-item expanded "><a href="irc_modes.html"><strong aria-hidden="true">2.4.</strong> IRC Modes</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html" class="active"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li><li class="chapter-item expanded "><a href="room_commands.html"><strong aria-hidden="true">2.2.</strong> Room Commands</a></li><li class="chapter-item expanded "><a href="room_configuration.html"><strong aria-hidden="true">2.3.</strong> Room Configuration</a></li><li class="chapter-item expanded "><a href="irc_modes.html"><strong aria-hidden="true">2.4.</strong> IRC Modes</a></li></ol></li><li class="chapter-item expanded "><a href="bridged_networks.html"><strong aria-hidden="true">3.</strong> Bridged Networks</a></li><li class="chapter-item expanded "><a href="administrators_guide.html" class="active"><strong aria-hidden="true">4.</strong> Bridge Administrators</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">4.1.</strong> Setting up the bridge</a></li><li class="chapter-item expanded "><a href="debug_api.html"><strong aria-hidden="true">4.2.</strong> Debug API</a></li></ol></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -164,7 +164,8 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="administrators-guide"><a class="header" href="#administrators-guide">Administrators Guide</a></h1>
-<p>This document describes useful information when administering a bridge.</p>
+<p>This document describes useful information when administering a bridge. If you are looking for information
+on how to set up the bridge, please see <a href="./bridge_setup.html">Bridge Setup</a>.</p>
 <h2 id="advanced-configuration"><a class="header" href="#advanced-configuration">Advanced Configuration</a></h2>
 <p>Typically the information given in <a href="./bridge_setup.html">Bridge Setup</a> is good enough for small
 to medium sized bridges, but if you expect to handle extremely heavy IRC or Matrix traffic
@@ -223,22 +224,21 @@ the state of the bridge. The repository also includes a grafana dashboard; more 
 can be found in <a href="https://github.com/matrix-org/matrix-appservice-irc/blob/develop/contrib/GRAFANA.md">GRAFANA.md</a>.</p>
 <h2 id="the-debug-api"><a class="header" href="#the-debug-api">The Debug API</a></h2>
 <p>The Debug API allows you to perform administrative actions on the bridge such as killing a IRC
-connection, inspecting connected users or unbridging a room. The API is currently loosely documented
-over in <a href="%5Bhttps://github.com/matrix-org/matrix-appservice-irc/wiki/Debug-API">the GitHub wiki</a>.</p>
-<p>This is not enabled by default.</p>
+connection, inspecting connected users or unbridging a room. You can learn more by reading
+the <a href="./debug_api.html">Debug API</a> documentation.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                            <a rel="prev" href="bridge_setup.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="bridged_networks.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
 
                         
-                            <a rel="next" href="irc_operators.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="bridge_setup.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -250,13 +250,13 @@ over in <a href="%5Bhttps://github.com/matrix-org/matrix-appservice-irc/wiki/Deb
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                    <a rel="prev" href="bridge_setup.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="bridged_networks.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a rel="next" href="irc_operators.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="bridge_setup.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Setup - Matrix IRC Bridge</title>
+        <title>Setting up the bridge - Matrix IRC Bridge</title>
         
         
 
@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li><li class="chapter-item expanded "><a href="room_commands.html"><strong aria-hidden="true">2.2.</strong> Room Commands</a></li><li class="chapter-item expanded "><a href="room_configuration.html"><strong aria-hidden="true">2.3.</strong> Room Configuration</a></li><li class="chapter-item expanded "><a href="irc_modes.html"><strong aria-hidden="true">2.4.</strong> IRC Modes</a></li></ol></li><li class="chapter-item expanded "><a href="bridge_setup.html" class="active"><strong aria-hidden="true">3.</strong> Setup</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Administrators Guide</a></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li><li class="chapter-item expanded "><a href="room_commands.html"><strong aria-hidden="true">2.2.</strong> Room Commands</a></li><li class="chapter-item expanded "><a href="room_configuration.html"><strong aria-hidden="true">2.3.</strong> Room Configuration</a></li><li class="chapter-item expanded "><a href="irc_modes.html"><strong aria-hidden="true">2.4.</strong> IRC Modes</a></li></ol></li><li class="chapter-item expanded "><a href="bridged_networks.html"><strong aria-hidden="true">3.</strong> Bridged Networks</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Bridge Administrators</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="bridge_setup.html" class="active"><strong aria-hidden="true">4.1.</strong> Setting up the bridge</a></li><li class="chapter-item expanded "><a href="debug_api.html"><strong aria-hidden="true">4.2.</strong> Debug API</a></li></ol></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -217,9 +217,9 @@ GRANT ALL ON DATABASE ircbridge TO ircbridge;
 <p>The bridge needs to generate a registration file which can be passed to the homeserver to tell the
 homeserver which Matrix events the bridge should receive.</p>
 <p>Execute the following command:</p>
-<pre><code>node app.js -r -f appservice-registration-irc.yaml -u &quot;http://where.the.appservice.listens:9999&quot; -c config.yaml -l my_bot
+<pre><code>node app.js -r -f appservice-registration-irc.yaml -u &quot;http://localhost:9999&quot; -c config.yaml -l my_bot
 </code></pre>
-<p>Change <code>-u &quot;http://localhost:8090&quot;</code> to whereever your Matrix server can contact this IRC bridge.
+<p>Change <code>-u &quot;http://localhost:9999&quot;</code> to whereever your Matrix server can contact this IRC bridge.
 By changing the option <code>-l my_bot</code> you can modify the localpart of the bridge bot user. It contacts
 Matrix users of your bridge to control their usage of the bridge (e.g. to change their nickname).</p>
 <p>You should get something like:</p>
@@ -260,13 +260,13 @@ docker run --volume $PWD/data:/data --publish 9999 matrixdotorg/matrix-appservic
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                            <a rel="prev" href="irc_modes.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="administrators_guide.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
 
                         
-                            <a rel="next" href="administrators_guide.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="debug_api.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -278,13 +278,13 @@ docker run --volume $PWD/data:/data --publish 9999 matrixdotorg/matrix-appservic
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                    <a rel="prev" href="irc_modes.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="administrators_guide.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a rel="next" href="administrators_guide.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="debug_api.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
