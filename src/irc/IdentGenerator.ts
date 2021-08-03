@@ -101,7 +101,7 @@ export class IdentGenerator {
                     ircClientConfig: ircClientConfig,
                     // IPv6 bridges do not need a unique username, as each user will
                     // have their own IPv6 address.
-                    unique: server.getIpv6Only(),
+                    unique: !server.getIpv6Only(),
                 }) as string;
                 return {
                     username: uname,
