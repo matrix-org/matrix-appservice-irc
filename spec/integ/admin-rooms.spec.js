@@ -24,7 +24,7 @@ describe("Creating admin rooms", function() {
     it("should be possible by sending an invite to the bot's user ID",
         test.coroutine(function*() {
             let botJoinedRoom = false;
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.joinRoom.and.callFake(function(roomId) {
                 expect(roomId).toEqual("!adminroomid:here");
                 botJoinedRoom = true;
@@ -47,7 +47,7 @@ describe("Creating admin rooms", function() {
     it("should not create a room for a non is_direct invite",
         test.coroutine(function*() {
             let botJoinedRoom = false;
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.joinRoom.and.callFake(function(roomId) {
                 expect(roomId).toEqual("!adminroomid:here");
                 botJoinedRoom = true;
@@ -80,9 +80,9 @@ describe("Creating admin rooms", function() {
 });
 
 describe("Admin rooms", function() {
-    let adminRoomId = "!adminroomid:here";
-    let userId = "@someone:somewhere";
-    let userIdNick = "M-someone";
+    const adminRoomId = "!adminroomid:here";
+    const userId = "@someone:somewhere";
+    const userIdNick = "M-someone";
 
     const {env, config, roomMapping, botUserId, test} = envBundle();
 
@@ -121,7 +121,7 @@ describe("Admin rooms", function() {
         );
 
         // auto-join an admin room
-        let sdk = env.clientMock._client(userId);
+        const sdk = env.clientMock._client(userId);
         sdk.joinRoom.and.callFake(function(roomId) {
             expect([adminRoomId, roomMapping.roomId]).toContain(roomId);
             return Promise.resolve({});
@@ -163,7 +163,7 @@ describe("Admin rooms", function() {
     it("should respond to bad !nick commands with a help notice",
         test.coroutine(function*() {
             let sentNotice = false;
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 expect(roomId).toEqual(adminRoomId);
                 expect(content.msgtype).toEqual("m.notice");
@@ -186,7 +186,7 @@ describe("Admin rooms", function() {
     it("should respond to bad !join commands with a help notice",
         test.coroutine(function*() {
             let sentNotice = false;
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 expect(roomId).toEqual(adminRoomId);
                 expect(content.msgtype).toEqual("m.notice");
@@ -209,7 +209,7 @@ describe("Admin rooms", function() {
     it("should respond to unknown commands with a notice",
         test.coroutine(function*() {
             let sentNotice = false;
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 expect(roomId).toEqual(adminRoomId);
                 expect(content.msgtype).toEqual("m.notice");
@@ -243,8 +243,8 @@ describe("Admin rooms", function() {
 
     it("should be able to change their nick using !nick",
         test.coroutine(function*() {
-            let newNick = "Blurple";
-            let testText = "I don't know what colour I am.";
+            const newNick = "Blurple";
+            const testText = "I don't know what colour I am.";
 
             // make sure that the nick command is sent
             let sentNickCommand = false;
@@ -282,7 +282,7 @@ describe("Admin rooms", function() {
             // make sure the AS sends an ACK of the request as a notice in the admin
             // room
             let sentAckNotice = false;
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 expect(roomId).toEqual(adminRoomId);
                 expect(content.msgtype).toEqual("m.notice");
@@ -320,8 +320,8 @@ describe("Admin rooms", function() {
 
     it("should be able to keep their name using !nick",
         test.coroutine(function* () {
-            let newNick = userIdNick;
-            let testText = "I don't know what colour I am.";
+            const newNick = userIdNick;
+            const testText = "I don't know what colour I am.";
 
             // make sure that the nick command is sent (expected to NOT run)
             let sentNickCommand = false;
@@ -352,7 +352,7 @@ describe("Admin rooms", function() {
             // make sure the AS sends an ACK of the request as a notice in the admin
             // room
             let sentAckNotice = false;
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.sendEvent.and.callFake(function (roomId, type, content) {
                 expect(roomId).toEqual(adminRoomId);
                 expect(content.msgtype).toEqual("m.notice");
@@ -391,8 +391,8 @@ describe("Admin rooms", function() {
 
     it("should be able to change their nick using !nick and have it persist across disconnects",
         test.coroutine(function*() {
-            let newNick = "Blurple";
-            let testText = "I don't know what colour I am.";
+            const newNick = "Blurple";
+            const testText = "I don't know what colour I am.";
             // we will be disconnecting the user so we want to accept incoming connects/joins
             // as the new nick.
             env.ircMock._autoConnectNetworks(
@@ -437,7 +437,7 @@ describe("Admin rooms", function() {
 
             // make sure the AS sends an ACK of the request as a notice in the admin
             // room
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 return Promise.resolve();
             });
@@ -454,7 +454,7 @@ describe("Admin rooms", function() {
             });
 
             // disconnect the user
-            let cli = yield env.ircMock._findClientAsync(roomMapping.server, newNick);
+            const cli = yield env.ircMock._findClientAsync(roomMapping.server, newNick);
             cli.emit("error", {command: "err_testsezno"});
 
             // wait a bit for reconnect timers
@@ -482,8 +482,8 @@ describe("Admin rooms", function() {
     it("should be able to change their nick using !nick and have it persist " +
         "when changing the display name",
     test.coroutine(function*() {
-        let newNick = "Blurple";
-        let displayName = "Durple";
+        const newNick = "Blurple";
+        const displayName = "Durple";
 
         // make sure that the nick command is sent
         let sentNickCommand = false;
@@ -572,7 +572,7 @@ describe("Admin rooms", function() {
                     args: [undefined, 'M-' + newNick]
                 });
             });
-    
+
             // trigger a display name change
             yield env.mockAppService._trigger("type:m.room.member", {
                 content: {
@@ -592,8 +592,8 @@ describe("Admin rooms", function() {
 
     it("should reject !nick changes for IRC errors",
         test.coroutine(function*() {
-            let newNick = "Blurple";
-            let testText = "I don't know what colour I am.";
+            const newNick = "Blurple";
+            const testText = "I don't know what colour I am.";
 
             // make sure that the nick command is sent
             let sentNickCommand = false;
@@ -634,7 +634,7 @@ describe("Admin rooms", function() {
             // make sure the AS sends an ACK of the request as a notice in the admin
             // room
             let sentAckNotice = false;
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 expect(roomId).toEqual(adminRoomId);
                 expect(content.msgtype).toEqual("m.notice");
@@ -671,7 +671,7 @@ describe("Admin rooms", function() {
         }));
 
     it("should timeout !nick changes after 10 seconds", test.coroutine(function*() {
-        let newNick = "Blurple";
+        const newNick = "Blurple";
 
         // make sure that the NICK command is sent
         let sentNickCommand = false;
@@ -701,7 +701,7 @@ describe("Admin rooms", function() {
         // make sure the AS sends a timeout error as a notice in the admin
         // room
         let sentAckNotice = false;
-        let sdk = env.clientMock._client(botUserId);
+        const sdk = env.clientMock._client(botUserId);
         sdk.sendEvent.and.callFake(function(roomId, type, content) {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
@@ -779,11 +779,11 @@ describe("Admin rooms", function() {
 
     it("should be able to join a channel with !join if they are on the whitelist",
         test.coroutine(function*() {
-            let newChannel = "#awooga";
-            let newRoomId = "!aasifuhawei:efjkwehfi";
-            let serverConfig = env.config.ircService.servers[roomMapping.server];
-            let serverShouldPublishRooms = serverConfig.dynamicChannels.published;
-            let serverJoinRule = serverConfig.dynamicChannels.joinRule;
+            const newChannel = "#awooga";
+            const newRoomId = "!aasifuhawei:efjkwehfi";
+            const serverConfig = env.config.ircService.servers[roomMapping.server];
+            const serverShouldPublishRooms = serverConfig.dynamicChannels.published;
+            const serverJoinRule = serverConfig.dynamicChannels.joinRule;
 
             // let the bot join the irc channel
             let joinedChannel = false;
@@ -803,7 +803,7 @@ describe("Admin rooms", function() {
 
             // make sure the AS creates a new PRIVATE matrix room.
             let createdMatrixRoom = false;
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.createRoom.and.callFake(function(opts) {
                 expect(opts.visibility).toEqual(serverShouldPublishRooms ? "public" : "private");
                 expect(
@@ -836,12 +836,12 @@ describe("Admin rooms", function() {
 
     it("should be able to join a channel with !join and a key",
         test.coroutine(function*() {
-            let newChannel = "#awooga";
-            let newRoomId = "!aasifuhawei:efjkwehfi";
-            let key = "secret";
-            let serverConfig = env.config.ircService.servers[roomMapping.server];
-            let serverShouldPublishRooms = serverConfig.dynamicChannels.published;
-            let serverJoinRule = serverConfig.dynamicChannels.joinRule;
+            const newChannel = "#awooga";
+            const newRoomId = "!aasifuhawei:efjkwehfi";
+            const key = "secret";
+            const serverConfig = env.config.ircService.servers[roomMapping.server];
+            const serverShouldPublishRooms = serverConfig.dynamicChannels.published;
+            const serverJoinRule = serverConfig.dynamicChannels.joinRule;
 
             // let the bot join the irc channel
             let joinedChannel = false;
@@ -865,7 +865,7 @@ describe("Admin rooms", function() {
 
             // make sure the AS creates a new PRIVATE matrix room.
             let createdMatrixRoom = false;
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.createRoom.and.callFake(function(opts) {
                 expect(opts.visibility).toEqual(serverShouldPublishRooms ? "public" : "private");
                 expect(
@@ -898,16 +898,16 @@ describe("Admin rooms", function() {
 
     it("should allow arbitrary IRC commands to be issued",
         test.coroutine(function*() {
-            let newChannel = "#coffee";
+            const newChannel = "#coffee";
 
             // Expect the following commands to be sent in order
-            let recvCommands = ["JOIN", "TOPIC", "PART", "STUPID"];
+            const recvCommands = ["JOIN", "TOPIC", "PART", "STUPID"];
 
             let cmdIx = 0;
             env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
                 function(client) {
-                    let args = Array.from(arguments).splice(1);
-                    let keyword = args[0];
+                    const args = Array.from(arguments).splice(1);
+                    const keyword = args[0];
 
                     expect(keyword).toBe(recvCommands[cmdIx]);
                     cmdIx++;
@@ -915,7 +915,7 @@ describe("Admin rooms", function() {
 
             // 5 commands should be executed
             // rubbishserver should not be accepted
-            let commands = [
+            const commands = [
                 `!cmd ${roomMapping.server} JOIN ${newChannel}`,
                 `!cmd ${roomMapping.server} TOPIC ${newChannel} :some new fancy topic`,
                 `!cmd ${roomMapping.server} PART ${newChannel}`,
@@ -940,22 +940,22 @@ describe("Admin rooms", function() {
 
     it("should allow arbitrary IRC commands to be issued when server has not been set",
         test.coroutine(function*() {
-            let newChannel = "#coffee";
+            const newChannel = "#coffee";
 
             // Expect the following commands to be sent in order
-            let recvCommands = ["JOIN", "TOPIC", "PART", "STUPID"];
+            const recvCommands = ["JOIN", "TOPIC", "PART", "STUPID"];
 
             let cmdIx = 0;
             env.ircMock._whenClient(roomMapping.server, userIdNick, "send",
                 function(client) {
-                    let args = Array.from(arguments).splice(1);
-                    let keyword = args[0];
+                    const args = Array.from(arguments).splice(1);
+                    const keyword = args[0];
 
                     expect(keyword).toBe(recvCommands[cmdIx]);
                     cmdIx++;
                 });
 
-            let commands = [
+            const commands = [
                 `!cmd JOIN ${newChannel}`,
                 `!cmd TOPIC ${newChannel} :some new fancy topic`,
                 `!cmd PART ${newChannel}`,
@@ -985,7 +985,7 @@ describe("Admin rooms", function() {
                     cmdCount++;
                 });
 
-            let command = `!cmd M4LF0RM3D command`;
+            const command = `!cmd M4LF0RM3D command`;
 
             // send command
             yield env.mockAppService._trigger("type:m.room.message", {
@@ -1009,7 +1009,7 @@ describe("Admin rooms", function() {
                     cmdCount++;
                 });
 
-            let command = `!cmd PROTOCTL command`;
+            const command = `!cmd PROTOCTL command`;
 
             // send command
             yield env.mockAppService._trigger("type:m.room.message", {
@@ -1028,7 +1028,7 @@ describe("Admin rooms", function() {
     it("mx bot should be kicked when there are > 2 users in room and a message is sent",
         test.coroutine(function*() {
 
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.roomState.and.callFake(
                 function (roomId) {
                     expect(roomId).toBe(adminRoomId, 'Room state returned should be for admin room');
@@ -1099,7 +1099,7 @@ describe("Admin rooms", function() {
     it("mx bot should NOT be kicked when there are 2 users in room and a message is sent",
         test.coroutine(function*() {
 
-            let sdk = env.clientMock._client(botUserId);
+            const sdk = env.clientMock._client(botUserId);
             sdk.roomState.and.callFake(
                 function (roomId) {
                     expect(roomId).toBe(adminRoomId, 'Room state returned should be for admin room');
@@ -1219,7 +1219,7 @@ describe("Admin rooms", function() {
             }
             return Promise.resolve({});
         });
-        for (let body of ["!feature", "!feature doggo", "!feature enabled"]) {
+        for (const body of ["!feature", "!feature doggo", "!feature enabled"]) {
             env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body,

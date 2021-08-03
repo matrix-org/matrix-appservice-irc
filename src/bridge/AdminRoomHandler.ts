@@ -127,30 +127,23 @@ export class AdminRoomHandler {
         const cmd = segments.shift();
         const args = segments;
 
-        // Work out which IRC server the command is directed at.
-        const clientList = this.ircBridge.getBridgedClientsForUserId(event.sender);
+        // Require an IRC server to be specified if there's more than one possible choice
         let ircServer = this.ircBridge.getServer(args[0]);
-
         if (ircServer) {
-            args.shift(); // pop the server so commands don't need to know
+            args.shift(); // we'll be passing it to command handlers separately
+        }
+        else if (this.ircBridge.getServers().length === 1) {
+            ircServer = this.ircBridge.getServers()[0];
         }
         else {
-            // default to the server the client is connected to if there is only one
-            if (clientList.length === 1) {
-                ircServer = clientList[0].server;
-            }
-            // default to the only server we know about if we only bridge 1 thing.
-            else if (this.ircBridge.getServers().length === 1) {
-                ircServer = this.ircBridge.getServers()[0];
-            }
-            else {
-                const notice = new MatrixAction("notice",
-                    "A server address must be specified."
-                );
-                await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
-                return;
-            }
+            const notice = new MatrixAction("notice",
+                "A server address must be specified."
+            );
+            await this.ircBridge.sendMatrixAction(adminRoom, this.botUser, notice);
+            return;
         }
+
+        const clientList = this.ircBridge.getBridgedClientsForUserId(event.sender);
         const userDomain = event.sender.split(':')[1];
         const userPermission = this.ircBridge.config.ircService.permissions &&
                                (this.ircBridge.config.ircService.permissions[event.sender] || // This takes priority
@@ -723,7 +716,10 @@ export class AdminRoomHandler {
 
     private showHelp(userPermission: string|undefined): MatrixAction {
         let body = "This is an IRC admin room for controlling your IRC connection and sending " +
-        "commands directly to IRC. The following commands are available:<br/><ul>";
+        "commands directly to IRC.<br/>" +
+        "See the <a href=\"https://matrix-org.github.io/matrix-appservice-irc/latest/usage.html\">" +
+        "Matrix IRC Bridge Usage Guide</a> on how to control the IRC bridge using this room.<br/>" +
+        "The following commands are available:<br/><ul>";
         for (const [key, command] of Object.entries(COMMANDS)) {
             if ("heading" in command) {
                 body += `</ul>\n<h3>${key}</h3>\n<ul>`;

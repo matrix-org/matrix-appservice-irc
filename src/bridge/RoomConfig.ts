@@ -37,7 +37,7 @@ export class RoomConfig {
             return null;
         }
         const cacheKey = `${roomId}:${ircRoom?.getId() || 'global'}`;
-        let keyedConfig = this.cache.get(cacheKey);
+        let keyedConfig: RoomConfigContent|undefined|null = this.cache.get(cacheKey);
         if (keyedConfig) {
             return keyedConfig;
         }
@@ -50,7 +50,7 @@ export class RoomConfig {
                 keyedConfig = await intent.getStateEvent(roomId, RoomConfig.STATE_EVENT_TYPE, '', true);
             }
             log.debug(
-                `Stored new config for ${cacheKey}: ${keyedConfig ? 'No config set' : JSON.stringify(keyedConfig)}`
+                `Stored new config for ${cacheKey}: ${keyedConfig ? JSON.stringify(keyedConfig) : 'No config set'}`
             );
             this.cache.set(cacheKey, keyedConfig || undefined);
             return keyedConfig as RoomConfigContent|null;

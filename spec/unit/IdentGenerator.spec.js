@@ -47,7 +47,7 @@ describe("Username generation", function() {
             return obj;
         };
         storeMock.getIrcClientConfig = async (sender, domain) => ircClientConfigs[sender+domain];
-        storeMock.storeIrcClientConfig = async (config) => { 
+        storeMock.storeIrcClientConfig = async (config) => {
             ircClientConfigs[config.userId+config.domain] = config;
             ircClientConfigsUsername[config.getUsername()+config.domain] = config;
             ircClientConfigsUsernames.push(config.getUsername());
@@ -85,7 +85,9 @@ describe("Username generation", function() {
         const uname = "myrea_10";
         storeMock.storeIrcClientConfig(new IrcClientConfig("@someone:else", IRC_DOMAIN, { username: "myreally" }));
         for (let i = 1; i < 10; i++) {
-            storeMock.storeIrcClientConfig(new IrcClientConfig(`@someone${i}:else`, IRC_DOMAIN, { username: "myreal_" + i }));
+            storeMock.storeIrcClientConfig(
+                new IrcClientConfig(`@someone${i}:else`, IRC_DOMAIN, { username: "myreal_" + i })
+            );
         }
         const info = await identGenerator.getIrcNames(ircClientConfig, serverMock, new MatrixUser(userId));
         expect(info.username).toEqual(uname);
@@ -130,7 +132,8 @@ describe("Username generation", function() {
             const result = await identGenerator.getIrcNames(config, serverMock, new MatrixUser(userId));
             if (i === 0) {
                 expect(result.username).toBe("longpref");
-            } else {
+            }
+            else {
                 // longpref_1, _2, _3 etc
                 expect(result.username).toBe(`${"longprefix".substr(0, 8 - 1 - (i).toString().length)}_${i}`);
             }

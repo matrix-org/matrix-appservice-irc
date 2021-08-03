@@ -20,7 +20,7 @@ const FakeIntent = {
 describe("MatrixAction", function() {
 
     it("should not highlight mentions to text without mentions", () => {
-        let action = new MatrixAction("message", "Some text");
+        const action = new MatrixAction("message", "Some text");
         return action.formatMentions({
             "Some Person": "@foobar:localhost"
         }, FakeIntent).then(() => {
@@ -30,7 +30,7 @@ describe("MatrixAction", function() {
     });
 
     it("should highlight a user", () => {
-        let action = new MatrixAction(
+        const action = new MatrixAction(
             "message",
             "JCDenton, it's a bomb!",
             "JCDenton, it's a bomb!",
@@ -47,7 +47,7 @@ describe("MatrixAction", function() {
         });
     });
     it("should highlight a possessive mention", () => {
-        let action = new MatrixAction(
+        const action = new MatrixAction(
             "message",
             "Did you get JCDenton's report?",
             "Did you get JCDenton's report?",
@@ -64,7 +64,7 @@ describe("MatrixAction", function() {
         });
     });
     it("should highlight a quote", () => {
-        let action = new MatrixAction(
+        const action = new MatrixAction(
             "message",
             "Hey, you missed: <JCDenton> it's a bomb!",
             "Hey, you missed: &lt;JCDenton&gt; it's a bomb!",
@@ -81,7 +81,7 @@ describe("MatrixAction", function() {
         });
     });
     it("should highlight a user, regardless of case", () => {
-        let action = new MatrixAction(
+        const action = new MatrixAction(
             "message",
             "JCDenton, it's a bomb!",
             "JCDenton, it's a bomb!",
@@ -99,7 +99,7 @@ describe("MatrixAction", function() {
 
     });
     it("should highlight a user, with plain text", () => {
-        let action = new MatrixAction("message", "JCDenton, it's a bomb!");
+        const action = new MatrixAction("message", "JCDenton, it's a bomb!");
         return action.formatMentions({
             "JCDenton": "@jc.denton:unatco.gov"
         }, FakeIntent).then(() => {
@@ -111,7 +111,7 @@ describe("MatrixAction", function() {
         });
     });
     it("should highlight a user, with weird characters", () => {
-        let action = new MatrixAction("message", "`||JCDenton[m], it's a bomb!");
+        const action = new MatrixAction("message", "`||JCDenton[m], it's a bomb!");
         return action.formatMentions({
             "`||JCDenton[m]": "@jc.denton:unatco.gov"
         }, FakeIntent).then(() => {
@@ -123,7 +123,7 @@ describe("MatrixAction", function() {
         });
     });
     it("should highlight multiple users", () => {
-        let action = new MatrixAction(
+        const action = new MatrixAction(
             "message",
             "JCDenton is sent to assassinate PaulDenton",
             "JCDenton is sent to assassinate PaulDenton",
@@ -142,7 +142,7 @@ describe("MatrixAction", function() {
         });
     });
     it("should highlight multiple mentions of the same user", () => {
-        let action = new MatrixAction(
+        const action = new MatrixAction(
             "message",
             "JCDenton, meet JCDenton",
             "JCDenton, meet JCDenton",
@@ -159,7 +159,7 @@ describe("MatrixAction", function() {
         });
     });
     it("should not highlight mentions in a URL with www.", () => {
-        let action = new MatrixAction(
+        const action = new MatrixAction(
             "message",
             "Go to http://www.JCDenton.com",
             "Go to <a href='http://www.JCDenton.com'>my website</a>",
@@ -175,7 +175,7 @@ describe("MatrixAction", function() {
         });
     });
     it("should not highlight mentions in a URL with http://", () => {
-        let action = new MatrixAction(
+        const action = new MatrixAction(
             "message",
             "Go to http://JCDenton.com",
             "Go to <a href='http://JCDenton.com'>my website</a>",
@@ -191,7 +191,7 @@ describe("MatrixAction", function() {
         });
     });
     it("should fallback to userIds", () => {
-        let action = new MatrixAction(
+        const action = new MatrixAction(
             "message",
             "AnnaNavarre: The machine would not make a mistake!",
             "AnnaNavarre: The machine would not make a mistake!",

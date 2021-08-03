@@ -520,7 +520,8 @@ describe("IRC connections", function() {
                 type: "m.room.message"
             });
             throw Error('Expected exception');
-        } catch (ex) {
+        }
+        catch (ex) {
             expect(errorEmitted).toBe(true);
         }
     });

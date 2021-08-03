@@ -214,6 +214,7 @@ export class BridgedClient extends EventEmitter {
         let identResolver: (() => void) | undefined;
 
         this.log.debug("Client is now CONNECTING");
+        const connectionStartTime = Date.now();
         this.state = {
             status: BridgedClientStatus.CONNECTING
         }
@@ -259,7 +260,7 @@ export class BridgedClient extends EventEmitter {
                 inst: connInst,
                 client: connInst.client,
             }
-            this.emit("client-connected", this);
+            this.emit("client-connected", this, Date.now() - connectionStartTime);
             // we may have been assigned a different nick, so update it from source
             this._nick = connInst.client.nick;
             this.connectDefer.resolve();

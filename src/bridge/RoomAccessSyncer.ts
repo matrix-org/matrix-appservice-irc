@@ -50,7 +50,7 @@ export class RoomAccessSyncer {
     constructor(private ircBridge: IrcBridge) { }
 
     get powerLevelGracePeriod() {
-        const configPeriod = this.ircBridge.config.ircHandler?.powerLevelGracePeriodMs;
+        const configPeriod = this.ircBridge.config.ircService.ircHandler?.powerLevelGracePeriodMs;
         return configPeriod === undefined ? DEFAULT_POWER_LEVEL_GRACE_MS : configPeriod;
     }
 

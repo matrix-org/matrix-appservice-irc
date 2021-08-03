@@ -322,7 +322,7 @@ ircService:
       # $SERVER => The IRC server address (e.g. "irc.example.com")
       matrixClients:
         # The user ID template to use when creating virtual matrix users. This
-        # MUST have $NICK somewhere in it.
+        # MUST start with an @ and have $NICK somewhere in it.
         # Optional. Default: "@$SERVER_$NICK".
         # Example: "@irc.example.com_Alice:example.com"
         userTemplate: "@irc_$NICK"
@@ -548,6 +548,13 @@ ircService:
   matrixHandler:
     # Cache this many matrix events in memory to be used for m.relates_to messages (usually replies).
     eventCacheSize: 4096
+
+    # format of replies sent shortly after the original message
+    shortReplyTemplate: "$NICK: $REPLY"
+    # format of replies sent a while after the original message
+    longReplyTemplate: "<$NICK> \"$ORIGINAL\" <- $REPLY"
+    # how much time needs to pass between the reply and the original message to switch to the long format
+    shortReplyTresholdSeconds: 300
 
   ircHandler:
     # Should we attempt to match an IRC side mention (nickaname match)
