@@ -32,8 +32,8 @@ server administrator if the above defaults are not working for you. Server admin
 [config.sample.yaml](https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml) for
 instructions on how to change the templates for users and channels.
 
-The wiki contains a [list of public IRC networks](https://github.com/matrix-org/matrix-appservice-irc/wiki/Bridged-IRC-networks)
-including alias and user_id formats.
+Alias and MXID formats can be found from the [list of bridged networks](./bridged_networks.md)
+section.
 
 ### Customising your experience
 
