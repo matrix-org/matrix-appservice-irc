@@ -33,7 +33,6 @@
     "extend": "^3.0.2",
     "he": "^1.2.0",
     "logform": "^2.2.0",
-    "matrix-appservice": "^0.8.0",
     "matrix-appservice-bridge": "^2.6.1",
     "matrix-lastactive": "^0.1.5",
     "matrix-org-irc": "^1.2.0",
@@ -64,7 +63,7 @@
     "eslint": "^7.21.0",
     "jasmine": "^3.6.2",
     "nyc": "^14.1.1",
-    "prom-client": "^13.0.0",
+    "prom-client": "13.1.0",
     "proxyquire": "^1.4.0",
     "typescript": "^4.2.2"
   }
