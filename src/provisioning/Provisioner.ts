@@ -207,10 +207,10 @@ export class Provisioner {
                                        status: "pending"|"success"|"failure", skey: string) {
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         try {
-            await intent.client.sendStateEvent(roomId, 'm.room.bridging', {
+            await intent.sendStateEvent(roomId, 'm.room.bridging', skey, {
                 user_id: userId,
                 status,
-            }, skey);
+            });
         }
         catch (err) {
             throw new Error(`Could not update m.room.bridging state in ${roomId}`);

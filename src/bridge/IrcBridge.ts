@@ -902,13 +902,11 @@ export class IrcBridge {
     }
 
     public uploadTextFile(fileName: string, plaintext: string) {
-        return this.bridge.getIntent().getClient().uploadContent(
+        return this.bridge.getIntent().uploadContent(
             Buffer.from(plaintext),
             {
                 name: fileName,
                 type: "text/plain; charset=utf-8",
-                rawResponse: false,
-                onlyContentUri: true,
             },
         );
     }
@@ -932,7 +930,7 @@ export class IrcBridge {
 
         const userIntent = this.bridge.getIntentFromLocalpart(userLocalpart);
         await userIntent.setDisplayName(displayName); // will also register this user
-        matrixUser = new MatrixUser(userIntent.getClient().credentials.userId);
+        matrixUser = new MatrixUser(userIntent.userId);
         matrixUser.setDisplayName(displayName);
         await this.getStore().storeMatrixUser(matrixUser);
         return matrixUser;

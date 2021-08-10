@@ -53,7 +53,7 @@
     "@types/he": "^1.1.1",
     "@types/nedb": "^1.8.11",
     "@types/nopt": "^3.0.29",
-    "@types/node": "14",
+    "@types/node": "^14",
     "@types/pg": "^8.6.0",
     "@types/sanitize-html": "^2.3.1",
     "@types/express": "4.17.11",
