@@ -1,0 +1,1 @@
+Upgrade to `matrix-appservice-bridge` 3.0.0
