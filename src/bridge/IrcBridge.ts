@@ -541,10 +541,7 @@ export class IrcBridge {
         // cli port, then config port, then default port
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
-
-        if (this.config.ircService.metrics && this.config.ircService.metrics.enabled) {
-            this.initialiseMetrics(port);
-        }
+        await this.bridge.initalise();
 
         if (dbConfig.engine === "postgres") {
             log.info("Using PgDataStore for Datastore");
@@ -624,7 +621,11 @@ export class IrcBridge {
         }
 
         // run the bridge (needs to be done prior to configure IRC side)
-        await this.bridge.run(port, this.appservice, this.config.homeserver.bindHostname);
+        await this.bridge.listen(port, this.config.homeserver.bindHostname, undefined, this.appservice);
+        log.info(`Listening on ${this.config.homeserver.bindHostname || "0.0.0.0"}:${port}`)
+        if (this.config.ircService.metrics && this.config.ircService.metrics.enabled) {
+            this.initialiseMetrics(port);
+        }
 
         this.addRequestCallbacks();
         if (!this.registration.getSenderLocalpart() ||
