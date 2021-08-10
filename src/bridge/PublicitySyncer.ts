@@ -131,7 +131,6 @@ export class PublicitySyncer {
 
         this.visibilityMap.mappings = {};
 
-        const cli = this.ircBridge.getAppServiceBridge().getBot().getClient();
         // Update rooms to correct visibilities
         let currentStates: {[roomId: string]: "public"|"private"} = {};
 

@@ -484,7 +484,7 @@ export class RoomAccessSyncer {
         // to something >0 so by default people CANNOT speak into it (unless they
         // are a mod or have voice, both of which need to be configured correctly in
         // the config file).
-        const botClient = this.ircBridge.getAppServiceBridge().getIntent().getClient();
+        const botClient = this.ircBridge.getAppServiceBridge().getIntent();
         for (const room of matrixRooms) {
             req.log.info(`Checking moderated status for ${channel}`);
             const roomId = room.getId();
@@ -500,7 +500,7 @@ export class RoomAccessSyncer {
                     continue;
                 }
                 plContent.events_default = eventsDefault;
-                await botClient.sendStateEvent(roomId, "m.room.power_levels", plContent, "");
+                await botClient.sendStateEvent(roomId, "m.room.power_levels", "", plContent);
                 req.log.info(
                     "onModeratedChannelToggle: (channel=%s,enabled=%s) power levels updated in room %s",
                     channel, enabled, roomId
@@ -520,13 +520,13 @@ export class RoomAccessSyncer {
      *                               make the room public
      */
     private async setMatrixRoomAsInviteOnly(room: MatrixRoom, isInviteOnly: boolean) {
-        const client = this.ircBridge.getAppServiceBridge().getIntent().getClient();
+        const client = this.ircBridge.getAppServiceBridge().getIntent();
         return client.sendStateEvent(
             room.getId(),
+            "",
             "m.room.join_rules", {
                 join_rule: (isInviteOnly ? "invite" : "public")
             },
-            ""
         );
     }
 }
