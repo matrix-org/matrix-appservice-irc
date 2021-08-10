@@ -886,7 +886,7 @@ export class Provisioner {
         if (!ignorePermissions) {
             // Make sure the requester is a mod in the room
             const botCli = this.ircBridge.getAppServiceBridge().getBot().getClient();
-            const stateEvents = await botCli.roomState(roomId);
+            const stateEvents = await botCli.getRoomState(roomId);
             // user_id must be JOINED and must have permission to modify power levels
             let isJoined = false;
             let hasPower = false;
@@ -994,7 +994,7 @@ export class Provisioner {
         for (let i = 0; i < matrixRooms.length; i++) {
             let stateEvents = [];
             try {
-                stateEvents = await asBot.getClient().roomState(matrixRooms[i].getId());
+                stateEvents = await asBot.getClient().getRoomState(matrixRooms[i].getId());
             }
             catch (err) {
                 req.log.error("Failed to hit /state for room " + matrixRooms[i].getId());
@@ -1054,7 +1054,7 @@ export class Provisioner {
             // We can't determine who should and shouldn't be in the room.
             return undefined;
         }
-        const stateEvents = await asBot.getClient().roomState(roomId);
+        const stateEvents = await asBot.getClient().getRoomState(roomId);
         const roomInfo = await asBot.getRoomInfo(roomId, {
             state: {
                 events: stateEvents

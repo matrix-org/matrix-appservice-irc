@@ -1260,7 +1260,7 @@ export class MatrixHandler {
             // TODO: Take first with public join_rules
             const roomId = matrixRooms[0].getId();
             req.log.info("Pointing alias %s to %s", roomAlias, roomId);
-            await this.ircBridge.getAppServiceBridge().getBot().getClient().createAlias(
+            await this.ircBridge.getAppServiceBridge().getIntent().createAlias(
                 roomAlias, roomId
             );
         }
