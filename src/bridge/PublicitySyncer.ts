@@ -157,12 +157,12 @@ export class PublicitySyncer {
                 return;
             }
             try {
+                const intent = this.ircBridge.getAppServiceBridge().getIntent();
                 if (server.shouldPublishRoomsToHomeserverDirectory()) {
-                    const intent = this.ircBridge.getAppServiceBridge().getIntent();
                     await intent.setRoomDirectoryVisibility(roomId, correctState);
                 }
                 else {
-                    await cli.setRoomDirectoryVisibilityAppService(server.getNetworkId(), roomId, correctState);
+                    await intent.setRoomDirectoryVisibilityAppService(roomId, server.getNetworkId(), correctState);
                 }
                 await this.ircBridge.getStore().setRoomVisibility(roomId, correctState);
                 // Update cache

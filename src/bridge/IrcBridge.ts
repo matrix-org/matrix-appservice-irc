@@ -18,7 +18,6 @@ import { MatrixActivityTracker } from "matrix-lastactive";
 import { Provisioner } from "../provisioning/Provisioner.js";
 import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
-import { AppServiceRegistration, AppService } from "matrix-appservice";
 
 import {
     Bridge,
@@ -32,6 +31,8 @@ import {
     EphemeralEvent,
     MembershipQueue,
     BridgeInfoStateSyncer,
+    AppServiceRegistration,
+    AppService,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -344,10 +345,8 @@ export class IrcBridge {
                 help: "Histogram of processing durations of received remote messages",
                 labels: ["outcome"],
             }),
-            irc_connection_time_ms: new Histogram({
-                registers: [registry],
-                // Prefix with bridge, because we're not using the m-a-b timer implementation.
-                name: "bridge_irc_connection_time_ms",
+            irc_connection_time_ms: metrics.addTimer({
+                name: "irc_connection_time_ms",
                 help: "The time it took the user to receive the welcome message",
                 buckets: [100, 500, 1000, 2500, 10000, 30000],
             }),
@@ -625,7 +624,7 @@ export class IrcBridge {
         }
 
         // run the bridge (needs to be done prior to configure IRC side)
-        await this.bridge.run(port, undefined, this.appservice, this.config.homeserver.bindHostname);
+        await this.bridge.run(port, this.appservice, this.config.homeserver.bindHostname);
 
         this.addRequestCallbacks();
         if (!this.registration.getSenderLocalpart() ||
@@ -1335,7 +1334,7 @@ export class IrcBridge {
             throw Error('AppserviceBot is not ready');
         }
         log.info("Migrating state");
-        const stateEvents = await asBot.getClient().roomState(oldRoomId);
+        const stateEvents = await asBot.getClient().getRoomState(oldRoomId);
         const roomInfo = await asBot.getRoomInfo(oldRoomId, {
             state: {
                 events: stateEvents
