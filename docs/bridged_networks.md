@@ -14,6 +14,7 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 | irchighway   | `#irchighway_#channame:eggy.cc`           | [`@appservice-irc:eggy.cc`]        | [`#eggster:eggy.cc`]           | [Eggy](http://eggy.cc/)                   |
 | W3C          | `#_w3c_#channame:matrix.org`              | [`@w3c-irc:matrix.org`]            | [`#irc:matrix.org`]            | [Matrix.org]                              |
 | libera.chat  | `#channame:libera.chat`                   | [`@appservice:libera.chat`]        | [`#libera-matrix:libera.chat`] | [Matrix.org]                              |
+| LibertaCasa  | `#channame:liberta.casa`                  | [`@lunatic:liberta.casa`]          | [`#help:liberta.casa`]         | [LibertaCasa](https://liberta.casa)
 
 [`@IRC-Darkfasel:darkfasel.net`]: https://matrix.to/#/@IRC-Darkfasel:darkfasel.net
 [`@fc00ircmtx:m.trnsz.com`]: https://matrix.to/#/@fc00ircmtx:m.trnsz.com
@@ -27,6 +28,7 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 [`@appservice-irc:eggy.cc`]: https://matrix.to/#/@appservice-irc:eggy.cc
 [`@w3c-irc:matrix.org`]: https://matrix.to/#/@w3c-irc:matrix.org
 [`@appservice:libera.chat`]: https://matrix.to/#/@appservice:libera.chat
+[`@lunatic:liberta.casa`]: https://matrix.to/#/@lunatic:liberta.casa
 
 [`#irc:matrix.org`]: https://matrix.to/#/%23irc:matrix.org
 [`#darkfasel:darkfasel.net`]: https://matrix.to/#/%23darkfasel:darkfasel.net
@@ -35,6 +37,7 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 [`#tweakers-irc:utwente.io`]: https://matrix.to/#/%23tweakers-irc:utwente.io
 [`#eggster:eggy.cc`]: https://matrix.to/#/%23eggster:eggy.cc
 [`#libera-matrix:libera.chat`]: https://matrix.to/#/%23libera-matrix:libera.chat
+[`#help:liberta.casa`]: https://matrix.to/#/%23help:liberta.casa
 
 [Matrix.org]: https://matrix.org/
 [Gnome.org]: https://gnome.org/
