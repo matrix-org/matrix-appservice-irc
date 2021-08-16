@@ -408,6 +408,12 @@ export class IrcBridge {
             labels: ["version"],
         }).inc({ version: getBridgeVersion()}, 1);
 
+        const maxRemoteGhosts = metrics.addGauge({
+            name: "remote_ghosts_max",
+            help: "The maximum number of remote ghosts",
+            labels: ["server"]
+        });
+
         metrics.addCollector(() => {
             this.ircServers.forEach((server) => {
                 reconnQueue.set({server: server.domain},
@@ -418,6 +424,7 @@ export class IrcBridge {
                     {server: server.domain},
                     mxMetrics["connection_failure_kicks"] || 0
                 );
+                maxRemoteGhosts.set({server: server.domain}, server.getMaxClients());
             });
 
             if (userActivityThresholdHours) {
