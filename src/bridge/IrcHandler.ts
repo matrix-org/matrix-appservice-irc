@@ -675,7 +675,8 @@ export class IrcHandler {
             // number of new joiners.
             const ttl = syncType === "initial" ? MEMBERSHIP_INITIAL_TTL_MS : undefined;
             await this.membershipQueue.join(room.getId(), matrixUser.getId(), req, shouldRetry, ttl);
-            intent.setPresence("online");
+            // https://github.com/turt2live/matrix-bot-sdk/issues/79
+            intent.setPresence("online", "");
         });
         if (matrixRooms.length === 0) {
             req.log.info("No mapped matrix rooms for IRC channel %s", chan);

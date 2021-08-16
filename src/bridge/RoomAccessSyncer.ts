@@ -145,7 +145,7 @@ export class RoomAccessSyncer {
         }
         catch (ex) {
             req.log.warn(`Failed to apply PL to ${roomId}`, ex);
-            if (ex.errcode !== "M_TOO_LARGE") {
+            if (ex.body.errcode !== "M_TOO_LARGE") {
                 return;
             }
             req.log.warn(`The powerlevel event is too large, attempting to flush out left users`);
