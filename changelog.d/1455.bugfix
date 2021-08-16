@@ -1,0 +1,1 @@
+Remove `client_config_domain_username_idx` which would have required a unique username for IPv6 users.
