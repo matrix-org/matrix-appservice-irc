@@ -8,6 +8,8 @@ on:
 env:
   DOCKER_NAMESPACE: matrixdotorg
   PLATFORMS: linux/amd64
+  # Only push if this is develop, otherwise we just want to build
+  PUSH: ${{ github.ref == 'refs/heads/develop' }}
 
 jobs:
   docker-latest:
@@ -27,6 +29,6 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: ${{ env.PLATFORMS }}
-          push: true
+          push: ${{ env.PUSH }}
           tags: |
-            ${{ env.DOCKER_NAMESPACE }}/matrix-appservice-irc:latest-test
+            ${{ env.DOCKER_NAMESPACE }}/matrix-appservice-irc:latest
