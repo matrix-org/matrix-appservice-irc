@@ -45,6 +45,7 @@
     "request": "^2.54.0",
     "request-promise-native": "^1.0.9",
     "sanitize-html": "^2.4.0",
+    "socks": "^2.6.1",
     "winston": "^3.3.3",
     "winston-daily-rotate-file": "^4.5.5"
   },
