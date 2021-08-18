@@ -55,6 +55,9 @@ export function niceDiff(from: string, to: string): string|undefined {
         formatChanges(Diff.diffLines(from, to)),
     ].filter(
         diffs => diffs.length > 0 && diffs.length <= MAX_SUBSTITUTIONS
+    ).filter(
+        // a newline in a diff is a total disaster
+        diffs => !diffs.find(diff => diff.match(/\n/))
     ).map(
         diffs => diffs.join(', ')
     ).sort(

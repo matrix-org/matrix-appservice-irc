@@ -24,6 +24,11 @@ describe("niceDiff", function() {
             'in a marmalade forest\nbetween the make-believe trees\nin a cottage-cheese cottage...',
             's/I forgot the third verse, sorry/in a cottage-cheese cottage.../',
         ],
+        [
+            'should not use diffs with newlines in them',
+            'a\nb\nc', 'bla\nbleh\nc',
+            's/a/bla/, s/b/bleh/',
+        ],
     ].forEach(c => it(c[0], () => {
         const result = niceDiff(c[1], c[2]);
         console.log(`"${c[1]}" -> "${c[2]}" -> ${result}`);
