@@ -35,9 +35,15 @@ const MIN_MESSAGE_LENGTH = 20;
 // The maximum number of substitutions that we still consider to be readable
 const MAX_SUBSTITUTIONS = 3;
 
-// tries to find a sensible representation of a message edit
-// returns undefined it it can't come up with anything better than
-// "just post the new message in its entirety"
+/**
+ * Try to find a sensible representation of a message edit,
+ * or returns undefined if it deems posting the entire new message
+ * to be a better choice. Optimize for terseness, legibility
+ * and an IRC-native feel.
+ *
+ * @param {string} from : The original message
+ * @param {string} to : The new, edited version
+ */
 export function niceDiff(from: string, to: string): string|undefined {
     // don't bother if the message is short enough
     if (to.length < MIN_MESSAGE_LENGTH && !to.match(/\n/)) {
