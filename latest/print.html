@@ -184,21 +184,21 @@ IRC channel. By default your nickname will be <code>YourDisplayname-M</code>, bu
 by using a <code>[m]</code> suffix instead.</p>
 <h3 id="joining-a-channel"><a class="header" href="#joining-a-channel">Joining a channel</a></h3>
 <p>Joining a public channel over the bridge is as easy as joining an alias, for instance:</p>
-<p><code>#freenode_#python:matrix.org</code> maps to the <code>#python</code> channel on Freenode.</p>
+<p><code>#python:libera.chat</code> maps to the <code>#python</code> channel on <a href="libera.chat">libera.chat</a>.</p>
 <h3 id="private-messaging"><a class="header" href="#private-messaging">Private Messaging</a></h3>
-<p>Sending a Private Message (PM) to an IRC user means starting a conversation with <code>@freenode_Alice:matrix.org</code>,
-which maps to the nickname <code>Alice</code> on Freenode.</p>
+<p>Sending a Private Message (PM) to an IRC user means starting a conversation with <code>@Alice:libera.chat</code>,
+which maps to the nickname <code>Alice</code> on Libera.chat.</p>
 <p>If a PM is sent from the IRC side, it will either appear in your existing PM room or you will be invited
 to a new room.</p>
 <p>The room alias and user formats may differ depending on the bridge you are using, so be sure to check with the
 server administrator if the above defaults are not working for you. Server administrators can check
 <a href="https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml">config.sample.yaml</a> for
 instructions on how to change the templates for users and channels.</p>
-<p>The wiki contains a <a href="https://github.com/matrix-org/matrix-appservice-irc/wiki/Bridged-IRC-networks">list of public IRC networks</a>
-including alias and user_id formats.</p>
+<p>Alias and MXID formats can be found from the <a href="./bridged_networks.html">list of bridged networks</a>
+section.</p>
 <h3 id="customising-your-experience"><a class="header" href="#customising-your-experience">Customising your experience</a></h3>
 <p>You may also want to customise your nickname or set a password to authenticate with services, you
-can do this by PMing the bridge bot user. E.g. the matrix.org freenode bridge user is <code>@appservice-irc:matrix.org</code>.</p>
+can do this by PMing the bridge bot user.</p>
 <pre><code>!nick Alice
 !storepass MySecretPassword
 </code></pre>
@@ -242,9 +242,9 @@ the bridge does not know how to read encrypted events and so far no work has bee
 relaying E2E messages to IRC clients and as such the bridge would have to decrypt messages from Matrix and encrypt messages from
 IRC. As such, the team has chosen not to support encrypted Matrix rooms at this time.</p>
 <h1 id="admin-room"><a class="header" href="#admin-room">Admin Room</a></h1>
-<p>Most bridges will send you an invite to an admin room once you connectto control your connection 
-to IRC, but larger bridges like matrix.org's Freenode bridge will not (you will need to start a
-conversation with the bot manually).</p>
+<p>Most bridges will send you an invite to an admin room once you join a IRC bridged room, to control your connection 
+to IRC. Some larger bridges will not (you will need to start a conversation with the bot manually). See 
+<a href="./bridged_networks">bridged_networks</a> for a list of bot userIds.</p>
 <h2 id="bot-commands"><a class="header" href="#bot-commands">Bot Commands</a></h2>
 <p>The admin room allows you to send commands to a room to manipulate your IRC session. </p>
 <p>Some commands take a <code>[irc.example.net]</code> which lets you choose which IRC network to direct the
@@ -366,7 +366,7 @@ to <code>true</code>.</p>
 <p>This chapter explains how various IRC channel modes are interpteted by the bridge, and how you can best configure your
 channels to work well with the bridge.</p>
 <p>Note: While the bridge tries to follow the RFCs where possible, due to the somewhat fragmented nature of IRC the bridge is
-designed for maximum compatibility with <a href="https://github.com/freenode/ircd-seven">Freenode's IRCd</a>.</p>
+designed for maximum compatibility with <a href="https://github.com/solanum-ircd/solanum">Libera's IRCd</a>.</p>
 <h2 id="user-modes-to-power-levels"><a class="header" href="#user-modes-to-power-levels">User modes to power levels</a></h2>
 <p>User modes are mapped to certain power levels on Matrix. For those unaware, Matrix power levels typically range between
 0-100 where zero represents a user that may only speak and 100 is an admin of the room (although these are modifiable).</p>
@@ -380,28 +380,57 @@ modePowerMap:
 PL1. In <code>+m</code> (moderated) rooms, users who are not voiced cannot speak and so the Matrix room will not allow users with
 PL0 (that is, without +v) to speak.</p>
 <p>The IRC bridge admin can customise this power level mapping to however they see fit.</p>
-<h2 id="bans-invite-only-and-registered-only-b--i--r"><a class="header" href="#bans-invite-only-and-registered-only-b--i--r">Bans, Invite only and Registered only (+b / +i / +r)</a></h2>
-<p>The IRC bridge will kick a Matrix user on join if they are not able to join the IRC channel. This means if the IRC
-user is banned, the room is invite only (and the user has not been invited) or the channel is registered only then
-the user will not be able to join it. A reason is given in the Matrix ban, and a more verbose error is given in the
-user's admin room.</p>
-<h3 id="invite-exemption-i"><a class="header" href="#invite-exemption-i">Invite exemption (+I)</a></h3>
-<p>Some communties prefer to keep their channels closed but allow the bridge to access the channel. It is trivial to do
-this by using the <code>+I</code> channel mode. The format is the same as an <a href="https://freenode.net/kb/answer/extbans">extban</a>.</p>
-<p>For example to allow matrix.org bridge users to access your invite-only channel, you would do:</p>
-<pre><code>/mode #the-secret-cookies +I !@gateway/shell/matrix.org/*
+<h2 id="channel-modes-that-prevent-bridged-users-from-joining"><a class="header" href="#channel-modes-that-prevent-bridged-users-from-joining">Channel modes that prevent bridged users from joining</a></h2>
+<p>Below are some common channel modes that prevent bridged users from joining. The modes in parentheses and the examples
+given are for Libera.Chat, other IRCds may have different mode letters or not have the capability at all, so consult the
+help documentation of channel for other networks to find out what they support.</p>
+<p>If a user is not able to join the IRC channel, they will be kicked from the Matrix room. The reason is given in the 
+Matrix kick message, and a more verbose error is given in the user's admin room.</p>
+<h3 id="ban-b"><a class="header" href="#ban-b">Ban (<code>+b</code>)</a></h3>
+<p>If the user matches a ban mask on the IRC channel, they cannot join. An IRC channel op can exempt a specific bridged
+user by setting a ban exemption mask (<code>+e</code>) in two ways, either using the IP address of the bridged user:</p>
+<pre><code>/mode #channel +e *!*@2001:470:69fc:105::b2ed
 </code></pre>
-<h2 id="s-secret"><a class="header" href="#s-secret">+s (Secret)</a></h2>
-<p>By default the IRC bridge will automatically insert any newly joined rooms into the homeserver's room directory.
-The +s mode will mark the channel as secret and the bridge will not show it in the
-directory. The room will still be joinable however.</p>
-<h2 id="key-protected-k"><a class="header" href="#key-protected-k">Key protected (+k)</a></h2>
+<p>or, if the Matrix user is identified to services, using the <code>$a</code> extban syntax:</p>
+<pre><code>/mode #channel +e $a:matrixuser
+</code></pre>
+<p>Note that exempting a user means that user will not be affected by bans or quiets,
+so be sure you trust the user before giving them an exemption</p>
+<h3 id="invite-only-i"><a class="header" href="#invite-only-i">Invite only (<code>+i</code>)</a></h3>
+<p>Some communties prefer to keep their channels invite only but allow the bridge to access the channel. An IRC channel
+operator can set an invite exemption (<code>+I</code>) mask for the whole bridge:</p>
+<pre><code>/mode #channel +I *!*@2001:470:69fc:105::/64
+</code></pre>
+<p>This will also work on other IRC networks that support IPv6 and do not automatically cloak hosts (notably OFTC), however
+the IP address range will be different. Running <code>/whois</code> on a Matrix user nick will give you the IPv6 /64 range to use.</p>
+<p>Adding an invite exemption for a single Matrix user is done the same way as the ban exemption methods above, replacing <code>+e</code>
+with <code>+I</code></p>
+<h3 id="registered-only-r"><a class="header" href="#registered-only-r">Registered only (<code>+r</code>)</a></h3>
+<p>If <code>+r</code> is set on a channel, Matrix users not identified to services cannot join. </p>
+<h3 id="key-protected-k"><a class="header" href="#key-protected-k">Key protected (<code>+k</code>)</a></h3>
 <p>If a channel is protected by a key, it cannot be entered by joining via an alias. Instead you may join by using
 the <a href="admin_room#join"><code>!join</code></a> command. Be aware that the bridge purposefully does not store channel keys in
 the database as a security precaution so you should be expected to do this again on bridge restart.</p>
-<h2 id="channel-forwarding-f"><a class="header" href="#channel-forwarding-f">Channel Forwarding (+f)</a></h2>
+<h3 id="channel-forwarding-f"><a class="header" href="#channel-forwarding-f">Channel Forwarding (<code>+f</code>)</a></h3>
 <p>Channel forwarding is presently unsupported, see https://github.com/matrix-org/matrix-appservice-irc/issues/214
 for information and updates.</p>
+<h2 id="other-important-channel-modes"><a class="header" href="#other-important-channel-modes">Other important channel modes</a></h2>
+<p>These channel modes do not prevent a user from joining, but they still affect various properties of the room</p>
+<h3 id="secret-s"><a class="header" href="#secret-s">Secret (<code>+s</code>)</a></h3>
+<p>By default the IRC bridge will automatically insert any newly joined rooms into the homeserver's room directory.
+The <code>+s</code> mode will mark the channel as secret and the bridge will not show it in the directory. The room will still
+be joinable however.</p>
+<h3 id="moderated-m"><a class="header" href="#moderated-m">Moderated (<code>+m</code>)</a></h3>
+<p>When mode <code>+m</code> is set, any users with a powerlevel of 0 (i.e. not opped or voiced) will be prevented from talking.</p>
+<h3 id="quiet-q"><a class="header" href="#quiet-q">Quiet (<code>+q</code>)</a></h3>
+<p>A quiet mask is similar to a ban mask, but only prevents the user from talking, not joining. If a Matrix user matches
+a quiet mask, the message will not be sent to IRC but will still be sent to the Matrix room.</p>
+<h3 id="op-moderated-z"><a class="header" href="#op-moderated-z">Op moderated (<code>+z</code>)</a></h3>
+<p>When mode <code>+z</code> is set, messages that are normally blocked by <code>+m</code>, <code>+b</code>, and <code>+q</code> are instead sent to channel operators
+using a statusmsg. The bridge currently does not understand how <code>+z</code> works, so setting <code>+mz</code> will still block Matrix
+users with a powerlevel of 0 from talking in the channel.</p>
+<p>Additionally, the bridge doesn't support statusmsg, so if the channel is set <code>+mz</code>, any messages that are affected by it
+do not appear in the Matrix room.</p>
 <p>A wishlist of IRC networks to be bridged is being collected <a href="https://github.com/matrix-org/matrix-appservice-irc/issues/208">in a github issue</a>.</p>
 <table><thead><tr><th>Network Name</th><th>Room alias format</th><th>Appservice user</th><th>Room for Support</th><th>Operator</th></tr></thead><tbody>
 <tr><td>darkfasel</td><td><code>#channame:darkfasel.net</code></td><td><a href="https://matrix.to/#/@IRC-Darkfasel:darkfasel.net"><code>@IRC-Darkfasel:darkfasel.net</code></a></td><td><a href="https://matrix.to/#/%23darkfasel:darkfasel.net"><code>#darkfasel:darkfasel.net</code></a></td><td><a href="https://www.darkfasel.net/">darkfasel</a></td></tr>
@@ -416,6 +445,7 @@ for information and updates.</p>
 <tr><td>irchighway</td><td><code>#irchighway_#channame:eggy.cc</code></td><td><a href="https://matrix.to/#/@appservice-irc:eggy.cc"><code>@appservice-irc:eggy.cc</code></a></td><td><a href="https://matrix.to/#/%23eggster:eggy.cc"><code>#eggster:eggy.cc</code></a></td><td><a href="http://eggy.cc/">Eggy</a></td></tr>
 <tr><td>W3C</td><td><code>#_w3c_#channame:matrix.org</code></td><td><a href="https://matrix.to/#/@w3c-irc:matrix.org"><code>@w3c-irc:matrix.org</code></a></td><td><a href="https://matrix.to/#/%23irc:matrix.org"><code>#irc:matrix.org</code></a></td><td><a href="https://matrix.org/">Matrix.org</a></td></tr>
 <tr><td>libera.chat</td><td><code>#channame:libera.chat</code></td><td><a href="https://matrix.to/#/@appservice:libera.chat"><code>@appservice:libera.chat</code></a></td><td><a href="https://matrix.to/#/%23libera-matrix:libera.chat"><code>#libera-matrix:libera.chat</code></a></td><td><a href="https://matrix.org/">Matrix.org</a></td></tr>
+<tr><td>LibertaCasa</td><td><code>#channame:liberta.casa</code></td><td><a href="https://matrix.to/#/@lunatic:liberta.casa"><code>@lunatic:liberta.casa</code></a></td><td><a href="https://matrix.to/#/%23help:liberta.casa"><code>#help:liberta.casa</code></a></td><td><a href="https://liberta.casa">LibertaCasa</a></td></tr>
 </tbody></table>
 <ul>
 <li>Hackint <a href="https://hackint.org/archive#20181028_Matrix_Bridging_Sunset">closed their Matrix bridge</a> on 2018-12-31.</li>
@@ -511,8 +541,8 @@ Please note that we offer no support for Node 10.</p>
 either be your own, or one that you have the ability to setup Application Services with.</p>
 <p>Finally <strong>you should seek permission from the operator of the bridged IRC network before running this bridge.</strong>
 <strong>Bridging may be against the IRC network's Terms of Use.</strong>. Failure to do so may get your bridge banned and 
-your IP address blocked by the IRC network. Networks like Freenode will only allow 3 IRC connections from a 
-single IP, so you should ask them for permission before bridging.</p>
+your IP address blocked by the IRC network. Most networks will only allow a limited number of IRC connections
+from a single IP, so you should ask them for permission before bridging.</p>
 <h2 id="1-installation"><a class="header" href="#1-installation">1. Installation</a></h2>
 <h3 id="install-from-git-preferred"><a class="header" href="#install-from-git-preferred">Install from git (preferred)</a></h3>
 <pre><code class="language-sh">git clone https://github.com/matrix-org/matrix-appservice-irc.git
@@ -630,7 +660,7 @@ interface as sending commands over Matrix is preferred, however, many powerful c
           &quot;#matrix&quot;
         ],
         &quot;dead&quot;: false,
-        &quot;server&quot;: &quot;chat.freenode.net&quot;,
+        &quot;server&quot;: &quot;libera.chat&quot;,
         &quot;nick&quot;: &quot;Half-Shot&quot;
       }
     ]
@@ -741,17 +771,17 @@ be used as a blanket detection method.</p>
 <h3 id="whois-information"><a class="header" href="#whois-information">Whois information</a></h3>
 <p>The bridge sets various bits of information about users:</p>
 <p>The realname of a user will be their MxID. By default this will look like:</p>
-<pre><code>* [Half-Shot] (half-shoth@gateway/shell/matrix.org/x-foo): @Half-Shot:half-shot.uk
-* [Half-Shot] moon.freenode.net :Atlanta, GA, US
-* [Half-Shot] is using a secure connection
-* [Half-Shot] is logged in as Half-Shot
-* [Half-Shot] End of WHOIS list.
+<pre><code>* [Half-Shot[m]] (half-shoth@2001:470:1af1:104:0:0:0:2223): @Half-Shot:half-shot.uk
+* [Half-Shot[m]] #matrix-test
+* [Half-Shot[m]] irc2.acc.umu.se :GIMPNet Server
+* [Half-Shot[m]] is using a Secure Connection
+* [Half-Shot[m]] End of WHOIS list.
 </code></pre>
 <h3 id="portals-and-plumbed"><a class="header" href="#portals-and-plumbed">Portals and Plumbed</a></h3>
 <p>A Matrix room can be connected to a IRC network in one of two ways:</p>
 <ul>
 <li>A portal room, which is a Matrix room created by the bridge on demand when a Matrix user attempts
-to join an alias that does not yet exist. E.g. <code>#freenode_#myproject:matrix.org</code>. The bridge will
+to join an alias that does not yet exist. E.g. <code>#myproject:libera.chat</code>. The bridge will
 hold power over this room and grant moderator status (half-power) to any IRC operators or Matrix users
 with IRC ops in the room.</li>
 <li>A plumbed room (also known as provisioning). A Matrix user may create a room ahead of time for their

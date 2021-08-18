@@ -175,21 +175,21 @@ IRC channel. By default your nickname will be <code>YourDisplayname-M</code>, bu
 by using a <code>[m]</code> suffix instead.</p>
 <h3 id="joining-a-channel"><a class="header" href="#joining-a-channel">Joining a channel</a></h3>
 <p>Joining a public channel over the bridge is as easy as joining an alias, for instance:</p>
-<p><code>#freenode_#python:matrix.org</code> maps to the <code>#python</code> channel on Freenode.</p>
+<p><code>#python:libera.chat</code> maps to the <code>#python</code> channel on <a href="libera.chat">libera.chat</a>.</p>
 <h3 id="private-messaging"><a class="header" href="#private-messaging">Private Messaging</a></h3>
-<p>Sending a Private Message (PM) to an IRC user means starting a conversation with <code>@freenode_Alice:matrix.org</code>,
-which maps to the nickname <code>Alice</code> on Freenode.</p>
+<p>Sending a Private Message (PM) to an IRC user means starting a conversation with <code>@Alice:libera.chat</code>,
+which maps to the nickname <code>Alice</code> on Libera.chat.</p>
 <p>If a PM is sent from the IRC side, it will either appear in your existing PM room or you will be invited
 to a new room.</p>
 <p>The room alias and user formats may differ depending on the bridge you are using, so be sure to check with the
 server administrator if the above defaults are not working for you. Server administrators can check
 <a href="https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml">config.sample.yaml</a> for
 instructions on how to change the templates for users and channels.</p>
-<p>The wiki contains a <a href="https://github.com/matrix-org/matrix-appservice-irc/wiki/Bridged-IRC-networks">list of public IRC networks</a>
-including alias and user_id formats.</p>
+<p>Alias and MXID formats can be found from the <a href="./bridged_networks.html">list of bridged networks</a>
+section.</p>
 <h3 id="customising-your-experience"><a class="header" href="#customising-your-experience">Customising your experience</a></h3>
 <p>You may also want to customise your nickname or set a password to authenticate with services, you
-can do this by PMing the bridge bot user. E.g. the matrix.org freenode bridge user is <code>@appservice-irc:matrix.org</code>.</p>
+can do this by PMing the bridge bot user.</p>
 <pre><code>!nick Alice
 !storepass MySecretPassword
 </code></pre>
