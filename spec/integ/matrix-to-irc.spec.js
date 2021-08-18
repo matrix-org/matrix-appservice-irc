@@ -687,6 +687,35 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
+    it("should truncate multiline notices just like messages", function(done) {
+        const tBody = "This\nis\na\nmessage\nwith\nmultiple\nline\nbreaks".split('\n');
+        const sdk = env.clientMock._client(config._botUserId);
+
+        sdk.uploadContent.and.returnValue(Promise.resolve("mxc://deadbeefcafe"));
+
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "notice", (client, channel, text) => {
+            expect(client.nick).toEqual(testUser.nick);
+            expect(client.addr).toEqual(roomMapping.server);
+            expect(channel).toEqual(roomMapping.channel);
+            // don't be too brittle when checking this, but I expect to see the
+            // start of the first line and the mxc fragment
+            expect(text.indexOf(tBody[0])).toEqual(0);
+            expect(text.indexOf(tBody[1])).not.toEqual(0);
+            expect(text.indexOf('deadbeefcafe')).not.toEqual(-1);
+            done();
+        });
+
+        env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tBody.join("\n"),
+                msgtype: "m.notice"
+            },
+            sender: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+    });
+
     it("should bridge matrix images as IRC action with a URL", function(done) {
         const tBody = "the_image.jpg";
         const tMxcSegment = "/somecontentid";
