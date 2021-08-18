@@ -1071,7 +1071,7 @@ export class MatrixHandler {
         }
 
         // special handling for edits
-        if (event.content["m.relates_to"] && event.content["m.relates_to"].rel_type === "m.replace") {
+        if (event.content["m.relates_to"]?.rel_type === "m.replace") {
             const originalEventId = event.content["m.relates_to"].event_id;
             let originalBody = this.getCachedEvent(originalEventId)?.body;
             if (!originalBody) {
