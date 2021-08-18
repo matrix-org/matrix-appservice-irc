@@ -30,12 +30,17 @@ function formatChanges(diff: Diff.Change[]): string[] {
     return changes.map(c => `s/${c[0]}/${c[1]}/`);
 }
 
+// Minimum length of the message for us to try to generate a diff for
+const MIN_MESSAGE_LENGTH = 20;
+// The maximum number of substitutions that we still consider to be readable
+const MAX_SUBSTITUTIONS = 3;
+
 // tries to find a sensible representation of a message edit
 // returns undefined it it can't come up with anything better than
 // "just post the new message in its entirety"
 export function niceDiff(from: string, to: string): string|undefined {
     // don't bother if the message is short enough
-    if (to.length < 20 && !to.match(/\n/)) {
+    if (to.length < MIN_MESSAGE_LENGTH && !to.match(/\n/)) {
         return undefined;
     }
 
@@ -43,8 +48,7 @@ export function niceDiff(from: string, to: string): string|undefined {
         formatChanges(Diff.diffWords(from, to)),
         formatChanges(Diff.diffLines(from, to)),
     ].filter(
-        // too many substitutions aren't that readable
-        diffs => diffs.length > 0 && diffs.length <= 3
+        diffs => diffs.length > 0 && diffs.length <= MAX_SUBSTITUTIONS
     ).map(
         diffs => diffs.join(', ')
     ).sort(
