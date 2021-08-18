@@ -169,6 +169,14 @@ export interface DataStore {
 
     removePass(userId: string, domain: string): Promise<void>;
 
+    storeKey(userId: string, domain: string, key: string): Promise<void>;
+
+    removeKey(userId: string, domain: string): Promise<void>;
+
+    storeCert(userId: string, domain: string, cert: string): Promise<void>;
+
+    removeCert(userId: string, domain: string): Promise<void>;
+
     getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined>;
 
     getCountForUsernamePrefix(domain: string, usernamePrefix: string): Promise<number>;

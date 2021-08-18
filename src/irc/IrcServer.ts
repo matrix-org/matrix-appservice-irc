@@ -73,6 +73,8 @@ export interface IrcServerConfig {
         enabled: boolean;
         password?: string;
         username: string;
+        saslKey?: string;
+        saslCert?: string;
     };
     privateMessages: {
         enabled: boolean;
@@ -387,7 +389,7 @@ export class IrcServer {
     public createBotIrcClientConfig() {
         return IrcClientConfig.newConfig(
             null, this.domain, this.config.botConfig.nick, this.config.botConfig.username,
-            this.config.botConfig.password
+            this.config.botConfig.password, this.config.botConfig.saslKey, this.config.botConfig.saslCert
         );
     }
 

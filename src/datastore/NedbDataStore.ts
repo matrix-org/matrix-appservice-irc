@@ -575,6 +575,14 @@ export class NeDBDataStore implements DataStore {
             const decryptedPass = this.cryptoStore.decrypt(encryptedPass);
             clientConfig.setPassword(decryptedPass);
         }
+        const encryptedKey = clientConfig.getSASLKey();
+        if (encryptedKey) {
+            if (!this.cryptoStore) {
+                throw new Error(`Cannot decrypt SASL key of ${userId} - no private key`);
+            }
+            const decryptedKey = this.cryptoStore.decrypt(encryptedKey);
+            clientConfig.setPassword(decryptedKey);
+        }
         return clientConfig;
     }
 
@@ -603,6 +611,16 @@ export class NeDBDataStore implements DataStore {
             const encryptedPass = this.cryptoStore.encrypt(password);
             // Store the encrypted password, ready for the db
             config.setPassword(encryptedPass);
+        }
+        const saslKey = config.getSASLKey();
+        if (saslKey) {
+            if (!this.cryptoStore) {
+                throw new Error(
+                    'Cannot store plaintext private keys'
+                );
+            }
+            const encryptedKey = this.cryptoStore.encrypt(saslKey);
+            config.setSASLKey(encryptedKey);
         }
         userConfig[config.getDomain().replace(/\./g, "_")] = config.serialize();
         user.set("client_config", userConfig);
@@ -648,6 +666,39 @@ export class NeDBDataStore implements DataStore {
         }
     }
 
+    public async storeKey(userId: string, domain: string, key: string) {
+        const config = await this.getIrcClientConfig(userId, domain);
+        if (!config) {
+            throw new Error(`${userId} does not have an IRC client configured for ${domain}`);
+        }
+        config.setSASLKey(key);
+        await this.storeIrcClientConfig(config);
+    }
+
+    public async removeKey(userId: string, domain: string) {
+        const config = await this.getIrcClientConfig(userId, domain);
+        if (config) {
+            config.setSASLKey();
+            await this.storeIrcClientConfig(config);
+        }
+    }
+
+    public async storeCert(userId: string, domain: string, cert: string) {
+        const config = await this.getIrcClientConfig(userId, domain);
+        if (!config) {
+            throw new Error(`${userId} does not have an IRC client configured for ${domain}`);
+        }
+        config.setSASLCert(cert);
+        await this.storeIrcClientConfig(config);
+    }
+
+    public async removeCert(userId: string, domain: string) {
+        const config = await this.getIrcClientConfig(userId, domain);
+        if (config) {
+            config.setSASLCert();
+            await this.storeIrcClientConfig(config);
+        }
+    }
     public async getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined> {
         const domainKey = domain.replace(/\./g, "_");
         const matrixUsers = await this.userStore.getByMatrixData({

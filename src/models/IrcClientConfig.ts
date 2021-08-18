@@ -21,6 +21,8 @@ export interface IrcClientConfigSeralized {
     password?: string;
     nick?: string;
     ipv6?: string;
+    saslKey?: string;
+    saslCert?: string;
 }
 
 /**
@@ -66,6 +68,22 @@ export class IrcClientConfig {
         return this.config.password;
     }
 
+    public setSASLKey(saslKey?: string) {
+        this.config.saslKey = saslKey;
+    }
+
+    public getSASLKey(): string|undefined {
+        return this.config.saslKey;
+    }
+
+    public setSASLCert(saslCert?: string) {
+        this.config.saslCert = saslCert;
+    }
+
+    public getSASLCert(): string|undefined {
+        return this.config.saslCert;
+    }
+
     public setDesiredNick(nick: string) {
         this.config.nick = nick;
     }
@@ -86,6 +104,8 @@ export class IrcClientConfig {
         if (removePassword) {
             const clone = JSON.parse(JSON.stringify(this.config));
             delete clone.password;
+            delete clone.saslKey;
+            delete clone.saslCert;
             return clone;
         }
         return this.config;
@@ -97,16 +117,20 @@ export class IrcClientConfig {
             nick: this.config.nick,
             ipv6: this.config.ipv6,
             password: this.config.password ? '<REDACTED>' : undefined,
+            saslKey: this.config.saslKey ? '<REDACTED>' : undefined,
         };
         return this.userId + "=>" + this.domain + "=" + JSON.stringify(redactedConfig);
     }
 
     public static newConfig(matrixUser: MatrixUser|null, domain: string,
-                            nick?: string, username?: string, password?: string) {
+                            nick?: string, username?: string, password?: string,
+                            saslKey?: string, saslCert?: string) {
         return new IrcClientConfig(matrixUser ? matrixUser.getId() : null, domain, {
-            nick: nick,
-            username: username,
-            password: password
+            nick,
+            username,
+            password,
+            saslKey,
+            saslCert
         });
     }
 }

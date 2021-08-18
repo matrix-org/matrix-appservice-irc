@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Client } from "matrix-org-irc";
+import { Client, IrcClientOpts } from "matrix-org-irc";
 import * as promiseutil from "../promiseutil";
 import Scheduler from "./Scheduler";
 import * as logging from "../logging";
@@ -67,6 +67,8 @@ export interface ConnectionOpts {
     username?: string;
     nick: string;
     secure?: {
+        cert?: string;
+        key?: string;
         ca?: string;
     };
     encodingFallback: string;
@@ -374,7 +376,7 @@ export class ConnectionInstance {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
         }
-        const connectionOpts = {
+        const connectionOpts: IrcClientOpts = {
             userName: opts.username,
             realName: opts.realname,
             password: opts.password,
@@ -390,10 +392,16 @@ export class ConnectionInstance {
             family: (server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null) as 6|null,
             bustRfc3484: true,
             sasl: opts.password ? server.useSasl() : false,
-            secure: server.useSsl() ? server.getSecureOptions() : undefined,
+            secure: server.useSsl() ? {
+                ...server.getSecureOptions(),
+                ...opts.secure
+            } : undefined,
             encodingFallback: opts.encodingFallback
         };
 
+        if (typeof connectionOpts.secure === 'object' && connectionOpts.secure.key && connectionOpts.secure.cert) {
+            connectionOpts.saslType = 'EXTERNAL';
+        }
         // Returns: A promise which resolves to a ConnectionInstance
         const retryConnection = () => {
             const nodeClient = new Client(

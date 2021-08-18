@@ -54,7 +54,7 @@ interface RoomRecord {
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 8;
+    public static readonly LATEST_SCHEMA = 9;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -502,7 +502,7 @@ export class PgDataStore implements DataStore {
 
     public async getIrcClientConfig(userId: string, domain: string): Promise<IrcClientConfig | null> {
         const res = await this.pgPool.query(
-            "SELECT config, password FROM client_config WHERE user_id = $1 and domain = $2",
+            "SELECT config, password, sasl_cert, sasl_key FROM client_config WHERE user_id = $1 and domain = $2",
             [
                 userId,
                 domain
@@ -515,6 +515,10 @@ export class PgDataStore implements DataStore {
         if (row.password && this.cryptoStore) {
             config.password = this.cryptoStore.decrypt(row.password);
         }
+        if (row.sasl_key && this.cryptoStore) {
+            config.saslKey = this.cryptoStore.decrypt(row.sasl_key);
+        }
+        config.saslCert = row.sasl_cert;
         return new IrcClientConfig(userId, domain, config);
     }
 
@@ -530,11 +534,16 @@ export class PgDataStore implements DataStore {
         if (password && this.cryptoStore) {
             password = this.cryptoStore.encrypt(password);
         }
+        let saslKey = config.getSASLKey();
+        if (saslKey && this.cryptoStore) {
+            saslKey = this.cryptoStore.encrypt(saslKey);
+        }
         const parameters = {
             user_id: userId,
             domain: config.getDomain(),
-            // either use the decrypted password, or whatever is stored already.
             password,
+            sasl_key: saslKey,
+            sasl_cert: config.getSASLCert(),
             config: JSON.stringify(config.serialize(true)),
         };
         const statement = PgDataStore.BuildUpsertStatement(
@@ -610,6 +619,45 @@ export class PgDataStore implements DataStore {
 
     public async removePass(userId: string, domain: string): Promise<void> {
         await this.pgPool.query("UPDATE client_config SET password = NULL WHERE user_id = $1 AND domain = $2",
+            [userId, domain]);
+    }
+
+    public async storeKey(userId: string, domain: string, key: string, encrypt = true): Promise<void> {
+        let sasl_key = key;
+        if (encrypt) {
+            if (!this.cryptoStore) {
+                throw Error("Password encryption is not configured.")
+            }
+            sasl_key = this.cryptoStore.encrypt(sasl_key);
+        }
+        const parameters = {
+            user_id: userId,
+            domain,
+            sasl_key,
+        };
+        const statement = PgDataStore.BuildUpsertStatement("client_config",
+            "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
+        await this.pgPool.query(statement, Object.values(parameters));
+    }
+
+    public async removeKey(userId: string, domain: string): Promise<void> {
+        await this.pgPool.query("UPDATE client_config SET sasl_key = NULL WHERE user_id = $1 AND domain = $2",
+            [userId, domain]);
+    }
+
+    public async storeCert(userId: string, domain: string, cert: string): Promise<void> {
+        const parameters = {
+            user_id: userId,
+            domain,
+            sasl_cert: cert,
+        };
+        const statement = PgDataStore.BuildUpsertStatement("client_config",
+            "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
+        await this.pgPool.query(statement, Object.values(parameters));
+    }
+
+    public async removeCert(userId: string, domain: string): Promise<void> {
+        await this.pgPool.query("UPDATE client_config SET sasl_cert = NULL WHERE user_id = $1 AND domain = $2",
             [userId, domain]);
     }
 
