@@ -1,1 +1,1 @@
-Make message edits more compact when possible
+Render matrix message edits as sed-like diff statements, falling back to asterisk formatted messages
