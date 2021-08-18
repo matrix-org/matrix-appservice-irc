@@ -7,6 +7,7 @@ import {
     MembershipQueue,
     StateLookup,
     StateLookupEvent,
+    Intent,
 } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
@@ -1079,7 +1080,15 @@ export class MatrixHandler {
                     // FIXME: this will return the new event rather than the original one
                     // to actually see the original content we'd need to use whatever
                     // https://github.com/matrix-org/matrix-doc/pull/2675 stabilizes on
-                    const eventContent = await this.ircBridge.getAppServiceBridge().getIntent().getEvent(
+                    let intent: Intent;
+                    if (ircRoom.getType() === "pm") {
+                        // no Matrix Bot, use the IRC user's intent
+                        const userId = ircRoom.server.getUserIdFromNick(ircRoom.channel);
+                        intent = this.ircBridge.getAppServiceBridge().getIntent(userId);
+                    } else {
+                        intent = this.ircBridge.getAppServiceBridge().getIntent();
+                    }
+                    const eventContent = await intent.getEvent(
                         event.room_id, originalEventId
                     );
                     originalBody = eventContent.content.body;
