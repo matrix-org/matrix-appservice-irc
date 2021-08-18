@@ -1,1 +1,1 @@
-Make sure notices are also pastebinned when too long for IRC
+Make sure Matrix notice messages are also pastebinned when they exceed the line limit for IRC.
