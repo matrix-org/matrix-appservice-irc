@@ -1052,7 +1052,7 @@ export class MatrixHandler {
     private async sendIrcAction(req: BridgeRequest, ircRoom: IrcRoom, ircClient: BridgedClient, ircAction: IrcAction,
                                 event: MatrixMessageEvent) {
         // Send the action as is if it is not a text message
-        if (event.content.msgtype !== "m.text" || !event.content.body) {
+        if (!["m.text", "m.notice"].find(msgtype => msgtype === event.content.msgtype) || !event.content.body) {
             await this.ircBridge.sendIrcAction(ircRoom, ircClient, ircAction);
             return;
         }
@@ -1139,7 +1139,7 @@ export class MatrixHandler {
                 }
 
                 event.content = {
-                    msgtype: "m.text",
+                    ...event.content,
                     body: `${messagePreview} ${explanation}`,
                 };
             }
@@ -1160,8 +1160,8 @@ export class MatrixHandler {
 
             const sendingEvent: MatrixMessageEvent = { ...event,
                 content: {
-                    msgtype : "m.text",
-                    body : potentialMessages.splice(0, lineLimit - 1).join('\n') + msg
+                    ...event.content,
+                    body: potentialMessages.splice(0, lineLimit - 1).join('\n') + msg
                 }
             };
 
