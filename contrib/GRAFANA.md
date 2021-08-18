@@ -11,11 +11,7 @@ in a human friendly manner. The prometheus scrape config section below shows how
   scheme: http
   static_configs:
   - targets:
-    - lethe.int.matrix.org:3500
+    - myircbridge:8090
     labels:
-      bridge: irc/freenode
-  - targets:
-    - lethe.int.matrix.org:3501
-    labels:
-      bridge: irc/oftc
+      bridge: irc/mynetwork
 ```

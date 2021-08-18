@@ -37,6 +37,7 @@ function MockClient(config) {
     this.getJoinedRooms = jasmine.createSpy("sdk.getJoinedRooms()");
     this.getJoinedRoomMembers = jasmine.createSpy("sdk.getJoinedRoomMembers()");
     this.fetchRoomEvent = jasmine.createSpy("sdk.fetchRoomEvent()");
+    this.uploadContent = jasmine.createSpy("sdk.uploadContent()");
 
     this.setPresence.and.returnValue(Promise.resolve({}));
     // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms

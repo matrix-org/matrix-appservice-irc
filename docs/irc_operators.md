@@ -31,11 +31,11 @@ The bridge sets various bits of information about users:
 The realname of a user will be their MxID. By default this will look like:
 
 ```
-* [Half-Shot] (half-shoth@gateway/shell/matrix.org/x-foo): @Half-Shot:half-shot.uk
-* [Half-Shot] moon.freenode.net :Atlanta, GA, US
-* [Half-Shot] is using a secure connection
-* [Half-Shot] is logged in as Half-Shot
-* [Half-Shot] End of WHOIS list.
+* [Half-Shot[m]] (half-shoth@2001:470:1af1:104:0:0:0:2223): @Half-Shot:half-shot.uk
+* [Half-Shot[m]] #matrix-test
+* [Half-Shot[m]] irc2.acc.umu.se :GIMPNet Server
+* [Half-Shot[m]] is using a Secure Connection
+* [Half-Shot[m]] End of WHOIS list.
 ```
 
 ### Portals and Plumbed
@@ -43,7 +43,7 @@ The realname of a user will be their MxID. By default this will look like:
 A Matrix room can be connected to a IRC network in one of two ways:
 
 - A portal room, which is a Matrix room created by the bridge on demand when a Matrix user attempts
-  to join an alias that does not yet exist. E.g. `#freenode_#myproject:matrix.org`. The bridge will
+  to join an alias that does not yet exist. E.g. `#myproject:libera.chat`. The bridge will
   hold power over this room and grant moderator status (half-power) to any IRC operators or Matrix users
   with IRC ops in the room.
 - A plumbed room (also known as provisioning). A Matrix user may create a room ahead of time for their

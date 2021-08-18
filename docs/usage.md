@@ -17,12 +17,12 @@ by using a `[m]` suffix instead.
 
 Joining a public channel over the bridge is as easy as joining an alias, for instance:
 
-`#freenode_#python:matrix.org` maps to the `#python` channel on Freenode.
+`#python:libera.chat` maps to the `#python` channel on [libera.chat](libera.chat).
 
 ### Private Messaging
 
-Sending a Private Message (PM) to an IRC user means starting a conversation with `@freenode_Alice:matrix.org`,
-which maps to the nickname `Alice` on Freenode.
+Sending a Private Message (PM) to an IRC user means starting a conversation with `@Alice:libera.chat`,
+which maps to the nickname `Alice` on Libera.chat.
 
 If a PM is sent from the IRC side, it will either appear in your existing PM room or you will be invited
 to a new room.
@@ -32,13 +32,13 @@ server administrator if the above defaults are not working for you. Server admin
 [config.sample.yaml](https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml) for
 instructions on how to change the templates for users and channels.
 
-The wiki contains a [list of public IRC networks](https://github.com/matrix-org/matrix-appservice-irc/wiki/Bridged-IRC-networks)
-including alias and user_id formats.
+Alias and MXID formats can be found from the [list of bridged networks](./bridged_networks.md)
+section.
 
 ### Customising your experience
 
 You may also want to customise your nickname or set a password to authenticate with services, you
-can do this by PMing the bridge bot user. E.g. the matrix.org freenode bridge user is `@appservice-irc:matrix.org`.
+can do this by PMing the bridge bot user.
 
 ```
 !nick Alice

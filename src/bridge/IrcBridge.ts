@@ -196,7 +196,7 @@ export class IrcBridge {
             maxActionDelayMs: 5 * 60 * 1000, // 5 mins,
             defaultTtlMs: 10 * 60 * 1000, // 10 mins
         });
-        this.matrixHandler = new MatrixHandler(this, this.config.ircService.matrixHandler || {}, this.membershipQueue);
+        this.matrixHandler = new MatrixHandler(this, this.config.ircService.matrixHandler, this.membershipQueue);
         this.privacyProtection = new PrivacyProtection(this);
         this.ircHandler = new IrcHandler(
             this, this.config.ircService.ircHandler, this.membershipQueue, this.privacyProtection
@@ -246,7 +246,7 @@ export class IrcBridge {
         this.ircHandler.onConfigChanged(newConfig.ircService.ircHandler || {});
         this.config.ircService.ircHandler = newConfig.ircService.ircHandler;
 
-        this.matrixHandler.onConfigChanged(newConfig.ircService.matrixHandler || {});
+        this.matrixHandler.onConfigChanged(newConfig.ircService.matrixHandler);
         this.config.ircService.matrixHandler = newConfig.ircService.matrixHandler;
 
         this.config.ircService.permissions = newConfig.ircService.permissions;
@@ -408,6 +408,12 @@ export class IrcBridge {
             labels: ["version"],
         }).inc({ version: getBridgeVersion()}, 1);
 
+        const maxRemoteGhosts = metrics.addGauge({
+            name: "remote_ghosts_max",
+            help: "The maximum number of remote ghosts",
+            labels: ["server"]
+        });
+
         metrics.addCollector(() => {
             this.ircServers.forEach((server) => {
                 reconnQueue.set({server: server.domain},
@@ -418,6 +424,7 @@ export class IrcBridge {
                     {server: server.domain},
                     mxMetrics["connection_failure_kicks"] || 0
                 );
+                maxRemoteGhosts.set({server: server.domain}, server.getMaxClients());
             });
 
             if (userActivityThresholdHours) {

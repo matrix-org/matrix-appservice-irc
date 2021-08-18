@@ -33,14 +33,14 @@ export class IdentGenerator {
     // The delimiter of the username.
     private static readonly MAX_USER_NAME_SUFFIX = 9999;
 
-    private queue: Queue<{ matrixUser: MatrixUser; ircClientConfig: IrcClientConfig}>;
+    private queue: Queue<{ matrixUser: MatrixUser; ircClientConfig: IrcClientConfig, unique: boolean}>;
     constructor (private readonly dataStore: DataStore) {
         // Queue of ident generation requests.
         // We need to queue them because otherwise 2 clashing user_ids could be assigned
         // the same ident value (won't be in the database yet)
         this.queue = new Queue((item) => {
-            const {matrixUser, ircClientConfig} = item;
-            return this.process(matrixUser, ircClientConfig);
+            const {matrixUser, ircClientConfig, unique} = item;
+            return this.process(matrixUser, ircClientConfig, unique);
         });
     }
 
@@ -98,7 +98,10 @@ export class IdentGenerator {
                 )
                 const uname = await this.queue.enqueue(matrixUser.getId(), {
                     matrixUser: matrixUser,
-                    ircClientConfig: ircClientConfig
+                    ircClientConfig: ircClientConfig,
+                    // IPv6 bridges do not need a unique username, as each user will
+                    // have their own IPv6 address.
+                    unique: !server.getIpv6Only(),
                 }) as string;
                 return {
                     username: uname,
@@ -129,10 +132,21 @@ export class IdentGenerator {
         return `IdentGenerator queue length=${this.queue.size}`
     }
 
-    private async process (matrixUser: MatrixUser, ircClientConfig: IrcClientConfig) {
+    private async process (matrixUser: MatrixUser, ircClientConfig: IrcClientConfig, unique: boolean) {
         const configDomain = ircClientConfig.getDomain();
         log.debug("Generating username for %s on %s", matrixUser.getId(), configDomain);
-        const uname = await this.generateIdentUsername(configDomain, matrixUser.getId());
+        let uname;
+        if (unique) {
+            uname = await this.generateIdentUsername(configDomain, matrixUser.getId());
+        }
+        else {
+            // If the bridge is an IPv6 bridge, we just want to generate a valid username
+            // rather than worrying too much about it being unique. The IPv6 address
+            // ensures that the hostmask will be unique.
+            uname = IdentGenerator.sanitiseUsername(
+                matrixUser.getId().substring(1)
+            ).substring(0, IdentGenerator.MAX_USER_NAME_LENGTH);
+        }
         const existingConfig = await this.dataStore.getIrcClientConfig(matrixUser.getId(), configDomain);
         const config = existingConfig ? existingConfig : ircClientConfig;
         config.setUsername(uname);
