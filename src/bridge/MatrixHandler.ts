@@ -1088,7 +1088,6 @@ export class MatrixHandler {
                     req.log.warn("Couldn't find an event being edited, using fallback text");
                 }
             }
-            req.log.debug(JSON.stringify(event.content));
             const newBody = event.content["m.new_content"]?.body;
             if (originalBody && newBody) {
                 const diff = niceDiff(originalBody, newBody);
