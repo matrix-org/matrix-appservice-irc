@@ -52,7 +52,7 @@ curl http://127.0.0.1:11100/inspectUsers?access_token=AS_TOKEN_FROM_REGISTRATION
           "#matrix"
         ],
         "dead": false,
-        "server": "chat.freenode.net",
+        "server": "libera.chat",
         "nick": "Half-Shot"
       }
     ]

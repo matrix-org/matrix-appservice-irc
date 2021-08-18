@@ -1,7 +1,7 @@
 Matrix IRC Bridge
 ----------------------
 
-[![Docker Automated build](https://img.shields.io/docker/cloud/build/matrixdotorg/matrix-appservice-irc.svg)](https://hub.docker.com/r/matrixdotorg/matrix-appservice-irc)
+![Docker Image Version (latest semver)](https://img.shields.io/docker/v/matrixdotorg/matrix-appservice-irc)
 [![Build Status](https://badge.buildkite.com/f33ff3f5e59aed3057cec0215a84e26747581e0fcb09b4b699.svg?branch=master)](https://buildkite.com/matrix-dot-org/matrix-appservice-irc)
 [![#irc:matrix.org](https://img.shields.io/matrix/irc:matrix.org.svg?server_fqdn=matrix.org&label=%23irc:matrix.org&logo=matrix)](https://matrix.to/#/#irc:matrix.org)
 
@@ -9,8 +9,9 @@ This is an IRC bridge for [Matrix](https://matrix.org). If you're upgrading from
 old release, be sure to read the [CHANGELOG](./CHANGELOG.md) as there may be breaking changes between releases.
 
 This bridge will pass all IRC messages through to Matrix, and all Matrix messages through to IRC. It is highly
-configurable and is currently used on the matrix.org homeserver to bridge a number of popular IRC networks
-including Freenode and OFTC.
+configurable and is currently used on the matrix.org homeserver to bridge a number of popular IRC networks.
+
+We maintain a list of bridged IRC networks [here](https://matrix-org.github.io/matrix-appservice-irc/latest/bridged_networks)
 
 
 ## What does it do?
@@ -22,7 +23,7 @@ two-way communication in channels and PMs are supported, along with a huge array
 
 ## Usage
 
-To learn how to use the bridge, see our [usage guide](https://matrix-org.github.io/matrix-appservice-irc/latest/usage.html)
+To learn how to use the bridge, see our [usage guide](https://matrix-org.github.io/matrix-appservice-irc/latest/usage)
 
 ## Setting up your own bridge
 
