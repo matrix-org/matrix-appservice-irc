@@ -1,1 +1,0 @@
-Do not generate a unique username for users on a IPv6 bridge, as it's unnessacery.

@@ -1,1 +1,0 @@
-Export the `ircClients.maxClients` config value as a metric (`bridge_remote_ghosts_max`)

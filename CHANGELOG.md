@@ -1,4 +1,42 @@
- 0.29.0 (2021-08-02)
+ 0.30.0 (2021-08-18)
+====================
+
+No significant changes.
+
+
+0.30.0-rc1 (2021-08-17)
+========================
+
+Features
+--------
+
+- Show message previews for uploaded long messages ([\#1430](https://github.com/matrix-org/matrix-appservice-irc/issues/1430))
+- Export the `ircClients.maxClients` config value as a metric (`bridge_remote_ghosts_max`) ([\#1448](https://github.com/matrix-org/matrix-appservice-irc/issues/1448))
+
+
+Bugfixes
+--------
+
+- Make sure that admin commands that don't need a server (like !help) don't require it ([\#1433](https://github.com/matrix-org/matrix-appservice-irc/issues/1433))
+- Remove `client_config_domain_username_idx` which would have required a unique username for IPv6 users. ([\#1455](https://github.com/matrix-org/matrix-appservice-irc/issues/1455))
+
+
+Improved Documentation
+----------------------
+
+- Expand documentation for irc_modes.md ([\#1429](https://github.com/matrix-org/matrix-appservice-irc/issues/1429))
+- docs/usage.md: point to bridged networks in-tree ([\#1450](https://github.com/matrix-org/matrix-appservice-irc/issues/1450))
+- Adding LibertaCasa to network bridges. Thanks @Mikaela. ([\#1454](https://github.com/matrix-org/matrix-appservice-irc/issues/1454))
+
+
+Internal Changes
+----------------
+
+- Do not generate a unique username for users on a IPv6 bridge, as it's unnessacery. ([\#1446](https://github.com/matrix-org/matrix-appservice-irc/issues/1446))
+- Docker images are now automatically build and published via GitHub Actions, replacing DockerHub Autobuilds. ([\#1456](https://github.com/matrix-org/matrix-appservice-irc/issues/1456))
+
+
+0.29.0 (2021-08-02)
 ====================
 
 Bugfixes
