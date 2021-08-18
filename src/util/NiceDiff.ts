@@ -41,8 +41,8 @@ const MAX_SUBSTITUTIONS = 3;
  * to be a better choice. Optimize for terseness, legibility
  * and an IRC-native feel.
  *
- * @param {string} from : The original message
- * @param {string} to : The new, edited version
+ * @param {string} from The original message
+ * @param {string} to The new, edited version
  */
 export function niceDiff(from: string, to: string): string|undefined {
     // don't bother if the message is short enough
