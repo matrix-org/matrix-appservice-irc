@@ -20,7 +20,7 @@ import { AdminRoomHandler } from "./AdminRoomHandler";
 import { trackChannelAndCreateRoom } from "./RoomCreation";
 import { renderTemplate } from "../util/Template";
 import { trimString } from "../util/TrimString";
-import { niceDiff } from "../util/NiceDiff";
+import { messageDiff } from "../util/MessageDiff";
 
 async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
     try {
@@ -1085,7 +1085,8 @@ export class MatrixHandler {
                         // no Matrix Bot, use the IRC user's intent
                         const userId = ircRoom.server.getUserIdFromNick(ircRoom.channel);
                         intent = this.ircBridge.getAppServiceBridge().getIntent(userId);
-                    } else {
+                    }
+                    else {
                         intent = this.ircBridge.getAppServiceBridge().getIntent();
                     }
                     const eventContent = await intent.getEvent(
@@ -1099,7 +1100,7 @@ export class MatrixHandler {
             }
             const newBody = event.content["m.new_content"]?.body;
             if (originalBody && newBody) {
-                const diff = niceDiff(originalBody, newBody);
+                const diff = messageDiff(originalBody, newBody);
                 if (diff) {
                     ircAction.text = diff;
                 }

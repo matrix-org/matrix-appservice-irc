@@ -44,7 +44,7 @@ const MAX_SUBSTITUTIONS = 3;
  * @param {string} from The original message
  * @param {string} to The new, edited version
  */
-export function niceDiff(from: string, to: string): string|undefined {
+export function messageDiff(from: string, to: string): string|undefined {
     // don't bother if the message is short enough
     if (to.length < MIN_MESSAGE_LENGTH && !to.match(/\n/)) {
         return undefined;

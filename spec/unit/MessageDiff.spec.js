@@ -1,5 +1,5 @@
 "use strict";
-const { niceDiff } = require("../../lib/util/NiceDiff.js");
+const { messageDiff } = require("../../lib/util/MessageDiff.js");
 
 describe("niceDiff", function() {
     [
@@ -30,7 +30,7 @@ describe("niceDiff", function() {
             's/a/bla/, s/b/bleh/',
         ],
     ].forEach(c => it(c[0], () => {
-        const result = niceDiff(c[1], c[2]);
+        const result = messageDiff(c[1], c[2]);
         console.log(`"${c[1]}" -> "${c[2]}" -> ${result}`);
         expect(result).toBe(c[3]);
     }));
