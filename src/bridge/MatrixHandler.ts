@@ -1132,7 +1132,7 @@ export class MatrixHandler {
                 const explanation = renderTemplate(this.config.truncatedMessageTemplate, { url: httpUrl });
                 let messagePreview = trimString(
                     potentialMessages[0],
-                    ircClient.getMaxLineLength() - 4 /* "... " */ - explanation.length
+                    ircClient.getMaxLineLength() - 4 /* "... " */ - explanation.length - ircRoom.channel.length
                 );
                 if (potentialMessages.length > 1 || messagePreview.length < potentialMessages[0].length) {
                     messagePreview += '...';
