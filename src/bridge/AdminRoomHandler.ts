@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import * as crypto from "crypto";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import { IrcBridge } from "./IrcBridge";
@@ -601,6 +602,26 @@ export class AdminRoomHandler {
                 );
             }
             else {
+                try {
+                    const pk = crypto.createPrivateKey(key);
+                    const config = await this.ircBridge.getStore().getIrcClientConfig(userId, server.domain);
+                    if (config) {
+                        const cert = config.getSASLCert();
+                        if (cert) {
+                            const c = new crypto.X509Certificate(cert);
+                            if (!c.checkPrivateKey(pk)) {
+                                return new MatrixAction(
+                                    "notice",
+                                    "Private key does not match stored certificate. " +
+                                    "To store a new pair, first call !removecert.\n"
+                                );
+                            }
+                        }
+                    }
+                }
+                catch (err) {
+                    throw new Error(`Invalid private key: ${err.message})`);
+                }
                 await this.ircBridge.getStore().storeKey(userId, domain, key);
                 notice = new MatrixAction(
                     "notice", `Successfully stored SASL key for ${domain}. Use !reconnect to reauthenticate.`
@@ -651,6 +672,22 @@ export class AdminRoomHandler {
                     config = IrcClientConfig.newConfig(
                         new MatrixUser(userId), server.domain
                     );
+                }
+                try {
+                    const c = new crypto.X509Certificate(cert);
+                    const pk = config.getSASLKey();
+                    if (pk) {
+                        if (!c.checkPrivateKey(crypto.createPrivateKey(pk))) {
+                            return new MatrixAction(
+                                "notice",
+                                "Certificate does not match stored private key. " +
+                                "To store a new pair, first call !removekey.\n"
+                            );
+                        }
+                    }
+                }
+                catch (err) {
+                    throw new Error(`Invalid certificate: ${err.message})`);
                 }
                 config.setSASLCert(cert);
                 await this.ircBridge.getStore().storeIrcClientConfig(config);
