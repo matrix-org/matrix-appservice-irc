@@ -406,7 +406,15 @@ export class IrcHandler {
                 virtualMatrixUser.getId()
             ).invite(
                 room.getId(), invitee
-            );
+            ).catch(err => {
+                req.log.warn(
+                    `Failed to invite %s as the inviter user (reason: ${err}),
+                    inviting as a bot as fallback`
+                );
+                // TODO Note the original inviter in the reason
+                // once MSC 2367 stabilizes and is implemented by the SDK
+                return this.ircBridge.getAppServiceBridge().getIntent().invite(room.getId(), invitee);
+            });
         });
         await Promise.all(invitePromises);
         return undefined;
