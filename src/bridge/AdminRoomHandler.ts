@@ -673,8 +673,9 @@ export class AdminRoomHandler {
                         new MatrixUser(userId), server.domain
                     );
                 }
+                let c: crypto.X509Certificate;
                 try {
-                    const c = new crypto.X509Certificate(cert);
+                    c = new crypto.X509Certificate(cert);
                     const pk = config.getSASLKey();
                     if (pk) {
                         if (!c.checkPrivateKey(crypto.createPrivateKey(pk))) {
@@ -689,10 +690,13 @@ export class AdminRoomHandler {
                 catch (err) {
                     throw new Error(`Invalid certificate: ${err.message})`);
                 }
+                const fingerprint512 = crypto.createHash('sha512').update(c.raw).digest('hex')
+                    .replace(/:/g, '').toLowerCase();
                 config.setSASLCert(cert);
                 await this.ircBridge.getStore().storeIrcClientConfig(config);
                 notice = new MatrixAction(
-                    "notice", `Successfully stored SASL cert for ${domain}. Use !reconnect to reauthenticate.`
+                    "notice", `Successfully stored SASL cert for ${domain} with fingerprint ${fingerprint512}.\n' +
+                        'Use !reconnect to reauthenticate.`
                 );
             }
         }
