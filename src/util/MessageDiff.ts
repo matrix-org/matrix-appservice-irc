@@ -17,17 +17,60 @@ limitations under the License.
 import * as Diff from 'diff';
 
 function formatChanges(diff: Diff.Change[]): string[] {
-    const changes = [];
+    // true if Change represents... no change
+    const noChanges = (change: Diff.Change) => !change.added && !change.removed;
 
+    const substitutions = [];
     let i = 0;
     while (i < diff.length - 1) {
-        if (diff[i].removed && diff[i+1].added) {
-            changes.push([diff[i].value, diff[i+1].value]);
+        if (diff[i].removed) {
+            let replacement: string;
+            if (diff[i+1].added) {
+                replacement = diff[i+1].value;
+            }
+            else if (noChanges(diff[i+1])) {
+                replacement = '';
+            }
+            else {
+                i++;
+                continue;
+            }
+            substitutions.push([diff[i].value.trim(), replacement]);
         }
         i++;
     }
 
-    return changes.map(c => `s/${c[0]}/${c[1]}/`);
+    const additions = [];
+    // noops before and after so that we can go through
+    // the entire thing without caring about bounds
+    const paddedDiff = [
+        { value: '' } as Diff.Change,
+        ...diff,
+        { value: '' } as Diff.Change,
+    ];
+    i = 1;
+    while (i < paddedDiff.length - 1) {
+        if (noChanges(paddedDiff[i - 1]) && paddedDiff[i].added && noChanges(paddedDiff[i + 1])) {
+            // ideally last two words of what was before... (regex always matches)
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const prefix = paddedDiff[i - 1].value.match(/(\S+\s+)?\S*\s*$/)![0];
+            // ...and first two words of what followed (regex always matches)
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const postfix = paddedDiff[i + 1].value.match(/^\S*(\s+\S+)?/)![0];
+
+            additions.push([prefix, paddedDiff[i].value, postfix]);
+        }
+        i++;
+    }
+
+    // if it mixes substitutions and additions, give up - it's not gonna be very readable
+    if (substitutions.length > 0 && additions.length === 0) {
+        return substitutions.map(c => `s/${c[0]}/${c[1]}/`);
+    }
+    if (substitutions.length === 0 && additions.length > 0) {
+        return additions.map(a => `* ${a.join('')}`);
+    }
+    return [];
 }
 
 // Minimum length of the message for us to try to generate a diff for

@@ -1,7 +1,7 @@
 "use strict";
 const { messageDiff } = require("../../lib/util/MessageDiff.js");
 
-describe("niceDiff", function() {
+describe('messageDiff', function() {
     [
         [
             'should not generate a diff if the message is short enough',
@@ -29,9 +29,28 @@ describe("niceDiff", function() {
             'a\nb\nc', 'bla\nbleh\nc',
             's/a/bla/, s/b/bleh/',
         ],
+        [
+            'should only show small portion of the message when a new word is added',
+            'this is a message where i a word', 'this is a message where i missed a word',
+            '* where i missed a word',
+        ],
+        [
+            'should only show small portion of the message when a new word is added at the beginning',
+            'get lunch now, be back a bit later', 'gonna get lunch now, be back a bit later',
+            '* gonna get lunch',
+        ],
+        [
+            'should only show small portion of the message when a new word is added at the beginning',
+            "I'm gonna get lunch now", "I'm gonna get lunch now, bbl",
+            '* lunch now, bbl',
+        ],
+        [
+            'should show word removals as s/foo//',
+            'I gotta go clean up my filthy room', 'I gotta go clean up my room',
+            's/filthy//'
+        ],
     ].forEach(c => it(c[0], () => {
         const result = messageDiff(c[1], c[2]);
-        console.log(`"${c[1]}" -> "${c[2]}" -> ${result}`);
         expect(result).toBe(c[3]);
     }));
 });
