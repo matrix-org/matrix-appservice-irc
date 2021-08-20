@@ -453,7 +453,7 @@ ircService:
   # Encoding fallback - which text encoding to try if text is not UTF-8. Default: not set.
   # List of supported encodings: https://www.npmjs.com/package/iconv#supported-encodings
   # encodingFallback: "ISO-8859-15"
-  encodingFallback: "ISO-8859-15"
+
   # Configuration for logging. Optional. Default: console debug level logging
   # only.
   # This key CANNOT be hot-reloaded
