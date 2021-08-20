@@ -408,7 +408,7 @@ export class IrcHandler {
                 room.getId(), invitee
             ).catch(err => {
                 req.log.warn(
-                    `Failed to invite %s as the inviter user (reason: ${err}),
+                    `Failed to invite ${invitee} as the inviter user (reason: ${err}),
                     inviting as a bot as fallback`
                 );
                 // TODO Note the original inviter in the reason
