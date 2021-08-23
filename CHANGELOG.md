@@ -4,7 +4,7 @@
 Features
 --------
 
-- Render matrix message edits as sed-like diff statements, falling back to asterisk formatted messages ([\#1465](https://github.com/matrix-org/matrix-appservice-irc/issues/1465))
+- Render Matrix message edits as sed-like diff statements, falling back to asterisk formatted messages ([\#1465](https://github.com/matrix-org/matrix-appservice-irc/issues/1465))
 
 
 Bugfixes
