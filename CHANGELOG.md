@@ -1,4 +1,33 @@
- 0.30.0 (2021-08-18)
+ 0.31.0-rc1 (2021-08-23)
+========================
+
+Features
+--------
+
+- Render Matrix message edits as sed-like diff statements, falling back to asterisk formatted messages ([\#1465](https://github.com/matrix-org/matrix-appservice-irc/issues/1465))
+
+
+Bugfixes
+--------
+
+- Make sure we don't exceed the line limit when trimming long messages ([\#1459](https://github.com/matrix-org/matrix-appservice-irc/issues/1459))
+- Make sure Matrix notice messages are also pastebinned when they exceed the line limit for IRC. ([\#1461](https://github.com/matrix-org/matrix-appservice-irc/issues/1461))
+- Fallback to sending an invite as a bot if the regular invite fails ([\#1467](https://github.com/matrix-org/matrix-appservice-irc/issues/1467))
+
+
+Improved Documentation
+----------------------
+
+- Replace HOWTO.md with a link to our hosted documentation, and generally improve documentation wording. ([\#1458](https://github.com/matrix-org/matrix-appservice-irc/issues/1458))
+
+
+Internal Changes
+----------------
+
+- Remove extra `encodingFallback` from sample config. ([\#1468](https://github.com/matrix-org/matrix-appservice-irc/issues/1468))
+
+
+0.30.0 (2021-08-18)
 ====================
 
 No significant changes.
