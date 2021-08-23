@@ -406,7 +406,18 @@ export class IrcHandler {
                 virtualMatrixUser.getId()
             ).invite(
                 room.getId(), invitee
-            );
+            ).catch(err => {
+                req.log.warn(
+                    `Failed to invite ${invitee} as the inviter user (reason: ${err}),
+                    inviting as a bot as fallback`
+                );
+                return this.ircBridge.getAppServiceBridge().getIntent().sendStateEvent(
+                    room.getId(), "m.room.member", invitee, {
+                        membership: "invite",
+                        reason: `Invited by ${virtualMatrixUser.getDisplayName()} (${virtualMatrixUser.getId()})`,
+                    }
+                );
+            });
         });
         await Promise.all(invitePromises);
         return undefined;
