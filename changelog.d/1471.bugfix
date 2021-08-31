@@ -1,0 +1,1 @@
+Fixed an issue where bridges using the NEdB datastore would still erroneously require IRC usernames to be unique.
