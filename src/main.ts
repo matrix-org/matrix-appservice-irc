@@ -3,13 +3,12 @@ import Datastore from "nedb";
 import extend from "extend";
 import http from "http";
 import https from "https";
-import { RoomBridgeStore, UserBridgeStore } from "matrix-appservice-bridge";
+import { RoomBridgeStore, UserBridgeStore, AppServiceRegistration } from "matrix-appservice-bridge";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { IrcServer, IrcServerConfig } from "./irc/IrcServer";
 import ident from "./irc/Ident";
 import * as logging from "./logging";
 import { BridgeConfig } from "./config/BridgeConfig";
-import { AppServiceRegistration } from "matrix-appservice";
 import * as Sentry from "@sentry/node";
 import { getBridgeVersion } from "./util/PackageInfo";
 

@@ -3,6 +3,7 @@ import { LoggerConfig } from "../logging";
 import { IrcHandlerConfig } from "../bridge/IrcHandler";
 import { RoomConfigConfig } from "../bridge/RoomConfig";
 import { MatrixHandlerConfig } from "../bridge/MatrixHandler";
+import { Rules } from "../../../matrix-appservice-bridge/lib";
 
 export interface BridgeConfig {
     database: {
@@ -25,7 +26,7 @@ export interface BridgeConfig {
         provisioning: {
             enabled: boolean;
             requestTimeoutSeconds: number;
-            ruleFile: string;
+            rules: Rules;
             enableReload: boolean;
             roomLimit?: number;
         };

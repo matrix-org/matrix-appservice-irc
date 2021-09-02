@@ -33,6 +33,7 @@ import {
     BridgeInfoStateSyncer,
     AppServiceRegistration,
     AppService,
+    Rules,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -114,14 +115,10 @@ export class IrcBridge {
                 connectionString: this.config.ircService.databaseUri,
             }
         }
-        let roomLinkValidation = undefined;
+        let roomLinkValidationRules: Rules|undefined = undefined;
         const provisioning = config.ircService.provisioning;
-        if (provisioning && provisioning.enabled &&
-            typeof (provisioning.ruleFile) === "string") {
-            roomLinkValidation = {
-                ruleFile: provisioning.ruleFile,
-                triggerEndpoint: provisioning.enableReload
-            };
+        if (provisioning?.enabled && provisioning.rules) {
+            roomLinkValidationRules = provisioning.rules;
         }
         let bridgeStoreConfig = {};
 
@@ -181,7 +178,9 @@ export class IrcBridge {
             },
             // See note below for ESCAPE_DEFAULT
             escapeUserIds: false,
-            roomLinkValidation,
+            roomLinkValidation: roomLinkValidationRules && {
+                rules: roomLinkValidationRules,
+            },
             roomUpgradeOpts: {
                 consumeEvent: true,
                 migrateGhosts: false,
@@ -251,6 +250,11 @@ export class IrcBridge {
         this.config.ircService.matrixHandler = newConfig.ircService.matrixHandler;
 
         this.config.ircService.permissions = newConfig.ircService.permissions;
+        this.bridge.updateRoomLinkValidatorRules(
+            // If no rules are specified, wipe them.
+            newConfig.ircService.provisioning?.rules || { userIds: { conflict: [], exempt: [] }}
+        );
+        this.config.ircService.provisioning.rules = newConfig.ircService.provisioning?.rules;
         this.roomConfigs.config = newConfig.ircService.perRoomConfig;
 
         const hasLoggingChanged = JSON.stringify(oldConfig.ircService.logging)
