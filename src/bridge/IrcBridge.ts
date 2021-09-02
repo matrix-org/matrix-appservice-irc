@@ -34,6 +34,7 @@ import {
     AppService,
     Rules,
     ActivityTracker,
+    UserActivityState,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -95,6 +96,7 @@ export class IrcBridge {
         networkId: string;
     }>;
     private privacyProtection: PrivacyProtection;
+    private isBlocked = false;
 
     constructor(
         public readonly config: BridgeConfig,
@@ -121,8 +123,9 @@ export class IrcBridge {
         if (this.config.database.engine === "nedb") {
             const dirPath = this.config.database.connectionString.substring("nedb://".length);
             bridgeStoreConfig = {
-                roomStore: `${dirPath}/rooms.db`,
-                userStore: `${dirPath}/users.db`,
+                roomStore:         `${dirPath}/rooms.db`,
+                userStore:         `${dirPath}/users.db`,
+                userActivityStore: `${dirPath}/user-activity.db`,
             };
         }
         else {
@@ -153,6 +156,8 @@ export class IrcBridge {
                     getLocation: this.getThirdPartyLocation.bind(this),
                     getUser: this.getThirdPartyUser.bind(this),
                 },
+                getUserActivity: () => this.getStore().getUserActivity(),
+                onUserActivityChanged: this.onUserActivityChanged.bind(this),
             },
             ...bridgeStoreConfig,
             disableContext: true,
@@ -575,6 +580,7 @@ export class IrcBridge {
             }
             this.dataStore = new NeDBDataStore(
                 userStore,
+                this.bridge.getUserActivityStore()!,
                 roomStore,
                 this.config.homeserver.domain,
                 pkeyPath,
@@ -744,6 +750,9 @@ export class IrcBridge {
         });
 
         log.info("Startup complete.");
+
+        this.checkLimits(this.bridge.getUserActivityTracker()!.countActiveUsers().allUsers);
+
         this.startedUp = true;
     }
 
@@ -849,6 +858,10 @@ export class IrcBridge {
     }
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
+        if (this.isBlocked) {
+            log.info("Bridge is blocked, dropping Matrix action");
+            return;
+        }
         const intent = this.bridge.getIntent(from.userId);
         const extraContent: Record<string, unknown> = {};
         if (action.replyEvent) {
@@ -955,6 +968,10 @@ export class IrcBridge {
     }
 
     public onEvent(request: BridgeRequestEvent) {
+        if (this.isBlocked) {
+            log.info("Bridge is blocked, dropping Matrix event");
+            return;
+        }
         request.outcomeFrom(this._onEvent(request));
     }
 
@@ -1297,6 +1314,10 @@ export class IrcBridge {
     }
 
     public async sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction) {
+        if (this.isBlocked) {
+            log.info("Bridge is blocked, dropping IRC action");
+            return;
+        }
         log.info(
             "Sending IRC message in %s as %s (connected=%s)",
             ircRoom.channel, bridgedClient.nick, Boolean(bridgedClient.status === BridgedClientStatus.CONNECTED)
@@ -1476,5 +1497,30 @@ export class IrcBridge {
         }
         const current = await this.dataStore.getRoomCount();
         return current >= limit;
+    }
+
+    private checkLimits(rmau: number) {
+        log.debug(`Bridge now serving ${rmau} RMAU`);
+
+        const limit = this.config.ircService.RMAUlimit;
+        if (!limit) return;
+        if (rmau > limit) {
+            if (!this.isBlocked) {
+                this.isBlocked = true;
+                log.info(`Bridge has reached the user limit of ${limit} and is now blocked`);
+            }
+        } else {
+            if (this.isBlocked) {
+                this.isBlocked = false;
+                log.info(`Bridge has has gone below the user limit of ${limit} and is now unblocked`);
+            }
+        }
+    }
+
+    private onUserActivityChanged(userActivity: UserActivityState) {
+        for (const userId of userActivity.changed) {
+            this.getStore().storeUserActivity(userId, userActivity.dataSet.users[userId]);
+        }
+        this.checkLimits(userActivity.activeUsers);
     }
 }
