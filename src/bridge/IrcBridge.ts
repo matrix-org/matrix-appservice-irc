@@ -34,7 +34,10 @@ import {
     AppService,
     Rules,
     ActivityTracker,
+    BridgeBlocker,
     UserActivityState,
+    UserActivityTracker,
+    UserActivityTrackerConfig,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -96,7 +99,7 @@ export class IrcBridge {
         networkId: string;
     }>;
     private privacyProtection: PrivacyProtection;
-    private isBlocked = false;
+    private bridgeBlocker?: BridgeBlocker;
 
     constructor(
         public readonly config: BridgeConfig,
@@ -156,8 +159,6 @@ export class IrcBridge {
                     getLocation: this.getThirdPartyLocation.bind(this),
                     getUser: this.getThirdPartyUser.bind(this),
                 },
-                getUserActivity: () => this.getStore().getUserActivity(),
-                onUserActivityChanged: this.onUserActivityChanged.bind(this),
             },
             ...bridgeStoreConfig,
             disableContext: true,
@@ -220,6 +221,10 @@ export class IrcBridge {
             httpMaxSizeBytes: this.config.advanced?.maxTxnSize ?? TXN_SIZE_DEFAULT,
         });
         this.roomConfigs = new RoomConfig(this.bridge, this.config.ircService.perRoomConfig);
+
+        if (this.config.ircService.RMAUlimit) {
+            this.bridgeBlocker = new BridgeBlocker(this.config.ircService.RMAUlimit);
+        }
     }
 
     public async onConfigChanged(newConfig: BridgeConfig) {
@@ -642,6 +647,13 @@ export class IrcBridge {
             throw Error("No IRC servers specified.");
         }
 
+        this.bridge.opts.controller.userActivityTracker = new UserActivityTracker(
+            UserActivityTrackerConfig.DEFAULT,
+            await this.getStore().getUserActivity(),
+            (changes) => this.onUserActivityChanged(changes),
+        );
+        this.bridgeBlocker?.checkLimits(this.bridge.opts.controller.userActivityTracker.countActiveUsers().allUsers);
+
         // run the bridge (needs to be done prior to configure IRC side)
         await this.bridge.listen(port, this.config.homeserver.bindHostname, undefined, this.appservice);
         log.info(`Listening on ${this.config.homeserver.bindHostname || "0.0.0.0"}:${port}`)
@@ -751,8 +763,6 @@ export class IrcBridge {
 
         log.info("Startup complete.");
 
-        this.checkLimits(this.bridge.getUserActivityTracker()!.countActiveUsers().allUsers);
-
         this.startedUp = true;
     }
 
@@ -858,7 +868,7 @@ export class IrcBridge {
     }
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
-        if (this.isBlocked) {
+        if (this.bridgeBlocker?.isBlocked) {
             log.info("Bridge is blocked, dropping Matrix action");
             return;
         }
@@ -968,7 +978,7 @@ export class IrcBridge {
     }
 
     public onEvent(request: BridgeRequestEvent) {
-        if (this.isBlocked) {
+        if (this.bridgeBlocker?.isBlocked) {
             log.info("Bridge is blocked, dropping Matrix event");
             return;
         }
@@ -1314,7 +1324,7 @@ export class IrcBridge {
     }
 
     public async sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction) {
-        if (this.isBlocked) {
+        if (this.bridgeBlocker?.isBlocked) {
             log.info("Bridge is blocked, dropping IRC action");
             return;
         }
@@ -1499,28 +1509,10 @@ export class IrcBridge {
         return current >= limit;
     }
 
-    private checkLimits(rmau: number) {
-        log.debug(`Bridge now serving ${rmau} RMAU`);
-
-        const limit = this.config.ircService.RMAUlimit;
-        if (!limit) return;
-        if (rmau > limit) {
-            if (!this.isBlocked) {
-                this.isBlocked = true;
-                log.info(`Bridge has reached the user limit of ${limit} and is now blocked`);
-            }
-        } else {
-            if (this.isBlocked) {
-                this.isBlocked = false;
-                log.info(`Bridge has has gone below the user limit of ${limit} and is now unblocked`);
-            }
-        }
-    }
-
     private onUserActivityChanged(userActivity: UserActivityState) {
         for (const userId of userActivity.changed) {
             this.getStore().storeUserActivity(userId, userActivity.dataSet.users[userId]);
         }
-        this.checkLimits(userActivity.activeUsers);
+        this.bridgeBlocker?.checkLimits(userActivity.activeUsers);
     }
 }
