@@ -1332,7 +1332,7 @@ export class IrcBridge {
             "Sending IRC message in %s as %s (connected=%s)",
             ircRoom.channel, bridgedClient.nick, Boolean(bridgedClient.status === BridgedClientStatus.CONNECTED)
         );
-        return bridgedClient.sendAction(ircRoom, action);
+        await bridgedClient.sendAction(ircRoom, action);
     }
 
     public async getBotClient(server: IrcServer) {
