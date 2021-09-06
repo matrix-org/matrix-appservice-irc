@@ -567,6 +567,9 @@ ircService:
     # how much time needs to pass between the reply and the original message to switch to the long format
     shortReplyTresholdSeconds: 300
 
+  # Maximum number of montly active users, beyond which the bridge gets blocked (both ways)
+  # RMAUlimit: 100
+
   ircHandler:
     # Should we attempt to match an IRC side mention (nickaname match)
     # with the nickname's owner's matrixId, if we are bridging them?
