@@ -14,7 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MatrixRoom, MatrixUser, RoomBridgeStoreEntry as Entry, UserActivity, UserActivitySet } from "matrix-appservice-bridge";
+import {
+    MatrixRoom, MatrixUser,
+    RoomBridgeStoreEntry as Entry,
+    UserActivity, UserActivitySet
+} from "matrix-appservice-bridge";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";

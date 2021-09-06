@@ -579,13 +579,14 @@ export class IrcBridge {
             await this.bridge.loadDatabases();
             const userStore = this.bridge.getUserStore();
             const roomStore = this.bridge.getRoomStore();
+            const userActivityStore = this.bridge.getUserActivityStore();
             log.info("Using NeDBDataStore for Datastore");
-            if (!userStore || !roomStore) {
-                throw Error('Could not load userStore or roomStore');
+            if (!userStore || !roomStore || !userActivityStore) {
+                throw Error('Could not load user(Activity)Store or roomStore');
             }
             this.dataStore = new NeDBDataStore(
                 userStore,
-                this.bridge.getUserActivityStore()!,
+                userActivityStore,
                 roomStore,
                 this.config.homeserver.domain,
                 pkeyPath,

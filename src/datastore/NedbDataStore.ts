@@ -18,8 +18,12 @@ import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
 import { getLogger } from "../logging";
 
-import { MatrixRoom, MatrixUser, RemoteUser, RemoteRoom,
-    UserBridgeStore, UserActivityStore, RoomBridgeStore, RoomBridgeStoreEntry as Entry, UserActivity, UserActivitySet } from "matrix-appservice-bridge";
+import {
+    MatrixRoom, MatrixUser, RemoteUser, RemoteRoom,
+    UserBridgeStore, UserActivityStore,
+    RoomBridgeStore, RoomBridgeStoreEntry as Entry,
+    UserActivity, UserActivitySet
+} from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "./DataStore";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
 import { StringCrypto } from "./StringCrypto";
