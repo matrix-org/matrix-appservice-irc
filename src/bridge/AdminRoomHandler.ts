@@ -30,13 +30,18 @@ import { IdentGenerator } from "../irc/IdentGenerator";
 
 const log = logging("AdminRoomHandler");
 
+enum CommandPermission {
+    User,
+    Admin,
+}
+
 // This is just a length to avoid silly long usernames
 const SANE_USERNAME_LENGTH = 64;
 
 interface Command {
     example: string;
     summary: string;
-    requiresPermission?: string;
+    requiresPermission?: CommandPermission;
 }
 
 interface Heading {
@@ -104,7 +109,7 @@ const COMMANDS: {[command: string]: Command|Heading} = {
     '!plumb': {
         example: `!plumb !room:example.com irc.example.net #foobar`,
         summary: "Plumb an IRC channel into a Matrix room.",
-        requiresPermission: 'admin'
+        requiresPermission: CommandPermission.Admin,
     },
     '!unlink': {
         example: "!unlink !room:example.com irc.example.net #foobar",
@@ -151,6 +156,11 @@ export class AdminRoomHandler {
     }
 
     private async handleCommand(cmd: string, args: string[], req: BridgeRequest, event: MatrixSimpleMessage) {
+        const userPermission = this.getUserPermission(event.sender);
+        const requiredPermission = (COMMANDS[cmd] as Command|undefined)?.requiresPermission;
+        if (requiredPermission && requiredPermission > userPermission) {
+            return new MatrixAction("notice", "You do not have permission to use this command");
+        }
         switch (cmd) {
             case "!join":
                 return await this.handleJoin(req, args, event.sender);
@@ -191,10 +201,6 @@ export class AdminRoomHandler {
     }
 
     private async handlePlumb(args: string[], sender: string) {
-        const userPermission = this.getUserPermission(sender);
-        if (userPermission !== 'admin') {
-            return new MatrixAction("notice", "You must be an admin to use this command");
-        }
         const [matrixRoomId, serverDomain, ircChannel] = args;
         const server = serverDomain && this.ircBridge.getServer(serverDomain);
         if (!server) {
@@ -249,7 +255,7 @@ export class AdminRoomHandler {
                         user_id: sender,
                     },
                 ),
-                userPermission === "admin"
+                userPermission === CommandPermission.Admin
             );
         }
         catch (ex) {
@@ -714,7 +720,8 @@ export class AdminRoomHandler {
         return new MatrixAction("notice", `BridgeVersion: ${getBridgeVersion()}`);
     }
 
-    private showHelp(userPermission: string|undefined): MatrixAction {
+    private showHelp(sender: string): MatrixAction {
+        const userPermission = this.getUserPermission(sender);
         let body = "This is an IRC admin room for controlling your IRC connection and sending " +
         "commands directly to IRC.<br/>" +
         "See the <a href=\"https://matrix-org.github.io/matrix-appservice-irc/latest/usage.html\">" +
@@ -753,12 +760,18 @@ export class AdminRoomHandler {
         return this.ircBridge.getBridgedClientsForUserId(userId);
     }
 
-    private getUserPermission(userId: string): string|undefined {
+    private getUserPermission(userId: string): CommandPermission {
         const userDomain = userId.split(':')[1];
 
-        return this.ircBridge.config.ircService.permissions &&
+        const permissionString = this.ircBridge.config.ircService.permissions &&
                (this.ircBridge.config.ircService.permissions[userId] || // This takes priority
                this.ircBridge.config.ircService.permissions[userDomain] || // Then the domain
                this.ircBridge.config.ircService.permissions['*']); // Finally wildcard.
+        switch (permissionString) {
+            case "admin":
+                return CommandPermission.Admin;
+            default:
+                return CommandPermission.User;
+        }
     }
 }
