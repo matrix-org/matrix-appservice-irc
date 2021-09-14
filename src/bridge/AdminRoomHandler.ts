@@ -714,7 +714,8 @@ export class AdminRoomHandler {
         return new MatrixAction("notice", `BridgeVersion: ${getBridgeVersion()}`);
     }
 
-    private showHelp(userPermission: string|undefined): MatrixAction {
+    private showHelp(sender: string): MatrixAction {
+        const userPermission = this.getUserPermission(sender);
         let body = "This is an IRC admin room for controlling your IRC connection and sending " +
         "commands directly to IRC.<br/>" +
         "See the <a href=\"https://matrix-org.github.io/matrix-appservice-irc/latest/usage.html\">" +
