@@ -1006,17 +1006,17 @@ export class MatrixHandler {
             let bridgedClient = this.ircBridge.getIrcUserFromCache(ircRoom.server, event.sender);
             if (!bridgedClient) {
                 messageSendPromiseSet.push((async () => {
-                    let displayName = undefined;
-                    try {
-                        const res = await this.ircBridge.getAppServiceBridge().getIntent().getStateEvent(
-                            event.room_id, "m.room.member", event.sender
-                        );
-                        displayName = res.displayname;
-                    }
-                    catch (err) {
-                        req.log.warn("Failed to get display name: %s", err);
-                        // this is non-fatal, continue.
-                    }
+                    const intent = this.ircBridge.getAppServiceBridge().getIntent();
+                    const displayName = await intent.getStateEvent(
+                        event.room_id, "m.room.member", event.sender
+                    ).catch(err => {
+                        req.log.warn(`Failed to get display name for the room: ${err}`);
+                        return intent.getProfileInfo(event.sender, "displayname");
+                    }).then(
+                        res => res.displayname
+                    ).catch(err => {
+                        req.log.error(`Failed to get display name: ${err}`);
+                    });
                     bridgedClient = await this.ircBridge.getBridgedClient(
                         ircRoom.server, event.sender, displayName
                     );
