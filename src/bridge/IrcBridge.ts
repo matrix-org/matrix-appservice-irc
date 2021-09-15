@@ -425,6 +425,11 @@ export class IrcBridge {
             labels: ["server"]
         });
 
+        const bridgeBlocked = metrics.addGauge({
+            name: "bridge_blocked",
+            help: "Is the bridge currently blocking messages",
+        });
+
         metrics.addCollector(() => {
             this.ircServers.forEach((server) => {
                 reconnQueue.set({server: server.domain},
@@ -483,6 +488,8 @@ export class IrcBridge {
             Object.entries(ircMetrics).forEach((kv) => {
                 ircHandlerCalls.inc({method: kv[0]}, kv[1]);
             });
+
+            bridgeBlocked.set(this.bridgeBlocker?.isBlocked ? 1 : 0);
         });
 
         metrics.addCollector(async () => {
