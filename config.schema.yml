@@ -129,6 +129,8 @@ properties:
                         type: "number"
             passwordEncryptionKeyPath:
                 type: "string"
+            RMAUlimit:
+                type: "integer"
             matrixHandler:
                 type: "object"
                 properties:
