@@ -1,1 +1,0 @@
-Fixed a bug where `!help` in an admin room would not show admin commands.

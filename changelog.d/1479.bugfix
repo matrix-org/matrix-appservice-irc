@@ -1,1 +1,0 @@
-Fix an edgecase where an nickname was not always set right for matrix users in PMs

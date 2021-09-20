@@ -1,4 +1,15 @@
- 0.31.0-rc1 (2021-08-23)
+0.31.0 (2021-09-20)
+========================
+
+Bugfixes
+--------
+
+- Fixed an issue where bridges using the NEdB datastore would still erroneously require IRC usernames to be unique. ([\#1471](https://github.com/matrix-org/matrix-appservice-irc/issues/1471))
+- Fixed a bug where `!help` in an admin room would not show admin commands. ([\#1478](https://github.com/matrix-org/matrix-appservice-irc/issues/1478))
+- Fix an edgecase where an nickname was not always set right for matrix users in PMs ([\#1479](https://github.com/matrix-org/matrix-appservice-irc/issues/1479))
+
+
+0.31.0-rc1 (2021-08-23)
 ========================
 
 Features
