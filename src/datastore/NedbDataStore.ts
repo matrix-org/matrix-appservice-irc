@@ -105,7 +105,7 @@ export class NeDBDataStore implements DataStore {
         const domainKey = server.domain.replace(/\./g, "_");
         this.userStore.db.ensureIndex({
             fieldName: "data.client_config." + domainKey + ".username",
-            unique: true,
+            unique: false,
             sparse: true
         }, (err: Error|null) => {
             if (err) {

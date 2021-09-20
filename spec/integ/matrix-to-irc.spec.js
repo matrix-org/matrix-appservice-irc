@@ -392,7 +392,7 @@ describe("Matrix-to-IRC message bridging", function() {
                 expect(client.nick).toEqual(testUser.nick);
                 expect(client.addr).toEqual(roomMapping.server);
                 expect(channel).toEqual(roomMapping.channel);
-                expect(text).toEqual(`<${repliesUser.nick}> "This" <- Reply Text`);
+                expect(text).toEqual(`<${repliesUser.nick}> "This..." <- Reply Text`);
             }
         );
         const formatted_body = constructHTMLReply(

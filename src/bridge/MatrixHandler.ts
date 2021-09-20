@@ -7,6 +7,7 @@ import {
     MembershipQueue,
     StateLookup,
     StateLookupEvent,
+    Intent,
 } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
@@ -19,6 +20,7 @@ import { AdminRoomHandler } from "./AdminRoomHandler";
 import { trackChannelAndCreateRoom } from "./RoomCreation";
 import { renderTemplate } from "../util/Template";
 import { trimString } from "../util/TrimString";
+import { messageDiff } from "../util/MessageDiff";
 
 async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
     try {
@@ -1004,17 +1006,17 @@ export class MatrixHandler {
             let bridgedClient = this.ircBridge.getIrcUserFromCache(ircRoom.server, event.sender);
             if (!bridgedClient) {
                 messageSendPromiseSet.push((async () => {
-                    let displayName = undefined;
-                    try {
-                        const res = await this.ircBridge.getAppServiceBridge().getIntent().getStateEvent(
-                            event.room_id, "m.room.member", event.sender
-                        );
-                        displayName = res.displayname;
-                    }
-                    catch (err) {
-                        req.log.warn("Failed to get display name: %s", err);
-                        // this is non-fatal, continue.
-                    }
+                    const intent = this.ircBridge.getAppServiceBridge().getIntent();
+                    const displayName = await intent.getStateEvent(
+                        event.room_id, "m.room.member", event.sender
+                    ).catch(err => {
+                        req.log.warn(`Failed to get display name for the room: ${err}`);
+                        return intent.getProfileInfo(event.sender, "displayname");
+                    }).then(
+                        res => res.displayname
+                    ).catch(err => {
+                        req.log.error(`Failed to get display name: ${err}`);
+                    });
                     bridgedClient = await this.ircBridge.getBridgedClient(
                         ircRoom.server, event.sender, displayName
                     );
@@ -1058,6 +1060,8 @@ export class MatrixHandler {
         }
 
         let cacheBody = ircAction.text;
+
+        // special handling for replies
         if (event.content["m.relates_to"] && event.content["m.relates_to"]["m.in_reply_to"]) {
             const eventId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
             const reply = await this.textForReplyEvent(event, eventId, ircRoom);
@@ -1066,6 +1070,43 @@ export class MatrixHandler {
                 cacheBody = reply.reply;
             }
         }
+
+        // special handling for edits
+        if (event.content["m.relates_to"]?.rel_type === "m.replace") {
+            const originalEventId = event.content["m.relates_to"].event_id;
+            let originalBody = this.getCachedEvent(originalEventId)?.body;
+            if (!originalBody) {
+                try {
+                    // FIXME: this will return the new event rather than the original one
+                    // to actually see the original content we'd need to use whatever
+                    // https://github.com/matrix-org/matrix-doc/pull/2675 stabilizes on
+                    let intent: Intent;
+                    if (ircRoom.getType() === "pm") {
+                        // no Matrix Bot, use the IRC user's intent
+                        const userId = ircRoom.server.getUserIdFromNick(ircRoom.channel);
+                        intent = this.ircBridge.getAppServiceBridge().getIntent(userId);
+                    }
+                    else {
+                        intent = this.ircBridge.getAppServiceBridge().getIntent();
+                    }
+                    const eventContent = await intent.getEvent(
+                        event.room_id, originalEventId
+                    );
+                    originalBody = eventContent.content.body;
+                }
+                catch (_err) {
+                    req.log.warn("Couldn't find an event being edited, using fallback text");
+                }
+            }
+            const newBody = event.content["m.new_content"]?.body;
+            if (originalBody && newBody) {
+                const diff = messageDiff(originalBody, newBody);
+                if (diff) {
+                    ircAction.text = diff;
+                }
+            }
+        }
+
         let body = cacheBody.trim().substring(0, this.config.replySourceMaxLength);
         const nextNewLine = body.indexOf("\n");
         if (nextNewLine !== -1) {
@@ -1073,7 +1114,7 @@ export class MatrixHandler {
         }
         // Cache events in here so we can refer to them for replies.
         this.cacheEvent(event.event_id, {
-            body,
+            body: cacheBody,
             sender: event.sender,
             timestamp: event.origin_server_ts,
         });
@@ -1132,7 +1173,7 @@ export class MatrixHandler {
                 const explanation = renderTemplate(this.config.truncatedMessageTemplate, { url: httpUrl });
                 let messagePreview = trimString(
                     potentialMessages[0],
-                    ircClient.getMaxLineLength() - 4 /* "... " */ - explanation.length
+                    ircClient.getMaxLineLength() - 4 /* "... " */ - explanation.length - ircRoom.channel.length
                 );
                 if (potentialMessages.length > 1 || messagePreview.length < potentialMessages[0].length) {
                     messagePreview += '...';
