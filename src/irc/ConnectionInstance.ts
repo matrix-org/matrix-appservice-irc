@@ -14,13 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Client } from "matrix-org-irc";
+import { Client, IrcClientOpts } from "matrix-org-irc";
 import * as promiseutil from "../promiseutil";
 import Scheduler from "./Scheduler";
 import * as logging from "../logging";
 import Bluebird from "bluebird";
 import { Defer } from "../promiseutil";
 import { IrcServer } from "./IrcServer";
+import { Socket } from "net";
+import { SocksClientOptions, SocksClient } from "socks";
 
 const log = logging.get("client-connection");
 
@@ -67,6 +69,7 @@ export interface ConnectionOpts {
     secure?: {
         ca?: string;
     };
+    socksProxy?: string;
     encodingFallback: string;
 }
 
@@ -348,6 +351,45 @@ export class ConnectionInstance {
             this.resetPingSendTimer();
         }, this.pingOpts.pingRateMs);
     }
+    private static async connectSocksProxy(proxyAddress: string, server: IrcServer): Promise<Socket> {
+        const proxyParts = new URL(proxyAddress);
+        let socksType: 4|5;
+        switch (proxyParts.protocol) {
+            case 'socks4:':
+            case 'socks4a:':
+                socksType = 4;
+                break;
+            case 'socks5:':
+                socksType = 5;
+                break;
+            default:
+                throw new Error(`Unsupported proxy protocol ${proxyParts.protocol}`);
+        }
+        const options: SocksClientOptions = {
+            proxy: {
+                host: proxyParts.hostname,
+                port: parseInt(proxyParts.port, 10),
+                type: socksType,
+                userId: proxyParts.username,
+                password: proxyParts.password,
+            },
+            command: 'connect',
+            destination: {
+                host: server.randomDomain(),
+                port: server.getPort() || 6667,
+            },
+            timeout: CONNECT_TIMEOUT_MS,
+        };
+        try {
+            const info = await SocksClient.createConnection(options);
+            log.info('Connected to socks proxy', info.socket);
+            return info.socket;
+        }
+        catch (err) {
+            log.error('Failed to connect to proxy', err);
+            throw err;
+        }
+    }
 
     /**
      * Create an IRC client connection and connect to it.
@@ -366,7 +408,7 @@ export class ConnectionInstance {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
         }
-        const connectionOpts = {
+        const connectionOpts: IrcClientOpts = {
             userName: opts.username,
             realName: opts.realname,
             password: opts.password,
@@ -382,12 +424,19 @@ export class ConnectionInstance {
             family: (server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null) as 6|null,
             bustRfc3484: true,
             sasl: opts.password ? server.useSasl() : false,
-            secure: server.useSsl() ? server.getSecureOptions() : undefined,
-            encodingFallback: opts.encodingFallback
+            secure: server.useSsl() ? {
+                ...server.getSecureOptions(),
+                ...opts.secure
+            } : undefined,
+            encodingFallback: opts.encodingFallback,
         };
 
         // Returns: A promise which resolves to a ConnectionInstance
-        const retryConnection = () => {
+        const retryConnection = async () => {
+            if (opts.socksProxy) {
+                const socket = await this.connectSocksProxy(opts.socksProxy, server);
+                connectionOpts.socket = socket;
+            }
             const nodeClient = new Client(
                 server.randomDomain(), opts.nick, connectionOpts
             );
@@ -400,7 +449,7 @@ export class ConnectionInstance {
             if (onCreatedCallback) {
                 onCreatedCallback(inst);
             }
-            return inst.connect();
+            return await inst.connect();
         };
 
         let connAttempts = 0;

@@ -40,6 +40,7 @@ export interface IrcServerConfig {
     allowExpiredCerts?: boolean;
     additionalAddresses?: string[];
     onlyAdditionalAddresses: boolean;
+    proxy?: string;
     dynamicChannels: {
         enabled: boolean;
         published: boolean;

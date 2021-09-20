@@ -11,6 +11,9 @@ RUN cd freebindfree && make
 # Typescript build
 FROM node:14-slim as builder
 
+RUN apt-get update \
+ && apt-get install -y git
+
 WORKDIR /build
 
 COPY src/ /build/src/ 
