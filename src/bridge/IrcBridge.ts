@@ -553,6 +553,7 @@ export class IrcBridge {
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
         await this.bridge.initalise();
+        this.matrixHandler.initalise();
 
         if (dbConfig.engine === "postgres") {
             log.info("Using PgDataStore for Datastore");
