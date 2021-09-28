@@ -11,7 +11,9 @@
     "composite": false,
     "strict": true,
     "esModuleInterop": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    // Until the fix to https://github.com/turt2live/matrix-bot-sdk/issues/155 is released.
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*"
