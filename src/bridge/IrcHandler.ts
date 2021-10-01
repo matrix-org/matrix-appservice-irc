@@ -1,4 +1,4 @@
-import { IrcBridge } from "./IrcBridge";
+import { IrcBridge, MEMBERSHIP_DEFAULT_TTL } from "./IrcBridge";
 import { Queue } from "../util/Queue";
 import { RoomAccessSyncer } from "./RoomAccessSyncer";
 import { IrcServer, MembershipSyncKind } from "../irc/IrcServer";
@@ -684,8 +684,17 @@ export class IrcHandler {
             const shouldRetry = syncType === "incremental";
             // Initial membership should have a longer TTL as it is likely going to be delayed by a large
             // number of new joiners.
-            const ttl = syncType === "initial" ? MEMBERSHIP_INITIAL_TTL_MS : undefined;
-            await this.membershipQueue.join(room.getId(), matrixUser.getId(), req, shouldRetry, ttl);
+            const ttl = syncType === "initial" ? MEMBERSHIP_INITIAL_TTL_MS : MEMBERSHIP_DEFAULT_TTL;
+            await this.membershipQueue.queueMembership({
+                attempts: server.getJoinAttempts(),
+                roomId: room.getId(),
+                req,
+                retry: shouldRetry,
+                ttl,
+                userId: matrixUser.getId(),
+                type: "join",
+                ts: Date.now(),
+            });
             // https://github.com/turt2live/matrix-bot-sdk/issues/79
             intent.setPresence("online", "");
         });
