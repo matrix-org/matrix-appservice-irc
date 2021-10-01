@@ -1,38 +1,37 @@
 /*
  * Contains integration tests for all IRC-initiated events.
  */
-const Promise = require("bluebird");
-
 const envBundle = require("../util/env-bundle");
 
-describe("IRC-to-Matrix message bridging", function() {
+function checksum(str) {
+    let total = 0;
+    for (let i = 0; i < str.length; i++) {
+        total += str.charCodeAt(i);
+    }
+    return total;
+}
+
+describe("IRC-to-Matrix message bridging", () => {
 
     const {env, config, roomMapping, test} = envBundle();
 
     let sdk = null;
 
     const tFromNick = "mike";
-    const tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
-                  config.homeserver.domain;
+    const tUserId = `@${roomMapping.server}_${tFromNick}:${config.homeserver.domain}`;
 
-    const checksum = function(str) {
-        let total = 0;
-        for (let i = 0; i < str.length; i++) {
-            total += str.charCodeAt(i);
-        }
-        return total;
-    };
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
-
-        sdk = env.clientMock._client(tUserId);
+        const intent = env.clientMock._intent(tUserId);
         // add registration mock impl:
         // registering should be for the irc user
-        sdk._onHttpRegister({
+        intent._onHttpRegister({
             expectLocalpart: roomMapping.server + "_" + tFromNick,
             returnUserId: tUserId
         });
+
+        sdk = intent.underlyingClient;
 
         env.ircMock._autoJoinChannels(
             roomMapping.server, roomMapping.botNick, roomMapping.server
@@ -41,24 +40,20 @@ describe("IRC-to-Matrix message bridging", function() {
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        // do the init
-        yield test.initEnv(env);
-    }));
+        await test.initEnv(env);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(() => test.afterEach(env));
 
     it("should bridge IRC text as Matrix message's m.text", (done) => {
         const testText = "this is some test text.";
-        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake((roomId, type, content) => {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
                 body: testText,
                 msgtype: "m.text"
             });
             done();
-            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
@@ -68,14 +63,13 @@ describe("IRC-to-Matrix message bridging", function() {
 
     it("should bridge IRC actions as Matrix message's m.emote", (done) => {
         const testEmoteText = "thinks for a bit";
-        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake((roomId, type, content) => {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
                 body: testEmoteText,
                 msgtype: "m.emote"
             });
             done();
-            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
@@ -87,14 +81,13 @@ describe("IRC-to-Matrix message bridging", function() {
 
     it("should bridge IRC notices as Matrix message's m.notice", (done) => {
         const testNoticeText = "Automated bot text: SUCCESS!";
-        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake((roomId, type, content) => {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
                 body: testNoticeText,
                 msgtype: "m.notice"
             });
             done();
-            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
@@ -104,7 +97,7 @@ describe("IRC-to-Matrix message bridging", function() {
         });
     });
 
-    it("should bridge IRC topics as Matrix m.room.topic in aliased rooms", test.coroutine(function*() {
+    it("should bridge IRC topics as Matrix m.room.topic in aliased rooms", async () => {
         const testTopic = "Topics are liek the best thing eletz!";
 
         const tChannel = "#someotherchannel";
@@ -115,7 +108,7 @@ describe("IRC-to-Matrix message bridging", function() {
         // Use bot client for mocking responses
         const cli = env.clientMock._client(config._botUserId);
 
-        yield cli._setupRoomByAlias(
+        await cli._setupRoomByAlias(
             env, tBotNick, tChannel, tRoomId, tServer, config.homeserver.domain
         );
 
@@ -123,23 +116,22 @@ describe("IRC-to-Matrix message bridging", function() {
         const cliUser = env.clientMock._client(tUserId);
 
         const p = new Promise((resolve, reject) => {
-            cliUser.sendStateEvent.and.callFake(function(roomId, type, content, skey) {
+            cliUser.sendStateEvent.and.callFake((roomId, type, skey, content) => {
                 expect(roomId).toEqual(roomMapping.roomId);
                 expect(content).toEqual({ topic: testTopic });
                 expect(type).toEqual("m.room.topic");
                 expect(skey).toEqual("");
                 resolve();
-                return Promise.resolve();
             });
         });
 
-        const client = yield env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
+        const client = await env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
         client.emit("topic", tChannel, testTopic, tFromNick);
 
-        yield p;
-    }));
+        await p;
+    });
 
-    it("should bridge IRC topics as Matrix m.room.topic in aliased rooms, using the bot", test.coroutine(function*() {
+    it("should bridge IRC topics as Matrix m.room.topic in aliased rooms, using the bot", async () => {
         const testTopic = "Topics are liek the best thing eletz!";
 
         const tChannel = "#someotherchannel";
@@ -150,19 +142,19 @@ describe("IRC-to-Matrix message bridging", function() {
         // Use bot client for mocking responses
         const cli = env.clientMock._client(config._botUserId);
 
-        yield cli._setupRoomByAlias(
+        await cli._setupRoomByAlias(
             env, tBotNick, tChannel, tRoomId, tServer, config.homeserver.domain
         );
 
         // Use bot client for mocking responses
         const cliUser = env.clientMock._client(tUserId);
 
-        cliUser.sendStateEvent.and.callFake(function() {
-            return Promise.reject("Not feeling like it.");
+        cliUser.sendStateEvent.and.callFake(() => {
+            throw Error('User cannot set a topic')
         });
 
         const p = new Promise((resolve, reject) => {
-            cli.sendStateEvent.and.callFake(function(roomId, type, content, skey) {
+            cli.sendStateEvent.and.callFake((roomId, type, skey, content) => {
                 expect(roomId).toEqual(roomMapping.roomId);
                 expect(content).toEqual({ topic: testTopic });
                 expect(type).toEqual("m.room.topic");
@@ -172,15 +164,15 @@ describe("IRC-to-Matrix message bridging", function() {
             });
         });
 
-        const client = yield env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
+        const client = await env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick);
         client.emit("topic", tChannel, testTopic, tFromNick);
 
-        yield p;
-    }));
+        await p;
+    });
 
     it("should be insensitive to the case of the channel", (done) => {
         const testText = "this is some test text.";
-        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake((roomId, _type, content) => {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(content).toEqual({
                 body: testText,
@@ -207,7 +199,7 @@ describe("IRC-to-Matrix message bridging", function() {
             'this is a <b><u><font color="#009300">mix of all three';
         const tFallback = "This text is bold and this is underlined and this is " +
             "green. Finally, this is a mix of all three";
-        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake((roomId, type, content) => {
             expect(roomId).toEqual(roomMapping.roomId);
             // more readily expose non-printing character errors (looking at
             // you \u000f)
@@ -224,7 +216,6 @@ describe("IRC-to-Matrix message bridging", function() {
                 checksum(tHtmlCloseTags)
             );
             done();
-            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
@@ -238,7 +229,7 @@ describe("IRC-to-Matrix message bridging", function() {
         const tIrcFormattedText = "\u0002hello \u001d world\u0002 ! \u001d";
         const tHtmlMain = "<b>hello <i> world</i></b><i> ! </i>";
         const tFallback = "hello  world ! ";
-        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake((roomId, _type, content) => {
             expect(roomId).toEqual(roomMapping.roomId);
             // more readily expose non-printing character errors (looking at
             // you \u000f)
@@ -248,7 +239,6 @@ describe("IRC-to-Matrix message bridging", function() {
             expect(content.msgtype).toEqual("m.text");
             expect(content.formatted_body.indexOf(tHtmlMain)).toEqual(0);
             done();
-            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
@@ -258,14 +248,14 @@ describe("IRC-to-Matrix message bridging", function() {
         });
     });
 
-    it("should bridge special regex character formatted IRC colours as Matrix's" +
-    "org.matrix.custom.html", function(done) {
+    it( "should bridge special regex character formatted IRC colours as Matrix's org.matrix.custom.html",
+        (done) => {
         // $& = Inserts the matched substring.
         const tIrcFormattedText = "\u000303$& \u000304 world\u000303 ! \u000304";
         const tHtmlMain = '<font color="#009300">$&amp; </font><font color="#FF0000"> world' +
             '</font><font color="#009300"> ! </font>';
         const tFallback = "$&  world ! ";
-        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake((roomId, type, content) => {
             expect(roomId).toEqual(roomMapping.roomId);
             // more readily expose non-printing character errors (looking at
             // you \u000f)
@@ -275,7 +265,6 @@ describe("IRC-to-Matrix message bridging", function() {
             expect(content.msgtype).toEqual("m.text");
             expect(content.formatted_body.indexOf(tHtmlMain)).toEqual(0);
             done();
-            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
@@ -285,13 +274,13 @@ describe("IRC-to-Matrix message bridging", function() {
         });
     });
 
-    it("should html escape IRC text", function(done) {
+    it("should html escape IRC text", (done) => {
         const tIrcFormattedText = "This text is \u0002bold\u000f and has " +
             "<div> tags & characters like ' and \"";
         const tHtmlMain = "This text is <b>bold</b> and has " +
             "&lt;div&gt; tags &amp; characters like &apos; and &quot;";
         const tFallback = "This text is bold and has <div> tags & characters like ' and \"";
-        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake((roomId, _type, content) => {
             expect(roomId).toEqual(roomMapping.roomId);
             // more readily expose non-printing character errors (looking at
             // you \u000f)
@@ -301,7 +290,6 @@ describe("IRC-to-Matrix message bridging", function() {
             expect(content.msgtype).toEqual("m.text");
             expect(content.formatted_body).toEqual(tHtmlMain);
             done();
-            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
@@ -311,11 +299,11 @@ describe("IRC-to-Matrix message bridging", function() {
         });
     });
 
-    it("should toggle on IRC formatting flags", function(done) {
+    it("should toggle on IRC formatting flags", (done) => {
         const tIrcFormattedText = "This text is \u0002bold\u0002 and \u0002\u0002thats it.";
         const tHtmlMain = "This text is <b>bold</b> and <b></b>thats it.";
         const tFallback = "This text is bold and thats it.";
-        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake((roomId, type, content) => {
             expect(roomId).toEqual(roomMapping.roomId);
             // more readily expose non-printing character errors (looking at
             // you \u000f)
@@ -325,7 +313,6 @@ describe("IRC-to-Matrix message bridging", function() {
             expect(content.msgtype).toEqual("m.text");
             expect(content.formatted_body).toEqual(tHtmlMain);
             done();
-            return Promise.resolve();
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
@@ -336,7 +323,7 @@ describe("IRC-to-Matrix message bridging", function() {
     });
 });
 
-describe("IRC-to-Matrix operator modes bridging", function() {
+describe("IRC-to-Matrix operator modes bridging", () => {
 
     const {env, config, roomMapping, test} = envBundle();
 
@@ -347,8 +334,8 @@ describe("IRC-to-Matrix operator modes bridging", function() {
     const tRealMatrixUserNick2 = "M-bob";
     const tRealUserId2 = "@bob:anotherhomeserver";
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
         botMatrixClient = env.clientMock._client(config._botUserId);
 
@@ -375,8 +362,7 @@ describe("IRC-to-Matrix operator modes bridging", function() {
             roomMapping.server, tRealMatrixUserNick2, roomMapping.channel
         );
 
-        // do the init
-        yield test.initEnv(env).then(() => {
+        await test.initEnv(env).then(() => {
             return env.mockAppService._trigger("type:m.room.message", {
                 content: {
                     body: "get me in",
@@ -387,11 +373,9 @@ describe("IRC-to-Matrix operator modes bridging", function() {
                 type: "m.room.message"
             });
         });
-    }));
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(() => test.afterEach(env));
 
     it("should bridge modes to power levels", async () => {
         // Set IRC user prefix, which in reality is assumed to have happened
@@ -404,7 +388,7 @@ describe("IRC-to-Matrix operator modes bridging", function() {
         };
 
         const promise = new Promise((resolve) => {
-            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, content, key) => {
+            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, key, content) => {
                 resolve({roomId, eventType, content, key});
             });
         });
@@ -448,7 +432,7 @@ describe("IRC-to-Matrix operator modes bridging", function() {
         };
 
         const promise = new Promise((resolve) => {
-            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, content, key) => {
+            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, key, content) => {
                 resolve({roomId, eventType, content, key});
             });
         });
@@ -484,7 +468,7 @@ describe("IRC-to-Matrix operator modes bridging", function() {
         };
 
         const promise = new Promise((resolve) => {
-            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, content, key) => {
+            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, key, content) => {
                 resolve({roomId, eventType, content, key});
             });
         });
@@ -514,7 +498,7 @@ describe("IRC-to-Matrix operator modes bridging", function() {
         };
 
         const promise = new Promise((resolve) => {
-            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, content, key) => {
+            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, key, content) => {
                 resolve({roomId, eventType, content, key});
             });
         });
@@ -548,7 +532,7 @@ describe("IRC-to-Matrix operator modes bridging", function() {
         };
 
         const promise = new Promise((resolve) => {
-            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, content, key) => {
+            botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, key, content) => {
                 resolve({roomId, eventType, content, key});
             });
         });
@@ -570,17 +554,16 @@ describe("IRC-to-Matrix operator modes bridging", function() {
     });
 });
 
-describe("IRC-to-Matrix name bridging", function() {
+describe("IRC-to-Matrix name bridging", () => {
 
     const {env, config, roomMapping, test} = envBundle();
 
     let sdk;
     const tFromNick = "mike";
-    const tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
-                  config.homeserver.domain;
+    const tUserId = `@${roomMapping.server}_${tFromNick}:${config.homeserver.domain}`;
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
         config.ircService.servers[roomMapping.server].matrixClients.displayName = (
             "Test $NICK and $SERVER"
@@ -600,25 +583,18 @@ describe("IRC-to-Matrix name bridging", function() {
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        yield test.initEnv(env);
-    }));
+        await test.initEnv(env);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(() => test.afterEach(env));
 
-    it("should set the matrix display name from the config file template", function(done) {
+    it("should set the matrix display name from the config file template", (done) => {
         // don't care about registration / sending the event
-        sdk.sendEvent.and.callFake(function(roomId, type, content) {
+        sdk.sendEvent.and.callFake((roomId, type, content) => {
             return Promise.resolve();
         });
-        sdk.registerRequest.and.callFake(function() {
-            return Promise.resolve({
-                user_id: tUserId
-            });
-        });
 
-        sdk.setDisplayName.and.callFake(function(name) {
+        sdk.setDisplayName.and.callFake((name) => {
             expect(name).toEqual("Test mike and " + roomMapping.server);
             done();
         });
@@ -628,7 +604,7 @@ describe("IRC-to-Matrix name bridging", function() {
         });
     });
 
-    it("should process all NAMEs entries", function(done) {
+    it("should process all NAMEs entries", (done) => {
         const nicks = {
             Alicia: {
                 uid: "@" + roomMapping.server + "_Alicia:" + config.homeserver.domain,
@@ -642,13 +618,14 @@ describe("IRC-to-Matrix name bridging", function() {
         };
 
         const joined = new Set();
-        Object.keys(nicks).forEach(function(n) {
-            const cli = env.clientMock._client(nicks[n].uid);
-            cli._onHttpRegister({
+        Object.keys(nicks).forEach((n) => {
+            const intent = env.clientMock._intent(nicks[n].uid);
+            intent._onHttpRegister({
                 expectLocalpart: roomMapping.server + "_" + n,
                 returnUserId: nicks[n].uid
             });
-            cli.joinRoom.and.callFake(function(r, opts) {
+            const cli = intent.underlyingClient;
+            cli.joinRoom.and.callFake((r, opts) => {
                 expect(r).toEqual(roomMapping.roomId);
                 joined.add(n);
                 if (joined.size === 3) {
@@ -658,9 +635,7 @@ describe("IRC-to-Matrix name bridging", function() {
             });
 
             // don't care about display name
-            cli.setDisplayName.and.callFake(function(name) {
-                return Promise.resolve({});
-            });
+            cli.setDisplayName.and.callFake((name) => ({}));
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
@@ -668,40 +643,6 @@ describe("IRC-to-Matrix name bridging", function() {
                 Alicia: {},
                 Bertha: {},
                 Clarissa: {}
-            };
-            client.emit("names", roomMapping.channel, names);
-        });
-    });
-    it("should retry a join", function(done) {
-        const nick = "Alicia";
-        const uid = `@${roomMapping.server}_${nick}:${config.homeserver.domain}`;
-        const cli = env.clientMock._client(uid);
-
-        cli._onHttpRegister({
-            expectLocalpart: roomMapping.server + "_" + nick,
-            returnUserId: uid
-        });
-
-        let count = 3;
-
-        cli.joinRoom.and.callFake(function(r, opts) {
-            if (count > 0) {
-                count--;
-                return Promise.reject({});
-            }
-            expect(r).toEqual(roomMapping.roomId);
-            done();
-            return Promise.resolve({room_id: r});
-        });
-
-        // don't care about display name
-        cli.setDisplayName.and.callFake(function(name) {
-            return Promise.resolve({});
-        });
-
-        env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
-            const names = {
-                Alicia: {}
             };
             client.emit("names", roomMapping.channel, names);
         });
