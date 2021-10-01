@@ -6,24 +6,20 @@ const { getBridgeVersion } = require("../../lib/util/PackageInfo");
 const DEBUG_PORT = 15555;
 let asToken;
 
-describe("Debug API", function() {
+describe("Debug API", () => {
     const {env, roomMapping, test} = envBundle();
     asToken = env.config._registration.as_token;
     env.config.ircService.debugApi.enabled = true;
     env.config.ircService.debugApi.port = DEBUG_PORT;
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
-
+    beforeEach(async () => {
+        await test.beforeEach(env);
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
+        await test.initEnv(env);
+    });
 
-        yield test.initEnv(env);
-    }));
-
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(() => test.afterEach(env));
 
     it("should enable the debug API", async () => {
         // Revert to the default value for this one test
