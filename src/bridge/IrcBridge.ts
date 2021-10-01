@@ -46,6 +46,7 @@ import { globalAgent as gAHTTP } from "http";
 import { globalAgent as gAHTTPS } from "https";
 import { RoomConfig } from "./RoomConfig";
 import { PrivacyProtection } from "../irc/PrivacyProtection";
+import { TestingOptions } from "../config/TestOpts";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -94,7 +95,11 @@ export class IrcBridge {
     }>;
     private privacyProtection: PrivacyProtection;
 
-    constructor(public readonly config: BridgeConfig, private registration: AppServiceRegistration) {
+    constructor(
+        public readonly config: BridgeConfig,
+        private registration: AppServiceRegistration,
+        private readonly testOpts: TestingOptions,
+    ) {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
         if (config.ircService.debugApi && config.ircService.debugApi.enabled) {
@@ -188,6 +193,8 @@ export class IrcBridge {
                 migrateStoreEntries: false, // Only NeDB supports this.
             },
             membershipCache: this.membershipCache,
+            // For mocking the intent object,
+            onIntentCreate: testOpts.onIntentCreate,
         });
         this.membershipQueue = new MembershipQueue(this.bridge, {
             concurrentRoomLimit: 3,
@@ -646,8 +653,9 @@ export class IrcBridge {
                 "FATAL: Registration file is missing a sender_localpart and/or AS token."
             );
         }
-
-        await this.pingBridge();
+        if (!this.testOpts.skipPingCheck) {
+            await this.pingBridge();
+        }
 
         // Storing all the users we know about to avoid calling /register on them.
         const allUsers = await this.dataStore.getAllUserIds();
@@ -1314,14 +1322,13 @@ export class IrcBridge {
          * On the most overloaded servers even this call may take several attempts,
          * so it will block indefinitely.
          */
-        const bot = this.bridge.getBot();
-        if (!bot) {
-            throw Error('AppserviceBot is not ready');
+        if (!this.bridge) {
+            throw Error('Bridge is not ready');
         }
         let gotRooms = false;
         while (!gotRooms) {
             try {
-                const roomIds = await bot.getJoinedRooms();
+                const roomIds = await this.bridge.getIntent().matrixClient.getJoinedRooms();
                 gotRooms = true;
                 this.joinedRoomList = roomIds;
                 log.info(`ASBot is in ${roomIds.length} rooms!`);

@@ -3,7 +3,7 @@ import Datastore from "nedb";
 import extend from "extend";
 import http from "http";
 import https from "https";
-import { RoomBridgeStore, UserBridgeStore, AppServiceRegistration } from "matrix-appservice-bridge";
+import { RoomBridgeStore, UserBridgeStore, AppServiceRegistration, Intent, IntentOpts } from "matrix-appservice-bridge";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { IrcServer, IrcServerConfig } from "./irc/IrcServer";
 import ident from "./irc/Ident";
@@ -11,6 +11,7 @@ import * as logging from "./logging";
 import { BridgeConfig } from "./config/BridgeConfig";
 import * as Sentry from "@sentry/node";
 import { getBridgeVersion } from "./util/PackageInfo";
+import { TestingOptions } from "./config/TestOpts";
 
 const log = logging.get("main");
 
@@ -75,7 +76,13 @@ export function generateRegistration(reg: AppServiceRegistration, config: Bridge
     return reg;
 }
 
-export async function runBridge(port: number, config: BridgeConfig, reg: AppServiceRegistration, isDBInMemory = false) {
+
+export async function runBridge(
+    port: number,
+    config: BridgeConfig,
+    reg: AppServiceRegistration,
+    testOpts: TestingOptions = { isDBInMemory: false }
+) {
     if (config.sentry && config.sentry.enabled && config.sentry.dsn) {
         log.info("Sentry ENABLED");
         Sentry.init({
@@ -106,10 +113,10 @@ export async function runBridge(port: number, config: BridgeConfig, reg: AppServ
     require("https").globalAgent.maxSockets = maxSockets;
 
     // run the bridge
-    const ircBridge = new IrcBridge(config, reg);
+    const ircBridge = new IrcBridge(config, reg, testOpts);
     const engine = config.database ? config.database.engine : "nedb";
     // Use in-memory DBs
-    if (isDBInMemory) {
+    if (testOpts.isDBInMemory) {
         ircBridge.getAppServiceBridge().opts.roomStore = new RoomBridgeStore(new Datastore());
         ircBridge.getAppServiceBridge().opts.userStore = new UserBridgeStore(new Datastore());
     }
