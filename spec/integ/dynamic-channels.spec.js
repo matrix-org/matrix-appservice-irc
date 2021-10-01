@@ -1,4 +1,3 @@
-const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
 describe("Dynamic channels", () => {
@@ -53,7 +52,7 @@ describe("Dynamic channels", () => {
                 room_id: tRoomId
             });
         });
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, _key, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
@@ -91,7 +90,7 @@ describe("Dynamic channels", () => {
             };
         });
 
-        sdk.sendStateEvent.and.callFake((roomId, eventType, obj) => {
+        sdk.sendStateEvent.and.callFake((roomId, eventType, _key, obj) => {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
@@ -124,7 +123,7 @@ describe("Dynamic channels", () => {
             return tRoomId;
         });
 
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, _key, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
@@ -171,7 +170,7 @@ describe("Dynamic channels", () => {
             });
         });
 
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, _key, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
@@ -238,7 +237,7 @@ describe("Dynamic channels (federation disabled)", function() {
             });
         });
 
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, _key, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
@@ -277,7 +276,6 @@ describe("Dynamic channels (disabled)", function() {
             roomMapping.server, testUser.nick, roomMapping.channel
         );
 
-        // do the init
         await test.initEnv(env, config);
     });
 
@@ -306,7 +304,7 @@ describe("Dynamic channels (disabled)", function() {
             });
         });
 
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, _key, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});

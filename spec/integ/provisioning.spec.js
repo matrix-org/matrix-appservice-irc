@@ -15,7 +15,7 @@ describe("Provisioning API", function() {
     let ircUser = {
         nick: "bob",
         localpart: config._server + "_bob",
-        id: "@" + config._server + "_bob:" + config.homeserver.domain
+        id: `@${config._server}_bob:${config.homeserver.domain}`
     };
 
     let receivingOp = {
@@ -26,8 +26,8 @@ describe("Provisioning API", function() {
         nick: "notoprah"
     };
 
-    let doSetup = test.coroutine(function*() {
-        yield test.beforeEach(env);
+    let doSetup = async () => {
+        await test.beforeEach(env);
 
         // accept connection requests from eeeeeeeeveryone!
         env.ircMock._autoConnectNetworks(
@@ -86,7 +86,7 @@ describe("Provisioning API", function() {
         env.isSuccess = promiseutil.defer();
 
         // Listen for m.room.bridging
-        let sdk = env.clientMock._client(config._botUserId);
+        const sdk = env.clientMock._client(config._botUserId);
         sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
             if (kind === "m.room.bridging") {
                 if (content.status === "pending") {
@@ -104,8 +104,7 @@ describe("Provisioning API", function() {
             return Promise.resolve({});
         });
 
-        // do the init
-        yield test.initEnv(env);
+        await test.initEnv(env);
     });
 
     // Create a coroutine to test certain API parameters.
@@ -232,8 +231,8 @@ describe("Provisioning API", function() {
                     }
                 }
 
-                let sdk = env.clientMock._client(config._botUserId);
-                sdk.roomState.and.callFake((roomId) => {
+                const sdk = env.clientMock._client(config._botUserId);
+                sdk.getRoomState.and.callFake((roomId) => {
                     return Promise.resolve([{
                         type: "m.room.member",
                         state_key: parameters.user_id,
@@ -270,7 +269,7 @@ describe("Provisioning API", function() {
         // args to pass to mockLinkCR
         let args = Array.from(arguments);
 
-        return test.coroutine(function*() {
+        return async () => {
             yield mockLinkCR.apply(mockLinkCR, args);
         });
     }
@@ -278,7 +277,7 @@ describe("Provisioning API", function() {
     describe("room setup", function() {
         beforeEach(doSetup);
 
-        afterEach(test.coroutine(function*() {
+        afterEach(async () => {
             yield test.afterEach(env);
         }));
 
@@ -399,7 +398,7 @@ describe("Provisioning API", function() {
     });
 
     describe("with config links existing", function() {
-        beforeEach(test.coroutine(function*() {
+        beforeEach(async () => {
             config.ircService
                 .servers[config._server]
                 .mappings['#provisionedchannel'] = ['!foo:bar'];
@@ -408,7 +407,7 @@ describe("Provisioning API", function() {
             //  It is a copy because otherwise there is not other way
             //  to alter config before running.
 
-            yield test.beforeEach(env);
+            await test.beforeEach(env);
 
             // accept connection requests from eeeeeeeeveryone!
             env.ircMock._autoConnectNetworks(
@@ -461,7 +460,7 @@ describe("Provisioning API", function() {
             env.isSuccess = promiseutil.defer();
 
             // Listen for m.room.bridging filure
-            let sdk = env.clientMock._client(config._botUserId);
+            const sdk = env.clientMock._client(config._botUserId);
             sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                 // Status of m.room.bridging is a success
                 if (kind === "m.room.bridging") {
@@ -481,10 +480,10 @@ describe("Provisioning API", function() {
             });
 
             // do the init
-            yield test.initEnv(env);
+            await test.initEnv(env);
         }));
 
-        afterEach(test.coroutine(function*() {
+        afterEach(async () => {
             yield test.afterEach(env);
         }));
 
@@ -494,9 +493,9 @@ describe("Provisioning API", function() {
     });
 
     describe("message sending and joining", function() {
-        beforeEach(test.coroutine(function*() {
+        beforeEach(async () => {
             config.ircService.servers[config._server].mappings = {};
-            yield test.beforeEach(env);
+            await test.beforeEach(env);
 
             // Ignore bot connecting
             env.ircMock._autoConnectNetworks(
@@ -532,15 +531,15 @@ describe("Provisioning API", function() {
             );
 
             // do the init
-            yield test.initEnv(env);
+            await test.initEnv(env);
         }));
 
-        afterEach(test.coroutine(function*() {
+        afterEach(async () => {
             yield test.afterEach(env);
         }));
 
         it("should allow IRC to send messages via the new link",
-            test.coroutine(function*() {
+            async () => {
 
                 let json = jasmine.createSpy("json(obj)");
                 let status = jasmine.createSpy("status(num)");
@@ -594,7 +593,7 @@ describe("Provisioning API", function() {
                     }
                     replySent = true;
                     // Listen for m.room.bridging success
-                    let sdk = env.clientMock._client(config._botUserId);
+                    const sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
@@ -637,7 +636,7 @@ describe("Provisioning API", function() {
         );
 
         it("should not allow IRC to send messages following unlink",
-            test.coroutine(function*() {
+            async () => {
 
                 let json = jasmine.createSpy("json(obj)");
                 let status = jasmine.createSpy("status(num)");
@@ -691,7 +690,7 @@ describe("Provisioning API", function() {
                     }
                     replySent = true;
                     // Listen for m.room.bridging success
-                    let sdk = env.clientMock._client(config._botUserId);
+                    const sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
@@ -721,8 +720,8 @@ describe("Provisioning API", function() {
                     type: "m.room.message"
                 });
 
-                let sdk = env.clientMock._client(config._botUserId);
-                sdk.roomState.and.callFake((roomId) => {
+                const sdk = env.clientMock._client(config._botUserId);
+                sdk.getRoomState.and.callFake((roomId) => {
                     return Promise.resolve([{
                         type: "m.room.member",
                         state_key: parameters.user_id,
@@ -770,8 +769,8 @@ describe("Provisioning API", function() {
     });
 
     describe("listings endpoint", function() {
-        beforeEach(test.coroutine(function*() {
-            yield test.beforeEach(env);
+        beforeEach(async () => {
+            await test.beforeEach(env);
 
             // accept connection requests from eeeeeeeeveryone!
             env.ircMock._autoConnectNetworks(
@@ -829,15 +828,15 @@ describe("Provisioning API", function() {
             );
 
             // do the init
-            yield test.initEnv(env);
+            await test.initEnv(env);
         }));
 
-        afterEach(test.coroutine(function*() {
+        afterEach(async () => {
             yield test.afterEach(env);
         }));
 
         it("should return an empty list when no mappings have been provisioned",
-            test.coroutine(function*() {
+            async () => {
                 let json = jasmine.createSpy("json(obj)");
                 let status = jasmine.createSpy("status(num)");
 
@@ -849,7 +848,7 @@ describe("Provisioning API", function() {
         );
 
         it("should return a list with a mapping that has been previously provisioned",
-            test.coroutine(function*() {
+            async () => {
                 let json = jasmine.createSpy("json(obj)");
                 let status = jasmine.createSpy("status(num)");
 
@@ -875,7 +874,7 @@ describe("Provisioning API", function() {
                     }
                     replySent = true;
                     // Listen for m.room.bridging success
-                    let sdk = env.clientMock._client(config._botUserId);
+                    const sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.and.callFake((roomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
@@ -898,7 +897,7 @@ describe("Provisioning API", function() {
         );
 
         it("should return a list of mappings that have been previously provisioned",
-            test.coroutine(function*() {
+            async () => {
                 let json = jasmine.createSpy("json(obj)");
                 let status = jasmine.createSpy("status(num)");
 
@@ -937,7 +936,7 @@ describe("Provisioning API", function() {
                     }
                     // Listen for m.room.bridging success
                     console.log('Waiting for m.room.bridging');
-                    let sdk = env.clientMock._client(config._botUserId);
+                    const sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.and.callFake((stateRoomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
@@ -965,7 +964,7 @@ describe("Provisioning API", function() {
 
         it("should return a list of mappings that have been previously provisioned," +
             " but not those that have been unlinked",
-            test.coroutine(function*() {
+            async () => {
                 let json = jasmine.createSpy("json(obj)");
                 let status = jasmine.createSpy("status(num)");
 
@@ -1004,7 +1003,7 @@ describe("Provisioning API", function() {
                         return;
                     }
                     // Listen for m.room.bridging success
-                    let sdk = env.clientMock._client(config._botUserId);
+                    const sdk = env.clientMock._client(config._botUserId);
                     sdk.sendStateEvent.and.callFake((stateRoomId, kind, content) => {
                         // Status of m.room.bridging is a success
                         if (kind === "m.room.bridging" && content.status === "success") {
@@ -1025,8 +1024,8 @@ describe("Provisioning API", function() {
                 yield Promise.all(isLinked.map((d)=>{return d.promise;}));
 
 
-                let sdk = env.clientMock._client(config._botUserId);
-                sdk.roomState.and.callFake((rid) => {
+                const sdk = env.clientMock._client(config._botUserId);
+                sdk.getRoomState.and.callFake((rid) => {
                     return Promise.resolve([{
                         type: "m.room.member",
                         state_key: mxUser.id,
@@ -1056,12 +1055,12 @@ describe("Provisioning API", function() {
     describe("should set m.room.bridging=success", function() {
         beforeEach(doSetup);
 
-        afterEach(test.coroutine(function*() {
+        afterEach(async () => {
             yield test.afterEach(env);
         }));
 
         it("when the link is successful",
-            test.coroutine(function*() {
+            async () => {
                 yield mockLinkCR({}, true, true, true, true);
                 yield env.isPending.promise;
                 yield env.isSuccess.promise;
@@ -1074,12 +1073,12 @@ describe("Provisioning API", function() {
     describe("should set m.room.bridging=failed", function() {
         beforeEach(doSetup);
 
-        afterEach(test.coroutine(function*() {
+        afterEach(async () => {
             yield test.afterEach(env);
         }));
 
         it("when the op did not authorise after a certain timeout",
-            test.coroutine(function*() {
+            async () => {
                 // shouldSucceed refers to the linkRequest only, not the overall success
                 //  so whilst the request is expected to succeed, the bridging status is
                 //  expected to be failure (because the op will not respond)

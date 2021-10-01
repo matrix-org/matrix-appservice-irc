@@ -1,8 +1,6 @@
 /*
  * Tests IRC connections are managed correctly.
  */
-const Promise = require("bluebird");
-
 const envBundle = require("../util/env-bundle");
 
 describe("IRC connections", () => {
@@ -477,7 +475,7 @@ describe("IRC connections", () => {
         });
 
         const sdk = env.clientMock._client(config._botUserId);
-        sdk.kickUser.and.callFake(async (roomId, userId) => {
+        sdk.kickUser.and.callFake(async (userId, roomId, reason) => {
             if (roomId === roomMapping.roomId && userId === excludedUserId) {
                 throw Error("Should not kick");
             }

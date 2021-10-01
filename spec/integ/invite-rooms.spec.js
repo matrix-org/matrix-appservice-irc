@@ -1,4 +1,3 @@
-const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
 describe("Invite-only rooms", () => {
@@ -21,7 +20,6 @@ describe("Invite-only rooms", () => {
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        // do the init
         await test.initEnv(env);
     });
 
@@ -91,7 +89,7 @@ describe("Invite-only rooms", () => {
         });
 
         let leftRoom = false;
-        sdk.kickUser.and.callFake((roomId) => {
+        sdk.kickUser.and.callFake((_kickee, roomId) => {
             expect(roomId).toEqual(roomMapping.roomId);
             leftRoom = true;
             return {};

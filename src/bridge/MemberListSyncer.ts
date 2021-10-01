@@ -165,6 +165,7 @@ export class MemberListSyncer {
             log.debug("Returning existing getSyncableRooms Promise");
             return this.syncableRoomsPromise;
         }
+        const client = this.ircBridge.getAppServiceBridge().getIntent().matrixClient;
 
         const fetchRooms = async () => {
             const roomInfoList: RoomInfo[] = [];
@@ -181,7 +182,7 @@ export class MemberListSyncer {
                 let userMap: Record<string, {display_name?: string}>|undefined;
                 while (!userMap) {
                     try {
-                        userMap = await this.appServiceBot.getJoinedMembers(roomId);
+                        userMap = await client.getJoinedRoomMembersWithProfiles(roomId);
                     }
                     catch (err) {
                         log.error(`Failed to getJoinedMembers in room ${roomId}: ${err}`);

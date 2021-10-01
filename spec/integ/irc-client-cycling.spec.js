@@ -59,7 +59,6 @@ describe("IRC client cycling", () => {
             );
         });
 
-        // do the init
         await test.initEnv(env);
     });
 

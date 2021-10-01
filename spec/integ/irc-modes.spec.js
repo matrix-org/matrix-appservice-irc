@@ -11,8 +11,7 @@ describe("IRC-to-Matrix mode bridging", () => {
     let sdk = null;
 
     const tFromNick = "mike";
-    const tUserId = "@" + roomMapping.server + "_" + tFromNick + ":" +
-                  config.homeserver.domain;
+    const tUserId = `@${roomMapping.server}_${tFromNick}:${config.homeserver.domain}`;
 
     const configJoinRule = config.ircService.servers[
         roomMapping.server
@@ -36,7 +35,6 @@ describe("IRC-to-Matrix mode bridging", () => {
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        // do the init
         await test.initEnv(env);
     });
 
@@ -73,7 +71,7 @@ describe("IRC-to-Matrix mode bridging", () => {
     });
 
     it("should revert join_rules to config value on -i.", async (done) => {
-        sdk.sendStateEvent.and.callFake(function(roomId, type, key, content) {
+        sdk.sendStateEvent.and.callFake((roomId, type, key, content) => {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(type).toEqual("m.room.join_rules");
             expect(content).toEqual({
@@ -88,7 +86,7 @@ describe("IRC-to-Matrix mode bridging", () => {
     });
 
     it("should revert join_rules to config value on -k.", async (done) => {
-        sdk.sendStateEvent.and.callFake(function(roomId, type, key, content) {
+        sdk.sendStateEvent.and.callFake((roomId, type, key, content) => {
             expect(roomId).toEqual(roomMapping.roomId);
             expect(type).toEqual("m.room.join_rules");
             expect(content).toEqual({

@@ -1,5 +1,3 @@
-
-const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
 describe("Homeserver user queries", () => {
@@ -17,7 +15,6 @@ describe("Homeserver user queries", () => {
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        // do the init
         await test.initEnv(env);
     });
 
@@ -60,7 +57,6 @@ describe("Homeserver alias queries", function() {
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        // do the init
         try {
             await test.initEnv(env);
         }
@@ -80,7 +76,7 @@ describe("Homeserver alias queries", function() {
             return "!something:somewhere";
         });
 
-        sdk.sendStateEvent.and.callFake((roomId, eventType, obj) => {
+        sdk.sendStateEvent.and.callFake((roomId, eventType, _key, obj) => {
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
             return Promise.resolve({});

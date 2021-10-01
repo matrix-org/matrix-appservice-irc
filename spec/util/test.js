@@ -62,7 +62,6 @@ class TestEnv {
      * @returns
      */
     intentCreateFn(userId, opts) {
-        console.log(`intentCreateFn: ${userId}`);
         userId = userId || this.config._registration._botUserId;
         const botSdkIntent = clientMock._intent(userId);
         return new Intent(botSdkIntent, this.botClient, { ...opts });
@@ -182,7 +181,7 @@ module.exports.beforeEach = async (env) => {
  * async test function. This allows seamless use of async function(done) tests using
  * yield. For example:
  * <pre>
- *   it("should do stuff", test.coroutine(function*() {
+ *   it("should do stuff", async () => {
  *     var something = yield doThing();
  *   }));
  * </pre>

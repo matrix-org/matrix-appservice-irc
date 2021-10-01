@@ -8,22 +8,26 @@ const mockIntents = {
 class MockBotSdkClient {
     constructor(userId) {
         this._userId = userId;
-        this.createRoomAlias = jasmine.createSpy("cli.createRoomAlias(alias, roomId)");
         this.createRoom = jasmine.createSpy("cli.createRoom(opts)");
+        this.createRoomAlias = jasmine.createSpy("cli.createRoomAlias(alias, roomId)");
         this.doRequest = jasmine.createSpy("cli.doRequest(method, endpoint, query, body)")
+        this.getEvent = jasmine.createSpy("cli.getEvent(roomId, eventId)");
         this.getJoinedRooms = jasmine.createSpy("cli.getJoinedRooms()");
         this.getRoomState = jasmine.createSpy("cli.getRoomState(roomId)");
         this.getRoomStateEvent = jasmine.createSpy("cli.getRoomStateEvent(room,type,key)");
         this.getUserProfile = jasmine.createSpy("cli.getUserProfile(userId)");
         this.inviteUser = jasmine.createSpy("cli.inviteUser(userId, roomId)");
         this.joinRoom = jasmine.createSpy("cli.joinRoom(roomId, viaServers)");
-        this.leaveRoom = jasmine.createSpy("cli.leaveRoom(roomId)");
+        this.kickUser = jasmine.createSpy("cli.kickUser(roomId, target, reason)");
         this.resolveRoom = jasmine.createSpy("cli.resolveRoom(roomIdOrAlias)");
         this.sendEvent = jasmine.createSpy("cli.sendEvent(roomId,type,content)");
-        this.sendStateEvent = jasmine.createSpy("cli.sendStateEvent(room,type,content,key)");
+        this.sendStateEvent = jasmine.createSpy("cli.sendStateEvent(room,type,key,content)");
         this.setDisplayName = jasmine.createSpy("cli.setDisplayName(name)");
+        this.setPresenceStatus = jasmine.createSpy("cli.setPresenceStatus()");
         this.setUserPowerLevel = jasmine.createSpy("cli.setUserPowerLevel(userId, roomId, power)");
-        this.kickUser = jasmine.createSpy("cli.kickUser(roomId, target, reason)");
+        this.getJoinedRoomMembersWithProfiles = jasmine.createSpy("cli.getJoinedRoomMembersWithProfiles()");
+        this.getJoinedRoomMembers = jasmine.createSpy("cli.getJoinedRoomMembers()");
+        this.uploadContent = jasmine.createSpy("cli.uploadContent()");
 
         this.getJoinedRooms.and.returnValue(Promise.resolve([]));
         this.resolveRoom.and.callFake((roomIdOrAlias) => {
@@ -33,25 +37,28 @@ class MockBotSdkClient {
             throw Error('Cannot map aliases in this test');
         });
 
+        this.getJoinedRoomMembers.and.returnValue(Promise.resolve([]));
+        this.getJoinedRoomMembersWithProfiles.and.returnValue(Promise.resolve({}));
+
         // Mock these to return empty object
         [
-            // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms
+            this.getEvent,
             this.getUserProfile,
+            // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms
             this.joinRoom,
-            this.leaveRoom,
             this.sendEvent,
             this.sendStateEvent,
+            this.setPresenceStatus,
+            this.setDisplayName,
         ].map((func) => {
-            func.and.callFake(async () => {
-                return {};
-            });
+            func.and.returnValue(Promise.resolve({}));
         });
 
         this.getRoomState.and.callFake(function() {
             return Promise.resolve([]);
         });
 
-        // mock up getStateEvent immediately since it is called for every new IRC
+        // mock up getRoomStateEvent immediately since it is called for every new IRC
         // connection.
         this.getRoomStateEvent.and.callFake(async (room, type, key) => {
             // Mocks a user having the ability to change power levels
@@ -80,6 +87,25 @@ class MockBotSdkClient {
         });
     }
 
+    // Helper to create alias rooms
+    _setupRoomByAlias(env, tBotNick, tChannel, tRoomId, tServer, tDomain) {
+        const tAliasLocalpart = `irc_${tServer}_${tChannel}`;
+        const tAlias = `#${tAliasLocalpart}:${tDomain}`;
+
+        // when we get the connect/join requests, accept them.
+        env.ircMock._whenClient(tServer, tBotNick, "join",
+            function(_client, chan, cb) {
+                if (chan === tChannel) {
+                    if (cb) { cb(); }
+                }
+            }
+        );
+
+        this.createRoom.and.returnValue(tRoomId);
+
+        return env.mockAppService._queryAlias(tAlias);
+    }
+
     async getUserId() {
         return this._userId;
     }
@@ -99,30 +125,19 @@ class MockBotSdkIntent {
         this.joinRoom = jasmine.createSpy("sdk.joinRoom(idOrAlias, opts)");
         this.sendMessage = jasmine.createSpy("sdk.sendMessage(roomId, content)");
         this.setRoomTopic = jasmine.createSpy("sdk.setRoomTopic(roomId, topic)");
-        this.getStateEvent = jasmine.createSpy("sdk.getStateEvent(room,type,key)");
-        this.fetchRoomEvent = jasmine.createSpy("sdk.fetchRoomEvent(room,event_id)");
         this.invite = jasmine.createSpy("sdk.invite(roomId, userId)");
         this.mxcUrlToHttp = jasmine.createSpy("sdk.mxcUrlToHttp(mxc, w, h, method)");
         this.getHomeserverUrl = jasmine.createSpy("sdk.getHomeserverUrl()");
         this.setPowerLevel = jasmine.createSpy("sdk.setPowerLevel()");
-        this.setPresence = jasmine.createSpy("sdk.setPresence()");
-        this.getJoinedRoomMembers = jasmine.createSpy("sdk.getJoinedRoomMembers()");
-        this.fetchRoomEvent = jasmine.createSpy("sdk.fetchRoomEvent()");
-        this.uploadContent = jasmine.createSpy("sdk.uploadContent()");
         this.ensureRegistered = jasmine.createSpy("intent.ensureRegistered()");
+        this.leaveRoom = jasmine.createSpy("cli.leaveRoom(roomId)");
 
-        this.setPresence.and.returnValue(Promise.resolve({}));
         // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms
         this.joinRoom.and.callFake(function() {
             return Promise.resolve({});
         });
 
-
-        this.getJoinedRoomMembers.and.returnValue(Promise.resolve([]));
-
-        this.fetchRoomEvent.and.callFake(() => {
-            return Promise.resolve({});
-        });
+        this.leaveRoom.and.callFake(() => ({}));
 
         // mock up registration since we make them if they aren't in the DB (which they won't be
         // for testing).
@@ -138,33 +153,6 @@ class MockBotSdkIntent {
         });
         this.underlyingClient._verifyRegisterRequest(params);
     }
-
-    // Helper to create alias rooms
-    _setupRoomByAlias(env, tBotNick, tChannel, tRoomId, tServer, tDomain) {
-        const tAliasLocalpart = "irc_" + tServer + "_" + tChannel;
-        const tAlias = "#" + tAliasLocalpart + ":" + tDomain;
-
-        // when we get the connect/join requests, accept them.
-        env.ircMock._whenClient(tServer, tBotNick, "join",
-            function(client, chan, cb) {
-                if (chan === tChannel) {
-                    if (cb) { cb(); }
-                }
-            }
-        );
-
-        this.createRoom.and.callFake(function(opts) {
-            return Promise.resolve({
-                room_id: tRoomId
-            });
-        });
-
-        this.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
-            return Promise.resolve({});
-        });
-
-        return env.mockAppService._queryAlias(tAlias);
-    }
 }
 
 /**
@@ -175,7 +163,6 @@ function _intent(userId) {
     if (!userId) {
         throw new Error("MockClient: User ID must be specified.");
     }
-    console.log(mockIntents);
     if (mockIntents[userId]) {
         return mockIntents[userId];
     }

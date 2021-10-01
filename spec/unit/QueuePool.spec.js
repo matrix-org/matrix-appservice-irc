@@ -38,7 +38,7 @@ describe("QueuePool", function() {
     });
 
     it("should let multiple items be processed at once",
-    test.coroutine(function*() {
+    async () => {
         pool.enqueue("a", "a");
         pool.enqueue("b", "b");
         // procFn is called on the next tick so check they've been called after
@@ -47,7 +47,7 @@ describe("QueuePool", function() {
     }));
 
     it("should resolve enqueued items when they resolve",
-    test.coroutine(function*() {
+    async () => {
         pool.enqueue("a", "a");
         let promise = pool.enqueue("b", "b");
         yield nextTick();
@@ -57,7 +57,7 @@ describe("QueuePool", function() {
     }));
 
     it("should not let more items than the pool size be processed at once",
-    test.coroutine(function*() {
+    async () => {
         pool.enqueue("a", "a");
         pool.enqueue("b", "b");
         pool.enqueue("c", "c");
@@ -69,7 +69,7 @@ describe("QueuePool", function() {
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "c", "d"]);
     }));
 
-    it("should wait until a queue is free", test.coroutine(function*() {
+    it("should wait until a queue is free", async () => {
         pool.enqueue("a", "a");
         pool.enqueue("b", "b");
         pool.enqueue("c", "c");
@@ -89,7 +89,7 @@ describe("QueuePool", function() {
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "d"]);
     }));
 
-    it("should process overflows FIFO", test.coroutine(function*() {
+    it("should process overflows FIFO", async () => {
         pool.enqueue("a", "a");
         pool.enqueue("b", "b");
         pool.enqueue("c", "c");
@@ -107,7 +107,7 @@ describe("QueuePool", function() {
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["d", "e", "f"]);
     }));
 
-    it("should repopulate empty queues", test.coroutine(function*() {
+    it("should repopulate empty queues", async () => {
         pool.enqueue("a", "a");
         pool.enqueue("b", "b");
         pool.enqueue("c", "c");
@@ -125,7 +125,7 @@ describe("QueuePool", function() {
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["d", "e", "f"]);
     }));
 
-    it("should allow index-based queue manipulation", test.coroutine(function*() {
+    it("should allow index-based queue manipulation", async () => {
         pool.enqueue("a", "a", 0);
         pool.enqueue("b", "b", 0);
         pool.enqueue("c", "c", 0);
@@ -136,7 +136,7 @@ describe("QueuePool", function() {
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["b"]);
     }));
 
-    it("should accurately track waiting items", test.coroutine(function*() {
+    it("should accurately track waiting items", async () => {
         for (let i = 0; i < 10; i++) {
             pool.enqueue(i, i);
         }

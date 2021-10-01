@@ -1353,7 +1353,7 @@ export class IrcBridge {
             throw Error('AppserviceBot is not ready');
         }
         log.info("Migrating state");
-        const stateEvents = await asBot.getClient().getRoomState(oldRoomId);
+        const stateEvents = await this.getAppServiceBridge().getIntent().matrixClient.getRoomState(oldRoomId);
         const roomInfo = await asBot.getRoomInfo(oldRoomId, {
             state: {
                 events: stateEvents
