@@ -7,13 +7,10 @@ describe("Homeserver user queries", function() {
 
     const testNick = "Alisha";
     const testLocalpart = roomMapping.server + "_" + testNick;
-    const testUserId = (
-        "@" + testLocalpart + ":" + config.homeserver.domain
-    );
+    const testUserId = `@${testLocalpart}:${config.homeserver.domain}`;
 
-
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -21,17 +18,15 @@ describe("Homeserver user queries", function() {
         );
 
         // do the init
-        yield test.initEnv(env);
-    }));
+        await test.initEnv(env);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(() => test.afterEach(env));
 
     it("should always create a new Matrix user for the specified ID", (done) => {
-        const sdk = env.clientMock._client(config._botUserId);
+        const sdk = env.clientMock._intent(config._botUserId);
 
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois", (client, nick, cb) => {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois", (_client, nick, cb) => {
             expect(nick).toEqual(testNick);
             // say they exist (presence of user key)
             cb({
@@ -57,8 +52,8 @@ describe("Homeserver alias queries", function() {
         "#" + testLocalpart + ":" + config.homeserver.domain
     );
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -67,29 +62,25 @@ describe("Homeserver alias queries", function() {
 
         // do the init
         try {
-            yield test.initEnv(env);
+            await test.initEnv(env);
         }
         catch (err) {
             console.error(err);
             expect(false).toBe(true, "onUserQuery failed request.");
         }
-    }));
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(() => test.afterEach(env));
 
-    it("should make the AS start tracking the channel specified in the alias.", (done) => {
+    it("should make the AS start tracking the channel specified in the alias.", async () => {
         const sdk = env.clientMock._client(config._botUserId);
-        sdk.createRoom.and.callFake(function(opts) {
-            expect(opts.room_alias_name).toEqual(testLocalpart);
-            expect(opts.visibility).toEqual("private");
-            return Promise.resolve({
-                room_id: "!something:somewhere"
-            });
+        sdk.createRoom.and.callFake(({room_alias_name, visibility}) => {
+            expect(room_alias_name).toEqual(testLocalpart);
+            expect(visibility).toEqual("private");
+            return "!something:somewhere";
         });
 
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake((roomId, eventType, obj) => {
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
             return Promise.resolve({});
@@ -103,13 +94,7 @@ describe("Homeserver alias queries", function() {
             }
         });
 
-        env.mockAppService._queryAlias(testAlias).then(function() {
-            expect(botJoined).toBe(true, "Bot didn't join " + testChannel);
-            done();
-        }, function(err) {
-            console.error(err);
-            expect(false).toBe(true, "onAliasQuery failed request.");
-            done();
-        });
+        await env.mockAppService._queryAlias(testAlias);
+        expect(botJoined).withContext("Bot didn't join " + testChannel).toBeTrue();
     });
 });
