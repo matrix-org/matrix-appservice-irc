@@ -8,20 +8,22 @@ const mockIntents = {
 class MockBotSdkClient {
     constructor(userId) {
         this._userId = userId;
+        this.createRoomAlias = jasmine.createSpy("cli.createRoomAlias(alias, roomId)");
+        this.createRoom = jasmine.createSpy("cli.createRoom(opts)");
         this.doRequest = jasmine.createSpy("cli.doRequest(method, endpoint, query, body)")
+        this.getJoinedRooms = jasmine.createSpy("cli.getJoinedRooms()");
+        this.getRoomState = jasmine.createSpy("cli.getRoomState(roomId)");
+        this.getRoomStateEvent = jasmine.createSpy("cli.getRoomStateEvent(room,type,key)");
+        this.getUserProfile = jasmine.createSpy("cli.getUserProfile(userId)");
         this.inviteUser = jasmine.createSpy("cli.inviteUser(userId, roomId)");
         this.joinRoom = jasmine.createSpy("cli.joinRoom(roomId, viaServers)");
-        this.setUserPowerLevel = jasmine.createSpy("cli.setUserPowerLevel(userId, roomId, power)");
-        this.getJoinedRooms = jasmine.createSpy("cli.getJoinedRooms()");
-        this.createRoom = jasmine.createSpy("cli.createRoom(opts)");
+        this.leaveRoom = jasmine.createSpy("cli.leaveRoom(roomId)");
         this.resolveRoom = jasmine.createSpy("cli.resolveRoom(roomIdOrAlias)");
-        this.setDisplayName = jasmine.createSpy("cli.setDisplayName(name)");
         this.sendEvent = jasmine.createSpy("cli.sendEvent(roomId,type,content)");
         this.sendStateEvent = jasmine.createSpy("cli.sendStateEvent(room,type,content,key)");
-        this.getRoomStateEvent = jasmine.createSpy("cli.getRoomStateEvent(room,type,key)");
-        this.getRoomState = jasmine.createSpy("cli.getRoomState(roomId)");
-        this.leaveRoom = jasmine.createSpy("cli.leaveRoom(roomId)");
-        this.getUserProfile = jasmine.createSpy("sdk.getUserProfile(userId)");
+        this.setDisplayName = jasmine.createSpy("cli.setDisplayName(name)");
+        this.setUserPowerLevel = jasmine.createSpy("cli.setUserPowerLevel(userId, roomId, power)");
+        this.kickUser = jasmine.createSpy("cli.kickUser(roomId, target, reason)");
 
         this.getJoinedRooms.and.returnValue(Promise.resolve([]));
         this.resolveRoom.and.callFake((roomIdOrAlias) => {
@@ -34,11 +36,11 @@ class MockBotSdkClient {
         // Mock these to return empty object
         [
             // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms
+            this.getUserProfile,
             this.joinRoom,
+            this.leaveRoom,
             this.sendEvent,
             this.sendStateEvent,
-            this.leaveRoom,
-            this.getUserProfile,
         ].map((func) => {
             func.and.callFake(async () => {
                 return {};
@@ -100,8 +102,6 @@ class MockBotSdkIntent {
         this.getStateEvent = jasmine.createSpy("sdk.getStateEvent(room,type,key)");
         this.fetchRoomEvent = jasmine.createSpy("sdk.fetchRoomEvent(room,event_id)");
         this.invite = jasmine.createSpy("sdk.invite(roomId, userId)");
-        this.kick = jasmine.createSpy("sdk.kick(roomId, target, reason)");
-        this.createAlias = jasmine.createSpy("sdk.createAlias(alias, roomId)");
         this.mxcUrlToHttp = jasmine.createSpy("sdk.mxcUrlToHttp(mxc, w, h, method)");
         this.getHomeserverUrl = jasmine.createSpy("sdk.getHomeserverUrl()");
         this.setPowerLevel = jasmine.createSpy("sdk.setPowerLevel()");
@@ -133,9 +133,8 @@ class MockBotSdkIntent {
 
     // Helper to succeed sdk registration calls.
     _onHttpRegister(params) {
-        console.log("On HTTP register");
         this.ensureRegistered.and.callFake(() => {
-            expect(this._userId.substring(1).split(":")[0]).toEqual(params.expectLocalpart)
+            expect(this.userId.substring(1).split(":")[0]).toEqual(params.expectLocalpart)
         });
         this.underlyingClient._verifyRegisterRequest(params);
     }

@@ -2,7 +2,7 @@
 const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
-describe("Homeserver user queries", function() {
+describe("Homeserver user queries", () => {
     const {env, config, roomMapping, test} = envBundle();
 
     const testNick = "Alisha";

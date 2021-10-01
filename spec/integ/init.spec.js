@@ -4,7 +4,7 @@
 
 const envBundle = require("../util/env-bundle");
 
-describe("Initialisation", function() {
+describe("Initialisation", () => {
     const {env, roomMapping, test} = envBundle();
     const ircAddr = roomMapping.server;
     const ircNick = roomMapping.botNick;
