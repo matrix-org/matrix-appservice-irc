@@ -561,7 +561,10 @@ export class IrcBridge {
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
         await this.bridge.initalise();
+<<<<<<< HEAD
         this.matrixHandler.initalise();
+=======
+>>>>>>> 174bea9d685d8026e07292017e55368252c0bc65
 
         if (dbConfig.engine === "postgres") {
             log.info("Using PgDataStore for Datastore");
@@ -1353,7 +1356,11 @@ export class IrcBridge {
             throw Error('AppserviceBot is not ready');
         }
         log.info("Migrating state");
+<<<<<<< HEAD
         const stateEvents = await this.getAppServiceBridge().getIntent().matrixClient.getRoomState(oldRoomId);
+=======
+        const stateEvents = await asBot.getClient().getRoomState(oldRoomId);
+>>>>>>> 174bea9d685d8026e07292017e55368252c0bc65
         const roomInfo = await asBot.getRoomInfo(oldRoomId, {
             state: {
                 events: stateEvents

@@ -51,8 +51,6 @@
   "devDependencies": {
     "@types/bluebird": "^3.5.32",
     "@types/diff": "^5.0.1",
-    "@types/express": "4.17.11",
-    "@types/express-serve-static-core": "4.17.19",
     "@types/extend": "^3.0.1",
     "@types/he": "^1.1.1",
     "@types/nedb": "^1.8.11",
@@ -60,6 +58,8 @@
     "@types/nopt": "^3.0.29",
     "@types/pg": "^8.6.0",
     "@types/sanitize-html": "^2.3.1",
+    "@types/express": "4.17.11",
+    "@types/express-serve-static-core": "4.17.19",
     "@typescript-eslint/eslint-plugin": "^4.16.1",
     "@typescript-eslint/parser": "^4.16.1",
     "eslint": "^7.21.0",

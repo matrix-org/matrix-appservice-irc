@@ -523,9 +523,8 @@ export class RoomAccessSyncer {
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         return intent.sendStateEvent(
             room.getId(),
-            "m.room.join_rules",
             "",
-            {
+            "m.room.join_rules", {
                 join_rule: (isInviteOnly ? "invite" : "public")
             },
         );
