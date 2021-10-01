@@ -206,7 +206,7 @@ export class IrcHandler {
             }
             catch (error) {
                 req.log.error(error);
-                req.log.warn(`Failed creating a PM room with ${toUserId}. Remaining reties: ${remainingReties}`);
+                req.log.warn(`Failed creating a PM room with ${toUserId}. Remaining retries: ${remainingReties}`);
             }
             remainingReties--;
         } while (!response && remainingReties > 0);

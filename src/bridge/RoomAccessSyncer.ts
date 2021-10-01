@@ -520,11 +520,12 @@ export class RoomAccessSyncer {
      *                               make the room public
      */
     private async setMatrixRoomAsInviteOnly(room: MatrixRoom, isInviteOnly: boolean) {
-        const client = this.ircBridge.getAppServiceBridge().getIntent();
-        return client.sendStateEvent(
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
+        return intent.sendStateEvent(
             room.getId(),
+            "m.room.join_rules",
             "",
-            "m.room.join_rules", {
+            {
                 join_rule: (isInviteOnly ? "invite" : "public")
             },
         );
