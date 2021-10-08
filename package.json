@@ -67,6 +67,6 @@
     "nyc": "^14.1.1",
     "prom-client": "13.1.0",
     "proxyquire": "^1.4.0",
-    "typescript": "^4.2.2"
+    "typescript": "^4.4.3"
   }
 }

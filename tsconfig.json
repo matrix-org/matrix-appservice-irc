@@ -12,8 +12,10 @@
     "strict": true,
     "esModuleInterop": true,
     "strictNullChecks": true,
+    // TODO: Type errors
+    "useUnknownInCatchVariables": false,
     // Until the fix to https://github.com/turt2live/matrix-bot-sdk/issues/155 is released.
-    "skipLibCheck": true
+    "skipLibCheck": true,
   },
   "include": [
     "src/**/*"
