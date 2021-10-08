@@ -1,37 +1,32 @@
 /*
  * Contains integration tests for private messages.
  */
-"use strict";
-const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
-describe("Matrix-to-IRC PMing", function() {
+describe("Matrix-to-IRC PMing", () => {
 
     const {env, config, roomMapping, test} = envBundle();
 
-    let tUserId = "@flibble:wibble";
-    let tIrcNick = "someone";
-    let tUserLocalpart = roomMapping.server + "_" + tIrcNick;
-    let tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
+    const tUserId = "@flibble:wibble";
+    const tIrcNick = "someone";
+    const tUserLocalpart = roomMapping.server + "_" + tIrcNick;
+    const tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        yield test.initEnv(env);
-    }));
+        await test.initEnv(env);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => test.afterEach(env));
 
-    it("should join 1:1 rooms invited from matrix",
-    test.coroutine(function*() {
+    it("should join 1:1 rooms invited from matrix", async () => {
         // get the ball rolling
-        let requestPromise = env.mockAppService._trigger("type:m.room.member", {
+        const requestPromise = env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
                 is_direct: true,
@@ -43,8 +38,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it queries whois, say they exist
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
-        function(client, nick, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois", (_client, nick, cb) => {
             expect(nick).toEqual(tIrcNick);
             // say they exist (presence of user key)
             cb({
@@ -54,26 +48,25 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it tries to register, join the room and get state, accept them
-        let sdk = env.clientMock._client(tIrcUserId);
-        sdk._onHttpRegister({
+        const intent = env.clientMock._intent(tIrcUserId);
+        intent._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId
         });
 
         let joinRoomPromise = new Promise((resolve, reject) => {
-            sdk.joinRoom.and.callFake(function(roomId) {
+            intent.underlyingClient.joinRoom.and.callFake((roomId) => {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
                 return Promise.resolve({});
             });
         });
 
-        yield joinRoomPromise;
-        yield requestPromise;
-    }));
+        await joinRoomPromise;
+        await requestPromise;
+    });
 
-    it("should join group chat rooms invited from matrix then leave them",
-    test.coroutine(function*() {
+    it("should join group chat rooms invited from matrix then leave them", async () => {
         const expectedReason = "Group chat not supported.";
         // get the ball rolling
         const requestPromise = env.mockAppService._trigger("type:m.room.member", {
@@ -87,8 +80,7 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it queries whois, say they exist
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
-        function(client, nick, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois", (client, nick, cb) => {
             expect(nick).toEqual(tIrcNick);
             // say they exist (presence of user key)
             cb({
@@ -98,15 +90,16 @@ describe("Matrix-to-IRC PMing", function() {
         });
 
         // when it tries to register, join the room and get state, accept them
-        const sdk = env.clientMock._client(tIrcUserId);
-        sdk._onHttpRegister({
+        const intent = env.clientMock._intent(tIrcUserId);
+        const sdk = intent.underlyingClient;
+        intent._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId
         });
 
         // when it tries to join, accept it
         const joinRoomPromise = new Promise((resolve) => {
-            sdk.joinRoom.and.callFake(function(roomId) {
+            sdk.joinRoom.and.callFake((roomId) => {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
                 return Promise.resolve({});
@@ -115,7 +108,7 @@ describe("Matrix-to-IRC PMing", function() {
 
         // when it tries to leave, accept it
         const kickPromise = new Promise((resolve) => {
-            sdk.kick.and.callFake(function(roomId, userId, reason) {
+            sdk.kickUser.and.callFake((userId, roomId, reason) => {
                 expect(roomId).toEqual(roomMapping.roomId);
                 expect(userId).toEqual(tIrcUserId);
                 expect(reason).toEqual(expectedReason);
@@ -126,40 +119,39 @@ describe("Matrix-to-IRC PMing", function() {
 
 
         // wait on things to happen
-        yield joinRoomPromise;
-        yield kickPromise;
-        yield requestPromise;
-    }));
+        await joinRoomPromise;
+        await kickPromise;
+        await requestPromise;
+    });
 });
 
-describe("Matrix-to-IRC PMing disabled", function() {
+describe("Matrix-to-IRC PMing disabled", () => {
     const {env, config, roomMapping, test} = envBundle();
 
-    let tUserId = "@flibble:wibble";
-    let tIrcNick = "someone";
-    let tUserLocalpart = roomMapping.server + "_" + tIrcNick;
-    let tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
+    const tUserId = "@flibble:wibble";
+    const tIrcNick = "someone";
+    const tUserLocalpart = roomMapping.server + "_" + tIrcNick;
+    const tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
-    beforeEach(test.coroutine(function*() {
+    beforeEach(async () => {
         config.ircService.servers[roomMapping.server].privateMessages.enabled = false;
-        yield test.beforeEach(env);
+        await test.beforeEach(env);
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        yield test.initEnv(env);
-    }));
+        await test.initEnv(env);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
+    afterEach(async () => {
+        await test.afterEach(env);
         config.ircService.servers[roomMapping.server].privateMessages.enabled = true;
-    }));
+    });
 
-    it("should join 1:1 rooms invited from matrix, announce and then leave them",
-    test.coroutine(function*() {
+    it("should join 1:1 rooms invited from matrix, announce and then leave them", async () => {
         // get the ball rolling
-        let requestPromise = env.mockAppService._trigger("type:m.room.member", {
+        const requestPromise = env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
                 is_direct: true,
@@ -171,8 +163,7 @@ describe("Matrix-to-IRC PMing disabled", function() {
         });
 
         // when it queries whois, say they exist
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
-        function(client, nick, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois", (nick, cb) => {
             expect(nick).toEqual(tIrcNick);
             // say they exist (presence of user key)
             cb({
@@ -181,13 +172,14 @@ describe("Matrix-to-IRC PMing disabled", function() {
             });
         });
 
-        let sdk = env.clientMock._client(tIrcUserId);
-        sdk._onHttpRegister({
+        const intent = env.clientMock._intent(tIrcUserId);
+        const sdk = intent.underlyingClient;
+        intent._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId
         });
 
-        let joinRoomPromise = new Promise((resolve, reject) => {
+        const joinRoomPromise = new Promise((resolve, reject) => {
             sdk.joinRoom.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
@@ -195,7 +187,7 @@ describe("Matrix-to-IRC PMing disabled", function() {
             });
         });
 
-        let sentMessagePromise = new Promise(function(resolve, reject) {
+        const sentMessagePromise = new Promise(function(resolve, reject) {
             sdk.sendEvent.and.callFake(function(roomId, type, content) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 expect(type).toEqual("m.room.message");
@@ -204,43 +196,40 @@ describe("Matrix-to-IRC PMing disabled", function() {
             });
         });
 
-        let leaveRoomPromise = new Promise((resolve, reject) => {
-            sdk.leave.and.callFake(function(roomId) {
+        const leaveRoomPromise = new Promise((resolve, reject) => {
+            intent.leaveRoom.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
                 return Promise.resolve({});
             });
         });
 
-        yield joinRoomPromise;
-        yield sentMessagePromise;
-        yield leaveRoomPromise;
-        yield requestPromise;
-    }));
+        await joinRoomPromise;
+        await sentMessagePromise;
+        await leaveRoomPromise;
+        await requestPromise;
+    });
 });
 
-describe("IRC-to-Matrix PMing", function() {
+describe("IRC-to-Matrix PMing", () => {
     const {env, config, roomMapping, test} = envBundle();
     let sdk = null;
 
-    let tRealIrcUserNick = "bob";
-    let tVirtualUserId = "@" + roomMapping.server + "_" + tRealIrcUserNick + ":" +
-                          config.homeserver.domain;
+    const tRealIrcUserNick = "bob";
+    const tVirtualUserId = `@${roomMapping.server}_${tRealIrcUserNick}:${config.homeserver.domain}`;
+    const tRealMatrixUserNick = "M-alice";
+    const tRealUserId = "@alice:anotherhomeserver";
+    const tCreatedRoomId = "!fehwfweF:fuiowehfwe";
+    const tText = "ello ello ello";
 
-    let tRealMatrixUserNick = "M-alice";
-    let tRealUserId = "@alice:anotherhomeserver";
-
-    let tCreatedRoomId = "!fehwfweF:fuiowehfwe";
-
-    let tText = "ello ello ello";
-
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
-        sdk = env.clientMock._client(tVirtualUserId);
+    beforeEach(async () => {
+        await test.beforeEach(env);
+        const intent = env.clientMock._intent(tVirtualUserId);
+        sdk = intent.underlyingClient;
 
         // add registration mock impl:
         // registering should be for the REAL irc user
-        sdk._onHttpRegister({
+        intent._onHttpRegister({
             expectLocalpart: roomMapping.server + "_" + tRealIrcUserNick,
             returnUserId: tVirtualUserId
         });
@@ -256,32 +245,28 @@ describe("IRC-to-Matrix PMing", function() {
             roomMapping.server, tRealMatrixUserNick, roomMapping.channel
         );
 
-        // do the init
-        yield test.initEnv(env).then(function() {
-            // send a message in the linked room (so the service provisions a
-            // virtual IRC user which the 'real' IRC users can speak to)
-            return env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "get me in",
-                    msgtype: "m.text"
-                },
-                user_id: tRealUserId,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
-        });
-    }));
+        await test.initEnv(env);
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+        // send a message in the linked room (so the service provisions a
+        // virtual IRC user which the 'real' IRC users can speak to)
+        return env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "get me in",
+                msgtype: "m.text"
+            },
+            user_id: tRealUserId,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+    });
+
+    afterEach(async () => test.afterEach(env));
 
     it("should create a 1:1 matrix room and invite the real matrix user when " +
-    "it receives a PM directed at a virtual user from a real IRC user",
-    test.coroutine(function*() {
+    "it receives a PM directed at a virtual user from a real IRC user", async () => {
         // mock create room impl
-        const createRoomPromise = new Promise(function(resolve) {
-            sdk.createRoom.and.callFake(function(opts) {
+        const createRoomPromise = new Promise((resolve) => {
+            sdk.createRoom.and.callFake((opts) => {
                 expect(opts.visibility).toEqual("private");
                 expect(opts.creation_content["m.federate"]).toEqual(true);
                 expect(opts.preset).not.toBeDefined();
@@ -305,9 +290,7 @@ describe("IRC-to-Matrix PMing", function() {
                     },
                 }]);
                 resolve();
-                return Promise.resolve({
-                    room_id: tCreatedRoomId
-                });
+                return tCreatedRoomId;
             });
         });
 
@@ -326,29 +309,26 @@ describe("IRC-to-Matrix PMing", function() {
         });
 
         // find the *VIRTUAL CLIENT* (not the bot) and send the irc message
-        let client = yield env.ircMock._findClientAsync(
+        let client = await env.ircMock._findClientAsync(
             roomMapping.server, tRealMatrixUserNick
         );
         client.emit(
             "message", tRealIrcUserNick, tRealMatrixUserNick, tText
         );
 
-        yield createRoomPromise;
-        yield sentMessagePromise;
-    }));
+        await createRoomPromise;
+        await sentMessagePromise;
+    });
 
-    it("should not create multiple matrix rooms when several PMs are received in quick succession",
-    test.coroutine(function*() {
+    it("should not create multiple matrix rooms when several PMs are received in quick succession", async () => {
         let count = 0;
         // mock create room impl
-        let createRoomPromise = new Promise(function(resolve, reject) {
-            sdk.createRoom.and.callFake(function(opts) {
+        let createRoomPromise = new Promise((resolve) => {
+            sdk.createRoom.and.callFake((opts) => {
                 count++;
                 expect(count).toEqual(1);
                 resolve();
-                return Promise.resolve({
-                    room_id: tCreatedRoomId
-                });
+                return tCreatedRoomId;
             });
         });
         let MESSAGE_COUNT = 10;
@@ -365,7 +345,7 @@ describe("IRC-to-Matrix PMing", function() {
         });
 
         // find the *VIRTUAL CLIENT* (not the bot) and send the irc message
-        let client = yield env.ircMock._findClientAsync(
+        let client = await env.ircMock._findClientAsync(
             roomMapping.server, tRealMatrixUserNick
         );
 
@@ -374,9 +354,9 @@ describe("IRC-to-Matrix PMing", function() {
             client.emit("message", tRealIrcUserNick, tRealMatrixUserNick, tText);
         }
 
-        yield createRoomPromise;
-        yield sentMessagePromise;
-    }));
+        await createRoomPromise;
+        await sentMessagePromise;
+    });
 });
 
 describe("IRC-to-Matrix Non-Federated PMing", function() {
@@ -384,25 +364,26 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
 
     let sdk = null;
 
-    let tRealIrcUserNick = "bob";
-    let tVirtualUserId = "@" + roomMapping.server + "_" + tRealIrcUserNick + ":" +
+    const tRealIrcUserNick = "bob";
+    const tVirtualUserId = "@" + roomMapping.server + "_" + tRealIrcUserNick + ":" +
                           config.homeserver.domain;
 
-    let tRealMatrixUserNick = "M-alice";
-    let tRealUserId = "@alice:anotherhomeserver";
+    const tRealMatrixUserNick = "M-alice";
+    const tRealUserId = "@alice:anotherhomeserver";
 
-    let tCreatedRoomId = "!fehwfweF:fuiowehfwe";
+    const tCreatedRoomId = "!fehwfweF:fuiowehfwe";
 
-    let tText = "ello ello ello";
+    const tText = "ello ello ello";
 
-    beforeEach(test.coroutine(function*() {
+    beforeEach(async () => {
         config.ircService.servers[roomMapping.server].privateMessages.federate = false;
-        yield test.beforeEach(env);
-        sdk = env.clientMock._client(tVirtualUserId);
+        await test.beforeEach(env);
+        const intent = env.clientMock._intent(tVirtualUserId);
+        sdk = intent.underlyingClient;
 
         // add registration mock impl:
         // registering should be for the REAL irc user
-        sdk._onHttpRegister({
+        intent._onHttpRegister({
             expectLocalpart: roomMapping.server + "_" + tRealIrcUserNick,
             returnUserId: tVirtualUserId
         });
@@ -418,44 +399,38 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
             roomMapping.server, tRealMatrixUserNick, roomMapping.channel
         );
 
-        // do the init
-        yield test.initEnv(env).then(function() {
-            // send a message in the linked room (so the service provisions a
-            // virtual IRC user which the 'real' IRC users can speak to)
-            return env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "get me in",
-                    msgtype: "m.text"
-                },
-                user_id: tRealUserId,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
-        });
-    }));
+        await test.initEnv(env);
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+        // send a message in the linked room (so the service provisions a
+        // virtual IRC user which the 'real' IRC users can speak to)
+        return env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "get me in",
+                msgtype: "m.text"
+            },
+            user_id: tRealUserId,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+    });
+
+    afterEach(async () => test.afterEach(env));
 
     it("should create a non-federated 1:1 matrix room and invite the real matrix user when " +
-    "it receives a PM directed at a virtual user from a real IRC user",
-    test.coroutine(function*() {
+    "it receives a PM directed at a virtual user from a real IRC user", async () => {
         // mock create room impl
-        let createRoomPromise = new Promise(function(resolve, reject) {
-            sdk.createRoom.and.callFake(function(opts) {
+        const createRoomPromise = new Promise((resolve) => {
+            sdk.createRoom.and.callFake((opts) => {
                 expect(opts.visibility).toEqual("private");
                 expect(opts.creation_content["m.federate"]).toEqual(false);
                 resolve();
-                return Promise.resolve({
-                    room_id: tCreatedRoomId
-                });
+                return tCreatedRoomId;
             });
         });
 
         // mock send message impl
-        let sentMessagePromise = new Promise(function(resolve, reject) {
-            sdk.sendEvent.and.callFake(function(roomId, type, content) {
+        const sentMessagePromise = new Promise((resolve) => {
+            sdk.sendEvent.and.callFake((roomId, type, content) => {
                 expect(roomId).toEqual(tCreatedRoomId);
                 expect(type).toEqual("m.room.message");
                 expect(content).toEqual({
@@ -463,49 +438,48 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
                     msgtype: "m.text"
                 });
                 resolve();
-                return Promise.resolve({});
+                return {};
             });
         });
 
         // find the *VIRTUAL CLIENT* (not the bot) and send the irc message
-        let client = yield env.ircMock._findClientAsync(
+        const client = await env.ircMock._findClientAsync(
             roomMapping.server, tRealMatrixUserNick
         );
         client.emit(
             "message", tRealIrcUserNick, tRealMatrixUserNick, tText
         );
 
-        yield createRoomPromise;
-        yield sentMessagePromise;
-    }));
+        await createRoomPromise;
+        await sentMessagePromise;
+    });
 });
 
 describe("Matrix-to-IRC PMing over federation disabled", function() {
     const {env, config, roomMapping, test} = envBundle();
 
-    let tUserId = "@flibble:wobble";
-    let tIrcNick = "someone";
-    let tUserLocalpart = roomMapping.server + "_" + tIrcNick;
-    let tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
+    const tUserId = "@flibble:wobble";
+    const tIrcNick = "someone";
+    const tUserLocalpart = roomMapping.server + "_" + tIrcNick;
+    const tIrcUserId = "@" + tUserLocalpart + ":" + config.homeserver.domain;
 
-    beforeEach(test.coroutine(function*() {
+    beforeEach(async () => {
         config.ircService.servers[roomMapping.server].privateMessages.federate = false;
-        yield test.beforeEach(env);
+        await test.beforeEach(env);
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        yield test.initEnv(env);
-    }));
+        await test.initEnv(env);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
+    afterEach(async () => {
+        await test.afterEach(env);
         config.ircService.servers[roomMapping.server].privateMessages.federate = true;
-    }));
+    });
 
-    it("should join 1:1 rooms invited from matrix, announce and then leave them",
-    test.coroutine(function*() {
+    it("should join 1:1 rooms invited from matrix, announce and then leave them", async () => {
         // get the ball rolling
         let requestPromise = env.mockAppService._trigger("type:m.room.member", {
             content: {
@@ -529,11 +503,12 @@ describe("Matrix-to-IRC PMing over federation disabled", function() {
             });
         });
 
-        let sdk = env.clientMock._client(tIrcUserId);
-        sdk._onHttpRegister({
+        const intent = env.clientMock._intent(tIrcUserId);
+        intent._onHttpRegister({
             expectLocalpart: tUserLocalpart,
             returnUserId: tIrcUserId
         });
+        const sdk = intent.underlyingClient;
 
         let joinRoomPromise = new Promise((resolve, reject) => {
             sdk.joinRoom.and.callFake(function(roomId) {
@@ -553,16 +528,16 @@ describe("Matrix-to-IRC PMing over federation disabled", function() {
         });
 
         let leaveRoomPromise = new Promise((resolve, reject) => {
-            sdk.leave.and.callFake(function(roomId) {
+            intent.leaveRoom.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
                 return Promise.resolve({});
             });
         });
 
-        yield joinRoomPromise;
-        yield sentMessagePromise;
-        yield leaveRoomPromise;
-        yield requestPromise;
-    }));
+        await joinRoomPromise;
+        await sentMessagePromise;
+        await leaveRoomPromise;
+        await requestPromise;
+    });
 });

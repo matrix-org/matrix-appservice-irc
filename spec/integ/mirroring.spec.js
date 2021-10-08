@@ -1,10 +1,7 @@
-const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
-describe("Mirroring", function() {
-
+describe("Mirroring", () => {
     const {env, config, roomMapping, test} = envBundle();
-
 
     // set up config.yaml flags
     config.ircService.servers[roomMapping.server].membershipLists.enabled = true;
@@ -20,13 +17,13 @@ describe("Mirroring", function() {
     config.ircService.servers[roomMapping.server].mappings["#b"] = { roomIds: ["!b:localhost"] };
     config.ircService.servers[roomMapping.server].mappings["#c"] = { roomIds: ["!c:localhost"] };
 
-    let testUser = {
+    const testUser = {
         id: "@flibble:wibble",
         nick: "M-flibble"
     };
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -48,16 +45,13 @@ describe("Mirroring", function() {
             roomMapping.server, roomMapping.botNick, "#c"
         );
 
-        // do the init
-        yield test.initEnv(env);
-    }));
+        await test.initEnv(env);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => test.afterEach(env));
 
-    describe("Matrix users on IRC", function() {
-        it("should join the IRC channel when the Matrix user joins", function(done) {
+    describe("Matrix users on IRC", () => {
+        it("should join the IRC channel when the Matrix user joins", (done) => {
             let joined = false;
             env.ircMock._whenClient(roomMapping.server, testUser.nick, "join",
             function(client, channel, cb) {
@@ -82,7 +76,7 @@ describe("Mirroring", function() {
             });
         });
 
-        it("should part the IRC channel when the Matrix user leaves", function(done) {
+        it("should part the IRC channel when the Matrix user leaves", (done) => {
             let parted = false;
             env.ircMock._autoJoinChannels(
                 roomMapping.server, testUser.nick, roomMapping.channel
@@ -120,8 +114,7 @@ describe("Mirroring", function() {
             });
         });
 
-        it("should no-op if a Matrix user joins a room not being tracked",
-        function(done) {
+        it("should no-op if a Matrix user joins a room not being tracked", (done) => {
             env.ircMock._whenClient(roomMapping.server, testUser.nick, "join",
             function(client, channel, cb) {
                 expect(false).toBe(true, "IRC client joined but shouldn't have.");
@@ -144,8 +137,7 @@ describe("Mirroring", function() {
             });
         });
 
-        it("should no-op if a Matrix user leaves a room and they aren't " +
-        "connected to the IRC channel", function(done) {
+        it("should no-op if a Matrix user leaves a room and they aren't connected to the IRC channel", (done) => {
             env.ircMock._whenClient(roomMapping.server, testUser.nick, "join",
             function(client, channel, cb) {
                 expect(false).toBe(true, "IRC client joined but shouldn't have.");
@@ -168,8 +160,7 @@ describe("Mirroring", function() {
             });
         });
 
-        it("should join all IRC channels if there are many Matrix joins for the same user",
-        test.coroutine(function*() {
+        it("should join all IRC channels if there are many Matrix joins for the same user", async () => {
             const newUser = {
                 id: "@newuser:localhost",
                 nick: "M-newuser"
@@ -215,34 +206,35 @@ describe("Mirroring", function() {
                 type: "m.room.member"
             }));
             try {
-                yield Promise.all(promises);
+                await Promise.all(promises);
             }
             catch (err) {
                 expect(true).toBe(false, "onMessage threw " + err);
             }
             expect(joined.length).toEqual(3, "Unexpected number of joins");
             expect(joined.sort()).toEqual(expectJoins);
-        }));
+        });
     });
 
-    describe("IRC users on Matrix", function() {
-        let sdk;
+    describe("IRC users on Matrix", () => {
+        let intent, sdk;
         let ircUser = {
             nick: "bob",
             localpart: roomMapping.server + "_bob",
             id: "@" + roomMapping.server + "_bob:" + config.homeserver.domain
         };
-        beforeEach(function() {
-            sdk = env.clientMock._client(ircUser.id);
+        beforeEach(() => {
+            intent = env.clientMock._intent(ircUser.id);
+            sdk = intent.underlyingClient;
             // add registration mock impl:
             // registering should be for the irc user
-            sdk._onHttpRegister({
+            intent._onHttpRegister({
                 expectLocalpart: ircUser.localpart,
                 returnUserId: ircUser.id
             });
         });
 
-        it("should join the matrix room when the IRC user joins", function(done) {
+        it("should join the matrix room when the IRC user joins", (done) => {
             sdk.joinRoom.and.callFake(function(roomId) {
                 expect(roomId).toEqual(roomMapping.roomId);
                 done();
@@ -255,8 +247,8 @@ describe("Mirroring", function() {
             });
         });
 
-        it("should leave the matrix room when the IRC user parts", async function() {
-            const leavePromise = new Promise(r => sdk.leave.and.callFake(async (roomId) => {
+        it("should leave the matrix room when the IRC user parts", async () => {
+            const leavePromise = new Promise(r => intent.leaveRoom.and.callFake((roomId) => {
                 expect(roomId).toEqual(roomMapping.roomId);
                 r();
                 return {};
@@ -267,8 +259,8 @@ describe("Mirroring", function() {
             await leavePromise;
         });
 
-        it("should leave the matrix room with a reason when the IRC user parts", async function() {
-            const leavePromise = new Promise(r => sdk.kick.and.callFake(async (roomId, userId, reason) => {
+        it("should leave the matrix room with a reason when the IRC user parts", async () => {
+            const leavePromise = new Promise(r => sdk.kickUser.and.callFake(async (userId, roomId, reason) => {
                 expect(userId).toEqual(ircUser.id);
                 expect(reason).toEqual("Part: has been whacked with a wet trout");
                 expect(roomId).toEqual(roomMapping.roomId);

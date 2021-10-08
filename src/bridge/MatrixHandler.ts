@@ -22,7 +22,7 @@ import { renderTemplate } from "../util/Template";
 import { trimString } from "../util/TrimString";
 import { messageDiff } from "../util/MessageDiff";
 
-async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
+async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>|void) {
     try {
         const res = await promise;
         req.resolve(res);
@@ -130,12 +130,12 @@ export class MatrixHandler {
         [metricName: string]: number;
     };} = {};
     private readonly mediaUrl: string;
-    private memberTracker: StateLookup|null = null;
+    private memberTracker?: StateLookup;
     private adminHandler: AdminRoomHandler;
     private config: MatrixHandlerConfig = DEFAULTS;
 
     constructor(
-        private ircBridge: IrcBridge,
+        private readonly ircBridge: IrcBridge,
         config: MatrixHandlerConfig|undefined,
         private readonly membershipQueue: MembershipQueue
     ) {
@@ -144,6 +144,13 @@ export class MatrixHandler {
         // The media URL to use to transform mxc:// URLs when handling m.room.[file|image]s
         this.mediaUrl = ircBridge.config.homeserver.media_url || ircBridge.config.homeserver.url;
         this.adminHandler = new AdminRoomHandler(ircBridge, this);
+    }
+
+    public initalise() {
+        this.memberTracker = new StateLookup({
+            intent: this.ircBridge.getAppServiceBridge().getIntent(),
+            eventTypes: ['m.room.member']
+        });
     }
 
     // ===== Matrix Invite Handling =====
@@ -242,9 +249,8 @@ export class MatrixHandler {
         let isPmRoom = event.content.is_direct === true;
         if (isPmRoom !== true) {
             // Legacy check
-            const joinedMembers = Object.keys(
-                await this.ircBridge.getAppServiceBridge().getBot().getJoinedMembers(event.room_id)
-            );
+            const joinedMembers = await this.ircBridge.getAppServiceBridge().getIntent().matrixClient
+                .getJoinedRoomMembers(event.room_id);
             isPmRoom = joinedMembers.length === 2 && joinedMembers.includes(event.sender);
         }
 
@@ -267,23 +273,16 @@ export class MatrixHandler {
 
         const botUser = new MatrixUser(this.ircBridge.appServiceUserId, undefined, false);
 
+        // First call begins tracking, subsequent calls do nothing
+        await this.memberTracker?.trackRoom(adminRoom.getId());
+        const members = ((this.memberTracker?.getState(
+            adminRoom.getId(),
+            "m.room.member",
+        ) || []) as Array<StateLookupEvent>).filter((m) =>
+            (m.content as {membership: string}).membership === "join"
+        );
+
         // If an admin room has more than 2 people in it, kick the bot out
-        let members = [];
-        if (this.memberTracker) {
-            // First call begins tracking, subsequent calls do nothing
-            await this.memberTracker.trackRoom(adminRoom.getId());
-
-            members = (this.memberTracker.getState(
-                adminRoom.getId(),
-                "m.room.member",
-            ) as Array<StateLookupEvent>).filter((m) =>
-                (m.content as {membership: string}).membership === "join"
-            );
-        }
-        else {
-            req.log.warn('Member tracker not running');
-        }
-
         if (members.length > 2) {
             req.log.error(
                 `onAdminMessage: admin room has ${members.length}` +
@@ -398,23 +397,8 @@ export class MatrixHandler {
      * Called when the AS receives a new Matrix invite/join/leave event.
      * @param {Object} event : The Matrix member event.
      */
-    private async _onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {
-        if (!this.memberTracker) {
-            const clientFactory = this.ircBridge.getAppServiceBridge().getClientFactory();
-            if (!clientFactory) {
-                // Client factory isn't ready...yet.
-                return;
-            }
-            const matrixClient = clientFactory.getClientAs();
-
-            this.memberTracker = new StateLookup({
-                client : matrixClient,
-                eventTypes: ['m.room.member']
-            });
-        }
-        else {
-            this.memberTracker.onEvent(event);
-        }
+    private _onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {
+        this.memberTracker?.onEvent(event);
     }
 
     /**
@@ -929,12 +913,13 @@ export class MatrixHandler {
 
         // wait a while if we just got an invite else we may not have the mapping stored
         // yet...
-        if (this.processingInvitesForRooms[event.room_id + event.sender]) {
+        const key = `${event.room_id}+${event.sender}`;
+        if (key in this.processingInvitesForRooms) {
             req.log.info(
                 "Holding request for %s until invite for room %s is done.",
                 event.sender, event.room_id
             );
-            await this.processingInvitesForRooms[event.room_id + event.sender];
+            await this.processingInvitesForRooms[key];
             req.log.info(
                 "Finished holding event for %s in room %s", event.sender, event.room_id
             );
@@ -1260,7 +1245,7 @@ export class MatrixHandler {
             // TODO: Take first with public join_rules
             const roomId = matrixRooms[0].getId();
             req.log.info("Pointing alias %s to %s", roomAlias, roomId);
-            await this.ircBridge.getAppServiceBridge().getBot().getClient().createAlias(
+            await this.ircBridge.getAppServiceBridge().getIntent().createAlias(
                 roomAlias, roomId
             );
         }

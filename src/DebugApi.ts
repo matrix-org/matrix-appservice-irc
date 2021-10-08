@@ -377,7 +377,7 @@ export class DebugApi {
         if (removeAlias) {
             const roomAlias = server.getAliasFromChannel(channel);
             try {
-                await this.ircBridge.getAppServiceBridge().getIntent().client.deleteAlias(roomAlias);
+                await this.ircBridge.getAppServiceBridge().getIntent().matrixClient.deleteRoomAlias(roomAlias);
                 result.stages.push("Deleted alias for room");
             }
             catch (e) {

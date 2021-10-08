@@ -215,10 +215,11 @@ export class PgDataStore implements DataStore {
         ])).then((result) => result.rows).map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
-    public getProvisionedMappings(roomId: string): Bluebird<Entry[]> {
-        return Bluebird.cast(this.pgPool.query("SELECT * FROM rooms WHERE room_id = $1 AND origin = 'provision'", [
+    public async getProvisionedMappings(roomId: string): Promise<Entry[]> {
+        const res = await this.pgPool.query("SELECT * FROM rooms WHERE room_id = $1 AND origin = 'provision'", [
             roomId
-        ])).then((result) => result.rows).map((e) => PgDataStore.pgToRoomEntry(e));
+        ]).then((result) => result.rows);
+        return res.map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
     public async removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<void> {
