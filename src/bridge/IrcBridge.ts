@@ -34,6 +34,10 @@ import {
     AppService,
     Rules,
     ActivityTracker,
+    BridgeBlocker,
+    UserActivityState,
+    UserActivityTracker,
+    UserActivityTrackerConfig,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -95,6 +99,7 @@ export class IrcBridge {
         networkId: string;
     }>;
     private privacyProtection: PrivacyProtection;
+    private bridgeBlocker?: BridgeBlocker;
 
     constructor(
         public readonly config: BridgeConfig,
@@ -121,8 +126,9 @@ export class IrcBridge {
         if (this.config.database.engine === "nedb") {
             const dirPath = this.config.database.connectionString.substring("nedb://".length);
             bridgeStoreConfig = {
-                roomStore: `${dirPath}/rooms.db`,
-                userStore: `${dirPath}/users.db`,
+                roomStore:         `${dirPath}/rooms.db`,
+                userStore:         `${dirPath}/users.db`,
+                userActivityStore: `${dirPath}/user-activity.db`,
             };
         }
         else {
@@ -215,6 +221,10 @@ export class IrcBridge {
             httpMaxSizeBytes: this.config.advanced?.maxTxnSize ?? TXN_SIZE_DEFAULT,
         });
         this.roomConfigs = new RoomConfig(this.bridge, this.config.ircService.perRoomConfig);
+
+        if (this.config.ircService.RMAUlimit) {
+            this.bridgeBlocker = new BridgeBlocker(this.config.ircService.RMAUlimit);
+        }
     }
 
     public async onConfigChanged(newConfig: BridgeConfig) {
@@ -415,6 +425,11 @@ export class IrcBridge {
             labels: ["server"]
         });
 
+        const bridgeBlocked = metrics.addGauge({
+            name: "bridge_blocked",
+            help: "Is the bridge currently blocking messages",
+        });
+
         metrics.addCollector(() => {
             this.ircServers.forEach((server) => {
                 reconnQueue.set({server: server.domain},
@@ -473,6 +488,8 @@ export class IrcBridge {
             Object.entries(ircMetrics).forEach((kv) => {
                 ircHandlerCalls.inc({method: kv[0]}, kv[1]);
             });
+
+            bridgeBlocked.set(this.bridgeBlocker?.isBlocked ? 1 : 0);
         });
 
         metrics.addCollector(async () => {
@@ -569,12 +586,14 @@ export class IrcBridge {
             await this.bridge.loadDatabases();
             const userStore = this.bridge.getUserStore();
             const roomStore = this.bridge.getRoomStore();
+            const userActivityStore = this.bridge.getUserActivityStore();
             log.info("Using NeDBDataStore for Datastore");
-            if (!userStore || !roomStore) {
-                throw Error('Could not load userStore or roomStore');
+            if (!userStore || !roomStore || !userActivityStore) {
+                throw Error('Could not load user(Activity)Store or roomStore');
             }
             this.dataStore = new NeDBDataStore(
                 userStore,
+                userActivityStore,
                 roomStore,
                 this.config.homeserver.domain,
                 pkeyPath,
@@ -635,6 +654,22 @@ export class IrcBridge {
         if (this.ircServers.length === 0) {
             throw Error("No IRC servers specified.");
         }
+
+        const uatConfig = {
+            ...UserActivityTrackerConfig.DEFAULT,
+        };
+        if (this.config.ircService.userActivity?.minUserActiveDays !== undefined) {
+            uatConfig.minUserActiveDays = this.config.ircService.userActivity.minUserActiveDays;
+        }
+        if (this.config.ircService.userActivity?.inactiveAfterDays !== undefined) {
+            uatConfig.inactiveAfterDays = this.config.ircService.userActivity.inactiveAfterDays;
+        }
+        this.bridge.opts.controller.userActivityTracker = new UserActivityTracker(
+            uatConfig,
+            await this.getStore().getUserActivity(),
+            (changes) => this.onUserActivityChanged(changes),
+        );
+        this.bridgeBlocker?.checkLimits(this.bridge.opts.controller.userActivityTracker.countActiveUsers().allUsers);
 
         // run the bridge (needs to be done prior to configure IRC side)
         await this.bridge.listen(port, this.config.homeserver.bindHostname, undefined, this.appservice);
@@ -744,6 +779,7 @@ export class IrcBridge {
         });
 
         log.info("Startup complete.");
+
         this.startedUp = true;
     }
 
@@ -849,6 +885,10 @@ export class IrcBridge {
     }
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
+        if (this.bridgeBlocker?.isBlocked) {
+            log.info("Bridge is blocked, dropping Matrix action");
+            return;
+        }
         const intent = this.bridge.getIntent(from.userId);
         const extraContent: Record<string, unknown> = {};
         if (action.replyEvent) {
@@ -955,6 +995,10 @@ export class IrcBridge {
     }
 
     public onEvent(request: BridgeRequestEvent) {
+        if (this.bridgeBlocker?.isBlocked) {
+            log.info("Bridge is blocked, dropping Matrix event");
+            return;
+        }
         request.outcomeFrom(this._onEvent(request));
     }
 
@@ -1297,11 +1341,15 @@ export class IrcBridge {
     }
 
     public async sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction) {
+        if (this.bridgeBlocker?.isBlocked) {
+            log.info("Bridge is blocked, dropping IRC action");
+            return;
+        }
         log.info(
             "Sending IRC message in %s as %s (connected=%s)",
             ircRoom.channel, bridgedClient.nick, Boolean(bridgedClient.status === BridgedClientStatus.CONNECTED)
         );
-        return bridgedClient.sendAction(ircRoom, action);
+        await bridgedClient.sendAction(ircRoom, action);
     }
 
     public async getBotClient(server: IrcServer) {
@@ -1476,5 +1524,12 @@ export class IrcBridge {
         }
         const current = await this.dataStore.getRoomCount();
         return current >= limit;
+    }
+
+    private onUserActivityChanged(userActivity: UserActivityState) {
+        for (const userId of userActivity.changed) {
+            this.getStore().storeUserActivity(userId, userActivity.dataSet.users[userId]);
+        }
+        this.bridgeBlocker?.checkLimits(userActivity.activeUsers);
     }
 }

@@ -59,6 +59,11 @@ export interface BridgeConfig {
             [userIdOrDomain: string]: "admin";
         };
         perRoomConfig?: RoomConfigConfig;
+        RMAUlimit?: number;
+        userActivity?: {
+            minUserActiveDays?: number;
+            inactiveAfterDays?: number;
+        };
     };
     sentry?: {
         enabled: boolean;
