@@ -1,7 +1,7 @@
 import { Request } from "express";
 import { IrcBridge } from "../bridge/IrcBridge";
 import { Defer } from "../promiseutil";
-import { ConfigValidator, MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
+import { ConfigValidator, MatrixRoom, MatrixUser, PowerLevelContent, UserMembership } from "matrix-appservice-bridge";
 import Bluebird from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcAction } from "../models/IrcAction";
@@ -259,12 +259,12 @@ export class Provisioner {
 
     private async userHasProvisioningPower(req: ProvisionRequest, userId: string, roomId: string) {
         req.log.info(`Check power level of ${userId} in room ${roomId}`);
-        const matrixClient = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
 
         let powerState = null;
 
         // Try 100 times to join a room, or timeout after 10 min
-        await this.retry(req, 100, 5000, matrixClient, matrixClient.joinRoom, roomId).timeout(600000);
+        await this.retry(req, 100, 5000, intent, intent.join, roomId).timeout(600000);
         try {
             await this.ircBridge.getAppServiceBridge().canProvisionRoom(roomId);
         }
@@ -277,7 +277,7 @@ export class Provisioner {
         }
 
         try {
-            powerState = await matrixClient.getStateEvent(roomId, 'm.room.power_levels');
+            powerState = await intent.getStateEvent(roomId, 'm.room.power_levels');
         }
         catch (err) {
             req.log.error(`Error retrieving power levels (${err.data.error})`);
@@ -354,26 +354,24 @@ export class Provisioner {
         // State key for m.room.bridging
         const skey = `irc://${ircDomain}/${ircChannel}`;
 
-        const matrixClient = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
-        let wholeBridgingState = null;
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
+        let wholeBridgingState: any = null;
 
         // (Matrix) check room state to prevent route looping
         try {
-            const roomState = await matrixClient.roomState(roomId);
+            const roomState = await intent.roomState(roomId) as {type: string; state_key: string}[];
             wholeBridgingState = roomState.find(
-                (e: {type: string; state_key: string}) => {
-                    return e.type === 'm.room.bridging' && e.state_key === skey
-                }
+                e => e.type === 'm.room.bridging' && e.state_key === skey
             );
         }
         catch (err) {
             // The request to discover bridging state has failed
 
             // http-api error indicated by errcode
-            if (err.errcode) {
+            if (err.body?.errcode) {
                 //  ignore M_NOT_FOUND: this bridging does not exist
-                if (err.errcode !== 'M_NOT_FOUND') {
-                    throw new Error(err.data.error);
+                if (err.body.errcode !== 'M_NOT_FOUND') {
+                    throw new Error(err.body.error);
                 }
             }
             else {
@@ -387,7 +385,7 @@ export class Provisioner {
 
             if (bridgingState.status !== 'failure') {
                 // If bridging state sender is this bot
-                if (wholeBridgingState.sender !== matrixClient.credentials.userId) {
+                if (wholeBridgingState.sender !== intent.userId) {
                     // If it is from a different sender, fail
                     throw new Error(
                         `A request to create this mapping has already been sent ` +
@@ -490,7 +488,7 @@ export class Provisioner {
         this.setRequest(server, opNick, {userId: userId, defer: d, log: req.log});
 
         // Get room name
-        const matrixClient = this.ircBridge.getAppServiceBridge().getClientFactory().getClientAs();
+        const matrixClient = this.ircBridge.getAppServiceBridge().getIntent();
 
         let nameState = null;
         try {
@@ -885,32 +883,33 @@ export class Provisioner {
 
         if (!ignorePermissions) {
             // Make sure the requester is a mod in the room
-            const botCli = this.ircBridge.getAppServiceBridge().getBot().getClient();
-            const stateEvents = await botCli.getRoomState(roomId);
+            const intent = this.ircBridge.getAppServiceBridge().getIntent();
+            const stateEvents = await intent.roomState(roomId) as [{type: string; state_key: string; content: unknown}];
             // user_id must be JOINED and must have permission to modify power levels
             let isJoined = false;
             let hasPower = false;
-            stateEvents.forEach((e: { type: string; state_key: string; content: {
-                state_default?: number;
-                users_default?: number;
-                membership: string;
-                users?: Record<string, number>;
-                events?: Record<string, number>;
-            };}) => {
+            stateEvents.forEach(e => {
                 if (e.type === "m.room.member" && e.state_key === options.user_id) {
-                    isJoined = e.content.membership === "join";
+                    const content = e.content as {membership: UserMembership};
+                    isJoined = content.membership === "join";
                 }
                 else if (e.type === "m.room.power_levels" && e.state_key === "") {
+                    const content = e.content as PowerLevelContent;
                     // https://matrix.org/docs/spec/client_server/r0.6.0#m-room-power-levels
-                    let powerRequired = e.content.state_default || 50; // Can be empty. Assume 50 as per spec.
-                    if (e.content.events && e.content.events["m.room.power_levels"]) {
-                        powerRequired = e.content.events["m.room.power_levels"];
+                    let powerRequired: unknown|number = content.state_default;
+                    if (content.events && content.events["m.room.power_levels"]) {
+                        powerRequired = content.events["m.room.power_levels"];
                     }
-                    let power = e.content.users_default || 0; // Can be empty. Assume 0 as per spec.
-                    if (e.content.users && e.content.users[options.user_id]) {
-                        power = e.content.users[options.user_id];
+                    let power: unknown|number = content.users_default;
+                    if (content.users && content.users[options.user_id]) {
+                        power = content.users[options.user_id];
                     }
-                    hasPower = power >= powerRequired;
+                    // Can be empty. Assume 0 as per spec.
+                    // Can be empty. Assume 50 as per spec.
+                    hasPower = (
+                        typeof power === "number" ? power : 0)
+                        >=
+                        (typeof powerRequired === "number" ? powerRequired : 50);
                 }
             });
             if (!isJoined) {
@@ -990,11 +989,12 @@ export class Provisioner {
         // appears as joined
         const joinedUserCounts: {[userId: string]: number} = {}; // user_id => Number
         const unlinkedUserIds: string[] = [];
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
         const asBot = this.ircBridge.getAppServiceBridge().getBot();
         for (let i = 0; i < matrixRooms.length; i++) {
             let stateEvents = [];
             try {
-                stateEvents = await asBot.getClient().getRoomState(matrixRooms[i].getId());
+                stateEvents = await intent.matrixClient.getRoomState(matrixRooms[i].getId());
             }
             catch (err) {
                 req.log.error("Failed to hit /state for room " + matrixRooms[i].getId());
@@ -1044,6 +1044,7 @@ export class Provisioner {
 
     private async leaveMatrixVirtuals(req: ProvisionRequest, roomId: string, server: IrcServer): Promise<void> {
         const asBot = this.ircBridge.getAppServiceBridge().getBot();
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
         const roomChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(
             roomId
         );
@@ -1054,7 +1055,7 @@ export class Provisioner {
             // We can't determine who should and shouldn't be in the room.
             return undefined;
         }
-        const stateEvents = await asBot.getClient().getRoomState(roomId);
+        const stateEvents = await intent.matrixClient.getRoomState(roomId);
         const roomInfo = await asBot.getRoomInfo(roomId, {
             state: {
                 events: stateEvents
@@ -1071,16 +1072,15 @@ export class Provisioner {
     // this room
     private async leaveMatrixRoomIfUnprovisioned(req: ProvisionRequest, roomId: string) {
         const ircChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(roomId);
+        const intent = this.ircBridge.getAppServiceBridge().getIntent();
         if (ircChannels.length === 0) {
-            const matrixClient = this.ircBridge.getAppServiceBridge()
-                .getClientFactory().getClientAs();
             req.log.info(`Leaving room ${roomId} as there are no more provisioned mappings`);
-            await matrixClient.leave(roomId);
+            await intent.leave(roomId);
         }
     }
 
     // List all mappings currently provisioned with the given matrix_room_id
-    public listings(req: ProvisionRequest) {
+    public async listings(req: ProvisionRequest) {
         const roomId = req.params.roomId;
         try {
             this.roomIdValidator.validate({"matrix_room_id": roomId});
@@ -1099,18 +1099,18 @@ export class Provisioner {
             }
         }
 
-        return this.ircBridge.getStore()
-            .getProvisionedMappings(roomId)
-            .map((entry) => {
-                if (!entry.matrix || !entry.remote) {
-                    return false;
-                }
-                return {
-                    matrix_room_id : entry.matrix.getId(),
-                    remote_room_channel : entry.remote.get("channel"),
-                    remote_room_server : entry.remote.get("domain"),
-                }
-            }).filter((e) => e !== false);
+        const mappings = await this.ircBridge.getStore().getProvisionedMappings(roomId);
+
+        return mappings.map((entry) => {
+            if (!entry.matrix || !entry.remote) {
+                return false;
+            }
+            return {
+                matrix_room_id : entry.matrix.getId(),
+                remote_room_channel : entry.remote.get("channel"),
+                remote_room_server : entry.remote.get("domain"),
+            }
+        }).filter((e) => e !== false);
     }
 
     private getLimits() {
