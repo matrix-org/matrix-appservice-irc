@@ -201,22 +201,18 @@ describe("Provisioning API", function() {
 
 
         try {
-            console.log("foo");
             // Unlink needs an existing link to remove, so add one first
             if (doLinkBeforeUnlink) {
                 await env.mockAppService._link(
                     parameters, status, json
                 );
-                console.log("bar");
 
                 // Wait until m.room.bridging has been set accordingly
                 await env.isPending.promise;
             }
-            console.log("baz");
 
             // Only link is required, resolve early
             if (link) {
-                console.log("grr");
                 return resolve();
             }
 
@@ -676,7 +672,6 @@ describe("Provisioning API", function() {
             let replySent = false;
 
             env.ircMock._whenClient(config._server, config._botnick, 'say', (self) => {
-                console.log("foo");
                 if (replySent) {
                     return;
                 }
@@ -684,12 +679,10 @@ describe("Provisioning API", function() {
                 // Listen for m.room.bridging success
                 const sdk = env.clientMock._client(config._botUserId);
                 sdk.sendStateEvent.and.callFake((roomId, type, key, content) => {
-                    console.log("bar");
                     // Status of m.room.bridging is a success
                     if (type === "m.room.bridging" && content.status === "success") {
                         isLinked.resolve();
                     }
-                    console.log("baz");
                     return {};
                 });
 
@@ -888,7 +881,6 @@ describe("Provisioning API", function() {
             const status = jasmine.createSpy("status(num)");
 
             const roomId = "!foo:bar";
-            console.log(await env.ircBridge.getStore().getProvisionedMappings(roomId));
             const parameters = [{
                 matrix_room_id : roomId,
                 remote_room_server : "irc.example",
@@ -922,7 +914,6 @@ describe("Provisioning API", function() {
                     return;
                 }
                 // Listen for m.room.bridging success
-                console.log('Waiting for m.room.bridging');
                 const sdk = env.clientMock._client(config._botUserId);
                 sdk.sendStateEvent.and.callFake((stateRoomId, type, key, content) => {
                     // Status of m.room.bridging is a success
@@ -1045,11 +1036,8 @@ describe("Provisioning API", function() {
 
         it("when the link is successful", async () => {
             await mockLinkCR({}, true, true, true, true);
-            console.log("isPending");
             await env.isPending.promise;
-            console.log("isSuccess");
             await env.isSuccess.promise;
-            console.log("isFoo");
         });
     });
 

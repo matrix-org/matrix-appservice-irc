@@ -623,7 +623,7 @@ export class IrcHandler {
                 // Check if it was a permission fail.
                 // We can't check the `error` value because it's non-standard, so just assume a M_FORBIDDEN is a
                 // PL related failure.
-                if (ex.data?.errcode === "M_FORBIDDEN") {
+                if (ex.body?.errcode === "M_FORBIDDEN") {
                     req.log.warn(
                         `User ${virtualMatrixUser.getId()} may not have permission to post in ${room.getId()}`
                     );
