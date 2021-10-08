@@ -60,6 +60,10 @@ export interface BridgeConfig {
         };
         perRoomConfig?: RoomConfigConfig;
         RMAUlimit?: number;
+        userActivity?: {
+            minUserActiveDays?: number;
+            inactiveAfterDays?: number;
+        };
     };
     sentry?: {
         enabled: boolean;

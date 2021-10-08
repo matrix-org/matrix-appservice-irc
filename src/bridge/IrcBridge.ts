@@ -655,8 +655,17 @@ export class IrcBridge {
             throw Error("No IRC servers specified.");
         }
 
+        const uatConfig = {
+            ...UserActivityTrackerConfig.DEFAULT,
+        };
+        if (this.config.ircService.userActivity?.minUserActiveDays !== undefined) {
+            uatConfig.minUserActiveDays = this.config.ircService.userActivity.minUserActiveDays;
+        }
+        if (this.config.ircService.userActivity?.inactiveAfterDays !== undefined) {
+            uatConfig.inactiveAfterDays = this.config.ircService.userActivity.inactiveAfterDays;
+        }
         this.bridge.opts.controller.userActivityTracker = new UserActivityTracker(
-            UserActivityTrackerConfig.DEFAULT,
+            uatConfig,
             await this.getStore().getUserActivity(),
             (changes) => this.onUserActivityChanged(changes),
         );

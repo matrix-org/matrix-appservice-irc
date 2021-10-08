@@ -131,6 +131,13 @@ properties:
                 type: "string"
             RMAUlimit:
                 type: "integer"
+            userActivity:
+                type: "object"
+                properties:
+                    minUserActiveDays:
+                        type: "number"
+                    inactiveAfterDays:
+                        type: "number"
             matrixHandler:
                 type: "object"
                 properties:
