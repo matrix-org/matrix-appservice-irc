@@ -186,7 +186,7 @@ export class MemberListSyncer {
                     }
                     catch (err) {
                         log.error(`Failed to getJoinedMembers in room ${roomId}: ${err}`);
-                        if (err.data?.errcode === "M_FORBIDDEN") {
+                        if (err.body?.errcode === "M_FORBIDDEN") {
                             // If we're not allowed to, just give up.
                             return;
                         }

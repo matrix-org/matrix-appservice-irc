@@ -249,9 +249,8 @@ export class MatrixHandler {
         let isPmRoom = event.content.is_direct === true;
         if (isPmRoom !== true) {
             // Legacy check
-            const joinedMembers = Object.keys(
-                await this.ircBridge.getAppServiceBridge().getBot().getJoinedMembers(event.room_id)
-            );
+            const joinedMembers = await this.ircBridge.getAppServiceBridge().getIntent().matrixClient
+                .getJoinedRoomMembers(event.room_id);
             isPmRoom = joinedMembers.length === 2 && joinedMembers.includes(event.sender);
         }
 
@@ -914,12 +913,13 @@ export class MatrixHandler {
 
         // wait a while if we just got an invite else we may not have the mapping stored
         // yet...
-        if (this.processingInvitesForRooms[event.room_id + event.sender]) {
+        const key = `${event.room_id}+${event.sender}`;
+        if (key in this.processingInvitesForRooms) {
             req.log.info(
                 "Holding request for %s until invite for room %s is done.",
                 event.sender, event.room_id
             );
-            await this.processingInvitesForRooms[event.room_id + event.sender];
+            await this.processingInvitesForRooms[key];
             req.log.info(
                 "Finished holding event for %s in room %s", event.sender, event.room_id
             );

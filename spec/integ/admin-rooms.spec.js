@@ -996,7 +996,8 @@ describe("Admin rooms", function() {
 
     it("mx bot should be kicked when there are > 2 users in room and a message is sent", async () => {
 
-            const sdk = env.clientMock._client(botUserId);
+            const intent = env.clientMock._intent(botUserId);
+            const sdk = intent.underlyingClient;
             sdk.getRoomState.and.callFake(
                 function (roomId) {
                     expect(roomId).toBe(adminRoomId, 'Room state returned should be for admin room');
@@ -1021,7 +1022,7 @@ describe("Admin rooms", function() {
             );
 
             let botLeft = false
-            sdk.leaveRoom.and.callFake(function(roomId) {
+            intent.leaveRoom.and.callFake(function(roomId) {
                 expect(roomId).toBe(adminRoomId, 'Bot did not leave admin room');
                 botLeft = true;
                 return Promise.resolve();
@@ -1065,8 +1066,8 @@ describe("Admin rooms", function() {
     });
 
     it("mx bot should NOT be kicked when there are 2 users in room and a message is sent", async () => {
-
-            const sdk = env.clientMock._client(botUserId);
+            const intent = env.clientMock._intent(botUserId);
+            const sdk = intent.underlyingClient;
             sdk.getRoomState.and.callFake(
                 function (roomId) {
                     expect(roomId).toBe(adminRoomId, 'Room state returned should be for admin room');
@@ -1078,7 +1079,7 @@ describe("Admin rooms", function() {
             );
 
             let botLeft = false
-            sdk.leaveRoom.and.callFake(function(roomId) {
+            intent.leaveRoom.and.callFake(function(roomId) {
                 expect(roomId).toBe(adminRoomId, 'Bot did not leave admin room');
                 botLeft = true;
                 return Promise.resolve();

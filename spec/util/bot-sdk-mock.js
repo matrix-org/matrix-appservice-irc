@@ -2,9 +2,12 @@
  * Mock responses to the matrix-bot-sdk.
  */
 const mockIntents = {
-    //user_id: Client
+    //user_id: MockBotSdkIntent
 };
 
+/**
+ * A mock of the https://github.com/turt2live/matrix-bot-sdk/blob/master/src/MatrixClient.ts class.
+ */
 class MockBotSdkClient {
     constructor(userId) {
         this._userId = userId;
@@ -112,30 +115,14 @@ class MockBotSdkClient {
 }
 
 /**
- * A mock of the https://github.com/turt2live/matrix-bot-sdk/blob/master/src/appservice/Intent.ts class
- *
- * This also includes a mock to the the underlying
- * https://github.com/turt2live/matrix-bot-sdk/blob/master/src/MatrixClient.ts calls.
+ * A mock of the https://github.com/turt2live/matrix-bot-sdk/blob/master/src/appservice/Intent.ts class.
  */
 class MockBotSdkIntent {
     constructor(config) {
         this.userId = config.userId;
         this.underlyingClient = new MockBotSdkClient(config.userId);
-        this.createRoom = jasmine.createSpy("sdk.createRoom(opts)");
-        this.joinRoom = jasmine.createSpy("sdk.joinRoom(idOrAlias, opts)");
-        this.sendMessage = jasmine.createSpy("sdk.sendMessage(roomId, content)");
-        this.setRoomTopic = jasmine.createSpy("sdk.setRoomTopic(roomId, topic)");
-        this.invite = jasmine.createSpy("sdk.invite(roomId, userId)");
-        this.mxcUrlToHttp = jasmine.createSpy("sdk.mxcUrlToHttp(mxc, w, h, method)");
-        this.getHomeserverUrl = jasmine.createSpy("sdk.getHomeserverUrl()");
-        this.setPowerLevel = jasmine.createSpy("sdk.setPowerLevel()");
         this.ensureRegistered = jasmine.createSpy("intent.ensureRegistered()");
         this.leaveRoom = jasmine.createSpy("cli.leaveRoom(roomId)");
-
-        // mock up joinRoom immediately since it is called when joining mapped IRC<-->Matrix rooms
-        this.joinRoom.and.callFake(function() {
-            return Promise.resolve({});
-        });
 
         this.leaveRoom.and.callFake(() => ({}));
 

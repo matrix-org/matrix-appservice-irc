@@ -145,7 +145,7 @@ export class RoomAccessSyncer {
         }
         catch (ex) {
             req.log.warn(`Failed to apply PL to ${roomId}`, ex);
-            if (ex.body.errcode !== "M_TOO_LARGE") {
+            if (ex.body?.errcode !== "M_TOO_LARGE") {
                 return;
             }
             req.log.warn(`The powerlevel event is too large, attempting to flush out left users`);
@@ -523,8 +523,9 @@ export class RoomAccessSyncer {
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         return intent.sendStateEvent(
             room.getId(),
+            "m.room.join_rules",
             "",
-            "m.room.join_rules", {
+            {
                 join_rule: (isInviteOnly ? "invite" : "public")
             },
         );

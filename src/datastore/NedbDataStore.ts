@@ -209,12 +209,9 @@ export class NeDBDataStore implements DataStore {
      * @return {Promise} A promise which resolves to a list
      * of entries.
      */
-    public getProvisionedMappings(roomId: string): Bluebird<Entry[]> {
-        return Bluebird.cast(this.roomStore.getEntriesByMatrixId(roomId)).filter(
-            (entry: Entry) => {
-                return entry.data && entry.data.origin === 'provision'
-            }
-        );
+    public async getProvisionedMappings(roomId: string): Promise<Entry[]> {
+        const mappings = await this.roomStore.getEntriesByMatrixId(roomId);
+        return mappings.filter(entry => entry.data && entry.data.origin === 'provision');
     }
 
     /**
