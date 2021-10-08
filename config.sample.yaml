@@ -569,6 +569,12 @@ ircService:
 
   # Maximum number of montly active users, beyond which the bridge gets blocked (both ways)
   # RMAUlimit: 100
+  
+  # userActivity:
+    # The "grace period" before we start counting users as active
+    # minUserActiveDays: 1
+    # Time before users are considered inactive again
+    # inactiveAfterDays: 30
 
   ircHandler:
     # Should we attempt to match an IRC side mention (nickaname match)
