@@ -368,7 +368,7 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
     const tVirtualUserId = "@" + roomMapping.server + "_" + tRealIrcUserNick + ":" +
                           config.homeserver.domain;
 
-                          const tRealMatrixUserNick = "M-alice";
+    const tRealMatrixUserNick = "M-alice";
     const tRealUserId = "@alice:anotherhomeserver";
 
     const tCreatedRoomId = "!fehwfweF:fuiowehfwe";
