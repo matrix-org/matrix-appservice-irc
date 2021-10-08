@@ -19,7 +19,7 @@ describe("Debug API", () => {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should enable the debug API", async () => {
         // Revert to the default value for this one test

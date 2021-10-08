@@ -28,7 +28,7 @@ describe("Connection reaping", () => {
         env.ircBridge.activityTracker.opts.defaultOnline = false;
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("users should appear online by default", async () => {
         // Revert to the default value for this one test

@@ -62,7 +62,7 @@ describe("IRC client cycling", () => {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should disconnect the oldest (last message time) client", async () => {
         await env.mockAppService._trigger("type:m.room.message", {

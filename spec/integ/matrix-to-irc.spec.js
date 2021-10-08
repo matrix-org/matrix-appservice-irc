@@ -50,7 +50,7 @@ describe("Matrix-to-IRC message bridging", function() {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should bridge matrix messages as IRC text", function(done) {
         const testText = "Here is some test text.";
@@ -838,7 +838,7 @@ describe("Matrix-to-Matrix message bridging", function() {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should bridge matrix messages to other mapped matrix rooms", async () => {
         let testText = "Here is some test text.";

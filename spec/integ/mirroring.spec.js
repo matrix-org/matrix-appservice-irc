@@ -48,7 +48,7 @@ describe("Mirroring", () => {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     describe("Matrix users on IRC", () => {
         it("should join the IRC channel when the Matrix user joins", (done) => {

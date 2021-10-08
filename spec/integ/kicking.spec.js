@@ -68,7 +68,7 @@ describe("Kicking", () => {
         botIrcClient.emit("message", ircUser.nick, config._chan, "let me in");
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     describe("IRC users on IRC", () => {
         it("should make the kickee leave the Matrix room", async () => {
@@ -227,7 +227,7 @@ describe("Kicking on IRC join", () => {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should be done for err_needreggednick", async () => {
         const userKickedPromise = new Promise(function(resolve) {

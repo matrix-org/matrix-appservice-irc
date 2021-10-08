@@ -18,7 +18,7 @@ describe("Homeserver user queries", () => {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should always create a new Matrix user for the specified ID", (done) => {
         const sdk = env.clientMock._intent(config._botUserId);
@@ -66,7 +66,7 @@ describe("Homeserver alias queries", function() {
         }
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should make the AS start tracking the channel specified in the alias.", async () => {
         const sdk = env.clientMock._client(config._botUserId);

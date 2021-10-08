@@ -16,7 +16,7 @@ describe("Creating admin rooms", () => {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should be possible by sending an invite to the bot's user ID", async () => {
             let botJoinedRoom = false;

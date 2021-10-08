@@ -32,7 +32,7 @@ describe("IRC connections", () => {
         await test.initEnv(env, config);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should use the matrix user's display name if they have one", async () => {
         let displayName = "Some_Name";

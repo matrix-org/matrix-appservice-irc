@@ -14,7 +14,7 @@ describe("Initialisation", () => {
         await test.beforeEach(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should connect to the IRC network and channel in the config", (done) => {
         let clientConnected = false;

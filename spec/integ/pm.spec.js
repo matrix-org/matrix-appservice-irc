@@ -22,7 +22,7 @@ describe("Matrix-to-IRC PMing", () => {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should join 1:1 rooms invited from matrix", async () => {
         // get the ball rolling
@@ -260,7 +260,7 @@ describe("IRC-to-Matrix PMing", () => {
         });
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should create a 1:1 matrix room and invite the real matrix user when " +
     "it receives a PM directed at a virtual user from a real IRC user", async () => {
@@ -414,7 +414,7 @@ describe("IRC-to-Matrix Non-Federated PMing", function() {
         });
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should create a non-federated 1:1 matrix room and invite the real matrix user when " +
     "it receives a PM directed at a virtual user from a real IRC user", async () => {

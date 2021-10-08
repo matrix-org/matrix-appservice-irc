@@ -43,7 +43,7 @@ describe("IRC-to-Matrix message bridging", () => {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should bridge IRC text as Matrix message's m.text", (done) => {
         const testText = "this is some test text.";
@@ -375,7 +375,7 @@ describe("IRC-to-Matrix operator modes bridging", () => {
         });
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should bridge modes to power levels", async () => {
         // Set IRC user prefix, which in reality is assumed to have happened
@@ -586,7 +586,7 @@ describe("IRC-to-Matrix name bridging", () => {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should set the matrix display name from the config file template", (done) => {
         // don't care about registration / sending the event

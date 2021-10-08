@@ -38,7 +38,7 @@ describe("IRC-to-Matrix mode bridging", () => {
         await test.initEnv(env);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should set join_rules to 'invite' on +k.", async (done) => {
         sdk.sendStateEvent.and.callFake((roomId, type, key, content) => {

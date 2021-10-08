@@ -27,7 +27,7 @@ describe("MemberListSyncer", () => {
         botClient = env.clientMock._client(config._botUserId);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should sync initial leaves from IRC to Matrix", async () => {
         env.ircMock._autoConnectNetworks(

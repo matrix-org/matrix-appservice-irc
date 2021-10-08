@@ -26,7 +26,7 @@ describe("Dynamic channels", () => {
         await test.initEnv(env, config);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should join IRC channels when it receives special alias queries", async () => {
         // Default mapping => #irc_$SERVER_$CHANNEL
@@ -211,7 +211,7 @@ describe("Dynamic channels (federation disabled)", function() {
         await test.initEnv(env, config);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should create non federated room when joining channel and federation is disabled", (done) => {
         const tChannel = "#foobar";
@@ -279,7 +279,7 @@ describe("Dynamic channels (disabled)", function() {
         await test.initEnv(env, config);
     });
 
-    afterEach(() => test.afterEach(env));
+    afterEach(async () => test.afterEach(env));
 
     it("should NOT join IRC channels when it receives special alias queries", (done) => {
         const tChannel = "#foobar";

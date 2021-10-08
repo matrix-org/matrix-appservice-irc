@@ -817,7 +817,7 @@ describe("Provisioning API", function() {
             await test.initEnv(env);
         });
 
-        afterEach(() => test.afterEach(env));
+        afterEach(async () => test.afterEach(env));
 
         it("should return an empty list when no mappings have been provisioned", async () => {
             let json = jasmine.createSpy("json(obj)");
