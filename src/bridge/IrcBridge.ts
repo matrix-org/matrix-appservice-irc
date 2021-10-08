@@ -14,7 +14,6 @@ import { NeDBDataStore } from "../datastore/NedbDataStore";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
 import { getLogger } from "../logging";
 import { DebugApi } from "../DebugApi";
-import { MatrixActivityTracker } from "matrix-lastactive";
 import { Provisioner } from "../provisioning/Provisioner.js";
 import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
@@ -34,6 +33,7 @@ import {
     AppServiceRegistration,
     AppService,
     Rules,
+    ActivityTracker,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -75,7 +75,7 @@ export class IrcBridge {
     public readonly matrixHandler: MatrixHandler;
     public readonly ircHandler: IrcHandler;
     public readonly publicitySyncer: PublicitySyncer;
-    public readonly activityTracker: MatrixActivityTracker|null = null;
+    public activityTracker: ActivityTracker|null = null;
     public readonly roomConfigs: RoomConfig;
     private clientPool!: ClientPool; // This gets defined in the `run` function
     private ircServers: IrcServer[] = [];
@@ -103,16 +103,6 @@ export class IrcBridge {
     ) {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
-        if (config.ircService.debugApi && config.ircService.debugApi.enabled) {
-            this.activityTracker = new MatrixActivityTracker({
-                homeserverUrl: this.config.homeserver.url,
-                accessToken: registration.getAppServiceToken() as string,
-                usePresence: this.config.homeserver.enablePresence,
-                serverName: this.config.homeserver.domain,
-                logger: getLogger("MxActivityTracker"),
-                defaultOnline: true,
-            });
-        }
         if (!this.config.database && this.config.ircService.databaseUri) {
             log.warn("ircService.databaseUri is a deprecated config option." +
                      "Please use the database configuration block");
@@ -563,6 +553,12 @@ export class IrcBridge {
         await this.bridge.initalise();
         this.matrixHandler.initalise();
 
+        this.activityTracker = new ActivityTracker(this.bridge.getIntent().matrixClient, {
+            usePresence: this.config.homeserver.enablePresence,
+            serverName: this.config.homeserver.domain,
+            defaultOnline: true,
+        });
+
         if (dbConfig.engine === "postgres") {
             log.info("Using PgDataStore for Datastore");
             const pgDs = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
@@ -992,7 +988,7 @@ export class IrcBridge {
 
         if (userIds) {
             for (const userId of userIds) {
-                this.activityTracker.bumpLastActiveTime(userId);
+                this.activityTracker.setLastActiveTime(userId);
                 this.dataStore.updateLastSeenTimeForUser(userId).catch((ex) => {
                     log.warn(`Failed to bump last active time for ${userId} in database`, ex);
                 });
@@ -1007,7 +1003,7 @@ export class IrcBridge {
             this.config.ircService.metrics?.userActivityThresholdHours !== undefined)) {
             updatePromise = this.dataStore.updateLastSeenTimeForUser(event.sender);
             if (this.activityTracker) {
-                this.activityTracker.bumpLastActiveTime(event.sender);
+                this.activityTracker.setLastActiveTime(event.sender);
             }
         }
         const request = new BridgeRequest(baseRequest);

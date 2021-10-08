@@ -45,7 +45,7 @@ describe("Connection reaping", () => {
     });
 
     it("users should appear online if they have sent a message", async () => {
-        env.mockAppService._trigger("type:foo.notamessage", {
+        await env.mockAppService._trigger("type:foo.notamessage", {
             content: {
                 body: "foo",
                 msgtype: "m.text",

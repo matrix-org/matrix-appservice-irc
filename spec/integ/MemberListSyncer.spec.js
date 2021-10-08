@@ -61,7 +61,6 @@ describe("MemberListSyncer", () => {
             // 'alpha' should leave
             const alphaClient = env.clientMock._intent(ircUserId("alpha"));
             alphaClient.leaveRoom.and.callFake((roomId) => {
-                console.log("WOOO", roomId, roomMapping.roomId);
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
                 return {};

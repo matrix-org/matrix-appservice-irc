@@ -16,6 +16,12 @@ import { GetNicksResponseOperators } from "../irc/BridgedClient";
 
 const log = logging("Provisioner");
 
+type BridgingStatus = "pending"|"success"|"failure";
+interface MRoomBridgingContent extends Record<string, unknown> {
+    user_id: string;
+    status: BridgingStatus;
+}
+
 const matrixRoomIdValidation = {
     "type": "string",
     "pattern": "^!.*:.*$"
@@ -203,14 +209,13 @@ export class Provisioner {
                 req.url.match(/^\/_matrix\/provision\/listlinks/)
     }
 
-    private async updateBridgingState (roomId: string, userId: string,
-                                       status: "pending"|"success"|"failure", skey: string) {
+    private async updateBridgingState (roomId: string, userId: string, status: BridgingStatus, skey: string) {
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         try {
             await intent.sendStateEvent(roomId, 'm.room.bridging', skey, {
                 user_id: userId,
                 status,
-            });
+            } as MRoomBridgingContent);
         }
         catch (err) {
             throw new Error(`Could not update m.room.bridging state in ${roomId}`);
@@ -355,11 +360,17 @@ export class Provisioner {
         const skey = `irc://${ircDomain}/${ircChannel}`;
 
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
-        let wholeBridgingState: any = null;
+        let wholeBridgingState: {
+            type: string;
+            state_key: string;
+            sender: string;
+            content: MRoomBridgingContent;
+        }|undefined = undefined;
 
         // (Matrix) check room state to prevent route looping
         try {
-            const roomState = await intent.roomState(roomId) as {type: string; state_key: string}[];
+            const roomState = await intent.roomState(roomId) as
+                {type: string; sender: string; state_key: string, content: MRoomBridgingContent}[];
             wholeBridgingState = roomState.find(
                 e => e.type === 'm.room.bridging' && e.state_key === skey
             );

@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 import { MatrixRoom, MatrixUser, RoomBridgeStoreEntry as Entry} from "matrix-appservice-bridge";
-import Bluebird from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
