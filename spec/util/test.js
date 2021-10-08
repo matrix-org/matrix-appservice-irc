@@ -119,7 +119,6 @@ class TestEnv {
     async beforeEach() {
         ircMock._reset();
         clientMock._reset();
-        console.log("Creating botclient");
         const client = clientMock._client(this.config._botUserId);
         this.botClient = client;
         if (USING_PG) {
