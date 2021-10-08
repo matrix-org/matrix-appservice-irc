@@ -174,9 +174,9 @@ export class IrcBridge {
             },
             // See note below for ESCAPE_DEFAULT
             escapeUserIds: false,
-            roomLinkValidation: roomLinkValidationRules && {
+            roomLinkValidation: roomLinkValidationRules ? {
                 rules: roomLinkValidationRules,
-            },
+            } : undefined,
             roomUpgradeOpts: {
                 consumeEvent: true,
                 migrateGhosts: false,
