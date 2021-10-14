@@ -1,4 +1,12 @@
- 0.32.0-rc1 (2021-10-08)
+0.32.0-rc2 (2021-10-14)
+========================
+
+Bugfixes
+--------
+
+- Upgrade to `matrix-appservice-bridge` 3.1.1 to fix excessive logging issues.
+
+0.32.0-rc1 (2021-10-08)
 ========================
 
 Features
