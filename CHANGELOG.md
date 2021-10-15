@@ -1,4 +1,13 @@
- 0.32.0-rc1 (2021-10-08)
+ 0.32.0-rc2 (2021-10-15)
+========================
+
+Bugfixes
+--------
+
+- Fix an issue where the bridge would excessively log state event content ([\#1487](https://github.com/matrix-org/matrix-appservice-irc/issues/1487))
+
+
+0.32.0-rc1 (2021-10-08)
 ========================
 
 Features
