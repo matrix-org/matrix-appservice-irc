@@ -31,13 +31,14 @@ describe("Room upgrades", function() {
     afterEach(async () => {
         await test.afterEach(env);
     });
+
     it("should move the mapping to the new channel", async () => {
         const server = env.ircBridge.getServer(roomMapping.server);
         const members = ["testUser1", "testUser2", "testUser3"].map((n) => server.getUserIdFromNick(n));
         const allLeft = Promise.all(members.map(async (member) => {
-            const memberClient = env.clientMock._client(member);
+            const intent = env.clientMock._intent(member);
             return new Promise((resolve, reject) => {
-                memberClient.leave.and.callFake((roomId) => {
+                intent.leaveRoom.and.callFake((roomId) => {
                     try {
                         expect(roomId).toBe(roomMapping.roomId);
                         resolve();
@@ -51,7 +52,7 @@ describe("Room upgrades", function() {
         const sdk = env.clientMock._client(botUserId);
         const store = env.ircBridge.getStore();
         const newRoomId = "!new_room:bar.com";
-        env.clientMock._client(botUserId).getStateEvent.and.callFake(async (roomId, eventType, key) => {
+        sdk.getRoomStateEvent.and.callFake(async (roomId, eventType, key) => {
             if (eventType === 'm.room.create') {
                 expect(roomId).toEqual(newRoomId);
                 expect(key).toEqual('');
@@ -75,9 +76,8 @@ describe("Room upgrades", function() {
             state_key: "",
         });
 
-
         await new Promise((resolve, reject) => {
-            sdk.roomState.and.callFake(async (roomId) => {
+            sdk.getRoomState.and.callFake((roomId) => {
                 try {
                     expect(roomId).toEqual(roomMapping.roomId);
                     resolve();
@@ -105,17 +105,18 @@ describe("Room upgrades", function() {
                             },
                             room_id: roomMapping.roomId,
                             type: "m.room.member",
-                        }
-                    ].concat(members.map((userId) => ({
-                        sender: userId,
-                        state_key: userId,
-                        membership: "join",
-                        content: {
-                            membership: "join",
                         },
-                        room_id: roomMapping.roomId,
-                        type: "m.room.member",
-                    })));
+                        ...members.map((userId) => ({
+                            sender: userId,
+                            state_key: userId,
+                            membership: "join",
+                            content: {
+                                membership: "join",
+                            },
+                            room_id: roomMapping.roomId,
+                            type: "m.room.member",
+                        }))
+                    ]
                 }
                 catch (ex) {
                     reject(ex);
@@ -125,7 +126,7 @@ describe("Room upgrades", function() {
         });
 
         expect(
-            env.clientMock._client(botUserId).getStateEvent.calls.any(newRoomId, 'm.room.create', '')
+            env.clientMock._client(botUserId).getRoomStateEvent.calls.any(newRoomId, 'm.room.create', '')
         ).toBeTrue();
         const oldRoom = await store.getRoom(roomMapping.roomId, roomMapping.server, roomMapping.channel);
         const newRoom = await store.getRoom(newRoomId, roomMapping.server, roomMapping.channel);

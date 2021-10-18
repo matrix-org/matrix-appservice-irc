@@ -1,10 +1,10 @@
 // common tasks performed in tests
 const extend = require("extend");
 const proxyquire = require('proxyquire');
-const AppServiceRegistration = require("matrix-appservice-bridge").AppServiceRegistration;
+const { AppServiceRegistration, Intent } = require("matrix-appservice-bridge");
 const MockAppService = require("./app-service-mock");
 const Promise = require("bluebird");
-const clientMock = require("./client-sdk-mock");
+const clientMock = require("./bot-sdk-mock");
 const ircMock = require("./irc-client-mock");
 const { Client } = require('pg');
 
@@ -17,7 +17,6 @@ const main = proxyquire("../../lib/main.js", {
         AppService: MockAppService,
         "@global": true
     },
-    "matrix-js-sdk": clientMock,
     "matrix-org-irc": ircMock,
 });
 
@@ -43,6 +42,7 @@ if (USING_PG) {
     })
 }
 
+
 class TestEnv {
     constructor(config, mockAppService) {
         this.config = config;
@@ -51,6 +51,20 @@ class TestEnv {
         this.ircBridge = null;
         this.ircMock = ircMock;
         this.clientMock = clientMock;
+        this.botClient = null;
+    }
+
+    /**
+     * Function to create a mock matrix-appservice-bridge Intent.
+     *
+     * @param {string} userId The userId to create.
+     * @param {any} opts
+     * @returns
+     */
+    intentCreateFn(userId, opts) {
+        userId = userId || this.config._registration._botUserId;
+        const botSdkIntent = clientMock._intent(userId);
+        return new Intent(botSdkIntent, this.botClient, { ...opts });
     }
 
     /**
@@ -63,7 +77,12 @@ class TestEnv {
         try {
             ircBridge = await this.main.runBridge(
                 this.config._port, customConfig || this.config,
-                AppServiceRegistration.fromObject(this.config._registration), !USING_PG
+                AppServiceRegistration.fromObject(this.config._registration),
+                {
+                    isDBInMemory:  !USING_PG,
+                    skipPingCheck: true,
+                    onIntentCreate: (...args) => this.intentCreateFn(...args),
+                }
             )
         }
         catch (e) {
@@ -100,6 +119,8 @@ class TestEnv {
     async beforeEach() {
         ircMock._reset();
         clientMock._reset();
+        const client = clientMock._client(this.config._botUserId);
+        this.botClient = client;
         if (USING_PG) {
             await pgClientConnectPromise;
             // Create a new DB for each test
@@ -140,10 +161,10 @@ module.exports.afterEach = function(env) {
  * Reset the test environment for a new test case. This resets all mocks.
  * @param {Object} env : The pre-initialised test environment.
  */
-module.exports.beforeEach = Promise.coroutine(function*(env) {
+module.exports.beforeEach = async (env) => {
     MockAppService.resetInstance();
     if (env) {
-        return yield env.beforeEach();
+        return env.beforeEach();
     }
     process.on("unhandledRejection", function(reason) {
         if (reason.stack) {
@@ -151,15 +172,15 @@ module.exports.beforeEach = Promise.coroutine(function*(env) {
         }
         throw new Error("Unhandled rejection: " + reason);
     });
-    return Promise.resolve();
-});
+    return null;
+}
 
 /**
  * Transform a given generator function into a coroutine and wrap it up in a Jasmine
  * async test function. This allows seamless use of async function(done) tests using
  * yield. For example:
  * <pre>
- *   it("should do stuff", test.coroutine(function*() {
+ *   it("should do stuff", async () => {
  *     var something = yield doThing();
  *   }));
  * </pre>

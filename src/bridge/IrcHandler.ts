@@ -1,4 +1,4 @@
-import { IrcBridge } from "./IrcBridge";
+import { IrcBridge, MEMBERSHIP_DEFAULT_TTL } from "./IrcBridge";
 import { Queue } from "../util/Queue";
 import { RoomAccessSyncer } from "./RoomAccessSyncer";
 import { IrcServer, MembershipSyncKind } from "../irc/IrcServer";
@@ -206,7 +206,7 @@ export class IrcHandler {
             }
             catch (error) {
                 req.log.error(error);
-                req.log.warn(`Failed creating a PM room with ${toUserId}. Remaining reties: ${remainingReties}`);
+                req.log.warn(`Failed creating a PM room with ${toUserId}. Remaining retries: ${remainingReties}`);
             }
             remainingReties--;
         } while (!response && remainingReties > 0);
@@ -623,7 +623,7 @@ export class IrcHandler {
                 // Check if it was a permission fail.
                 // We can't check the `error` value because it's non-standard, so just assume a M_FORBIDDEN is a
                 // PL related failure.
-                if (ex.data?.errcode === "M_FORBIDDEN") {
+                if (ex.body?.errcode === "M_FORBIDDEN") {
                     req.log.warn(
                         `User ${virtualMatrixUser.getId()} may not have permission to post in ${room.getId()}`
                     );
@@ -684,9 +684,19 @@ export class IrcHandler {
             const shouldRetry = syncType === "incremental";
             // Initial membership should have a longer TTL as it is likely going to be delayed by a large
             // number of new joiners.
-            const ttl = syncType === "initial" ? MEMBERSHIP_INITIAL_TTL_MS : undefined;
-            await this.membershipQueue.join(room.getId(), matrixUser.getId(), req, shouldRetry, ttl);
-            intent.setPresence("online");
+            const ttl = syncType === "initial" ? MEMBERSHIP_INITIAL_TTL_MS : MEMBERSHIP_DEFAULT_TTL;
+            await this.membershipQueue.queueMembership({
+                attempts: server.getJoinAttempts(),
+                roomId: room.getId(),
+                req,
+                retry: shouldRetry,
+                ttl,
+                userId: matrixUser.getId(),
+                type: "join",
+                ts: Date.now(),
+            });
+            // https://github.com/turt2live/matrix-bot-sdk/issues/79
+            intent.setPresence("online", "");
         });
         if (matrixRooms.length === 0) {
             req.log.info("No mapped matrix rooms for IRC channel %s", chan);

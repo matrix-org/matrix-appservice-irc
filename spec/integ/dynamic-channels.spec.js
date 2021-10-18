@@ -1,7 +1,6 @@
-const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
-describe("Dynamic channels", function() {
+describe("Dynamic channels", () => {
     const testUser = {
         id: "@flibble:wibble",
         nick: "flibble"
@@ -9,9 +8,9 @@ describe("Dynamic channels", function() {
 
     const {env, config, roomMapping, test} = envBundle();
 
-    beforeEach(test.coroutine(function*() {
+    beforeEach(async () => {
         config.ircService.servers[roomMapping.server].dynamicChannels.enabled = true;
-        yield test.beforeEach(env);
+        await test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -24,14 +23,12 @@ describe("Dynamic channels", function() {
             roomMapping.server, testUser.nick, roomMapping.channel
         );
 
-        yield test.initEnv(env, config);
-    }));
+        await test.initEnv(env, config);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => test.afterEach(env));
 
-    it("should join IRC channels when it receives special alias queries", (done) => {
+    it("should join IRC channels when it receives special alias queries", async () => {
         // Default mapping => #irc_$SERVER_$CHANNEL
         const tChannel = "#foobar";
         const tRoomId = "!newroom:id";
@@ -55,26 +52,18 @@ describe("Dynamic channels", function() {
                 room_id: tRoomId
             });
         });
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, _key, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
             return Promise.resolve({});
         });
 
-        env.mockAppService._queryAlias(tAlias).then(function() {
-            if (joinedIrcChannel) {
-                done();
-            }
-            else {
-                expect(false).toBe(true, "Failed to join irc channel");
-            }
-        }, function(e) {
-            console.error("Failed to join IRC channel: %s", JSON.stringify(e));
-        });
+        await env.mockAppService._queryAlias(tAlias);
+        expect(joinedIrcChannel).withContext("Failed to join irc channel").toBeTrue();
     });
 
-    it("should create federated room when joining channel and federation is enabled", (done) => {
+    it("should create federated room when joining channel and federation is enabled", async () => {
         config.ircService.servers[roomMapping.server].dynamicChannels.federate = true;
 
         const tChannel = "#foobar";
@@ -93,30 +82,26 @@ describe("Dynamic channels", function() {
 
         // when we get the create room request, process it.
         const sdk = env.clientMock._client(config._botUserId);
-        sdk.createRoom.and.callFake(function(opts) {
-            expect(opts.roomVersion).toBeUndefined();
-            expect(opts.creation_content).toEqual({"m.federate": true});
-            return Promise.resolve({
+        sdk.createRoom.and.callFake(({roomVersion, creation_content}) => {
+            expect(roomVersion).toBeUndefined();
+            expect(creation_content).toEqual({"m.federate": true});
+            return {
                 room_id: tRoomId
-            });
+            };
         });
 
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake((roomId, eventType, _key, obj) => {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
-            return Promise.resolve({});
+            return {};
         });
 
-        env.mockAppService._queryAlias(tAlias).then(function() {
-            expect(joinedIrcChannel).toBe(true, "Failed to join irc channel");
-            done();
-        }, function(e) {
-            console.error("Failed to join IRC channel: %s", JSON.stringify(e));
-        });
+        await env.mockAppService._queryAlias(tAlias);
+        expect(joinedIrcChannel).withContext("Failed to join irc channel").toBeTrue();
     });
 
-    it("should point to the same room ID for aliases with different cases", (done) => {
+    it("should point to the same room ID for aliases with different cases", async () => {
         // Default mapping => #irc_$SERVER_$CHANNEL
         const tChannel = "#foobar";
         const tRoomId = "!newroom:id";
@@ -133,37 +118,32 @@ describe("Dynamic channels", function() {
 
         // when we get the create room request, process it.
         const sdk = env.clientMock._client(config._botUserId);
-        sdk.createRoom.and.callFake(function(opts) {
-            expect(opts.room_alias_name).toEqual(tAliasLocalpart);
-            return Promise.resolve({
-                room_id: tRoomId
-            });
+        sdk.createRoom.and.callFake(({ room_alias_name }) => {
+            expect(room_alias_name).toEqual(tAliasLocalpart);
+            return tRoomId;
         });
 
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, _key, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
-            return Promise.resolve({});
+            return {};
         });
 
         let madeAlias = false;
-        sdk.createAlias.and.callFake(function(alias, roomId) {
+        sdk.createRoomAlias.and.callFake((alias, roomId) => {
             madeAlias = true;
             expect(roomId).toEqual(tRoomId);
             expect(alias).toEqual(tCapsAlias);
-            return Promise.resolve({});
+            return {};
         });
 
-        env.mockAppService._queryAlias(tAlias).then(function() {
-            return env.mockAppService._queryAlias(tCapsAlias);
-        }).then(function() {
-            expect(madeAlias).toBe(true, "Failed to create alias");
-            done();
-        });
+        await env.mockAppService._queryAlias(tAlias);
+        await env.mockAppService._queryAlias(tCapsAlias);
+        expect(madeAlias).withContext("Failed to create alias").toBeTrue();
     });
 
-    it("should create a channel with the specified room version", (done) => {
+    it("should create a channel with the specified room version", async () => {
         env.ircBridge.getServer(roomMapping.server)
             .config.dynamicChannels.roomVersion = "the-best-version";
 
@@ -174,7 +154,7 @@ describe("Dynamic channels", function() {
 
         // when we get the connect/join requests, accept them.
         let joinedIrcChannel = false;
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join", (client, chan, cb) => {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "join", (_client, chan, cb) => {
             if (chan === tChannel) {
                 joinedIrcChannel = true;
                 if (cb) { cb(); }
@@ -190,20 +170,15 @@ describe("Dynamic channels", function() {
             });
         });
 
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, _key, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
             return Promise.resolve({});
         });
 
-        env.mockAppService._queryAlias(tAlias).then(function() {
-            expect(joinedIrcChannel).toBe(true, "Failed to join irc channel");
-            done();
-        }, function(e) {
-            console.error("Failed to join IRC channel: %s", JSON.stringify(e));
-        });
-
+        await env.mockAppService._queryAlias(tAlias)
+        expect(joinedIrcChannel).withContext("Failed to join irc channel").toBeTrue(true);
     });
 });
 
@@ -215,8 +190,8 @@ describe("Dynamic channels (federation disabled)", function() {
 
     const {env, config, roomMapping, test} = envBundle();
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
         config.ircService.servers[
             roomMapping.server].dynamicChannels.enabled = true;
@@ -233,12 +208,10 @@ describe("Dynamic channels (federation disabled)", function() {
         env.ircMock._autoJoinChannels(
             roomMapping.server, testUser.nick, roomMapping.channel
         );
-        yield test.initEnv(env, config);
-    }));
+        await test.initEnv(env, config);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => test.afterEach(env));
 
     it("should create non federated room when joining channel and federation is disabled", (done) => {
         const tChannel = "#foobar";
@@ -264,7 +237,7 @@ describe("Dynamic channels (federation disabled)", function() {
             });
         });
 
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, _key, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});
@@ -288,9 +261,9 @@ describe("Dynamic channels (disabled)", function() {
 
     const {env, config, roomMapping, test} = envBundle();
 
-    beforeEach(test.coroutine(function*() {
+    beforeEach(async () => {
         config.ircService.servers[roomMapping.server].dynamicChannels.enabled = false;
-        yield test.beforeEach(env);
+        await test.beforeEach(env);
 
         // accept connection requests
         env.ircMock._autoConnectNetworks(
@@ -303,13 +276,10 @@ describe("Dynamic channels (disabled)", function() {
             roomMapping.server, testUser.nick, roomMapping.channel
         );
 
-        // do the init
-        yield test.initEnv(env, config);
-    }));
+        await test.initEnv(env, config);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => test.afterEach(env));
 
     it("should NOT join IRC channels when it receives special alias queries", (done) => {
         const tChannel = "#foobar";
@@ -334,7 +304,7 @@ describe("Dynamic channels (disabled)", function() {
             });
         });
 
-        sdk.sendStateEvent.and.callFake(function(roomId, eventType, obj) {
+        sdk.sendStateEvent.and.callFake(function(roomId, eventType, _key, obj) {
             expect(roomId).toEqual(tRoomId);
             expect(eventType).toEqual("m.room.history_visibility");
             expect(obj).toEqual({history_visibility: "joined"});

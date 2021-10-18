@@ -21,7 +21,9 @@ import {
     MatrixRoom,
     RemoteRoom,
     RoomBridgeStoreEntry as Entry,
-    MatrixRoomData
+    MatrixRoomData,
+    UserActivitySet,
+    UserActivity,
 } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
 import { IrcRoom } from "../../models/IrcRoom";
@@ -52,7 +54,7 @@ interface RoomRecord {
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 6;
+    public static readonly LATEST_SCHEMA = 7;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -215,10 +217,11 @@ export class PgDataStore implements DataStore {
         ])).then((result) => result.rows).map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
-    public getProvisionedMappings(roomId: string): Bluebird<Entry[]> {
-        return Bluebird.cast(this.pgPool.query("SELECT * FROM rooms WHERE room_id = $1 AND origin = 'provision'", [
+    public async getProvisionedMappings(roomId: string): Promise<Entry[]> {
+        const res = await this.pgPool.query("SELECT * FROM rooms WHERE room_id = $1 AND origin = 'provision'", [
             roomId
-        ])).then((result) => result.rows).map((e) => PgDataStore.pgToRoomEntry(e));
+        ]).then((result) => result.rows);
+        return res.map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
     public async removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<void> {
@@ -553,6 +556,24 @@ export class PgDataStore implements DataStore {
             "features",
         ]);
         await this.pgPool.query(statement, [userId, JSON.stringify(features)]);
+    }
+
+    public async getUserActivity(): Promise<UserActivitySet> {
+        const res = await this.pgPool.query('SELECT * FROM user_activity');
+        const users: {[mxid: string]: UserActivity} = {};
+        for (const row of res.rows) {
+            users[row['user_id']] = row['data'];
+        }
+        return { users };
+    }
+
+    public async storeUserActivity(userId: string, activity: UserActivity) {
+        const stmt = PgDataStore.BuildUpsertStatement(
+            'user_activity',
+            '(user_id)',
+            ['user_id', 'data'],
+        );
+        await this.pgPool.query(stmt, [userId, JSON.stringify(activity)]);
     }
 
     public async storePass(userId: string, domain: string, pass: string, encrypt = true): Promise<void> {

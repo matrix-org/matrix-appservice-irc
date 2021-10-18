@@ -14,8 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MatrixRoom, MatrixUser, RoomBridgeStoreEntry as Entry} from "matrix-appservice-bridge";
-import Bluebird from "bluebird";
+import {
+    MatrixRoom, MatrixUser,
+    RoomBridgeStoreEntry as Entry,
+    UserActivity, UserActivitySet
+} from "matrix-appservice-bridge";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
@@ -71,7 +74,7 @@ export interface DataStore {
      * @return {Promise} A promise which resolves to a list
      * of entries.
      */
-    getProvisionedMappings(roomId: string): Bluebird<Entry[]>;
+    getProvisionedMappings(roomId: string): Promise<Entry[]>;
 
     /**
      * Remove an IRC <--> Matrix room mapping from the database.
@@ -157,6 +160,10 @@ export interface DataStore {
     getUserFeatures(userId: string): Promise<UserFeatures>;
 
     storeUserFeatures(userId: string, features: UserFeatures): Promise<void>;
+
+    getUserActivity(): Promise<UserActivitySet>;
+
+    storeUserActivity(userId: string, activity: UserActivity): Promise<void>;
 
     storePass(userId: string, domain: string, pass: string): Promise<void>;
 

@@ -4,23 +4,21 @@ const util = require("util");
 var instance = null;
 
 function MockAppService() {
-    const self = this;
-
     this.expressApp = {
-        post: function(path, handler) {
+        post: (path, handler) => {
             if (path === '/_matrix/provision/link') {
-                self.link = handler;
+                this.link = handler;
             }
             else if (path === '/_matrix/provision/unlink') {
-                self.unlink = handler;
+                this.unlink = handler;
             }
         },
-        get: function(path, handler) {
+        get: (path, handler) => {
             if (path === '/_matrix/provision/listlinks/:roomId') {
-                self.listLinks = handler;
+                this.listLinks = handler;
             }
         },
-        use: function(req, res, next) {
+        use: (req, res, next) => {
             //stub
         }
     };

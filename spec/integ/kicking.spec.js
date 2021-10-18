@@ -1,8 +1,6 @@
-const Promise = require("bluebird");
-
 const envBundle = require("../util/env-bundle");
 
-describe("Kicking", function() {
+describe("Kicking", () => {
 
     const {env, config, test} = envBundle();
 
@@ -14,7 +12,7 @@ describe("Kicking", function() {
     const ircUser = {
         nick: "bob",
         localpart: config._server + "_bob",
-        id: "@" + config._server + "_bob:" + config.homeserver.domain
+        id: `@${config._server}_bob:${config.homeserver.domain}`
     };
 
     const ircUserKicker = {
@@ -23,8 +21,8 @@ describe("Kicking", function() {
         id: "@" + config._server + "_KickerNick:" + config.homeserver.domain
     };
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
         // accept connection requests from eeeeeeeeveryone!
         env.ircMock._autoConnectNetworks(
@@ -48,41 +46,36 @@ describe("Kicking", function() {
         );
 
         // we also don't care about registration requests for the irc user
-        env.clientMock._client(ircUser.id)._onHttpRegister({
+        env.clientMock._intent(ircUser.id)._onHttpRegister({
             expectLocalpart: ircUser.localpart,
             returnUserId: ircUser.id
         });
 
-        // do the init
-        yield test.initEnv(env).then(function() {
-            // make the matrix user be on IRC
-            return env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "let me in",
-                    msgtype: "m.text"
-                },
-                user_id: mxUser.id,
-                room_id: config._roomid,
-                type: "m.room.message"
-            })
-        }).then(function() {
-            return env.ircMock._findClientAsync(config._server, config._botnick);
-        }).then(function(botIrcClient) {
-            // make the IRC user be on Matrix
-            botIrcClient.emit("message", ircUser.nick, config._chan, "let me in");
-        })
-    }));
+        await test.initEnv(env);
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+        // make the matrix user be on IRC
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "let me in",
+                msgtype: "m.text"
+            },
+            user_id: mxUser.id,
+            room_id: config._roomid,
+            type: "m.room.message"
+        });
+        const botIrcClient = await env.ircMock._findClientAsync(config._server, config._botnick);
+        // make the IRC user be on Matrix
+        botIrcClient.emit("message", ircUser.nick, config._chan, "let me in");
+    });
 
-    describe("IRC users on IRC", function() {
+    afterEach(async () => test.afterEach(env));
+
+    describe("IRC users on IRC", () => {
         it("should make the kickee leave the Matrix room", async () => {
             const kickReason = "They had to go, they knew too much";
             const kickPromise = new Promise((resolve) => {
                 const ircUserSdk = env.clientMock._client(ircUserKicker.id);
-                ircUserSdk.kick.and.callFake(async (roomId, kickee, reason) => {
+                ircUserSdk.kickUser.and.callFake((kickee, roomId, reason) => {
                     expect(roomId).toEqual(config._roomid);
                     expect(kickee).toEqual(ircUser.id);
                     expect(reason).toEqual(kickReason)
@@ -99,8 +92,8 @@ describe("Kicking", function() {
         });
     });
 
-    describe("Matrix users on Matrix", function() {
-        it("should make the kickee part the IRC channel", test.coroutine(function*() {
+    describe("Matrix users on Matrix", () => {
+        it("should make the kickee part the IRC channel", async () => {
             let parted = false;
             env.ircMock._whenClient(config._server, mxUser.nick, "part",
             function(client, channel, msg, cb) {
@@ -113,7 +106,7 @@ describe("Kicking", function() {
                 client._invokeCallback(cb);
             });
 
-            yield env.mockAppService._trigger("type:m.room.member", {
+            await env.mockAppService._trigger("type:m.room.member", {
                 content: {
                     membership: "leave"
                 },
@@ -123,7 +116,7 @@ describe("Kicking", function() {
                 type: "m.room.member"
             });
             expect(parted).toBe(true, "Didn't part");
-        }));
+        });
     });
 
     describe("Matrix users on IRC", function() {
@@ -131,13 +124,12 @@ describe("Kicking", function() {
             let userKickedPromise = new Promise(function(resolve) {
                 // assert function call when the bot attempts to kick
                 let botSdk = env.clientMock._client(config._botUserId);
-                botSdk.kick.and.callFake(function(roomId, userId, reason) {
+                botSdk.kickUser.and.callFake(function(userId, roomId, reason) {
                     expect(roomId).toEqual(config._roomid);
                     expect(userId).toEqual(mxUser.id);
                     expect(reason.indexOf("KickerNick")).not.toEqual(-1,
                         "Reason doesn't contain the kicker's nick");
                     resolve();
-                    return Promise.resolve();
                 });
             });
 
@@ -150,9 +142,8 @@ describe("Kicking", function() {
         });
     });
 
-    describe("IRC users on Matrix", function() {
-        it("should make the virtual IRC client KICK the real IRC user",
-        test.coroutine(function*() {
+    describe("IRC users on Matrix", () => {
+        it("should make the virtual IRC client KICK the real IRC user", async () => {
             let reason = "they are a fish";
             let userKickedPromise = new Promise(function(resolve, reject) {
                 env.ircMock._whenClient(config._server, mxUser.nick, "send",
@@ -169,7 +160,7 @@ describe("Kicking", function() {
                 });
             });
 
-            yield env.mockAppService._trigger("type:m.room.member", {
+            await env.mockAppService._trigger("type:m.room.member", {
                 content: {
                     reason: reason,
                     membership: "leave"
@@ -179,14 +170,13 @@ describe("Kicking", function() {
                 room_id: config._roomid,
                 type: "m.room.member"
             });
-            yield userKickedPromise;
-        }));
+            await userKickedPromise;
+        });
     });
 });
 
 
-describe("Kicking on IRC join", function() {
-
+describe("Kicking on IRC join", () => {
     const {env, config, test} = envBundle();
 
     const mxUser = {
@@ -197,11 +187,11 @@ describe("Kicking on IRC join", function() {
     const ircUser = {
         nick: "bob",
         localpart: config._server + "_bob",
-        id: "@" + config._server + "_bob:" + config.homeserver.domain
+        id: `@${config._server}_bob:${config.homeserver.domain}`,
     };
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
         config.ircService.servers[config._server].membershipLists.enabled = true;
         config.ircService.servers[
             config._server
@@ -229,33 +219,29 @@ describe("Kicking on IRC join", function() {
         );
 
         // we also don't care about registration requests for the irc user
-        env.clientMock._client(ircUser.id)._onHttpRegister({
+        env.clientMock._intent(ircUser.id)._onHttpRegister({
             expectLocalpart: ircUser.localpart,
             returnUserId: ircUser.id
         });
 
-        yield test.initEnv(env);
-    }));
+        await test.initEnv(env);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => test.afterEach(env));
 
-    it("should be done for err_needreggednick",
-    test.coroutine(function*() {
-        let userKickedPromise = new Promise(function(resolve, reject) {
+    it("should be done for err_needreggednick", async () => {
+        const userKickedPromise = new Promise(function(resolve) {
             // assert function call when the bot attempts to kick
             let botSdk = env.clientMock._client(config._botUserId);
-            botSdk.kick.and.callFake(function(roomId, userId, reason) {
+            botSdk.kickUser.and.callFake(function(userId, roomId, reason) {
                 expect(roomId).toEqual(config._roomid);
                 expect(userId).toEqual(mxUser.id);
                 resolve();
-                return Promise.resolve();
             });
         });
 
         // when the matrix user tries to join the channel, error them.
-        let ircErrorPromise = new Promise(function(resolve, reject) {
+        const ircErrorPromise = new Promise((resolve) => {
             env.ircMock._whenClient(config._server, mxUser.nick, "join",
             function(client, channel, msg, cb) {
                 expect(client.nick).toEqual(mxUser.nick);
@@ -272,7 +258,7 @@ describe("Kicking on IRC join", function() {
 
         // make matrix user attempt to join the channel
         try {
-            yield env.mockAppService._trigger("type:m.room.member", {
+            await env.mockAppService._trigger("type:m.room.member", {
                 content: {
                     membership: "join"
                 },
@@ -287,9 +273,9 @@ describe("Kicking on IRC join", function() {
         }
 
         // wait for the error to be sent
-        yield ircErrorPromise;
+        await ircErrorPromise;
 
         // wait for the bridge to kick the matrix user
-        yield userKickedPromise;
-    }));
+        await userKickedPromise;
+    });
 });

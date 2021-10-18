@@ -521,9 +521,20 @@ ircService:
     # allotted time period, the provisioning request will fail.
     # Default: 300 seconds (5 mins)
     requestTimeoutSeconds: 300
-    # A file defining the provisioning rules for rooms. Format is documented
-    # in rules.sample.yaml. Leave undefined to not specify any rules.
-    ruleFile: "./provisioning.rules.yaml"
+    # When provisioning a room, disallow rooms that match these critera
+    rules:
+      # The bridge checks the joined members of a propective room and checks to see
+      # if any users matching these regex sets are in the room. `exempt` users never
+      # match, and will be ignored. If any user matches `conflict`, the room will not
+      # be allowed to be bridged until the user is removed. Both sets take a regular expression.
+      userIds:
+        exempt: 
+          # These users never conflict, even if matching
+          - "@doubleagent:badguys.com"
+        conflict:
+          # These users will deny a room from being bridged.
+          - "@.*:badguys.com"
+
     # Watch the file for changes, and apply the rules. Default: false
     enableReload: true
     # Number of channels allowed to be bridged
@@ -555,6 +566,15 @@ ircService:
     longReplyTemplate: "<$NICK> \"$ORIGINAL\" <- $REPLY"
     # how much time needs to pass between the reply and the original message to switch to the long format
     shortReplyTresholdSeconds: 300
+
+  # Maximum number of montly active users, beyond which the bridge gets blocked (both ways)
+  # RMAUlimit: 100
+  
+  # userActivity:
+    # The "grace period" before we start counting users as active
+    # minUserActiveDays: 1
+    # Time before users are considered inactive again
+    # inactiveAfterDays: 30
 
   ircHandler:
     # Should we attempt to match an IRC side mention (nickaname match)

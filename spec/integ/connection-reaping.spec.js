@@ -1,6 +1,6 @@
 const envBundle = require("../util/env-bundle");
 
-describe("Connection reaping", function() {
+describe("Connection reaping", () => {
     const testUser = {
         id: "@flibble:wibble",
         nick: "flibble"
@@ -9,8 +9,8 @@ describe("Connection reaping", function() {
     let defaultOnline;
 
     env.config.ircService.debugApi.enabled = true;
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
         env.ircMock._autoConnectNetworks(
             roomMapping.server, testUser.nick, roomMapping.server
@@ -22,16 +22,13 @@ describe("Connection reaping", function() {
             roomMapping.server, testUser.nick, roomMapping.channel
         );
 
-        yield test.initEnv(env);
+        await test.initEnv(env);
         defaultOnline = env.ircBridge.activityTracker.opts.defaultOnline;
         // For the purposes of these tests, we want to ensure that the activity tracker defaults to false.
         env.ircBridge.activityTracker.opts.defaultOnline = false;
+    });
 
-    }));
-
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => test.afterEach(env));
 
     it("users should appear online by default", async () => {
         // Revert to the default value for this one test
@@ -48,7 +45,7 @@ describe("Connection reaping", function() {
     });
 
     it("users should appear online if they have sent a message", async () => {
-        env.mockAppService._trigger("type:foo.notamessage", {
+        await env.mockAppService._trigger("type:foo.notamessage", {
             content: {
                 body: "foo",
                 msgtype: "m.text",

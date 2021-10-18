@@ -1,3 +1,30 @@
+ 0.32.0 (2021-10-18)
+====================
+
+No significant changes.
+
+
+0.32.0-rc2 (2021-10-15)
+========================
+
+Bugfixes
+--------
+
+- Fix an issue where the bridge would excessively log state event content ([\#1487](https://github.com/matrix-org/matrix-appservice-irc/issues/1487))
+
+
+0.32.0-rc1 (2021-10-08)
+========================
+
+Features
+--------
+
+- Add optional bridge blocking upon exceeding a monthly active user limit ([\#1472](https://github.com/matrix-org/matrix-appservice-irc/issues/1472))
+- **Breaking**: Upgrade to `matrix-appservice-bridge` 3.1.0.
+
+  This change removes the `ruleFile` option from the config, and replaces it with `rules`. See `config.sample.yaml` for an example. ([\#1485](https://github.com/matrix-org/matrix-appservice-irc/issues/1485))
+
+
 0.31.0 (2021-09-20)
 ========================
 
