@@ -83,10 +83,10 @@ export class Provisioner extends ProvisioningApi {
 
         this.addRoute("post", "/link", this.createProvisionEndpoint(this.requestLink), "requestLink");
         this.addRoute("post", "/unlink", this.createProvisionEndpoint(this.unlink), "unlink");
-        this.addRoute("post", "/listlinks/:roomId", this.createProvisionEndpoint(this.listings), "listings");
+        this.addRoute("get", "/listlinks/:roomId", this.createProvisionEndpoint(this.listings), "listings");
         this.addRoute("post", "/querylink", this.createProvisionEndpoint(this.queryLink), "queryLink");
-        this.addRoute("post", "/querynetworks", this.createProvisionEndpoint(this.queryNetworks), "queryNetworks");
-        this.addRoute("post", "/limits", this.createProvisionEndpoint(this.getLimits), "limits");
+        this.addRoute("get", "/querynetworks", this.createProvisionEndpoint(this.queryNetworks), "queryNetworks");
+        this.addRoute("get", "/limits", this.createProvisionEndpoint(this.getLimits), "limits");
 
         // CORS is handled for us.
 
@@ -106,10 +106,7 @@ export class Provisioner extends ProvisioningApi {
     ) {
         return async (req: ProvisioningRequest, res: express.Response) => {
             try {
-                let result = await fn.call(this, req);
-                if (!result) {
-                    result = {};
-                }
+                const result = (await fn.call(this, req)) || {};
                 req.log.debug(`Sending result: ${JSON.stringify(result)}`);
                 res.json(result);
             }
