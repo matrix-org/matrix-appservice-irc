@@ -16,6 +16,7 @@ limitations under the License.
 
 import {
     MatrixRoom, MatrixUser,
+    ProvisioningStore,
     RoomBridgeStoreEntry as Entry,
     UserActivity, UserActivitySet
 } from "matrix-appservice-bridge";
@@ -192,4 +193,6 @@ export interface DataStore {
     getRoomCount(): Promise<number>;
 
     destroy(): Promise<void>;
+
+    provisioningStore: ProvisioningStore;
 }

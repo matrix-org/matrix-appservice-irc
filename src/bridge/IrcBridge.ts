@@ -755,10 +755,16 @@ export class IrcBridge {
                 this.memberListSyncers[server.domain].sync()
             );
         });
+        const secretToken = this.registration.getHomeserverToken();
+        if (!secretToken) {
+            // This should always be defined
+            throw Error('Secret token not defined');
+        }
 
-        const provisioningEnabled = this.config.ircService.provisioning.enabled;
-        const requestTimeoutSeconds = this.config.ircService.provisioning.requestTimeoutSeconds;
-        this.provisioner = new Provisioner(this, provisioningEnabled, requestTimeoutSeconds);
+        this.provisioner = new Provisioner(this, {
+            secretToken,
+            ...this.config.ircService.provisioning,
+        }, this.membershipQueue);
 
         log.info("Connecting to IRC networks...");
         await this.connectToIrcNetworks();

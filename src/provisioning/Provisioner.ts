@@ -1,18 +1,19 @@
-import { Request } from "express";
 import { IrcBridge } from "../bridge/IrcBridge";
 import { Defer } from "../promiseutil";
-import { ConfigValidator, MatrixRoom, MatrixUser, PowerLevelContent, UserMembership } from "matrix-appservice-bridge";
-import Bluebird from "bluebird";
+import { MatrixRoom, MatrixUser, MembershipQueue, PowerLevelContent,
+    ProvisioningApi, Rules, UserMembership } from "matrix-appservice-bridge";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcAction } from "../models/IrcAction";
 import { BridgeRequest, BridgeRequestData } from "../models/BridgeRequest";
-import { ProvisionRequest } from "./ProvisionRequest";
 import logging, { RequestLogger } from "../logging";
 import * as promiseutil from "../promiseutil";
 import * as express from "express";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcUser } from "../models/IrcUser";
 import { GetNicksResponseOperators } from "../irc/BridgedClient";
+import ProvisioningRequest from "matrix-appservice-bridge/lib/provisioning/request";
+import { LinkValidator, LinkValidatorProperties, QueryLinkValidator,
+    QueryLinkValidatorProperties, RoomIdValidator, UnlinkValidator, UnlinkValidatorProperties } from "./RouteSchema";
 
 const log = logging("Provisioner");
 
@@ -22,191 +23,102 @@ interface MRoomBridgingContent extends Record<string, unknown> {
     status: BridgingStatus;
 }
 
-const matrixRoomIdValidation = {
-    "type": "string",
-    "pattern": "^!.*:.*$"
-};
-
-const validationProperties = {
-    "matrix_room_id" : matrixRoomIdValidation,
-    "remote_room_channel" : {
-        "type": "string",
-        "pattern": "^([#+&]|(![A-Z0-9]{5}))[^\\s:,]+$"
-    },
-    "remote_room_server" : {
-        "type": "string",
-        "pattern": "^[a-z\\.0-9:-]+$"
-    },
-    "op_nick" : {
-        "type": "string"
-    },
-    "key" : {
-        "type": "string"
-    },
-    "user_id" : {
-        "type": "string"
-    }
-};
-
 interface PendingRequest {
     userId: string;
     defer: Defer<unknown>;
     log: RequestLogger;
 }
 
-export class Provisioner {
+export interface ProvisionerConfig {
+    enabled: boolean;
+    requestTimeoutSeconds: number;
+    rules?: Rules;
+    roomLimit?: number;
+    http?: {
+        port: number;
+        host?: string;
+    };
+    // We allow this to be unspecified, so it will fall back to the homeserver token
+    secretToken?: string;
+    apiPrefix?: string;
+}
+
+interface StrictProvisionerConfig extends ProvisionerConfig {
+    secretToken: string;
+}
+
+export class Provisioner extends ProvisioningApi {
     private pendingRequests: {
         [domain: string]: {
             [nick: string]: PendingRequest;
         };
     } = {};
-    private linkValidator: ConfigValidator;
-    private queryLinkValidator: ConfigValidator;
-    private unlinkValidator: ConfigValidator;
-    private roomIdValidator: ConfigValidator;
-    constructor(private ircBridge: IrcBridge, private enabled: boolean, private requestTimeoutSeconds: number) {
-        this.linkValidator = new ConfigValidator({
-            "type": "object",
-            "properties": validationProperties,
-            "required": [
-                "matrix_room_id",
-                "remote_room_channel",
-                "remote_room_server",
-                "op_nick",
-                "user_id"
-            ]
-        });
-        this.queryLinkValidator = new ConfigValidator({
-            "type": "object",
-            "properties": validationProperties,
-            "required": [
-                "remote_room_channel",
-                "remote_room_server"
-            ]
-        });
-        this.unlinkValidator = new ConfigValidator({
-            "type": "object",
-            "properties": validationProperties,
-            "required": [
-                "matrix_room_id",
-                "remote_room_channel",
-                "remote_room_server",
-                "user_id"
-            ]
-        });
-        this.roomIdValidator = new ConfigValidator({
-            "type": "object",
-            "properties": {
-                "matrix_room_id" : matrixRoomIdValidation
-            }
-        });
+    constructor(
+        private ircBridge: IrcBridge,
+        private readonly config: StrictProvisionerConfig,
+        private membershipQueue: MembershipQueue
+    ) {
+        super(ircBridge.getStore().provisioningStore, {
+            provisioningToken: config.secretToken,
+            widgetTokenPrefix: "ircbr-wdt-",
+            // Use the bridge express instance if we don't define our own ports
+            expressApp: !config.http ? ircBridge.getAppServiceBridge().appService.expressApp : undefined,
+            apiPrefix: "/_matrix/provision",
+        })
 
-        if (enabled) {
+        if (config.enabled) {
             log.info("Starting provisioning...");
         }
         else {
             log.info("Provisioning disabled.");
         }
 
-        const appservice = this.ircBridge.getAppServiceBridge().appService;
-        const app = appservice?.expressApp;
-
         // Disable all provision endpoints by not calling 'next' and returning an error instead
-        if (!enabled) {
-            if (app) {
-                app.use((req, res, next) => {
-                    if (this.isProvisionRequest(req)) {
-                        res.header("Access-Control-Allow-Origin", "*");
-                        res.header("Access-Control-Allow-Headers",
-                            "Origin, X-Requested-With, Content-Type, Accept");
-                        res.status(500);
-                        res.json({error : 'Provisioning is not enabled.'});
-                    }
-                    else {
-                        next();
-                    }
-                });
-            }
+        if (!config.enabled) {
+            this.baseRoute.use((_req, res,) => {
+                res.status(500).json({error : 'Provisioning is not enabled.'});
+            });
             return;
         }
 
-        if (!app) {
-            throw new Error('Could not start provisioning API');
+        this.addRoute("post", "/link", this.createProvisionEndpoint(this.requestLink), "requestLink");
+        this.addRoute("post", "/unlink", this.createProvisionEndpoint(this.unlink), "unlink");
+        this.addRoute("post", "/listlinks/:roomId", this.createProvisionEndpoint(this.listings), "listings");
+        this.addRoute("post", "/querylink", this.createProvisionEndpoint(this.queryLink), "queryLink");
+        this.addRoute("post", "/querynetworks", this.createProvisionEndpoint(this.queryNetworks), "queryNetworks");
+        this.addRoute("post", "/limits", this.createProvisionEndpoint(this.getLimits), "limits");
+
+        // CORS is handled for us.
+
+        if (config.http) {
+            // This emits logging
+            this.start(config.http.port, config.http.host);
+        }
+        else {
+            log.info("Provisioning started");
         }
 
-        app.use((req, res, next) => {
-            // Deal with CORS (temporarily for s-web)
-            if (this.isProvisionRequest(req)) {
-                res.header("Access-Control-Allow-Origin", "*");
-                res.header("Access-Control-Allow-Headers",
-                    "Origin, X-Requested-With, Content-Type, Accept");
-            }
-            if (!this.ircBridge.getAppServiceBridge().requestCheckToken(req)) {
-                res.status(403).send({
-                    errcode: "M_FORBIDDEN",
-                    error: "Bad token supplied"
-                });
-                return;
-            }
-            next();
-        });
-
-        app.post("/_matrix/provision/link",
-            this.createProvisionEndpoint(this.requestLink, 'requestLink')
-        );
-
-        app.post("/_matrix/provision/unlink",
-            this.createProvisionEndpoint(this.unlink, 'unlink')
-        );
-
-        app.get("/_matrix/provision/listlinks/:roomId",
-            this.createProvisionEndpoint(this.listings, 'listings')
-        );
-
-        app.post("/_matrix/provision/querylink",
-            this.createProvisionEndpoint(this.queryLink, 'queryLink')
-        );
-
-        app.get("/_matrix/provision/querynetworks",
-            this.createProvisionEndpoint(this.queryNetworks, 'queryNetworks')
-        );
-
-        app.get("/_matrix/provision/limits",
-            this.createProvisionEndpoint(this.getLimits, 'limits')
-        );
-
-        log.info("Provisioning started");
     }
 
-    private createProvisionEndpoint(fn: (req: ProvisionRequest) => unknown, fnName: string) {
-        return async (req: express.Request, res: express.Response) => {
-            const pReq = new ProvisionRequest(req, fnName);
-            pReq.log.info(
-                'New provisioning request: ' + JSON.stringify(req.body) +
-                ' params: ' + JSON.stringify(req.params)
-            );
+    private createProvisionEndpoint(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        fn: (req: ProvisioningRequest<any, any>) => PromiseLike<any>
+    ) {
+        return async (req: ProvisioningRequest, res: express.Response) => {
             try {
-                let result = await fn.call(this, pReq);
+                let result = await fn.call(this, req);
                 if (!result) {
                     result = {};
                 }
-                pReq.log.info(`Sending result: ${JSON.stringify(result)}`);
+                req.log.debug(`Sending result: ${JSON.stringify(result)}`);
                 res.json(result);
             }
             catch (err) {
                 res.status(500).json({error: err.message});
-                pReq.log.error(err.stack);
+                req.log.error(err.stack);
                 throw err;
             }
         }
-    }
-
-    private isProvisionRequest(req: Request) {
-        return req.url === '/_matrix/provision/unlink' ||
-                req.url === '/_matrix/provision/link'||
-                req.url === '/_matrix/provision/querynetworks' ||
-                req.url === "/_matrix/provision/querylink" ||
-                req.url.match(/^\/_matrix\/provision\/listlinks/)
     }
 
     private async updateBridgingState (roomId: string, userId: string, status: BridgingStatus, skey: string) {
@@ -222,54 +134,14 @@ export class Provisioner {
         }
     }
 
-    /**
-     *  Utility function for attempting to send a request to a matrix endpoint
-     *  that might be rate-limited.
-     *
-     *  This function will try `attempts` times to apply function `fn` to `obj` by
-     *  calling fn.apply(obj, args), with args being any arguments passed to retry
-     *  after `fn`. If an error occurs, the same will be tried again after
-     *  `retryDelayMs`. If an error err is thrown by `fn` and err.data.retry_after_ms
-     *  is set, it will be added to that delay.
-     *
-     *  If the number of attempts is reached, an error is thrown.
-    */
-    private async _retry<V>(req: ProvisionRequest, attempts: number, retryDelayMS: number, obj: unknown,
-                            fn: (args: string) => V, args: string) {
-        for (;attempts > 0; attempts--) {
-            try {
-                const val = await fn.apply(obj, [args]);
-                return val;
-            }
-            catch (err) {
-                const msg = err.data && err.data.error ? err.data.error : err.message;
-                req.log.error(`Error doing rate limited action (${msg})`);
-
-                let waitTimeMs = retryDelayMS;
-
-                if (err.data && err.data.retry_after_ms && attempts > 0) {
-                    waitTimeMs += err.data.retry_after_ms;
-                }
-                await Bluebird.delay(waitTimeMs);
-            }
-        }
-
-        throw new Error(`Too many attempts to do rate limited action`);
-    }
-
-    private retry<V>(req: ProvisionRequest, attempts: number, retryDelayMS: number, obj: unknown,
-                     fn: (args: string) => V, args: string) {
-        return Bluebird.cast(this._retry(req, attempts, retryDelayMS, obj, fn, args));
-    }
-
-    private async userHasProvisioningPower(req: ProvisionRequest, userId: string, roomId: string) {
+    private async userHasProvisioningPower(req: ProvisioningRequest<unknown>, userId: string, roomId: string) {
         req.log.info(`Check power level of ${userId} in room ${roomId}`);
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
 
         let powerState = null;
 
         // Try 100 times to join a room, or timeout after 10 min
-        await this.retry(req, 100, 5000, intent, intent.join, roomId).timeout(600000);
+        await this.membershipQueue.join(roomId, undefined, req);
         try {
             await this.ircBridge.getAppServiceBridge().canProvisionRoom(roomId);
         }
@@ -324,7 +196,7 @@ export class Provisioner {
      *    room-channel pair
      *  - (Matrix) update room state m.room.brdiging
     */
-    private async authoriseProvisioning(req: ProvisionRequest, server: IrcServer, userId: string,
+    private async authoriseProvisioning(req: ProvisioningRequest<unknown>, server: IrcServer, userId: string,
                                         ircChannel: string, roomId: string, opNick: string, key?: string) {
         const ircDomain = server.domain;
 
@@ -471,7 +343,7 @@ export class Provisioner {
 
         // (IRC) Ask operator for authorisation
         // Time that operator has to respond before giving up
-        const timeoutSeconds = this.requestTimeoutSeconds;
+        const timeoutSeconds = this.config.requestTimeoutSeconds;
 
         // Deliberately not awaiting on this so that 200 OK is returned
         req.log.info(`Contacting operator`);
@@ -492,7 +364,7 @@ export class Provisioner {
     // Contact an operator, asking for authorisation for a mapping, and if they reply
     //  'yes' or 'y', create the mapping.
     private async createAuthorisedLink(
-        req: ProvisionRequest, server: IrcServer, opNick: string, ircChannel: string, key: string|undefined,
+        req: ProvisioningRequest<unknown>, server: IrcServer, opNick: string, ircChannel: string, key: string|undefined,
         roomId: string, userId: string, skey: string, timeoutSeconds: number) {
         const d = promiseutil.defer();
 
@@ -662,7 +534,7 @@ export class Provisioner {
     //  {
     //   operators: ['operator1', 'operator2',...] // an array of IRC chan op nicks
     //  }
-    public async queryLink(req: ProvisionRequest) {
+    public async queryLink(req: ProvisioningRequest<QueryLinkValidatorProperties>) {
         const options = req.body;
         const ircDomain = options.remote_room_server;
         let ircChannel = options.remote_room_channel;
@@ -674,7 +546,7 @@ export class Provisioner {
         };
 
         try {
-            this.queryLinkValidator.validate(options);
+            QueryLinkValidator.validate(options);
         }
         catch (err) {
             if (err._validationErrors) {
@@ -743,10 +615,10 @@ export class Provisioner {
     }
 
     // Link an IRC channel to a matrix room ID
-    public async requestLink(req: ProvisionRequest) {
+    public async requestLink(req: ProvisioningRequest<LinkValidatorProperties>) {
         const options = req.body;
         try {
-            this.linkValidator.validate(options);
+            LinkValidator.validate(options);
         }
         catch (err) {
             if (err._validationErrors) {
@@ -801,7 +673,7 @@ export class Provisioner {
         }
     }
 
-    public async doLink(req: ProvisionRequest, server: IrcServer, ircChannel: string,
+    public async doLink(req: ProvisioningRequest<unknown>, server: IrcServer, ircChannel: string,
                         key: string|undefined, roomId: string, userId: string) {
         const ircDomain = server.domain;
         const mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
@@ -859,10 +731,10 @@ export class Provisioner {
      * @param ignorePermissions If true, permissions are ignored (e.g. for bridge admins).
      * Otherwise, the user needs to be a Moderator in the Matrix room.
      */
-    public async unlink(req: ProvisionRequest, ignorePermissions = false) {
+    public async unlink(req: ProvisioningRequest<UnlinkValidatorProperties>, ignorePermissions = false) {
         const options = req.body;
         try {
-            this.unlinkValidator.validate(options);
+            UnlinkValidator.validate(options);
         }
         catch (err) {
             if (err._validationErrors) {
@@ -952,7 +824,9 @@ export class Provisioner {
 
     // Force the bot to leave both sides of a provisioned mapping if there are no more mappings that
     //  map either the channel or room. Force IRC clients to part the channel.
-    public async leaveIfUnprovisioned(req: ProvisionRequest, roomId: string, server: IrcServer, ircChannel: string) {
+    public async leaveIfUnprovisioned(
+        req: ProvisioningRequest<unknown>, roomId: string, server: IrcServer, ircChannel: string
+    ) {
         try {
             await Promise.all([
                 this.partUnlinkedIrcClients(req, roomId, server, ircChannel),
@@ -978,7 +852,9 @@ export class Provisioner {
 
     // Parts IRC clients who should no longer be in the channel as a result of the given mapping being
     // unlinked.
-    private async partUnlinkedIrcClients(req: ProvisionRequest, roomId: string, server: IrcServer, ircChannel: string) {
+    private async partUnlinkedIrcClients(
+        req: ProvisioningRequest<unknown>, roomId: string, server: IrcServer, ircChannel: string
+    ) {
         // Get the full set of room IDs linked to this #channel
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
             server, ircChannel
@@ -1053,7 +929,9 @@ export class Provisioner {
         );
     }
 
-    private async leaveMatrixVirtuals(req: ProvisionRequest, roomId: string, server: IrcServer): Promise<void> {
+    private async leaveMatrixVirtuals(
+        req: ProvisioningRequest<unknown>, roomId: string, server: IrcServer
+    ): Promise<void> {
         const asBot = this.ircBridge.getAppServiceBridge().getBot();
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         const roomChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(
@@ -1081,7 +959,7 @@ export class Provisioner {
 
     // Cause the bot to leave the matrix room if there are no other channels being mapped to
     // this room
-    private async leaveMatrixRoomIfUnprovisioned(req: ProvisionRequest, roomId: string) {
+    private async leaveMatrixRoomIfUnprovisioned(req: ProvisioningRequest<unknown>, roomId: string) {
         const ircChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(roomId);
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         if (ircChannels.length === 0) {
@@ -1091,10 +969,10 @@ export class Provisioner {
     }
 
     // List all mappings currently provisioned with the given matrix_room_id
-    public async listings(req: ProvisionRequest) {
+    public async listings(req: ProvisioningRequest<unknown, {roomId: string}>) {
         const roomId = req.params.roomId;
         try {
-            this.roomIdValidator.validate({"matrix_room_id": roomId});
+            RoomIdValidator.validate({"matrix_room_id": roomId});
         }
         catch (err) {
             if (err._validationErrors) {
@@ -1124,7 +1002,7 @@ export class Provisioner {
         }).filter((e) => e !== false);
     }
 
-    private getLimits() {
+    private async getLimits() {
         const count = this.ircBridge.getStore().getRoomCount();
         const limit = this.ircBridge.config.ircService.provisioning?.roomLimit || false;
         return {
