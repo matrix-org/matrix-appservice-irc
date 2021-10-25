@@ -1,4 +1,13 @@
- 0.32.0 (2021-10-18)
+ 0.32.1 (2021-10-25)
+====================
+
+Bugfixes
+--------
+
+- Fix a regression that prevented the bridge to run for multiple networks ([\#1491](https://github.com/matrix-org/matrix-appservice-irc/issues/1491))
+
+
+0.32.0 (2021-10-18)
 ====================
 
 No significant changes.

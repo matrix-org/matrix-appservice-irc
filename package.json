@@ -1,6 +1,6 @@
 {
   "name": "matrix-appservice-irc",
-  "version": "0.32.0",
+  "version": "0.32.1",
   "description": "An IRC Bridge for Matrix",
   "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",
@@ -33,7 +33,7 @@
     "extend": "^3.0.2",
     "he": "^1.2.0",
     "logform": "^2.2.0",
-    "matrix-appservice-bridge": "^3.1.1",
+    "matrix-appservice-bridge": "^3.1.2",
     "matrix-org-irc": "^1.2.0",
     "nedb": "^1.1.2",
     "nodemon": "^2.0.7",
