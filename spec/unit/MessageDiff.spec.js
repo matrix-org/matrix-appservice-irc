@@ -50,8 +50,11 @@ describe('messageDiff', function() {
             's/filthy//'
         ],
         [
+            // eslint-disable-next-line max-len
             'Do not emit a diff if it ends up longer than the new message (https://github.com/matrix-org/matrix-appservice-irc/issues/1477)',
+            // eslint-disable-next-line max-len
             'Lorem ipsu dolor sit - an arbitrary amount of trailing text will be duplicated in the sed expression, even though it should only include a few words of context',
+            // eslint-disable-next-line max-len
             'Lorem ipsum dolor sit amet - an arbitrary amount of trailing text will be duplicated in the sed expression, even though it should only include a few words of context',
             undefined,
         ],
