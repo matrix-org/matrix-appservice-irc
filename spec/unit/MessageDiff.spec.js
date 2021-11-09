@@ -26,7 +26,7 @@ describe('messageDiff', function() {
         ],
         [
             'should not use diffs with newlines in them',
-            'a\nb\nc', 'bla\nbleh\nc',
+            'a\nb\ncontinuing...', 'bla\nbleh\ncontinuing...',
             's/a/bla/, s/b/bleh/',
         ],
         [
@@ -48,6 +48,15 @@ describe('messageDiff', function() {
             'should show word removals as s/foo//',
             'I gotta go clean up my filthy room', 'I gotta go clean up my room',
             's/filthy//'
+        ],
+        [
+            // eslint-disable-next-line max-len
+            'Do not emit a diff if it ends up longer than the new message (https://github.com/matrix-org/matrix-appservice-irc/issues/1477)',
+            // eslint-disable-next-line max-len
+            'Lorem ipsu dolor sit - an arbitrary amount of trailing text will be duplicated in the sed expression, even though it should only include a few words of context',
+            // eslint-disable-next-line max-len
+            'Lorem ipsum dolor sit amet - an arbitrary amount of trailing text will be duplicated in the sed expression, even though it should only include a few words of context',
+            undefined,
         ],
     ].forEach(c => it(c[0], () => {
         const result = messageDiff(c[1], c[2]);

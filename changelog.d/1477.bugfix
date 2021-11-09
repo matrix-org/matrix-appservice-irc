@@ -1,0 +1,1 @@
+Matrix message edits no longer bridge as a diff if it's longer than the new message
