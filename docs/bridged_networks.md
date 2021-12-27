@@ -15,6 +15,7 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 | W3C          | `#_w3c_#channame:matrix.org`              | [`@w3c-irc:matrix.org`]            | [`#irc:matrix.org`]            | [Matrix.org]                              |
 | libera.chat  | `#channame:libera.chat`                   | [`@appservice:libera.chat`]        | [`#libera-matrix:libera.chat`] | [Matrix.org]                              |
 | LibertaCasa  | `#channame:liberta.casa`                  | [`@lunatic:liberta.casa`]          | [`#help:liberta.casa`]         | [LibertaCasa](https://liberta.casa)
+| hackint      | `#channame:hackint.org`                   | [`@appservice-irc:hackint.org`]    | [`#hackint:hackint.org`]       | [hackint](https://hackint.org/)
 
 [`@IRC-Darkfasel:darkfasel.net`]: https://matrix.to/#/@IRC-Darkfasel:darkfasel.net
 [`@fc00ircmtx:m.trnsz.com`]: https://matrix.to/#/@fc00ircmtx:m.trnsz.com
@@ -29,6 +30,7 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 [`@w3c-irc:matrix.org`]: https://matrix.to/#/@w3c-irc:matrix.org
 [`@appservice:libera.chat`]: https://matrix.to/#/@appservice:libera.chat
 [`@lunatic:liberta.casa`]: https://matrix.to/#/@lunatic:liberta.casa
+[`@appservice-irc:hackint.org`]: https://matrix.to/#/@appservice-irc:hackint.org
 
 [`#irc:matrix.org`]: https://matrix.to/#/%23irc:matrix.org
 [`#darkfasel:darkfasel.net`]: https://matrix.to/#/%23darkfasel:darkfasel.net
@@ -38,12 +40,12 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 [`#eggster:eggy.cc`]: https://matrix.to/#/%23eggster:eggy.cc
 [`#libera-matrix:libera.chat`]: https://matrix.to/#/%23libera-matrix:libera.chat
 [`#help:liberta.casa`]: https://matrix.to/#/%23help:liberta.casa
+[`#hackint:hackint.org`]: https://matrix.to/#/%23hackint:hackint.org
 
 [Matrix.org]: https://matrix.org/
 [Gnome.org]: https://gnome.org/
 [SNT]: https://snt.utwente.nl/en/
 
-* Hackint [closed their Matrix bridge](https://hackint.org/archive#20181028_Matrix_Bridging_Sunset) on 2018-12-31.
 * Random.sh is no longer contactable. Status of the bridge is unknown.
 * Foonetic IRC has shut down. #xkcd channels [moved to slashnet](https://web.archive.org/web/20190824061533/http://wiki.xkcd.com/irc/Main_Page#Channel_Migration)
 * The Espernet bridge was shut down after the 2019 matrix.org network breach.
