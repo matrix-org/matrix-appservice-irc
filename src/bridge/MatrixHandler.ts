@@ -48,6 +48,8 @@ export interface MatrixHandlerConfig {
     shortReplyTemplate: string;
     // Format of replies sent a while after the original message
     longReplyTemplate: string;
+    // Maximum number of requests we'll perform when looking up previous message in a thread
+    threadLookupRequestLimit: number;
     // Format of the text explaining why a message is truncated and pastebinned
     truncatedMessageTemplate: string;
 }
@@ -58,6 +60,7 @@ const DEFAULTS: MatrixHandlerConfig = {
     shortReplyTresholdSeconds: 5 * 60,
     shortReplyTemplate: "$NICK: $REPLY",
     longReplyTemplate: "<$NICK> \"$ORIGINAL\" <- $REPLY",
+    threadLookupRequestLimit: 10,
     truncatedMessageTemplate: "(full message at $URL)",
 };
 
@@ -126,6 +129,9 @@ export class MatrixHandler {
     // required because invites are processed asyncly, so you could get invite->msg
     // and the message is processed before the room is created.
     private readonly eventCache: Map<string, CachedEvent> = new Map();
+    // keep track of the last message sent to each thread
+    // so that we can form replies to the most recent one rather than the first one
+    private lastMessageInThreadCache: Map<string, string> = new Map();
     private readonly metrics: {[domain: string]: {
         [metricName: string]: number;
     };} = {};
@@ -1046,13 +1052,55 @@ export class MatrixHandler {
 
         let cacheBody = ircAction.text;
 
-        // special handling for replies
-        if (event.content["m.relates_to"] && event.content["m.relates_to"]["m.in_reply_to"]) {
-            const eventId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
-            const reply = await this.textForReplyEvent(event, eventId, ircRoom);
-            if (reply !== null) {
-                ircAction.text = reply.formatted;
-                cacheBody = reply.reply;
+        // special handling for replies and threads
+        if (event.content["m.relates_to"]) {
+            if (event.content["m.relates_to"]["m.in_reply_to"]) {
+                const eventId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
+                const reply = await this.textForReplyEvent(event, eventId, ircRoom);
+                if (reply !== null) {
+                    ircAction.text = reply.formatted;
+                    cacheBody = reply.reply;
+                }
+            } else if (event.content["m.relates_to"]?.rel_type === "io.element.thread") {
+                const threadId = event.content["m.relates_to"].event_id;
+                let lastReplyId = this.lastMessageInThreadCache.get(threadId);
+                if (!lastReplyId) {
+                    try {
+                        const getThread = async (from?: string) => this.ircBridge.getAppServiceBridge().getIntent().matrixClient.doRequest(
+                            'GET', `/_matrix/client/unstable/rooms/${event.room_id}/relations/${threadId}` + (from ? `?from=${from}`: '')
+                        );
+                        let from: string|undefined;
+                        // locate the message we're now formatting in the thread chain and find its predecessor
+                        for (let i = 0; i < this.config.threadLookupRequestLimit; i++) {
+                            let thread = await getThread(from);
+
+                            const currentMessageIdx = thread['chunk'].findIndex((ev: any) => ev.event_id = event.event_id);
+                            if (currentMessageIdx == -1) {
+                                from = thread.next_batch;
+                                if (!from) break;
+                                continue;
+                            } else {
+                                if (currentMessageIdx === thread['chunk'].length) {
+                                    // we're at a chunk boundary, need to load one more
+                                    thread = await getThread(thread.next_batch);
+                                    lastReplyId = thread['chunk'][0].event_id;
+                                } else {
+                                    lastReplyId = thread['chunk'][currentMessageIdx + 1].event_id;
+                                }
+                                break;
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error fetching thread from homeserver:', err);
+                    }
+                    lastReplyId ||= threadId; // fallback to the original message if we really have no better idea
+                }
+                this.lastMessageInThreadCache.set(threadId, event.event_id);
+                const reply = await this.textForReplyEvent(event, lastReplyId, ircRoom);
+                if (reply !== null) {
+                    ircAction.text = reply.formatted;
+                    cacheBody = reply.reply;
+                }
             }
         }
 
@@ -1274,14 +1322,21 @@ export class MatrixHandler {
         if (!event.content.body) {
             return null;
         }
+
+        // For ordinary replies, we need to extract the new text with the regex.`
+        // No need for this in thread replies though.
+        let rplText: string;
+        let isThreadReply = false;
         const match = REPLY_REGEX.exec(event.content.body);
-        if (match === null || match.length !== 4) {
-            return null;
+        if (match !== null && match.length === 4) {
+            rplText = match[3];
+        } else {
+            rplText = event.content.body;
+            isThreadReply = true;
         }
 
         let rplName: string;
         let rplSource: string;
-        const rplText = match[3];
         let cachedEvent = this.getCachedEvent(eventId);
         if (!cachedEvent) {
             // Fallback to fetching from the homeserver.
@@ -1350,7 +1405,7 @@ export class MatrixHandler {
 
         let replyTemplate: string;
         const tresholdMs = (this.config.shortReplyTresholdSeconds) * 1000;
-        if (rplSource && event.origin_server_ts - cachedEvent.timestamp > tresholdMs) {
+        if (isThreadReply || (rplSource && event.origin_server_ts - cachedEvent.timestamp > tresholdMs)) {
             replyTemplate = this.config.longReplyTemplate;
         }
         else {
