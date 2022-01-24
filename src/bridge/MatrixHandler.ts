@@ -450,7 +450,7 @@ export class MatrixHandler {
         // invite yet!)
         this.processingInvitesForRooms[event.room_id + event.state_key] = req.getPromise();
         req.getPromise().finally(() => {
-            delete this.processingsForRooms[event.room_id + event.state_key];
+            delete this.processingInvitesForRooms[event.room_id + event.state_key];
         });
 
         // Check if this room is known to us.
