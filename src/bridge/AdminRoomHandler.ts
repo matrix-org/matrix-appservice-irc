@@ -25,8 +25,8 @@ import { MatrixHandler, MatrixSimpleMessage } from "./MatrixHandler";
 import logging from "../logging";
 import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "../util/PackageInfo";
-import { ProvisionRequest } from "../provisioning/ProvisionRequest";
 import { IdentGenerator } from "../irc/IdentGenerator";
+import { Provisioner } from "../provisioning/Provisioner";
 
 const log = logging("AdminRoomHandler");
 
@@ -220,7 +220,7 @@ export class AdminRoomHandler {
         }
         try {
             await this.ircBridge.getProvisioner().doLink(
-                ProvisionRequest.createFake("adminCommand", log),
+                Provisioner.createFakeRequest("adminCommand", sender),
                 server,
                 ircChannel,
                 undefined,
@@ -247,14 +247,12 @@ export class AdminRoomHandler {
         }
         try {
             await this.ircBridge.getProvisioner().unlink(
-                ProvisionRequest.createFake("adminCommand", log,
-                    {
-                        remote_room_server: serverDomain,
-                        remote_room_channel: ircChannel,
-                        matrix_room_id: matrixRoomId,
-                        user_id: sender,
-                    },
-                ),
+                Provisioner.createFakeRequest("killRoom", sender, {
+                    remote_room_server: serverDomain,
+                    remote_room_channel: ircChannel,
+                    matrix_room_id: matrixRoomId,
+                    user_id: sender,
+                }),
                 userPermission === CommandPermission.Admin
             );
         }

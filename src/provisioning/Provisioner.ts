@@ -1,6 +1,6 @@
 import { IrcBridge } from "../bridge/IrcBridge";
 import { Defer } from "../promiseutil";
-import { MatrixRoom, MatrixUser, MembershipQueue, PowerLevelContent,
+import { ApiError, ErrCode, MatrixRoom, MatrixUser, MembershipQueue, PowerLevelContent,
     ProvisioningApi, Rules, UserMembership } from "matrix-appservice-bridge";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcAction } from "../models/IrcAction";
@@ -12,8 +12,9 @@ import { IrcServer } from "../irc/IrcServer";
 import { IrcUser } from "../models/IrcUser";
 import { GetNicksResponseOperators } from "../irc/BridgedClient";
 import ProvisioningRequest from "matrix-appservice-bridge/lib/provisioning/request";
-import { LinkValidator, LinkValidatorProperties, QueryLinkValidator,
-    QueryLinkValidatorProperties, RoomIdValidator, UnlinkValidator, UnlinkValidatorProperties } from "./RouteSchema";
+import { IrcErrCode, IrcProvisioningError, LinkValidator, LinkValidatorProperties, QueryLinkValidator,
+    QueryLinkValidatorProperties, RoomIdValidator, UnlinkValidator, UnlinkValidatorProperties } from "./Schema";
+import { NeDBDataStore } from "../datastore/NedbDataStore";
 
 const log = logging("Provisioner");
 
@@ -53,12 +54,26 @@ export class Provisioner extends ProvisioningApi {
             [nick: string]: PendingRequest;
         };
     } = {};
+
+
+    /**
+     * Create a request to be passed internally to the provisioner.
+     * @param fnName The function name to be called.
+     * @param userId The userId, if specific to a user.
+     * @param body The body of the request.
+     * @param params The url parameters of the request.
+     * @returns A ProvisioningRequest object.
+     */
+    static createFakeRequest(fnName: string, userId = "-internal-", body?: any, params: Record<string, unknown> = {}) {
+        return new ProvisioningRequest({body: body || {}, params}, userId, "provisioner", fnName);
+    }
+
     constructor(
         private ircBridge: IrcBridge,
         private readonly config: StrictProvisionerConfig,
         private membershipQueue: MembershipQueue
     ) {
-        super(ircBridge.getStore().provisioningStore, {
+        super(ircBridge.getStore(), {
             provisioningToken: config.secretToken,
             widgetTokenPrefix: "ircbr-wdt-",
             // Use the bridge express instance if we don't define our own ports
@@ -75,10 +90,15 @@ export class Provisioner extends ProvisioningApi {
 
         // Disable all provision endpoints by not calling 'next' and returning an error instead
         if (!config.enabled) {
-            this.baseRoute.use((_req, res,) => {
-                res.status(500).json({error : 'Provisioning is not enabled.'});
+            this.baseRoute.use(() => {
+                throw new ApiError('Provisioning not enabled', ErrCode.DisabledFeature);
             });
             return;
+        }
+        if (ircBridge.getStore() instanceof NeDBDataStore) {
+            log.warn(
+"Provisioner is incompatible with NeDB store. While provisioning requests may succeed, widget requests will not."
+            );
         }
 
         this.addRoute("post", "/link", this.createProvisionEndpoint(this.requestLink), "requestLink");
@@ -105,16 +125,10 @@ export class Provisioner extends ProvisioningApi {
         fn: (req: ProvisioningRequest<any, any>) => PromiseLike<any>
     ) {
         return async (req: ProvisioningRequest, res: express.Response) => {
-            try {
-                const result = (await fn.call(this, req)) || {};
-                req.log.debug(`Sending result: ${JSON.stringify(result)}`);
-                res.json(result);
-            }
-            catch (err) {
-                res.status(500).json({error: err.message});
-                req.log.error(err.stack);
-                throw err;
-            }
+            // Errors will be caught by the Provisioner class
+            const result = (await fn.call(this, req)) || {};
+            req.log.debug(`Sending result: ${JSON.stringify(result)}`);
+            res.json(result);
         }
     }
 
@@ -144,9 +158,10 @@ export class Provisioner extends ProvisioningApi {
         }
         catch (err) {
             req.log.error(`Room failed room validator check: (${err})`);
-            throw new Error(
+            throw new IrcProvisioningError(
                 'Room failed validation. You may be attempting to "double bridge" this room.' +
-                ' Error: ' + err
+                ' Error: ' + err,
+                IrcErrCode.DoubleBridge
             );
         }
 
@@ -200,14 +215,19 @@ export class Provisioner extends ProvisioningApi {
         const existing = this.getRequest(server, opNick);
         if (existing) {
             const from = existing.userId;
-            throw new Error(`Bridging request already sent to `+
-                            `${opNick} on ${server.domain} from ${from}`);
+            throw new IrcProvisioningError(
+                `Bridging request already sent to ${opNick} on ${server.domain} from ${from}`,
+                IrcErrCode.ExistingRequest,
+            );
         }
 
         // (Matrix) Check power level of user
         const hasPower = await this.userHasProvisioningPower(req, userId, roomId);
         if (!hasPower) {
-            throw new Error('User does not possess high enough power level');
+            throw new IrcProvisioningError(
+                `User does not possess high enough power level`,
+                IrcErrCode.NotEnoughPower,
+            );
         }
 
         // (IRC) Check that op's nick is actually op
@@ -218,11 +238,17 @@ export class Provisioner extends ProvisioningApi {
         const info = await botClient.getOperators(ircChannel, {key : key});
 
         if (!info.nicks.includes(opNick)) {
-            throw new Error(`Provided user is not in channel ${ircChannel}.`);
+            throw new IrcProvisioningError(
+                `Provided user is not in channel ${ircChannel}.`,
+                IrcErrCode.BadOpTarget,
+            );
         }
 
         if (!info.operatorNicks.includes(opNick)) {
-            throw new Error(`Provided user is not an op of ${ircChannel}.`);
+            throw new IrcProvisioningError(
+                `Provided user is not an op of ${ircChannel}.`,
+                IrcErrCode.BadOpTarget,
+            );
         }
 
         // State key for m.room.bridging

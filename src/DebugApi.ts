@@ -26,8 +26,8 @@ import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
 import { BridgedClient, BridgedClientStatus } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
-import { ProvisionRequest } from "./provisioning/ProvisionRequest";
 import { getBridgeVersion } from "./util/PackageInfo";
+import { Provisioner } from "./provisioning/Provisioner";
 
 const log = getLogger("DebugApi");
 
@@ -390,7 +390,7 @@ export class DebugApi {
         // It will also leave the MatrixBot.
         try {
             await this.ircBridge.getProvisioner().leaveIfUnprovisioned(
-                ProvisionRequest.createFake("killRoom", log),
+                Provisioner.createFakeRequest("killRoom", "bridge"),
                 roomId,
                 server,
                 channel

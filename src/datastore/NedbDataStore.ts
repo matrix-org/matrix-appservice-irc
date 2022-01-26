@@ -22,7 +22,7 @@ import {
     MatrixRoom, MatrixUser, RemoteUser, RemoteRoom,
     UserBridgeStore, UserActivityStore,
     RoomBridgeStore, RoomBridgeStoreEntry as Entry,
-    UserActivity, UserActivitySet
+    UserActivity, UserActivitySet, ProvisionSession
 } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "./DataStore";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
@@ -736,6 +736,22 @@ export class NeDBDataStore implements DataStore {
             log.debug(`Stored new room ${newRoomId}`);
         }
         log.debug("Finished migrating rooms in database");
+    }
+
+    public async getSessionForToken(): Promise<ProvisionSession|null> {
+        throw Error('Not implemented for NeDB store');
+    }
+
+    public async createSession() {
+        throw Error('Not implemented for NeDB store');
+    }
+
+    public async deleteSession() {
+        throw Error('Not implemented for NeDB store');
+    }
+
+    public async deleteAllSessions() {
+        throw Error('Not implemented for NeDB store');
     }
 
     public async destroy() {

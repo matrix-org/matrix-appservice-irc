@@ -35,7 +35,7 @@ export interface UserFeatures {
     [name: string]: boolean|undefined;
 }
 
-export interface DataStore {
+export interface DataStore extends ProvisioningStore {
     setServerFromConfig(server: IrcServer, serverConfig: IrcServerConfig): Promise<void>;
 
     /**
@@ -193,6 +193,4 @@ export interface DataStore {
     getRoomCount(): Promise<number>;
 
     destroy(): Promise<void>;
-
-    provisioningStore: ProvisioningStore;
 }

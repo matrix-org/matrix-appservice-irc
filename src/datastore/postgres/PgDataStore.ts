@@ -24,6 +24,8 @@ import {
     MatrixRoomData,
     UserActivitySet,
     UserActivity,
+    ProvisioningStore,
+    ProvisionSession,
 } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
 import { IrcRoom } from "../../models/IrcRoom";
@@ -36,6 +38,7 @@ import { StringCrypto } from "../StringCrypto";
 import { toIrcLowerCase } from "../../irc/formatting";
 import { NeDBDataStore } from "../NedbDataStore";
 import QuickLRU from "quick-lru";
+import { stringify } from "querystring";
 
 const log = getLogger("PgDatastore");
 
@@ -51,10 +54,10 @@ interface RoomRecord {
     origin: RoomOrigin;
 }
 
-export class PgDataStore implements DataStore {
+export class PgDataStore implements DataStore, ProvisioningStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 7;
+    public static readonly LATEST_SCHEMA = 8;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -729,6 +732,37 @@ export class PgDataStore implements DataStore {
         }
         throw Error("Couldn't fetch schema version");
     }
+
+    public async getSessionForToken(token: string): Promise<ProvisionSession|null> {
+        const result = await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "SELECT user_id, expires_ts FROM provisioner_tokens WHERE token = $1", [token]
+        );
+        const row = result.rows[0];
+        return row ? {
+            userId: row.user_id,
+            token,
+            expiresTs: row.expires_ts,
+        } : null;
+    }
+
+    public async createSession(session: ProvisionSession) {
+        await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "INSERT INTO provisioner_tokens VALUES ($1, $2, $3)", [session.userId, session.token, session.expiresTs]
+        );
+    }
+
+    public async deleteSession(token: string) {
+        await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "DELETE provisioner_tokens WHERE token = $1", [token]
+        );
+    }
+
+    public async deleteAllSessions(userId: string) {
+        await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "DELETE provisioner_tokens WHERE user_id = $1", [userId]
+        );
+    }
+
 
     private static BuildUpsertStatement(table: string, constraint: string, keyNames: string[]): string {
         const keys = keyNames.join(", ");
