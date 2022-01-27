@@ -516,6 +516,8 @@ ircService:
   provisioning:
     # True to enable the provisioning HTTP endpoint. Default: false.
     enabled: false
+    # This should be a secure secret token used when making provisioner requests.
+    secret: $generateMe
     # The number of seconds to wait before giving up on getting a response from
     # an IRC channel operator. If the channel operator does not respond within the
     # allotted time period, the provisioning request will fail.
@@ -535,10 +537,37 @@ ircService:
           # These users will deny a room from being bridged.
           - "@.*:badguys.com"
 
-    # Watch the file for changes, and apply the rules. Default: false
-    enableReload: true
     # Number of channels allowed to be bridged
     roomLimit: 50
+
+    # Endpoint prefix for provisoning requests.
+    apiPrefix: "/_matrix/provision"
+
+    # When users request a token from the bridge to make provisioning
+    # requests, disallow any requests that resolve a Matrix server_name included in these ranges.
+    # This list should include any internal IPs that the bridge should never lookup.
+    # By default, the below list is used.
+    openIdDisallowedIpRanges:
+    #  - '127.0.0.0/8'
+    #  - '10.0.0.0/8'
+    #  - '172.16.0.0/12'
+    #  - '192.168.0.0/16'
+    #  - '100.64.0.0/10'
+    #  - '192.0.0.0/24'
+    #  - '169.254.0.0/16'
+    #  - '192.88.99.0/24'
+    #  - '198.18.0.0/15'
+    #  - '192.0.2.0/24'
+    #  - '198.51.100.0/24'
+    #  - '203.0.113.0/24'
+    #  - '224.0.0.0/4'
+    #  - '::1/128'
+    #  - 'fe80::/10'
+    #  - 'fc00::/7'
+    #  - '2001:db8::/32'
+    #  - 'ff00::/8'
+    #  - 'fec0::/10'
+
 
   # WARNING: The bridge needs to send plaintext passwords to the IRC server, it cannot
   # send a password hash. As a result, passwords (NOT hashes) are stored encrypted in

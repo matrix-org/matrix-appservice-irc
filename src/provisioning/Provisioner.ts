@@ -1,7 +1,7 @@
 import { IrcBridge } from "../bridge/IrcBridge";
 import { Defer } from "../promiseutil";
 import { ApiError, ErrCode, MatrixRoom, MatrixUser, MembershipQueue, PowerLevelContent,
-    ProvisioningApi, Rules, UserMembership } from "matrix-appservice-bridge";
+    ProvisioningApi, Rules, UserMembership, ProvisioningRequest, ConfigValidator } from "matrix-appservice-bridge";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcAction } from "../models/IrcAction";
 import { BridgeRequest, BridgeRequestData } from "../models/BridgeRequest";
@@ -11,7 +11,6 @@ import * as express from "express";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcUser } from "../models/IrcUser";
 import { GetNicksResponseOperators } from "../irc/BridgedClient";
-import ProvisioningRequest from "matrix-appservice-bridge/lib/provisioning/request";
 import { IrcErrCode, IrcProvisioningError, LinkValidator, LinkValidatorProperties, QueryLinkValidator,
     QueryLinkValidatorProperties, RoomIdValidator, UnlinkValidator, UnlinkValidatorProperties } from "./Schema";
 import { NeDBDataStore } from "../datastore/NedbDataStore";
@@ -40,13 +39,16 @@ export interface ProvisionerConfig {
         host?: string;
     };
     // We allow this to be unspecified, so it will fall back to the homeserver token
-    secretToken?: string;
+    secret?: string;
     apiPrefix?: string;
+    openIdDisallowedIpRanges?: string[];
 }
 
 interface StrictProvisionerConfig extends ProvisionerConfig {
-    secretToken: string;
+    secret: string;
 }
+
+const LINK_REQUIRED_POWER_DEFAULT = 50;
 
 export class Provisioner extends ProvisioningApi {
     private pendingRequests: {
@@ -74,11 +76,13 @@ export class Provisioner extends ProvisioningApi {
         private membershipQueue: MembershipQueue
     ) {
         super(ircBridge.getStore(), {
-            provisioningToken: config.secretToken,
+            provisioningToken: config.secret,
             widgetTokenPrefix: "ircbr-wdt-",
             // Use the bridge express instance if we don't define our own ports
             expressApp: !config.http ? ircBridge.getAppServiceBridge().appService.expressApp : undefined,
             apiPrefix: "/_matrix/provision",
+            disallowedIpRanges: config.openIdDisallowedIpRanges,
+            ratelimit: true,
         })
 
         if (config.enabled) {
@@ -97,7 +101,7 @@ export class Provisioner extends ProvisioningApi {
         }
         if (ircBridge.getStore() instanceof NeDBDataStore) {
             log.warn(
-"Provisioner is incompatible with NeDB store. While provisioning requests may succeed, widget requests will not."
+                "Provisioner is incompatible with NeDB store. Widget requests will not be handled."
             );
         }
 
@@ -151,13 +155,11 @@ export class Provisioner extends ProvisioningApi {
 
         let powerState = null;
 
-        // Try 100 times to join a room, or timeout after 10 min
         await this.membershipQueue.join(roomId, undefined, req);
         try {
             await this.ircBridge.getAppServiceBridge().canProvisionRoom(roomId);
         }
         catch (err) {
-            req.log.error(`Room failed room validator check: (${err})`);
             throw new IrcProvisioningError(
                 'Room failed validation. You may be attempting to "double bridge" this room.' +
                 ' Error: ' + err,
@@ -170,7 +172,7 @@ export class Provisioner extends ProvisioningApi {
         }
         catch (err) {
             req.log.error(`Error retrieving power levels (${err.data.error})`);
-            throw new Error('Could not retrieve your power levels for the room');
+            throw new ApiError(`Could not retrieve power levels for ${roomId}`);
         }
 
         // In 10 minutes
@@ -186,7 +188,7 @@ export class Provisioner extends ProvisioningApi {
             actualPower = powerState.users_default;
         }
 
-        let requiredPower = 50;
+        let requiredPower = LINK_REQUIRED_POWER_DEFAULT;
         if (powerState.events["m.room.power_levels"] !== undefined) {
             requiredPower = powerState.events["m.room.power_levels"]
         }
@@ -293,10 +295,14 @@ export class Provisioner extends ProvisioningApi {
                 // If bridging state sender is this bot
                 if (wholeBridgingState.sender !== intent.userId) {
                     // If it is from a different sender, fail
-                    throw new Error(
-                        `A request to create this mapping has already been sent ` +
-                        `(status = ${bridgingState.status},` +
-                        ` bridger = ${bridgingState.user_id}. Ignoring request.`
+                    throw new IrcProvisioningError(
+                        "A request to create this mapping has already been sent",
+                        IrcErrCode.ExistingRequest,
+                        undefined,
+                        {
+                            status: bridgingState.status,
+                            bridger: bridgingState.user_id
+                        }
                     );
                 }
                 // Success, already pending/success
@@ -567,30 +573,17 @@ export class Provisioner extends ProvisioningApi {
             // Array of operator nicks
             operators: []
         };
-
-        try {
-            QueryLinkValidator.validate(options);
-        }
-        catch (err) {
-            if (err._validationErrors) {
-                const s = err._validationErrors.map((e: {field: string})=>{
-                    return `${e.field} is malformed`;
-                }).join(', ');
-                throw new Error(s);
-            }
-            else {
-                log.error(err);
-                // change the message and throw
-                throw new Error('Malformed parameters');
-            }
-        }
+        Provisioner.validatePayload(QueryLinkValidator, options);
 
         // Try to find the domain requested for linking
-        //TODO: ircDomain might include protocol, i.e. irc://irc.freenode.net
+        //TODO: ircDomain might include protocol, i.e. irc://irc.libera.chat
         const server = this.ircBridge.getServer(ircDomain);
 
         if (!server) {
-            throw new Error(`Server not found ${ircDomain}`);
+            throw new IrcProvisioningError(
+                `Server not found`,
+                IrcErrCode.UnknownNetwork,
+            );
         }
 
         const botClient = await this.ircBridge.getBotClient(server);
@@ -598,7 +591,10 @@ export class Provisioner extends ProvisioningApi {
         ircChannel = botClient.caseFold(ircChannel);
 
         if (server.isExcludedChannel(ircChannel)) {
-            throw new Error(`Server is configured to exclude channel ${ircChannel}`);
+            throw new IrcProvisioningError(
+                `Server is configured to exclude channel`,
+                IrcErrCode.UnknownChannel,
+            );
         }
 
         let opsInfo: GetNicksResponseOperators;
@@ -612,8 +608,11 @@ export class Provisioner extends ProvisioningApi {
             );
         }
         catch (err) {
-            req.log.error(err.stack);
-            throw new Error(`Failed to get operators for channel ${ircChannel} (${err.message})`);
+            req.log.error(`Failed to get operators for channel ${ircChannel}`, err);
+            throw new IrcProvisioningError(
+                `Failed to get operators for channel`,
+                IrcErrCode.BadOpTarget,
+            );
         }
 
         queryInfo.operators = opsInfo.operatorNicks;
@@ -640,25 +639,13 @@ export class Provisioner extends ProvisioningApi {
     // Link an IRC channel to a matrix room ID
     public async requestLink(req: ProvisioningRequest<LinkValidatorProperties>) {
         const options = req.body;
-        try {
-            LinkValidator.validate(options);
-        }
-        catch (err) {
-            if (err._validationErrors) {
-                const s = err._validationErrors.map((e: {field: string})=>{
-                    return `${e.field} is malformed`;
-                }).join(', ');
-                throw new Error(s);
-            }
-            else {
-                log.error(err);
-                // change the message and throw
-                throw new Error('Malformed parameters');
-            }
-        }
+        Provisioner.validatePayload(LinkValidator, options);
 
         if (await this.ircBridge.atBridgedRoomLimit()) {
-            throw new Error('At maximum number of bridged rooms');
+            throw new IrcProvisioningError(
+                `At maximum number of bridged rooms`,
+                IrcErrCode.BridgeAtLimit,
+            );
         }
 
         const ircDomain = options.remote_room_server;
@@ -674,7 +661,10 @@ export class Provisioner extends ProvisioningApi {
         const server = this.ircBridge.getServer(ircDomain);
 
         if (!server) {
-            throw new Error(`Server requested for linking not found ('${ircDomain}')`);
+            throw new IrcProvisioningError(
+                `Server not found`,
+                IrcErrCode.UnknownNetwork,
+            );
         }
 
         const botClient = await this.ircBridge.getBotClient(server);
@@ -682,7 +672,10 @@ export class Provisioner extends ProvisioningApi {
         ircChannel = botClient.caseFold(ircChannel);
 
         if (server.isExcludedChannel(ircChannel)) {
-            throw new Error(`Server is configured to exclude given channel ('${ircChannel}')`);
+            throw new IrcProvisioningError(
+                `Server is configured to exclude channel`,
+                IrcErrCode.UnknownChannel,
+            );
         }
 
         const entry = await this.ircBridge.getStore().getRoom(roomId, ircDomain, ircChannel);
@@ -691,8 +684,14 @@ export class Provisioner extends ProvisioningApi {
             await this.authoriseProvisioning(req, server, userId, ircChannel, roomId, opNick, key);
         }
         else {
-            throw new Error(`Room mapping already exists (${mappingLogId},` +
-                            `origin = ${entry.data.origin})`);
+            throw new IrcProvisioningError(
+                'Room mapping already exists',
+                IrcErrCode.ExistingMapping,
+                undefined,
+                {
+                    origin: entry.data.origin,
+                }
+            );
         }
     }
 
@@ -708,8 +707,14 @@ export class Provisioner extends ProvisioningApi {
 
         const entry = await this.ircBridge.getStore().getRoom(roomId, ircDomain, ircChannel);
         if (entry) {
-            throw new Error(`Room mapping already exists (${mappingLogId},` +
-                            `origin = ${entry.data.origin})`);
+            throw new IrcProvisioningError(
+                'Room mapping already exists',
+                IrcErrCode.ExistingMapping,
+                undefined,
+                {
+                    origin: entry.data.origin,
+                }
+            );
         }
 
         // Cause the bot to join the new plumbed channel if it is enabled
@@ -756,22 +761,7 @@ export class Provisioner extends ProvisioningApi {
      */
     public async unlink(req: ProvisioningRequest<UnlinkValidatorProperties>, ignorePermissions = false) {
         const options = req.body;
-        try {
-            UnlinkValidator.validate(options);
-        }
-        catch (err) {
-            if (err._validationErrors) {
-                const s = err._validationErrors.map((e: {instanceContext: string})=>{
-                    return `${e.instanceContext} is malformed`;
-                }).join(', ');
-                throw new Error(s);
-            }
-            else {
-                log.error(err);
-                // change the message and throw
-                throw new Error('Malformed parameters');
-            }
-        }
+        Provisioner.validatePayload(UnlinkValidator, options);
 
         const ircDomain = options.remote_room_server;
         const ircChannel = options.remote_room_channel;
@@ -784,7 +774,10 @@ export class Provisioner extends ProvisioningApi {
         const server = this.ircBridge.getServer(ircDomain);
 
         if (!server) {
-            throw new Error("Server requested for linking not found");
+            throw new IrcProvisioningError(
+                `Server not found`,
+                IrcErrCode.UnknownNetwork,
+            );
         }
 
         if (!ignorePermissions) {
@@ -811,18 +804,23 @@ export class Provisioner extends ProvisioningApi {
                         power = content.users[options.user_id];
                     }
                     // Can be empty. Assume 0 as per spec.
-                    // Can be empty. Assume 50 as per spec.
+                    // Can be empty. Assume LINK_REQUIRED_POWER_DEFAULT as per spec.
                     hasPower = (
                         typeof power === "number" ? power : 0)
                         >=
-                        (typeof powerRequired === "number" ? powerRequired : 50);
+                        (typeof powerRequired === "number" ? powerRequired : LINK_REQUIRED_POWER_DEFAULT);
                 }
             });
             if (!isJoined) {
-                throw new Error(`${options.user_id} is not in the room`);
+                throw new IrcProvisioningError(`${options.user_id} is not in the room`, IrcErrCode.NotEnoughPower)
             }
             if (!hasPower) {
-                throw new Error(`${options.user_id} is not a moderator in the room.`);
+                throw new IrcProvisioningError(
+                    `${options.user_id} does not have enough power in the room`,
+                    IrcErrCode.NotEnoughPower,
+                    undefined,
+                    {requiredPower: LINK_REQUIRED_POWER_DEFAULT}
+                );
             }
         }
 
@@ -832,7 +830,7 @@ export class Provisioner extends ProvisioningApi {
             .getRoom(roomId, ircDomain, ircChannel, 'provision');
 
         if (!entry) {
-            throw new Error(`Provisioned room mapping does not exist (${mappingLogId})`);
+            throw new IrcProvisioningError('Provisioned room mapping does not exist', IrcErrCode.UnknownRoom);
         }
         await this.ircBridge.getStore().removeRoom(roomId, ircDomain, ircChannel, 'provision');
 
@@ -883,13 +881,7 @@ export class Provisioner extends ProvisioningApi {
             server, ircChannel
         );
         // make sure the unlinked room exists as we may have just removed it
-        let exists = false;
-        for (let i = 0; i < matrixRooms.length; i++) {
-            if (matrixRooms[i].getId() === roomId) {
-                exists = true;
-                break;
-            }
-        }
+        const exists = matrixRooms.find(r => r.getId() === roomId);
         if (!exists) {
             matrixRooms.push(new MatrixRoom(roomId));
         }
@@ -994,22 +986,7 @@ export class Provisioner extends ProvisioningApi {
     // List all mappings currently provisioned with the given matrix_room_id
     public async listings(req: ProvisioningRequest<unknown, {roomId: string}>) {
         const roomId = req.params.roomId;
-        try {
-            RoomIdValidator.validate({"matrix_room_id": roomId});
-        }
-        catch (err) {
-            if (err._validationErrors) {
-                const s = err._validationErrors.map((e: {instanceContext: string})=>{
-                    return `${e.instanceContext} is malformed`;
-                }).join(', ');
-                throw new Error(s);
-            }
-            else {
-                log.error(err);
-                // change the message and throw
-                throw new Error('Malformed parameters');
-            }
-        }
+        Provisioner.validatePayload(RoomIdValidator, {"matrix_room_id": roomId});
 
         const mappings = await this.ircBridge.getStore().getProvisionedMappings(roomId);
 
@@ -1032,5 +1009,20 @@ export class Provisioner extends ProvisioningApi {
             count,
             limit,
         };
+    }
+
+    private static validatePayload(validator: ConfigValidator, payload: unknown) {
+        try {
+            validator.validate(payload);
+        }
+        catch (err) {
+            if (err._validationErrors) {
+                throw new ApiError("Malformed parameters", ErrCode.BadValue, undefined, {
+                    errors: err._validationErrors.map((e: {instanceContext: string}) => e.instanceContext),
+                });
+            }
+            log.error(err);
+            throw new ApiError("Malformed parameters");
+        }
     }
 }

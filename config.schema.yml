@@ -122,11 +122,17 @@ properties:
                                         type: "array"
                                         items:
                                             type: "string"
-                                    
-                    enableReload:
-                        type: "boolean"
                     roomLimit:
                         type: "number"
+                    secret:
+                        type: "string"
+                    apiPrefix:
+                        type: "string"
+                    openIdDisallowedIpRanges:
+                        type: "object"
+                        items:
+                            type: "string"
+
             passwordEncryptionKeyPath:
                 type: "string"
             RMAUlimit:
