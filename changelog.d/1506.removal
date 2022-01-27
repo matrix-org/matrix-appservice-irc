@@ -1,0 +1,2 @@
+The bridge will no longer treat invites without a `is_direct: true` as DM invites (and will henceforth reject group room invites). This may break some Matrix
+clients that do not supply this metadata when creating a room.

@@ -245,14 +245,7 @@ export class MatrixHandler {
         req.log.info("Joined %s to room %s", invitedUser.getId(), event.room_id);
 
         // check if this room is a PM room or not.
-
-        let isPmRoom = event.content.is_direct === true;
-        if (isPmRoom !== true) {
-            // Legacy check
-            const joinedMembers = await this.ircBridge.getAppServiceBridge().getIntent().matrixClient
-                .getJoinedRoomMembers(event.room_id);
-            isPmRoom = joinedMembers.length === 2 && joinedMembers.includes(event.sender);
-        }
+        const isPmRoom = event.content.is_direct === true;
 
         if (isPmRoom) {
             // nick is the channel
