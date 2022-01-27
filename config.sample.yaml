@@ -543,6 +543,13 @@ ircService:
     # Endpoint prefix for provisoning requests.
     apiPrefix: "/_matrix/provision"
 
+    # Run a seperate HTTP listener for provisioning requests.
+    http:
+      # The port to listen on.
+      port: 7700
+      # The host to listen on. Optional. By default this is 0.0.0.0
+      # host: 0.0.0.0
+
     # When users request a token from the bridge to make provisioning
     # requests, disallow any requests that resolve a Matrix server_name included in these ranges.
     # This list should include any internal IPs that the bridge should never lookup.
