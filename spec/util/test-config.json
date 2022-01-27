@@ -109,7 +109,8 @@
         },
         "provisioning": {
             "enabled": true,
-            "requestTimeoutSeconds": 1
+            "requestTimeoutSeconds": 1,
+            "secret": "test-secret"
         },
         "passwordEncryptionKeyPath": "./spec/support/passkey.pem"
     }

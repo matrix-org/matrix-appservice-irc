@@ -149,9 +149,9 @@ module.exports.mkEnv = function() {
 };
 
 
-module.exports.initEnv = Promise.coroutine(function*(env, customConfig) {
-    return yield env.init(customConfig);
-});
+module.exports.initEnv = (env, customConfig) => {
+    return env.init(customConfig);
+};
 
 module.exports.afterEach = function(env) {
     return env.afterEach();

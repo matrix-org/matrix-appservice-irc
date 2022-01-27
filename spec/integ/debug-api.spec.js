@@ -1,7 +1,7 @@
 const envBundle = require("../util/env-bundle");
 const request = require("request-promise-native");
 
-const { getBridgeVersion } = require("../../lib/util/PackageInfo");
+const { getBridgeVersion } = require("matrix-appservice-bridge");
 
 const DEBUG_PORT = 15555;
 let asToken;
