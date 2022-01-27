@@ -96,12 +96,16 @@ export class Provisioner extends ProvisioningApi {
 
         // Disable all provision endpoints by not calling 'next' and returning an error instead
         if (!config.enabled) {
-            this.baseRoute.use(() => {
-                throw new ApiError('Provisioning not enabled', ErrCode.DisabledFeature);
+            this.baseRoute.use((_req, _res, next) => {
+                next(new ApiError('Provisioning not enabled', ErrCode.DisabledFeature));
             });
             return;
         }
         if (ircBridge.getStore() instanceof NeDBDataStore) {
+            // Note: we don't really want to encourage NeDB for new deployments, and setting up
+            // support for this in NeDB would require us to create a new store. The bridge should
+            // fail appropriately with an error if the user attempts to use widgets while the
+            // bridge is using NeDB.
             log.warn(
                 "Provisioner is incompatible with NeDB store. Widget requests will not be handled."
             );
