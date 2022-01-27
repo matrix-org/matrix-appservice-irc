@@ -27,7 +27,6 @@
   },
   "dependencies": {
     "@sentry/node": "^5.27.1",
-    "@types/jasmine": "^3.10.3",
     "bluebird": "^3.7.2",
     "diff": "^5.0.0",
     "escape-string-regexp": "^4.0.0",
@@ -59,6 +58,7 @@
     "@types/node": "^14",
     "@types/nopt": "^3.0.29",
     "@types/pg": "^8.6.0",
+    "@types/jasmine": "^3.10.3",
     "@types/sanitize-html": "^2.3.1",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
