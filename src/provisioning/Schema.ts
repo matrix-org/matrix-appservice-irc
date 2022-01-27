@@ -21,9 +21,6 @@ const validationProperties = {
     },
     key : {
         type: "string"
-    },
-    user_id : {
-        type: "string"
     }
 };
 
@@ -38,7 +35,6 @@ export interface LinkValidatorProperties {
     remote_room_channel: string;
     remote_room_server: string;
     op_nick: string;
-    user_id: string;
     key?: string;
 }
 
@@ -50,7 +46,6 @@ export const LinkValidator = new ConfigValidator({
         "remote_room_channel",
         "remote_room_server",
         "op_nick",
-        "user_id"
     ]
 } as RouteValidatorSchema);
 
@@ -74,7 +69,6 @@ export const QueryLinkValidator = new ConfigValidator({
 export interface UnlinkValidatorProperties {
     remote_room_channel: string;
     remote_room_server: string;
-    user_id: string;
     matrix_room_id: string;
 }
 
@@ -85,7 +79,6 @@ export const UnlinkValidator = new ConfigValidator({
         "matrix_room_id",
         "remote_room_channel",
         "remote_room_server",
-        "user_id"
     ]
 } as RouteValidatorSchema);
 

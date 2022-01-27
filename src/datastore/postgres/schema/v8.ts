@@ -5,7 +5,7 @@ export async function runSchema(connection: PoolClient) {
     CREATE TABLE provisioner_sessions (
         user_id TEXT,
         token TEXT UNIQUE,
-        expires_ts BIGINT,
+        expires_ts BIGINT
     );
     `);
 }

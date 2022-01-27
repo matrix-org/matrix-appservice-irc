@@ -26,7 +26,7 @@ import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
 import { BridgedClient, BridgedClientStatus } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
-import { getBridgeVersion } from "./util/PackageInfo";
+import { getBridgeVersion } from "matrix-appservice-bridge";
 import { Provisioner } from "./provisioning/Provisioner";
 
 const log = getLogger("DebugApi");

@@ -24,7 +24,7 @@ import { IrcClientConfig } from "../models/IrcClientConfig";
 import { MatrixHandler, MatrixSimpleMessage } from "./MatrixHandler";
 import logging from "../logging";
 import * as RoomCreation from "./RoomCreation";
-import { getBridgeVersion } from "../util/PackageInfo";
+import { getBridgeVersion } from "matrix-appservice-bridge";
 import { IdentGenerator } from "../irc/IdentGenerator";
 import { Provisioner } from "../provisioning/Provisioner";
 

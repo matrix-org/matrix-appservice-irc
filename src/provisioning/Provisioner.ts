@@ -108,7 +108,7 @@ export class Provisioner extends ProvisioningApi {
         }
 
         this.addRoute("post", "/link", this.createProvisionEndpoint(this.requestLink), "requestLink");
-        this.addRoute("post", "/unlink", this.createProvisionEndpoint(this.unlink), "unlink");
+        this.addRoute("post", "/unlink", this.createProvisionEndpoint(this.unlink), "unlinky");
         this.addRoute("get", "/listlinks/:roomId", this.createProvisionEndpoint(this.listings), "listings");
         this.addRoute("post", "/querylink", this.createProvisionEndpoint(this.queryLink), "queryLink");
         this.addRoute("get", "/querynetworks", this.createProvisionEndpoint(this.queryNetworks), "queryNetworks");
@@ -480,10 +480,10 @@ export class Provisioner extends ProvisioningApi {
         }
         catch (err) {
             req.log.error(err.stack);
-            req.log.info(`Failed to create link following authorisation (${err.message})`);
+            req.log.error(`Failed to create link following authorisation (${err.message})`);
             await this.updateBridgingState(roomId, userId, 'failure', skey);
             this.removeRequest(server, opNick);
-            return;
+            throw err;
         }
         await this.updateBridgingState(roomId, userId, 'success', skey);
         // Send bridge info state event
@@ -643,6 +643,10 @@ export class Provisioner extends ProvisioningApi {
         const options = req.body;
         Provisioner.validatePayload(LinkValidator, options);
 
+        if (!req.userId) {
+            throw new ApiError('Missing `user_id` in body', ErrCode.BadValue);
+        }
+
         if (await this.ircBridge.atBridgedRoomLimit()) {
             throw new IrcProvisioningError(
                 `At maximum number of bridged rooms`,
@@ -655,7 +659,7 @@ export class Provisioner extends ProvisioningApi {
         const roomId = options.matrix_room_id;
         const opNick = options.op_nick;
         const key = options.key || undefined; // Optional key
-        const userId = options.user_id;
+        const userId = req.userId;
 
         // Try to find the domain requested for linking
         //TODO: ircDomain might include protocol, i.e. irc://irc.freenode.net
@@ -764,6 +768,11 @@ export class Provisioner extends ProvisioningApi {
         const options = req.body;
         Provisioner.validatePayload(UnlinkValidator, options);
 
+        if (!req.userId) {
+            throw new ApiError('Missing `user_id` in body', ErrCode.BadValue);
+        }
+        const userId = req.userId;
+
         const ircDomain = options.remote_room_server;
         const ircChannel = options.remote_room_channel;
         const roomId = options.matrix_room_id;
@@ -789,7 +798,7 @@ export class Provisioner extends ProvisioningApi {
             let isJoined = false;
             let hasPower = false;
             stateEvents.forEach(e => {
-                if (e.type === "m.room.member" && e.state_key === options.user_id) {
+                if (e.type === "m.room.member" && e.state_key === userId) {
                     const content = e.content as {membership: UserMembership};
                     isJoined = content.membership === "join";
                 }
@@ -801,8 +810,8 @@ export class Provisioner extends ProvisioningApi {
                         powerRequired = content.events["m.room.power_levels"];
                     }
                     let power: unknown|number = content.users_default;
-                    if (content.users && content.users[options.user_id]) {
-                        power = content.users[options.user_id];
+                    if (content.users && content.users[userId]) {
+                        power = content.users[userId];
                     }
                     // Can be empty. Assume 0 as per spec.
                     // Can be empty. Assume LINK_REQUIRED_POWER_DEFAULT as per spec.
@@ -813,11 +822,11 @@ export class Provisioner extends ProvisioningApi {
                 }
             });
             if (!isJoined) {
-                throw new IrcProvisioningError(`${options.user_id} is not in the room`, IrcErrCode.NotEnoughPower)
+                throw new IrcProvisioningError(`${userId} is not in the room`, IrcErrCode.NotEnoughPower)
             }
             if (!hasPower) {
                 throw new IrcProvisioningError(
-                    `${options.user_id} does not have enough power in the room`,
+                    `${userId} does not have enough power in the room`,
                     IrcErrCode.NotEnoughPower,
                     undefined,
                     {requiredPower: LINK_REQUIRED_POWER_DEFAULT}
@@ -1004,7 +1013,7 @@ export class Provisioner extends ProvisioningApi {
     }
 
     private async getLimits() {
-        const count = this.ircBridge.getStore().getRoomCount();
+        const count = await this.ircBridge.getStore().getRoomCount();
         const limit = this.ircBridge.config.ircService.provisioning?.roomLimit || false;
         return {
             count,
@@ -1018,8 +1027,9 @@ export class Provisioner extends ProvisioningApi {
         }
         catch (err) {
             if (err._validationErrors) {
+                const errors = err._validationErrors as {field: string, message: string}[];
                 throw new ApiError("Malformed parameters", ErrCode.BadValue, undefined, {
-                    errors: err._validationErrors.map((e: {instanceContext: string}) => e.instanceContext),
+                    errors: errors.map(e => ({field: e.field?.replace('data.', ''), message: e.message})),
                 });
             }
             log.error(err);

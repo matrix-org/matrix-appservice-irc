@@ -10,7 +10,7 @@
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc --project ./tsconfig.json",
-    "test": "BLUEBIRD_DEBUG=1 jasmine --stop-on-failure=true",
+    "test": "BLUEBIRD_DEBUG=1 ts-node -P spec/tsconfig.json node_modules/jasmine/bin/jasmine --stop-on-failure=true",
     "lint": "eslint -c .eslintrc --max-warnings 0 'spec/**/*.js' 'src/**/*.ts'",
     "check": "npm test && npm run lint",
     "ci-test": "nyc --report text jasmine",
@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@sentry/node": "^5.27.1",
+    "@types/jasmine": "^3.10.3",
     "bluebird": "^3.7.2",
     "diff": "^5.0.0",
     "escape-string-regexp": "^4.0.0",
@@ -50,6 +51,8 @@
   "devDependencies": {
     "@types/bluebird": "^3.5.32",
     "@types/diff": "^5.0.1",
+    "@types/express": "4.17.11",
+    "@types/express-serve-static-core": "4.17.19",
     "@types/extend": "^3.0.1",
     "@types/he": "^1.1.1",
     "@types/nedb": "^1.8.11",
@@ -57,15 +60,15 @@
     "@types/nopt": "^3.0.29",
     "@types/pg": "^8.6.0",
     "@types/sanitize-html": "^2.3.1",
-    "@types/express": "4.17.11",
-    "@types/express-serve-static-core": "4.17.19",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
     "eslint": "^7.21.0",
     "jasmine": "^3.6.2",
+    "node-mocks-http": "^1.11.0",
     "nyc": "^14.1.1",
     "prom-client": "13.1.0",
     "proxyquire": "^1.4.0",
+    "ts-node": "^10.4.0",
     "typescript": "^4.4.3"
   }
 }
