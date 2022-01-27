@@ -66,7 +66,9 @@ export class Provisioner extends ProvisioningApi {
      * @param params The url parameters of the request.
      * @returns A ProvisioningRequest object.
      */
-    static createFakeRequest(fnName: string, userId = "-internal-", body?: any, params: Record<string, unknown> = {}) {
+    static createFakeRequest(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        fnName: string, userId = "-internal-", body?: any, params: Record<string, unknown> = {}) {
         return new ProvisioningRequest({body: body || {}, params}, userId, "provisioner", fnName);
     }
 
@@ -654,7 +656,6 @@ export class Provisioner extends ProvisioningApi {
         const opNick = options.op_nick;
         const key = options.key || undefined; // Optional key
         const userId = options.user_id;
-        const mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
 
         // Try to find the domain requested for linking
         //TODO: ircDomain might include protocol, i.e. irc://irc.freenode.net

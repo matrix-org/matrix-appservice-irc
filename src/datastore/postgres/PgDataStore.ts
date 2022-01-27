@@ -38,7 +38,6 @@ import { StringCrypto } from "../StringCrypto";
 import { toIrcLowerCase } from "../../irc/formatting";
 import { NeDBDataStore } from "../NedbDataStore";
 import QuickLRU from "quick-lru";
-import { stringify } from "querystring";
 
 const log = getLogger("PgDatastore");
 
@@ -762,7 +761,6 @@ export class PgDataStore implements DataStore, ProvisioningStore {
             "DELETE provisioner_tokens WHERE user_id = $1", [userId]
         );
     }
-
 
     private static BuildUpsertStatement(table: string, constraint: string, keyNames: string[]): string {
         const keys = keyNames.join(", ");

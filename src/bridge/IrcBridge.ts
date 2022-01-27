@@ -755,14 +755,14 @@ export class IrcBridge {
                 this.memberListSyncers[server.domain].sync()
             );
         });
-        const secretToken = this.registration.getHomeserverToken();
-        if (!secretToken) {
+        const secret = this.registration.getHomeserverToken();
+        if (!secret) {
             // This should always be defined
             throw Error('Secret token not defined');
         }
 
         this.provisioner = new Provisioner(this, {
-            secretToken,
+            secret,
             ...this.config.ircService.provisioning,
         }, this.membershipQueue);
 
