@@ -69,7 +69,7 @@ MockAppService.prototype._link = function(reqBody, statusCallback, jsonCallback)
 MockAppService.prototype._unlink = function(reqBody, statusCallback, jsonCallback) {
     return this._mockApiCall({
         method: 'POST',
-        url: '/link',
+        url: '/unlink',
         body: reqBody,
     }, statusCallback, jsonCallback);
 }
@@ -81,8 +81,7 @@ MockAppService.prototype._unlink = function(reqBody, statusCallback, jsonCallbac
 MockAppService.prototype._listLinks = function(reqParameters, statusCallback, jsonCallback) {
     return this._mockApiCall({
         method: 'GET',
-        url: '/listlinks',
-        params: reqParameters,
+        url: `/listlinks/${encodeURIComponent(reqParameters.roomId)}`,
     }, statusCallback, jsonCallback);
 }
 

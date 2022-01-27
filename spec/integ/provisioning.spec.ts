@@ -250,6 +250,22 @@ describe("Provisioning API", function() {
         return mockLinkCR(parameters, shouldSucceed, link, doLinkBeforeUnlink, opAuth);
     }
 
+
+    async function expectRequestToFailWith(
+        fn: () => Promise<unknown>, errCode: ErrCode|IrcErrCode, additionalContent?: unknown) {
+        try {
+            await fn();
+        }
+        catch (ex) {
+            expect(ex.errcode).toBe(errCode);
+            if (additionalContent) {
+                expect(ex.additionalContent).toEqual(additionalContent);
+            }
+            return;
+        }
+        throw Error('Should have thrown');
+    }
+
     describe("room setup", function() {
         beforeEach(doSetup);
 
@@ -257,13 +273,7 @@ describe("Provisioning API", function() {
             await test.afterEach(env);
         });
 
-        fdescribe("link endpoint", function() {
-
-            // Hello future person. Please do NOT write your tests like this. It is
-            // very difficult to follow what is going on here and this actually introduced
-            // a bug where all the tests ran in parallel. For the time being these tests will
-            // be left in this function soup mess because we know the tests work, but please
-            // write your tests clearly.
+        describe("link endpoint", function() {
 
             it("should create a M<--->I link", async () => {
                 await mockLink({}, true, true);
@@ -274,206 +284,174 @@ describe("Provisioning API", function() {
             });
 
             it("should not create a M<--->I link with the same id as one existing", async () => {
-                try {
-                    await mockLink({
+                await expectRequestToFailWith(
+                    () => mockLink({
                         matrix_room_id : '!foo:bar',
                         remote_room_server : 'irc.example',
-                        remote_room_channel : '#coffee'}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(IrcErrCode.ExistingMapping);
-                    return;
-                }
-                throw Error('Should have thrown');
+                        remote_room_channel : '#coffee'}, false, true),
+                    IrcErrCode.ExistingMapping,
+                )
             });
 
             it("should not create a M<--->I link when room_id is malformed", async () => {
-                try {
-                    await mockLink({matrix_room_id : '!fooooooo'}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(ErrCode.BadValue);
-                    expect(ex.additionalContent.errors).toEqual(
-                        [{ field: 'matrix_room_id', message: 'pattern mismatch' }]
-                    );
-                    return;
-                }
-                throw Error('Should have thrown');
+                await expectRequestToFailWith(
+                    () => mockLink({matrix_room_id : '!fooooooo'}, false, true),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'matrix_room_id', message: 'pattern mismatch' }]}
+                )
             });
 
             it("should not create a M<--->I link when remote_room_server is malformed", async () => {
-                try {
-                    await mockLink({remote_room_server : 'irc./example'}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(ErrCode.BadValue);
-                    expect(ex.additionalContent.errors).toEqual(
-                        [{ field: 'remote_room_server', message: 'pattern mismatch' }]
-                    );
-                    return;
-                }
-                throw Error('Should have thrown');
+                await expectRequestToFailWith(
+                    () => mockLink({remote_room_server : 'irc./example'}, false, true),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'remote_room_server', message: 'pattern mismatch' }]}
+                )
             });
 
             it("should not create a M<--->I link when remote_room_channel is malformed", async () => {
-                try {
-                    await mockLink({remote_room_channel : 'coffe####e'}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(ErrCode.BadValue);
-                    expect(ex.additionalContent.errors).toEqual(
-                        [{ field: 'remote_room_channel', message: 'pattern mismatch' }]
-                    );
-                    return;
-                }
-                throw Error('Should have thrown');
+                await expectRequestToFailWith(
+                    () => mockLink({remote_room_channel : 'coffe####e'}, false, true),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'remote_room_channel', message: 'pattern mismatch' }]}
+                )
             });
 
             // See dynamicChannels.exclude in config file
             it("should not create a M<--->I link when remote_room_channel is excluded by the " +
                 "config", async () => {
-                try {
-                    await mockLink({remote_room_channel : '#excluded_channel'}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(IrcErrCode.UnknownChannel);
-                    return;
-                }
-                throw Error('Should have thrown');
+                await expectRequestToFailWith(
+                    () => mockLink({remote_room_channel : '#excluded_channel'}, false, true),
+                    IrcErrCode.UnknownChannel,
+                )
             });
 
             it("should not create a M<--->I link when matrix_room_id is not defined", async () => {
-                try {
-                    await mockLink({matrix_room_id : null}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(ErrCode.BadValue);
-                    expect(ex.additionalContent.errors).toEqual(
-                        [{ field: 'matrix_room_id', message: 'is required' }]
-                    );
-                    return;
-                }
-                throw Error('Should have thrown');
+                await expectRequestToFailWith(
+                    () => mockLink({matrix_room_id : null}, false, true),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'matrix_room_id', message: 'is required' }]}
+                )
             });
 
             it("should not create a M<--->I link when remote_room_server is not defined", async () => {
-                try {
-                    await mockLink({remote_room_server : null}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(ErrCode.BadValue);
-                    expect(ex.additionalContent.errors).toEqual(
-                        [{ field: 'remote_room_server', message: 'is required' }]
-                    );
-                    return;
-                }
-                throw Error('Should have thrown');
+                await expectRequestToFailWith(
+                    () => mockLink({remote_room_server : null}, false, true),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'remote_room_server', message: 'is required' }]}
+                )
             });
 
             it("should not create a M<--->I link when remote_room_channel is not defined", async () => {
-                try {
-                    await mockLink({remote_room_channel : null}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(ErrCode.BadValue);
-                    expect(ex.additionalContent.errors).toEqual(
-                        [{ field: 'remote_room_channel', message: 'is required' }]
-                    );
-                    return;
-                }
-                throw Error('Should have thrown');
+                await expectRequestToFailWith(
+                    () => mockLink({remote_room_channel : null}, false, true),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'remote_room_channel', message: 'is required' }]}
+                )
             });
 
             it("should not create a M<--->I link when op_nick is not defined", async () => {
-                try {
-                    await mockLink({op_nick : null}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(ErrCode.BadValue);
-                    expect(ex.additionalContent.errors).toEqual(
-                        [{ field: 'op_nick', message: 'is required' }]
-                    );
-                    return;
-                }
-                throw Error('Should have thrown');
+                await expectRequestToFailWith(
+                    () => mockLink({op_nick : null}, false, true),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'op_nick', message: 'is required' }]}
+                )
             });
 
             it("should not create a M<--->I link when op_nick is not in the room", async () => {
-                try {
-                    await mockLink({op_nick : 'somenonexistantop'}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(IrcErrCode.BadOpTarget);
-                    return;
-                }
-                throw Error('Should have thrown');
+                await expectRequestToFailWith(
+                    () => mockLink({op_nick : 'somenonexistantop'}, false, true),
+                    IrcErrCode.BadOpTarget,
+                )
             });
 
-            it("should not create a M<--->I link when op_nick is not an operator, but is in the " +
-                "room", async () => {
-                try {
-                    await mockLink({op_nick : notOp.nick}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(IrcErrCode.BadOpTarget);
-                    return;
-                }
-                throw Error('Should have thrown');
+            it("should not create a M<--->I link when op_nick is not an operator, but is in the room", async () => {
+                await expectRequestToFailWith(
+                    () => mockLink({op_nick : 'somenonexistantop'}, false, true),
+                    IrcErrCode.BadOpTarget,
+                )
             });
 
             it("should not create a M<--->I link when user does not have enough power in room", async () => {
-                try {
-                    await mockLink({user_id: 'powerless'}, false, true);
-                }
-                catch (ex) {
-                    expect(ex.errcode).toBe(IrcErrCode.NotEnoughPower);
-                    return;
-                }
-                throw Error('Should have thrown');
+                await expectRequestToFailWith(
+                    () => mockLink({user_id: 'powerless'}, false, true),
+                    IrcErrCode.NotEnoughPower,
+                )
             });
         });
 
         describe("unlink endpoint", function() {
             it("should remove an existing M<--->I link", async () => {
+                expect()
                 await mockLink({}, true, false)
             });
 
             it("should not remove a non-existing M<--->I link", async () => {
-                await mockLink({matrix_room_id : '!idonot:exist'}, false, false, false)
+                expectRequestToFailWith(
+                    () => mockLink({matrix_room_id : '!idonot:exist'}, false, false, false),
+                    IrcErrCode.UnknownRoom,
+                )
             });
 
             it("should not remove a non-provision M<--->I link", async () => {
-                await mockLink({
-                    matrix_room_id : '!foo:bar',
-                    remote_room_server : 'irc.example',
-                    remote_room_channel : '#coffee'}, false, false)
+                expectRequestToFailWith(
+                    () => mockLink({
+                        matrix_room_id : '!foo:bar',
+                        remote_room_server : 'irc.example',
+                        remote_room_channel : '#coffee'}, false, false),
+                    IrcErrCode.ExistingMapping,
+                )
             });
 
             it("should not remove a M<--->I link when room_id is malformed", async () => {
-                await mockLink({matrix_room_id : '!fooooooooo'}, false, false)
+                expectRequestToFailWith(
+                    () => mockLink({matrix_room_id : '!fooooooo'}, false, false),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'matrix_room_id', message: 'pattern mismatch' }]}
+                )
             });
 
             it("should not remove a M<--->I link when remote_room_server is malformed", async () => {
-                await mockLink({remote_room_server : 'irc./example'}, false, false)
+                expectRequestToFailWith(
+                    () => mockLink({remote_room_server : 'irc./example'}, false, false),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'remote_room_server', message: 'pattern mismatch' }]}
+                )
             });
 
             it("should not remove a M<--->I link when remote_room_channel is malformed", async () => {
-                await mockLink({remote_room_channel : 'coffe####e'}, false, false)
+                expectRequestToFailWith(
+                    () => mockLink({remote_room_channel : 'coffe####e'}, false, false),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'remote_room_channel', message: 'pattern mismatch' }]}
+                )
             });
 
             it("should not remove a M<--->I link when matrix_room_id is " +
                 "not defined", async () => {
-                await mockLink({matrix_room_id : null}, false, true)
+                expectRequestToFailWith(
+                    () => mockLink({matrix_room_id : null}, false, true),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'matrix_room_id', message: 'is required' }]}
+                )
             });
 
             it("should not remove a M<--->I link when remote_room_server is " +
                 "not defined", async () => {
-                await mockLink({remote_room_server : null}, false, true)
+                expectRequestToFailWith(
+                    () => mockLink({remote_room_server : null}, false, true),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'remote_room_server', message: 'is required' }]}
+                )
             });
 
             it("should not remove a M<--->I link when remote_room_channel is " +
                 "not defined", async () => {
-                await mockLink({remote_room_channel : null}, false, true)
+                expectRequestToFailWith(
+                    () => mockLink({remote_room_channel : null}, false, true),
+                    ErrCode.BadValue,
+                    { errors: [{ field: 'remote_room_channel', message: 'is required' }]}
+                )
             });
         });
     });
@@ -569,7 +547,7 @@ describe("Provisioning API", function() {
         });
 
         it("should not create a M<--->I link of the same link id", async () => {
-            await mockLink({}, false, true)
+            await expectRequestToFailWith(() => mockLink({}, false, true), IrcErrCode.ExistingMapping);
         });
     });
 

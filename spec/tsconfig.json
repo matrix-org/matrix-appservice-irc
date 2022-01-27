@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+    "target": "ES2017",
+    "module": "commonjs",
+    "allowJs": true,
+    "checkJs": false,
+    "declaration": false,
+    "sourceMap": true,
+    "composite": false,
+    "strict": true,
+    "esModuleInterop": true,
+    // Our tests are littered with them, change this once the situation is better
+    "noImplicitAny": false,
+    "strictNullChecks": true,
+    // TODO: Type errors
+    "useUnknownInCatchVariables": false,
+    // Until the fix to https://github.com/turt2live/matrix-bot-sdk/issues/155 is released.
+    "skipLibCheck": true,
+  },
+  "include": [
+    "integ/**/*",
+    "unit/**/*",
+    "util/**/*",
+  ],
+}
