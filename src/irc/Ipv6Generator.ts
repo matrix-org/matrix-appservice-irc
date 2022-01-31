@@ -43,13 +43,13 @@ export class Ipv6Generator {
     public getCounterKey(userId: string|null, server: IrcServer) {
         if (!userId) {
             // Bot uses the global pool.
-            return '*';
+            return server.domain;
         }
         const homeserver = new MatrixUser(userId).host;
         if (server.getIpv6BlockForHomeserver(homeserver)) {
             return `${server.domain}/${homeserver}`;
         }
-        return '*';
+        return server.domain;
     }
 
     /**
@@ -75,7 +75,7 @@ export class Ipv6Generator {
         const homeserver = userId && new MatrixUser(userId).host;
 
         if (!this.counter.has(counterKey)) {
-            log.info("Retrieving counter...");
+            log.info(`Retrieving counter ${counterKey}`);
             this.counter.set(counterKey, await this.dataStore.getIpv6Counter(server, homeserver));
         }
 
@@ -97,8 +97,8 @@ export class Ipv6Generator {
         const homeserver = userId && new MatrixUser(userId).host;
         const counterKey = this.getCounterKey(userId, server);
         let counter = this.counter.get(counterKey);
-        if (!counter) {
-            throw Error('No existing counter');
+        if (typeof counter !== "number") {
+            throw Error(`No existing counter '${counterKey}'`);
         }
         counter += 1;
         this.counter.set(counterKey, counter);
