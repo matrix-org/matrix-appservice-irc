@@ -430,7 +430,7 @@ properties:
                                                     pattern: "(?:[0-9abcdef]{1,4}:)*[0-9abcdef]{1,4}"
                                                 homeserver:
                                                     type: "string"
-                                            required: ["string", "homeserver"]
+                                            required: ["startFrom", "homeserver"]
                                 lineLimit:
                                     type: "integer"
                                 userModes:
