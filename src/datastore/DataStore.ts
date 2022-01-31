@@ -135,9 +135,9 @@ export interface DataStore {
 
     removeConfigMappings(): Promise<void>;
 
-    getIpv6Counter(): Promise<number>;
+    getIpv6Counter(server: IrcServer, homeserver: string|null): Promise<number>;
 
-    setIpv6Counter(counter: number): Promise<void>;
+    setIpv6Counter(counter: number, server: IrcServer, homeserver: string|null): Promise<void>;
 
     getAdminRoomById(roomId: string): Promise<MatrixRoom|null>;
 
