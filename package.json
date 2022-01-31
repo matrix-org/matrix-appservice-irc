@@ -5,7 +5,7 @@
   "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",
   "engines": {
-    "node": ">=12"
+    "node": ">=14"
   },
   "scripts": {
     "prepare": "npm run build",
@@ -44,6 +44,7 @@
     "request": "^2.54.0",
     "request-promise-native": "^1.0.9",
     "sanitize-html": "^2.4.0",
+    "ts-build": "^0.2.0",
     "winston": "^3.3.3",
     "winston-daily-rotate-file": "^4.5.5"
   },
