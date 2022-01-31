@@ -422,6 +422,15 @@ properties:
                                             pattern: "[ABCDEFabcdef0123456789:]+"
                                         only:
                                             type: "boolean"
+                                        blocks:
+                                            type: "array"
+                                            properties:
+                                                startFrom:
+                                                    type: "string"
+                                                    pattern: "(?:[0-9abcdef]{1,4}:)*[0-9abcdef]{1,4}"
+                                                homeserver:
+                                                    type: "string"
+                                            required: ["string", "homeserver"]
                                 lineLimit:
                                     type: "integer"
                                 userModes:
