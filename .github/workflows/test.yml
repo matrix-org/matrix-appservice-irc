@@ -46,25 +46,15 @@ jobs:
     runs-on: ubuntu-20.04
     container: node:16
     services:
-      # label used to access the service container
       postgres:
-        # Docker Hub image
         image: postgres:latest
-        # service environment variables
-        # `POSTGRES_HOST` is `postgres`
         env:
-          # optional (defaults to `postgres`)
           POSTGRES_DB: postgres
-          # required
           POSTGRES_PASSWORD: postgres_password
-          # optional (defaults to `5432`)
           POSTGRES_PORT: 5432
-          # optional (defaults to `postgres`)
           POSTGRES_USER: postgres_user
         ports:
-          # maps tcp port 5432 on service container to the host
           - 5432:5432
-        # set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -80,5 +70,5 @@ jobs:
       - run: npm run-script test
         env:
           IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
-          IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@postgres/postgres"
+          IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@postgres"
           IRCBRIDGE_TEST_ENABLEPG: "yes"
