@@ -368,6 +368,9 @@ ircService:
           # Older kernels will need IP_FREEBIND, which requires an LD_PRELOAD with the library
           # https://github.com/matrix-org/freebindfree as Node does not expose setsockopt.
           # prefix: "2001:0db8:85a3::"  # modify appropriately
+          blocks:
+            - homeserver: fosdem.org
+              startFrom: '10:0000'
         #
         # The maximum amount of time in seconds that the client can exist
         # without sending another message before being disconnected. Use 0 to
