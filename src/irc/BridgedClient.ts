@@ -227,7 +227,7 @@ export class BridgedClient extends EventEmitter {
             if (ipv6Prefix) {
                 // side-effects setting the IPv6 address on the client config
                 await this.ipv6Generator.generate(
-                    ipv6Prefix, this.clientConfig
+                    ipv6Prefix, this.clientConfig, this.server,
                 );
             }
             this.log.info(
