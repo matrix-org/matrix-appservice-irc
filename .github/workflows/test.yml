@@ -18,7 +18,7 @@ jobs:
       - run: npm ci
       - run: npm run-script lint
 
-  build-14:
+  test-14:
     runs-on: ubuntu-20.04
     container: node:14
     steps:
@@ -30,7 +30,7 @@ jobs:
       - run: npm ci
       - run: npm run-script test
 
-  build-16:
+  test-16:
     runs-on: ubuntu-20.04
     container: node:16
     steps:
@@ -42,7 +42,7 @@ jobs:
       - run: npm ci
       - run: npm run-script test
 
-  build-16-postgres:
+  test-16-postgres:
     runs-on: ubuntu-20.04
     container: node:16
     services:
