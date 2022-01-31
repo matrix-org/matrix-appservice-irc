@@ -120,12 +120,6 @@ export class IrcEventBroker {
         this.quitDebouncer = new QuitDebouncer(servers, this.handleDebouncedQuit.bind(this));
     }
 
-
-    // debugging: util.inspect() override
-    public inspect() {
-        return this.processed.processed;
-    }
-
     /*
     * Attempt to claim this message as this client
     * @return {boolean} True if you successfully claimed it.
