@@ -88,7 +88,7 @@ export class Ipv6Generator {
         // We should be safe to pull out counter values here.
         if (typeof counter !== "number") {
             log.debug(`Retrieving counter ${counterKey}`);
-            counter = await this.dataStore.getIpv6Counter(server, homeserver);
+            counter = await this.dataStore.getIpv6Counter(server, isInBlock ? homeserver : null);
             this.counter.set(counterKey, counter);
         }
         counter += 1;

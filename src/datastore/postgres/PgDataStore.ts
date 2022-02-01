@@ -450,7 +450,7 @@ export class PgDataStore implements DataStore {
                     "server"
                 ],
             ),
-            [counter, server.domain, homeserver || "*"],
+            [counter, homeserver || "*", server.domain],
         );
     }
 
