@@ -37,7 +37,6 @@ export class Ipv6Generator {
 
     // debugging: util.inspect()
     public inspect () {
-        return `IPv6Counter=${this.counter},Queue.length=${this.queue.size}`;
     }
 
     public getCounterKey(userId: string|null, server: IrcServer) {
@@ -63,28 +62,19 @@ export class Ipv6Generator {
         const existingAddress = ircClientConfig.getIpv6Address();
         const userId = ircClientConfig.getUserId();
         if (existingAddress) {
-            log.info(
+            log.debug(
                 "Using existing IPv6 address %s for %s",
                 existingAddress,
                 userId,
             );
             return existingAddress;
         }
-
-        const counterKey = this.getCounterKey(userId, server);
-        const homeserver = userId && new MatrixUser(userId).host;
-
-        if (!this.counter.has(counterKey)) {
-            log.info(`Retrieving counter ${counterKey}`);
-            this.counter.set(counterKey, await this.dataStore.getIpv6Counter(server, homeserver));
-        }
-
         // the bot user will not have a user ID
         const id = ircClientConfig.getUserId() || ircClientConfig.getUsername();
         if (!id) {
             throw Error("Neither a userId or username were provided to generate.");
         }
-        log.info("Enqueueing IPv6 generation request for %s", id);
+        log.debug("Enqueueing IPv6 generation request for %s", id);
         return (await this.queue.enqueue(id, {
             prefix: prefix,
             ircClientConfig: ircClientConfig,
@@ -97,8 +87,12 @@ export class Ipv6Generator {
         const homeserver = userId && new MatrixUser(userId).host;
         const counterKey = this.getCounterKey(userId, server);
         let counter = this.counter.get(counterKey);
+        // This function should never be called asyncronously, as it's backed by a queue.
+        // We should be safe to pull out counter values here.
         if (typeof counter !== "number") {
-            throw Error(`No existing counter '${counterKey}'`);
+            log.debug(`Retrieving counter ${counterKey}`);
+            counter = await this.dataStore.getIpv6Counter(server, homeserver);
+            this.counter.set(counterKey, counter);
         }
         counter += 1;
         this.counter.set(counterKey, counter);

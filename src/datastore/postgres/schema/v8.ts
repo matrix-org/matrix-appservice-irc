@@ -30,10 +30,11 @@ export async function runSchema(connection: PoolClient) {
 
 
     // Migrate data.
-    const existingCounterRes = await connection.query("SELECT count FROM ipv6_counter;");
-    const existingCounter = existingCounterRes ? parseInt(existingCounterRes.rows[0].count, 10) : 0;
+    const existingCounterRes = await connection.query<{count: string}>("SELECT count FROM ipv6_counter;");
+    const existingCounter = existingCounterRes && parseInt(existingCounterRes.rows[0].count, 10);
+
+    // If we have a counter value
     if (existingCounter) {
-        // No need to migrate, no data.
         const serverConfigsRes = await connection.query<{domain: string}>(
             "SELECT DISTINCT domain FROM client_config WHERE config->>'ipv6' IS NOT NULL;"
         );
@@ -44,6 +45,9 @@ export async function runSchema(connection: PoolClient) {
         else if (serverConfigsRes.rowCount > 1) {
             log.warn("More than one IPv6 server configured, starting both ipv6 counters from the same value.")
         }
+        // Because we cannot determine which IRC network(s) are using the existing counter
+        // (owing to a bug where we treated the counter as global across all networks), this assumes
+        // that both networks start from the same counter value.
         const [statement, values] = domainSetToValues(serverConfigsRes.rows.map(d => d.domain), existingCounter);
         await connection.query(`INSERT INTO ipv6_counter (count, homeserver, server) VALUES ${statement}`, values);
     }

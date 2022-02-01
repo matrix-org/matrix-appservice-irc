@@ -88,7 +88,6 @@ export class NeDBDataStore implements DataStore {
 
 
     public async runMigrations() {
-        log.warn(`Migrating NeDB datastore ipv6 counters`);
         const config = await this.userStore.getRemoteUser("config");
         if (!config) {
             // No migrations needed.
@@ -99,6 +98,7 @@ export class NeDBDataStore implements DataStore {
             // No migrations needed.
             return;
         }
+        log.warn(`Migrating NeDB datastore ipv6 counters`);
         const servers = Object.values(this.serverMappings).map(s => s.domain.replace(/\./g, '_'));
         for (const server of servers) {
             config.set(`ipv6_counter_${server}`, {'*': counter});
@@ -454,29 +454,38 @@ export class NeDBDataStore implements DataStore {
 
     public async getIpv6Counter(server: IrcServer, homeserver: string|null): Promise<number> {
         const domain = server.domain.replace(/\./g, '_');
+        homeserver = homeserver && homeserver.replace(/\./g, '_');
         let config = await this.userStore.getRemoteUser("config");
         if (!config) {
             config = new RemoteUser("config");
         }
         let counters = config.get<{[homeserver: string]: number}>(`ipv6_counter_${domain}`);
         if (!counters) {
-            counters = {'*': 0};
+            counters = {'*': 0 };
             config.set(`ipv6_counter_${domain}`, counters);
             await this.userStore.setRemoteUser(config);
         }
+
+        if (homeserver && counters[homeserver] === undefined) {
+            counters[homeserver] = 0;
+            config.set(`ipv6_counter_${domain}`, counters);
+            await this.userStore.setRemoteUser(config);
+        }
+
         return homeserver ? counters[homeserver] : counters['*'];
     }
 
 
     public async setIpv6Counter(counter: number, server: IrcServer, homeserver: string|null) {
         const domain = server.domain.replace(/\./g, '_');
+        homeserver = homeserver && homeserver.replace(/\./g, '_');
         let config = await this.userStore.getRemoteUser("config");
         if (!config) {
             config = new RemoteUser("config");
         }
         const counters = config.get<{[homeserver: string]: number}>(`ipv6_counter_${domain}`) || {};
         counters[homeserver || '*'] = counter;
-        config.set(`ipv6_counter_${domain}`, counter);
+        config.set(`ipv6_counter_${domain}`, counters);
         await this.userStore.setRemoteUser(config);
     }
 
