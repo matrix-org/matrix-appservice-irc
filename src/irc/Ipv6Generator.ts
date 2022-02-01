@@ -82,6 +82,7 @@ export class Ipv6Generator {
         const userId = ircClientConfig.getUserId();
         const homeserver = userId && new MatrixUser(userId).host;
         const counterKey = this.getCounterKey(userId, server);
+        const isInBlock = !!(homeserver && server.getIpv6BlockForHomeserver(homeserver));
         let counter = this.counter.get(counterKey);
         // This function should never be called asyncronously, as it's backed by a queue.
         // We should be safe to pull out counter values here.
@@ -124,7 +125,7 @@ export class Ipv6Generator {
             await this.dataStore.storeIrcClientConfig(config);
         }
 
-        await this.dataStore.setIpv6Counter(counter, server, homeserver);
+        await this.dataStore.setIpv6Counter(counter, server, isInBlock ? homeserver : null);
         return config.getIpv6Address();
     }
 }
