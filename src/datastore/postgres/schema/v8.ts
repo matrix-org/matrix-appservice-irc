@@ -43,7 +43,7 @@ export async function runSchema(connection: PoolClient) {
             throw Error("No client_configs found with ipv6 addresses, but counter was found");
         }
         else if (serverConfigsRes.rowCount > 1) {
-            log.warn("More than one IPv6 server configured, starting both ipv6 counters from the same value.")
+            log.warn("More than one IPv6 server configured, starting both ipv6 counters from the same value.");
         }
         // Because we cannot determine which IRC network(s) are using the existing counter
         // (owing to a bug where we treated the counter as global across all networks), this assumes
