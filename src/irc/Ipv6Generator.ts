@@ -35,10 +35,6 @@ export class Ipv6Generator {
         });
     }
 
-    // debugging: util.inspect()
-    public inspect () {
-    }
-
     public getCounterKey(userId: string|null, server: IrcServer) {
         if (!userId) {
             // Bot uses the global pool.
