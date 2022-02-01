@@ -432,6 +432,7 @@ export class PgDataStore implements DataStore {
     }
 
     public async getIpv6Counter(server: IrcServer, homeserver: string|null): Promise<number> {
+        homeserver = homeserver || "*";
         const res = await this.pgPool.query(
             "SELECT count FROM ipv6_counter WHERE server = $1 AND homeserver = $2",
             [server.domain, homeserver]
@@ -449,7 +450,7 @@ export class PgDataStore implements DataStore {
                     "server"
                 ],
             ),
-            [counter, server.domain, homeserver],
+            [counter, server.domain, homeserver || "*"],
         );
     }
 
