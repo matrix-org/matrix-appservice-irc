@@ -92,19 +92,19 @@ export class Ipv6Generator {
         }
         counter += 1;
         this.counter.set(counterKey, counter);
-
+        let ipv6CounterSuffix: number = counter;
         if (homeserver) {
             // If this homeserver has been put in a special block, append
             // the start range to the counter.
             const block = server.getIpv6BlockForHomeserver(homeserver);
             if (block) {
-                counter += parseInt(block.replace(/:/g, ''), 16);
+                ipv6CounterSuffix = counter + parseInt(block.replace(/:/g, ''), 16);
             }
         }
 
         // insert : every 4 characters from the end of the string going to the start
         // e.g. 1a2b3c4d5e6 => 1a2:b3c4:d5e6
-        const suffix = counter.toString(16).replace(/\B(?=(.{4})+(?!.))/g, ':');
+        const suffix = ipv6CounterSuffix.toString(16).replace(/\B(?=(.{4})+(?!.))/g, ':');
         const address = prefix + suffix;
 
         let config = ircClientConfig;

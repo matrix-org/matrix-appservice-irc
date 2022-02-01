@@ -436,7 +436,7 @@ export class PgDataStore implements DataStore {
             "SELECT count FROM ipv6_counter WHERE server = $1 AND homeserver = $2",
             [server.domain, homeserver]
         );
-        return res ? parseInt(res.rows[0].count, 10) : 0;
+        return res.rows[0]?.count !== undefined ? parseInt(res.rows[0].count, 10) : 0;
     }
 
     public async setIpv6Counter(counter: number, server: IrcServer, homeserver: string|null): Promise<void> {
