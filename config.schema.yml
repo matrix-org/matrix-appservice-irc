@@ -427,7 +427,7 @@ properties:
                                             properties:
                                                 startFrom:
                                                     type: "string"
-                                                    pattern: "(?:[0-9abcdef]{1,4}:)*[0-9abcdef]{1,4}"
+                                                    pattern: "(?:[0-9a-f]{1,4}:)*[0-9a-f]{1,4}"
                                                 homeserver:
                                                     type: "string"
                                             required: ["startFrom", "homeserver"]
