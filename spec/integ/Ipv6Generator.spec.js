@@ -1,56 +1,59 @@
-const { Ipv6Generator } = require("../../lib/irc/Ipv6Generator.js");
-const { IrcClientConfig } = require("../../lib/models/IrcClientConfig.js");
+/*
+ * Contains integration tests for all Startup-initiated events.
+ */
+
+const envBundle = require("../util/env-bundle");
+const { Ipv6Generator } = require("../../lib/irc/Ipv6Generator");
+const { IrcClientConfig } = require("../../lib/models/IrcClientConfig");
 const { IrcServer } = require("../../lib/irc/IrcServer");
 
-describe("IPV6 Generator", function() {
-    let datastore;
-    let storeIpv6Counter;
-    let ircClientConfigs;
+describe("Ipv6Generator", () => {
+    const {env, roomMapping, test} = envBundle();
+    let generator;
+    let store;
     const server = new IrcServer("domain", IrcServer.DEFAULT_CONFIG, "example.com");
-    beforeEach(() => {
-        storeIpv6Counter = { };
-        ircClientConfigs = { };
-        datastore = {
-            getIpv6Counter:
-                (srv, homeserver) => storeIpv6Counter[srv.domain+homeserver] || 0,
-            setIpv6Counter:
-                (counter, srv, homeserver) => { storeIpv6Counter[srv.domain+homeserver] = counter },
-            getIrcClientConfig: async (sender, domain) => ircClientConfigs[sender+domain],
-            storeIrcClientConfig: async (config) => {ircClientConfigs[config.userId+config.domain] = config},
-        };
+
+    beforeEach(async () => {
+        await test.beforeEach(env);
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "connect", (client, fn) => {
+            fn();
+        });
+        await test.initEnv(env);
+        store = env.ircBridge.getStore();
+        generator = new Ipv6Generator(store);
     });
 
+    afterEach(async () => test.afterEach(env));
+
+
     it("should generate an IPv6 address", async function() {
-        const generator = new Ipv6Generator(datastore);
         const address = await generator.generate(
             '2001:0db8:85a3::', new IrcClientConfig('@foo:example.com', 'irc.example.com'), server
         );
         expect(address).toEqual('2001:0db8:85a3::1');
-        const newConfig = ircClientConfigs['@foo:example.comirc.example.com'];
+        const newConfig = await store.getIrcClientConfig('@foo:example.com', 'irc.example.com');
         expect(newConfig.userId).toEqual('@foo:example.com');
         expect(newConfig.domain).toEqual('irc.example.com');
         expect(newConfig.config.ipv6).toEqual('2001:0db8:85a3::1');
     });
 
     it("should NOT generate an IPv6 address for an existing config", async function() {
-        const generator = new Ipv6Generator(datastore);
         const config = new IrcClientConfig('@foo:example.com', 'irc.example.com', {
             ipv6: '2001:0db8:85a3::1a16'
         });
-        ircClientConfigs['@foo:example.comirc.example.com'] = config;
+        await store.storeIrcClientConfig(config);
         const address = await generator.generate(
             '2001:0db8:85a3::', new IrcClientConfig('@foo:example.com', 'irc.example.com',
                 {ipv6: '2001:0db8:85a3::1a16'}
             ), server);
         expect(address).toEqual('2001:0db8:85a3::1a16');
-        const fetchedConfig = ircClientConfigs['@foo:example.comirc.example.com'];
+        const fetchedConfig = await store.getIrcClientConfig('@foo:example.com', 'irc.example.com');
         expect(fetchedConfig.userId).toEqual('@foo:example.com');
         expect(fetchedConfig.domain).toEqual('irc.example.com');
         expect(fetchedConfig.config.ipv6).toEqual('2001:0db8:85a3::1a16');
     });
 
     it("should queue and generate multiple IPv6 addresses", async function() {
-        const generator = new Ipv6Generator(datastore);
         const promises = [];
         for (let i = 0; i < 10; i++) {
             promises.push(
@@ -63,7 +66,7 @@ describe("IPV6 Generator", function() {
         }
         await Promise.all(promises);
         for (let i = 0; i < 10; i++) {
-            const newConfig = ircClientConfigs[`@foo${i}:example.comirc.example.com`];
+            const newConfig = await store.getIrcClientConfig(`@foo${i}:example.com`, 'irc.example.com');
             expect(newConfig.userId).toEqual(`@foo${i}:example.com`);
             expect(newConfig.domain).toEqual('irc.example.com');
             expect(newConfig.config.ipv6).toEqual(`2001:0db8:85a3::${(i+1).toString(16)}`);
@@ -78,7 +81,6 @@ describe("IPV6 Generator", function() {
         const serverTwo = new IrcServer("irc-server-two", {
             ...IrcServer.DEFAULT_CONFIG,
         }, "example.com");
-        const generator = new Ipv6Generator(datastore);
         expect(
             await generator.generate(
             '2001:0db8:85a3::',
@@ -115,7 +117,6 @@ describe("IPV6 Generator", function() {
                 }
             }
         }, "example.com");
-        const generator = new Ipv6Generator(datastore);
         expect(
             await generator.generate(
             '2001:0db8:85a3::',
