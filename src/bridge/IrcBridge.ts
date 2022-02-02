@@ -58,6 +58,7 @@ const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
 const TXN_SIZE_DEFAULT = 10000000 // 10MB
+const CLIENTS_BY_HOMESERVER_TOP_N = 25;
 export const MEMBERSHIP_DEFAULT_TTL = 10 * 60 * 1000;
 
 /**
@@ -377,6 +378,13 @@ export class IrcBridge {
             labels: ["server", "state"]
         });
 
+        const clientsByHomeserver = metrics.addGauge({
+            name: "clientpool_by_homeserver",
+            help: "Number of clients by homeserver and state. " +
+                `Only lists the top ${CLIENTS_BY_HOMESERVER_TOP_N} homeservers`,
+            labels: ["homeserver", "state"]
+        });
+
         const memberListLeaveQueue = metrics.addGauge({
             name: "user_leave_queue",
             help: "Number of leave requests queued up for virtual users on the bridge.",
@@ -493,7 +501,9 @@ export class IrcBridge {
         });
 
         metrics.addCollector(async () => {
-            this.clientPool.collectConnectionStatesForAllServers(clientStates);
+            this.clientPool.collectConnectionStatesForAllServers(
+                clientStates, clientsByHomeserver, CLIENTS_BY_HOMESERVER_TOP_N
+            );
         });
 
         this.membershipQueue.registerMetrics();
