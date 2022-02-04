@@ -5,7 +5,7 @@
   "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",
   "engines": {
-    "node": ">=12"
+    "node": ">=14"
   },
   "scripts": {
     "prepare": "npm run build",
@@ -44,12 +44,16 @@
     "request": "^2.54.0",
     "request-promise-native": "^1.0.9",
     "sanitize-html": "^2.4.0",
+    "ts-build": "^0.2.0",
     "winston": "^3.3.3",
     "winston-daily-rotate-file": "^4.5.5"
   },
   "devDependencies": {
+    "@tsconfig/node14": "^1.0.1",
     "@types/bluebird": "^3.5.32",
     "@types/diff": "^5.0.1",
+    "@types/express": "4.17.11",
+    "@types/express-serve-static-core": "4.17.19",
     "@types/extend": "^3.0.1",
     "@types/he": "^1.1.1",
     "@types/nedb": "^1.8.11",
@@ -57,8 +61,6 @@
     "@types/nopt": "^3.0.29",
     "@types/pg": "^8.6.0",
     "@types/sanitize-html": "^2.3.1",
-    "@types/express": "4.17.11",
-    "@types/express-serve-static-core": "4.17.19",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
     "eslint": "^7.21.0",
