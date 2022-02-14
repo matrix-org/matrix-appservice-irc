@@ -4,8 +4,7 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 |--------------|-------------------------------------------|------------------------------------|--------------------------------|-------------------------------------------|
 | darkfasel    | `#channame:darkfasel.net`                 | [`@IRC-Darkfasel:darkfasel.net`]   | [`#darkfasel:darkfasel.net`]   | [darkfasel](https://www.darkfasel.net/)   |
 | fc00         | `#fc00-irc_#channame:m.trnsz.com`         | [`@fc00ircmtx:m.trnsz.com`]        | None                           |                                           |
-| freenode[^1] | `#freenode_#channame:matrix.org`          | [`@appservice-irc:matrix.org`][^2] | [`#irc:matrix.org`]            | [Matrix.org]                              |
-| GIMPNet[^3]  | `#_gimpnet_#channame:gnome.org`           | [`@gimpnet-irc:gnome.org`][^4]     | [`#irc:matrix.org`]            | [Matrix.org] / [Gnome.org]                |
+| GIMPNet[^1]  | `#_gimpnet_#channame:gnome.org`           | [`@gimpnet-irc:gnome.org`][^2]     | [`#irc:matrix.org`]            | [Matrix.org] / [Gnome.org]                |
 | IRCnet       | `#_ircnet_#channame:irc.snt.utwente.nl`   | [`@ircnet:irc.snt.utwente.nl`]     | [`#ircnet:utwente.io`]         | [SNT]                                     |
 | OFTC         | `#_oftc_#channame:matrix.org`             | [`@oftc-irc:matrix.org`]           | [`#irc:matrix.org`]            | [Matrix.org]                              |
 | PirateIRC    | `#pirateirc_#channame:diasp.in`           | [`@pirateirc:diasp.in`]            | [`#diasp.in:diasp.in`]         | [Indian Pirates](https://pirates.org.in/) |
@@ -50,13 +49,10 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 * Foonetic IRC has shut down. #xkcd channels [moved to slashnet](https://web.archive.org/web/20190824061533/http://wiki.xkcd.com/irc/Main_Page#Channel_Migration)
 * The Espernet bridge was shut down after the 2019 matrix.org network breach.
 * The Moznet IRC network has been shut down. They now run their own Matrix homeserver at [chat.mozilla.org](https://chat.mozilla.org/) 🎉
+* The freenode IRC bridge offically was shut down on 2021-12-20.
 
 ### Footnotes
 
-[^1]: Freenode doesn't have the leading `_` as it is older than the practice of putting the underscore to the beginning.
+[^1]: This includes both irc.gimp.org and irc.gnome.org, as they are the same thing.
 
-[^2]: This appservice user doesn't have "freenode" in its name because in the past it was used for _all_ matrix.org-hosted bridges.
-
-[^3]: This includes both irc.gimp.org and irc.gnome.org, as they are the same thing.
-
-[^4]: The bridge has moved from matrix.org to gnome.org.
+[^2]: The bridge has moved from matrix.org to gnome.org.
