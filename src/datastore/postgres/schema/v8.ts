@@ -13,7 +13,7 @@ function domainSetToValues(domains: string[], count: number): [string, Array<str
             res += ", ";
         }
         res += `($${i+1}, $${i+2}, $${i+3})`;
-        values.push(count, null, domains[index]);
+        values.push(count, "*", domains[index]);
     }
     return [res, values];
 }
