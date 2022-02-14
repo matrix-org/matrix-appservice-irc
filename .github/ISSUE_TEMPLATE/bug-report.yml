@@ -1,0 +1,50 @@
+name: Bug Report
+description: File a bug report
+title: "[Bug]: "
+labels: ["bug", "needs-investigation"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+
+        Please report security issues by email to security@matrix.org
+
+        You can use this form to either raise a bug with a specific bridge instance
+        or the bridge software itself.
+  - type: input
+    id: bridge-instance
+    attributes:
+      label: Bridge
+      description: Which network/bridge were you using?
+      placeholder: libera.chat, oftc, gnome.org, your own...
+    validations:
+      required: true
+  - type: textarea
+    id: bug-details
+    attributes:
+      label: details
+      description: Please tell us what happened
+      placeholder: Tell us what you see!
+      value: |
+        1. Which room / channel were you in?
+        2. Which side of the network were you on?
+        3. What client were you using (Element, Hexchat, etc)
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: If you are the bridge admin, please attach some logs.
+    validations:
+      required: false
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://example.com)
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
