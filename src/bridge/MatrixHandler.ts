@@ -169,19 +169,13 @@ export class MatrixHandler {
 
         // Do not create an admin room if the room is marked as 'plumbed'
         const matrixClient = this.ircBridge.getAppServiceBridge().getIntent();
-
-        try {
-            const plumbedState = await matrixClient.getStateEvent(event.room_id, 'm.room.plumbing');
-            if (plumbedState.status === "enabled") {
-                req.log.info(
-                    'This room is marked for plumbing (m.room.plumbing.status = "enabled"). ' +
-                    'Not treating room as admin room.'
-                );
-                return;
-            }
-        }
-        catch (err) {
-            req.log.debug(`Not a plumbed room: Error retrieving m.room.plumbing (${err.data.error})`);
+        const plumbedState = await matrixClient.getStateEvent(event.room_id, 'm.room.plumbing', '', true);
+        if (plumbedState?.status === "enabled") {
+            req.log.info(
+                'This room is marked for plumbing (m.room.plumbing.status = "enabled"). ' +
+                'Not treating room as admin room.'
+            );
+            return;
         }
 
         // clobber any previous admin room ID
