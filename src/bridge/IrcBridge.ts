@@ -591,13 +591,15 @@ export class IrcBridge {
             if (!userStore || !roomStore || !userActivityStore) {
                 throw Error('Could not load user(Activity)Store or roomStore');
             }
-            this.dataStore = new NeDBDataStore(
+            const ndbDatastore = new NeDBDataStore(
                 userStore,
                 userActivityStore,
                 roomStore,
                 this.config.homeserver.domain,
                 pkeyPath,
             );
+            await ndbDatastore.runMigrations();
+            this.dataStore = ndbDatastore;
             if (this.config.ircService.debugApi.enabled) {
                 // monkey patch inspect() values to avoid useless NeDB
                 // struct spam on the debug API.
