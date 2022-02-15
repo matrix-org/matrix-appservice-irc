@@ -669,7 +669,9 @@ export class IrcBridge {
         this.bridge.opts.controller.userActivityTracker = new UserActivityTracker(
             uatConfig,
             await this.getStore().getUserActivity(),
-            (changes) => this.onUserActivityChanged(changes),
+            (changes) => this.onUserActivityChanged(changes).catch(
+                (ex) => log.warn("onUserActivityChanged encountered an error", ex),
+            ),
         );
         this.bridgeBlocker?.checkLimits(this.bridge.opts.controller.userActivityTracker.countActiveUsers().allUsers);
 
@@ -863,6 +865,7 @@ export class IrcBridge {
     //  See (BridgedClient.prototype.kill)
     public async kill(reason?: string) {
         log.info("Killing all clients");
+        this.bridgeState = "killed";
         await this.clientPool.killAllClients(reason);
         if (this.dataStore) {
             await this.dataStore.destroy();
