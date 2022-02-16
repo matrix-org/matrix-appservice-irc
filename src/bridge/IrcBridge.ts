@@ -86,7 +86,7 @@ export class IrcBridge {
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
     private dataStore!: DataStore;
-    private startedUp = false;
+    private bridgeState: "not-started"|"running"|"killed" = "not-started";
     private debugApi: DebugApi|null = null;
     private provisioner: Provisioner|null = null;
     private bridge: Bridge;
@@ -669,7 +669,9 @@ export class IrcBridge {
         this.bridge.opts.controller.userActivityTracker = new UserActivityTracker(
             uatConfig,
             await this.getStore().getUserActivity(),
-            (changes) => this.onUserActivityChanged(changes),
+            (changes) => this.onUserActivityChanged(changes).catch(
+                (ex) => log.warn("onUserActivityChanged encountered an error", ex),
+            ),
         );
         this.bridgeBlocker?.checkLimits(this.bridge.opts.controller.userActivityTracker.countActiveUsers().allUsers);
 
@@ -782,7 +784,7 @@ export class IrcBridge {
 
         log.info("Startup complete.");
 
-        this.startedUp = true;
+        this.bridgeState = "running";
     }
 
     private logMetric(req: Request<BridgeRequestData>, outcome: string) {
@@ -863,6 +865,7 @@ export class IrcBridge {
     //  See (BridgedClient.prototype.kill)
     public async kill(reason?: string) {
         log.info("Killing all clients");
+        this.bridgeState = "killed";
         await this.clientPool.killAllClients(reason);
         if (this.dataStore) {
             await this.dataStore.destroy();
@@ -871,7 +874,7 @@ export class IrcBridge {
     }
 
     public get isStartedUp() {
-        return this.startedUp;
+        return this.bridgeState === "running";
     }
 
     private async joinMappedMatrixRooms() {
@@ -1528,10 +1531,14 @@ export class IrcBridge {
         return current >= limit;
     }
 
-    private onUserActivityChanged(userActivity: UserActivityState) {
-        for (const userId of userActivity.changed) {
-            this.getStore().storeUserActivity(userId, userActivity.dataSet.users[userId]);
+    private async onUserActivityChanged(userActivity: UserActivityState) {
+        if (!this.isStartedUp) {
+            // Only handle activity if we're running
+            return;
         }
-        this.bridgeBlocker?.checkLimits(userActivity.activeUsers);
+        for (const userId of userActivity.changed) {
+            await this.getStore().storeUserActivity(userId, userActivity.dataSet.users[userId]);
+        }
+        await this.bridgeBlocker?.checkLimits(userActivity.activeUsers);
     }
 }
