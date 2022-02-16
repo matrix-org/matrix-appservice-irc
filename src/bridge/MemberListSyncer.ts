@@ -46,9 +46,9 @@ export class MemberListSyncer {
         irc: {[channel: string]: string[]};
         matrix: {[roomId: string]: RoomInfo};
     } = {
-        irc: {},
-        matrix: {},
-    }
+            irc: {},
+            matrix: {},
+        }
     constructor(private ircBridge: IrcBridge, private memberQueue: MembershipQueue,
                 private appServiceBot: AppServiceBot, private server: IrcServer,
                 private appServiceUserId: string, private injectJoinFn: InjectJoinFn) {
