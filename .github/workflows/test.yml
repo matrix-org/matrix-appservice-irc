@@ -2,10 +2,25 @@ name: Tests
 
 on:
   push:
-
+    branches: ["develop", "release-*"]
+  pull_request:
   workflow_dispatch:
 
 jobs:
+  changelog:
+    if: ${{ github.base_ref == 'develop'  || contains(github.base_ref, 'release-') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v2
+      - run: pip install towncrier==19.2.0
+      - run: scripts/check-newsfragment
+        env:
+          PULL_REQUEST_NUMBER: ${{ github.event.number }}
+
   lint:
     runs-on: ubuntu-20.04
     container: node:16
