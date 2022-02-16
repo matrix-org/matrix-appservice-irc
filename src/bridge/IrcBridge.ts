@@ -38,6 +38,7 @@ import {
     UserActivityState,
     UserActivityTracker,
     UserActivityTrackerConfig,
+    WeakStateEvent,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -51,6 +52,7 @@ import { globalAgent as gAHTTPS } from "https";
 import { RoomConfig } from "./RoomConfig";
 import { PrivacyProtection } from "../irc/PrivacyProtection";
 import { TestingOptions } from "../config/TestOpts";
+import { MatrixBanSync } from "./MatrixBanSync";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -82,6 +84,7 @@ export class IrcBridge {
     public readonly publicitySyncer: PublicitySyncer;
     public activityTracker: ActivityTracker|null = null;
     public readonly roomConfigs: RoomConfig;
+    public readonly matrixBanSyncer?: MatrixBanSync;
     private clientPool!: ClientPool; // This gets defined in the `run` function
     private ircServers: IrcServer[] = [];
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
@@ -201,6 +204,7 @@ export class IrcBridge {
             maxActionDelayMs: 5 * 60 * 1000, // 5 mins,
             defaultTtlMs: 10 * 60 * 1000, // 10 mins
         });
+        this.matrixBanSyncer = this.config.ircService.banLists && new MatrixBanSync(this.config.ircService.banLists);
         this.matrixHandler = new MatrixHandler(this, this.config.ircService.matrixHandler, this.membershipQueue);
         this.privacyProtection = new PrivacyProtection(this);
         this.ircHandler = new IrcHandler(
@@ -272,6 +276,8 @@ export class IrcBridge {
             Logging.configure(newConfig.ircService.logging);
         }
 
+        const banSyncPromise = this.matrixBanSyncer?.syncRules(this.bridge.getIntent());
+
         await this.dataStore.removeConfigMappings();
 
         // All config mapped channels will be briefly unavailable
@@ -290,6 +296,8 @@ export class IrcBridge {
 
         await this.fetchJoinedRooms();
         await this.joinMappedMatrixRooms();
+        await banSyncPromise;
+        await this.clientPool.checkForBannedConnectedUsers();
     }
 
     private initialiseMetrics(bindPort: number) {
@@ -578,6 +586,7 @@ export class IrcBridge {
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
         await this.bridge.initalise();
+        await this.matrixBanSyncer?.syncRules(this.bridge.getIntent());
         this.matrixHandler.initalise();
 
         this.activityTracker = new ActivityTracker(this.bridge.getIntent().matrixClient, {
@@ -1086,6 +1095,11 @@ export class IrcBridge {
         }
         else if (event.type === RoomConfig.STATE_EVENT_TYPE && typeof event.state_key === 'string') {
             this.roomConfigs.invalidateConfig(event.room_id, event.state_key);
+        }
+        else if (typeof event.state_key === 'string' && this.matrixBanSyncer?.isInterestedInRoom(event.room_id)) {
+            if (await this.matrixBanSyncer.handleIncomingState(event as WeakStateEvent)) {
+                await this.clientPool.checkForBannedConnectedUsers();
+            }
         }
         else if (event.type === "m.room.member" && event.state_key) {
             if (!event.content || !event.content.membership) {

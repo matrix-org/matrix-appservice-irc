@@ -84,6 +84,11 @@ export class PrivacyProtection {
             if (userId === this.ircBridge.appServiceUserId) {
                 continue;
             }
+            const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(userId);
+            if (banReason) {
+                req.log.debug(`Not syncing ${userId} - user banned (${banReason})`)
+                continue;
+            }
             const client = pool.getBridgedClientByUserId(server, userId);
             if (!client) {
                 req.log.warn(`${userId} has not connected to IRC yet, not bridging message`);

@@ -256,6 +256,10 @@ export class ClientPool {
             if (excluded) {
                 throw Error("Cannot create bridged client - user is excluded from bridging");
             }
+            const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(matrixUser);
+            if (banReason) {
+                throw Error(`Cannot create bridged client - user is banned (${banReason})`);
+            }
         }
 
         if (!this.identGenerator) {
@@ -544,6 +548,24 @@ export class ClientPool {
                     });
                 }
             );
+    }
+
+    /**
+     * Kill any clients for users matching a ban rule on a Matrix ban list.
+     */
+    public async checkForBannedConnectedUsers() {
+        for (const set of Object.values(this.virtualClients)) {
+            for (const [userId, client] of set.userIds.entries()) {
+                try {
+                    const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(userId);
+                    log.warn(`Killing ${userId} client connection due - user is banned (${banReason})`);
+                    await client.kill('User was banned');
+                }
+                catch (ex) {
+                    log.warn(`Failed to kill connection for ${userId}`);
+                }
+            }
+        }
     }
 
     private getNumberOfConnections(server?: IrcServer): number {
