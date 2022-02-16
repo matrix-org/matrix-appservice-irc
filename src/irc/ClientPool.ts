@@ -513,14 +513,37 @@ export class ClientPool {
         return [...users.userIds.keys()];
     }
 
-    public collectConnectionStatesForAllServers(gauge: Gauge<string>) {
-        gauge.reset();
+    public collectConnectionStatesForAllServers(
+        allClients: Gauge<string>, clientsByHomeserver: Gauge<string>, clientsByHomeserverMax: number
+    ) {
+        allClients.reset();
+        const homeserverStats: {[homeserver: string]: {[state: string]: number}} = { };
         for (const [domain, {userIds}] of Object.entries(this.virtualClients)) {
             for (const client of userIds.values()) {
                 const state = BridgedClientStatus[client.status].toLowerCase();
-                gauge.inc({ server: domain, state});
+                allClients.inc({ server: domain, state });
+                if (client.matrixUser) {
+                    const key = client.matrixUser.host;
+                    if (!homeserverStats[key]) {
+                        homeserverStats[key] = {
+                            connected: 0,
+                        }
+                    }
+                    homeserverStats[key][state] = (homeserverStats[key][state] || 0) + 1;
+                }
             }
         }
+        clientsByHomeserver.reset();
+        // We intentionally limit the number of clients to reduce label bloat.
+        Object.entries(homeserverStats)
+            .sort(((a, b) => b[1]["connected"] - a[1]["connnected"]))
+            .slice(0, clientsByHomeserverMax-1).forEach(
+                ([homeserver, stateSet]) => {
+                    Object.entries(stateSet).forEach(([state, count]) => {
+                        clientsByHomeserver.set({ homeserver, state }, count);
+                    });
+                }
+            );
     }
 
     private getNumberOfConnections(server?: IrcServer): number {
