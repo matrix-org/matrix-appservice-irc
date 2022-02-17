@@ -176,6 +176,13 @@ properties:
                         type: "number"
                     allowUnconnectedMatrixUsers:
                         type: "boolean"
+            banLists:
+                type: "object"
+                properties:
+                    rooms:
+                        type: "array"
+                        items:
+                            pattern: "^(!|#).+:.+"
             servers:
                 type: "object"
                 # all properties must follow the following
