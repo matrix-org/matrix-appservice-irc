@@ -1,0 +1,1 @@
+Fix a duplicate metric that would prevent the bridge from starting.
