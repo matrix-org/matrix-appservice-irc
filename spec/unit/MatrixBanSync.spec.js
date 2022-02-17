@@ -5,7 +5,7 @@ const BANNED_USER_STATE_EVENT = {
     type: "m.policy.rule.user",
     state_key: 'banned-user',
     content: {
-        reccomendation: 'm.ban',
+        recommendation: 'm.ban',
         entity: '@user:banned.com',
         reason: 'badly-behaved',
     }
@@ -21,7 +21,7 @@ const BANNED_SERVER_STATE_EVENT = {
     type: "m.policy.rule.server",
     state_key: 'banned-server',
     content: {
-        reccomendation: 'm.ban',
+        recommendation: 'm.ban',
         entity: 'banned-server.com',
         reason: 'badly-constructed',
     }
@@ -64,10 +64,10 @@ describe("MatrixBanSync", () => {
             expect(banSync.handleIncomingState(ev, '!valid:room')).toBeFalse();
             expect(banSync.bannedEntites.get(`!valid:room:banned-user`)).toBeUndefined();
         });
-        it("should skip unknown reccomendation", () => {
+        it("should skip unknown recommendation", () => {
             const ev = {...BANNED_USER_STATE_EVENT, content: {
                 ...BANNED_USER_STATE_EVENT.content,
-                reccomendation: 'm.tea-party',
+                recommendation: 'm.tea-party',
             }};
             expect(banSync.handleIncomingState(ev, '!valid:room')).toBeFalse();
             expect(banSync.bannedEntites.get(`!valid:room:banned-user`)).toBeUndefined();
@@ -121,7 +121,7 @@ describe("MatrixBanSync", () => {
                                 type: 'm.policy.rule.server',
                                 state_key: 'should-not-be-here',
                                 content: {
-                                    reccomendation: 'still-not-interested',
+                                    recommendation: 'still-not-interested',
                                     entity: 'foo.com',
                                     reason: 'foo',
                                 }

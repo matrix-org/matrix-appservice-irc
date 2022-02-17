@@ -78,10 +78,10 @@ membershipLists:
 in the config. Users can choose to disable this on a per-room basis by modfiying their
 [room config](./room_configuration.md#allowunconnectedmatrixusers) options, if the bridge permits it.
 
-## Subscribing to Moderation policys
+## Subscribing to Moderation policies
 
 Matrix has support for specifying [moderation policy lists](https://spec.matrix.org/v1.2/client-server-api/#moderation-policy-lists).
-Moderation policys are set by services such as [Mjolnir](https://github.com/matrix-org/mjolnir) and can be
+Moderation policies are set by services such as [Mjolnir](https://github.com/matrix-org/mjolnir) and can be
 used to inform other services as to how to deal with content.
 
 The bridge can subscribe to rooms containing these policies and can then choose to filter out users and

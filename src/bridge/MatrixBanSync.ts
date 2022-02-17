@@ -26,32 +26,39 @@ interface BanEntity {
 interface MPolicyContent {
     entity: string;
     reason: string;
-    reccomendation: "m.ban";
+    recommendation: "m.ban";
 }
 
 function eventTypeToBanEntityType(eventType: string): BanEntityType|null {
     switch (eventType) {
         case "m.policy.rule.user":
+        case "org.matrix.mjolnir.rule.user":
             return BanEntityType.User;
         case "m.policy.rule.server":
+        case "org.matrix.mjolnir.rule.server":
             return BanEntityType.Server
         default:
             return null;
     }
 }
 
+const supportedRecommendations = [
+    "org.matrix.mjolnir.ban", // Used historically.
+    "m.ban"
+];
+
 export class MatrixBanSync {
     private bannedEntites = new Map<string, BanEntity>();
-    private interestingRooms = new Set<string>();
+    private subscribedRooms = new Set<string>();
     constructor(private config: MatrixBanSyncConfig) { }
 
     public async syncRules(intent: Intent) {
         this.bannedEntites.clear();
-        this.interestingRooms.clear();
+        this.subscribedRooms.clear();
         for (const roomIdOrAlias of this.config.rooms) {
             try {
                 const roomId = await intent.join(roomIdOrAlias);
-                this.interestingRooms.add(roomId);
+                this.subscribedRooms.add(roomId);
                 const roomState = await intent.roomState(roomId, false) as WeakStateEvent[];
                 for (const evt of roomState) {
                     this.handleIncomingState(evt, roomId);
@@ -68,14 +75,15 @@ export class MatrixBanSync {
      * @param roomId A Matrix room ID.
      * @returns true if state should be handled from the room, false otherwise.
      */
-    public isInterestedInRoom(roomId: string): boolean {
-        return this.interestingRooms.has(roomId);
+    public isTrackingRoomState(roomId: string): boolean {
+        return this.subscribedRooms.has(roomId);
     }
 
     /**
-     * Checks to see if the incoming state is a reccomendation entry.
+     * Checks to see if the incoming state is a recommendation entry.
      * @param evt A Matrix state event. Unknown state events will be filtered out.
-     * @returns True if the event was a new ban, and existing clients should be checked. False otherwise.
+     * @param roomId The Matrix roomID where the event came from.
+     * @returns `true` if the event was a new ban, and existing clients should be checked. `false` otherwise.
      */
     public handleIncomingState(evt: WeakStateEvent, roomId: string) {
         const content = evt.content as unknown as MPolicyContent;
@@ -86,13 +94,15 @@ export class MatrixBanSync {
         const key = `${roomId}:${evt.state_key}`;
         if (evt.content.entity === undefined) {
             // Empty, delete instead.
-            log.info(`Deleted ban rule ${evt.type} matching ${content.entity}`);
+            log.info(`Deleted ban rule ${evt.type}/$ matching ${key}`);
             this.bannedEntites.delete(key);
             return false;
         }
-        if (content.reccomendation !== "m.ban") {
-            // We only deal with m.ban at the moment.
+        if (!supportedRecommendations.includes(content.recommendation)) {
             return false;
+        }
+        if (typeof content.entity !== "string" || content.entity === "") {
+            throw Error('`entity` key is not valid, must be a non-empty string');
         }
         this.bannedEntites.set(key, {
             matcher: new MatrixGlob(content.entity),
