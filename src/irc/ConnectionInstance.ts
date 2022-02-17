@@ -79,6 +79,7 @@ export class ConnectionInstance {
     private state: "created"|"connecting"|"connected" = "created";
     private pingRateTimerId: NodeJS.Timer|null = null;
     private clientSidePingTimeoutTimerId: NodeJS.Timer|null = null;
+    // eslint-disable-next-line no-use-before-define
     private connectDefer: Defer<ConnectionInstance>;
     public onDisconnect?: (reason: string) => void;
     /**
