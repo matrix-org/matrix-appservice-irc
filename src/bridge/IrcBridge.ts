@@ -964,7 +964,7 @@ export class IrcBridge {
                     req.log.debug(`Not syncing ${userId} - user banned (${banReason})`);
                     this.membershipQueue.leave(
                         roomId, userId, req, true,
-                        "You are banned from interacting with this bridge.",
+                        `You are banned: ${banReason}`,
                         this.appServiceUserId
                     );
                     continue;
