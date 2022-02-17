@@ -1,1 +1,0 @@
-Add support for subscribing to moderation policy. See http://matrix-org.github.io/matrix-appservice-irc/administrators_guide.html#subscribing-to-moderation-policies for more information.

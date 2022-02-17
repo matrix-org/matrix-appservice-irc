@@ -1,1 +1,0 @@
-Support splitting users from different homeservers into different IPv6 blocks.

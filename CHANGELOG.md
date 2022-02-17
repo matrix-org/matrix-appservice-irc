@@ -1,4 +1,43 @@
- 0.32.1 (2021-10-25)
+0.33.0-rc1 (2022-02-17)
+=======================
+
+Features
+--------
+
+- Support splitting users from different homeservers into different IPv6 blocks. ([\#1514](https://github.com/matrix-org/matrix-appservice-irc/issues/1514))
+- Added a new metric `clientpool_by_homeserver` which lists the states of IRC clients, by the top 25 homeservers. ([\#1517](https://github.com/matrix-org/matrix-appservice-irc/issues/1517))
+- Add support for subscribing to moderation policy. See http://matrix-org.github.io/matrix-appservice-irc/administrators_guide.html#subscribing-to-moderation-policies for more information. ([\#1532](https://github.com/matrix-org/matrix-appservice-irc/issues/1532))
+
+
+Bugfixes
+--------
+
+- Matrix message edits no longer bridge as a diff if it's longer than the new message ([\#1477](https://github.com/matrix-org/matrix-appservice-irc/issues/1477))
+
+
+Improved Documentation
+----------------------
+
+- Update the list of bridged networks after hackint started offering a bridge once again. ([\#1501](https://github.com/matrix-org/matrix-appservice-irc/issues/1501))
+- Removed freenode from bridged networks. ([\#1523](https://github.com/matrix-org/matrix-appservice-irc/issues/1523))
+
+
+Deprecations and Removals
+-------------------------
+
+- The bridge will no longer treat invites without a `is_direct: true` as DM invites (and will henceforth reject group room invites). This may break some Matrix
+  clients that do not supply this metadata when creating a room. ([\#1506](https://github.com/matrix-org/matrix-appservice-irc/issues/1506))
+- **Minimum required Node version is now 14**. Users on Node 12 are advised to update to newer versions. ([\#1515](https://github.com/matrix-org/matrix-appservice-irc/issues/1515))
+
+
+Internal Changes
+----------------
+
+- Check changelog.d entries in CI. ([\#1527](https://github.com/matrix-org/matrix-appservice-irc/issues/1527))
+- Update various packages that were out of date. ([\#1530](https://github.com/matrix-org/matrix-appservice-irc/issues/1530))
+
+
+0.32.1 (2021-10-25)
 ====================
 
 Bugfixes
