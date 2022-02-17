@@ -97,7 +97,7 @@ A `m.ban` rule will forcibly kill the connection of any user matching a ban, and
 allow them to reconnect. The rules are enforced on startup, when the ban list is modified
 and when the configuration file is reloaded.
 
-Administrators should beware that this configuration is very powerful, and any user caught
+Administrators should beware that this configuration is **very** powerful, and any user caught
 on this list will not be able to use the bridge at all.
 
 ## Metrics / Grafana
