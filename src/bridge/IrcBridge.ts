@@ -958,6 +958,17 @@ export class IrcBridge {
         );
         for (const [userId, {display_name}] of Object.entries(members)) {
             try {
+                // If the user is banned, skip any connection attempts and go straight for a kick.
+                const banReason = this.matrixBanSyncer?.isUserBanned(userId);
+                if (banReason) {
+                    req.log.debug(`Not syncing ${userId} - user banned (${banReason})`);
+                    this.membershipQueue.leave(
+                        roomId, userId, req, true,
+                        "You are banned from interacting with this bridge.",
+                        this.appServiceUserId
+                    );
+                    continue;
+                }
                 if (bot.isRemoteUser(userId)) {
                     // Don't bridge remote.
                     continue;

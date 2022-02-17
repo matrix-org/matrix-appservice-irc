@@ -1,0 +1,1 @@
+Add support for subscribing to moderation policy rules in order to enforce bans.
