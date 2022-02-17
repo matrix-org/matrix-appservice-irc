@@ -33,9 +33,8 @@ const BANNED_SERVER_ENTITY = {
     reason: BANNED_SERVER_STATE_EVENT.content.reason
 };
 
-let banSync;
-
 describe("MatrixBanSync", () => {
+    let banSync;
     beforeEach(() => {
         banSync = new MatrixBanSync({ rooms: [] });
         banSync.interestingRooms = new Set(["!valid:room"]);
