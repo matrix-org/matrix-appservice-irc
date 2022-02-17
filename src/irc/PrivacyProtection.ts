@@ -13,8 +13,9 @@ const MAX_CACHE_SIZE = 64;
  *
  */
 export class PrivacyProtection {
-    private roomBlockedSet = new Set<string>();
-    private memberListCache = new QuickLRU<string, string[]>({ maxSize: MAX_CACHE_SIZE });
+    private readonly roomBlockedSet = new Set<string>();
+    private readonly memberListCache = new QuickLRU<string, string[]>({ maxSize: MAX_CACHE_SIZE });
+    private readonly syncsInProgress = new Set<string>();
     constructor(private ircBridge: IrcBridge) {
 
     }
@@ -98,8 +99,16 @@ export class PrivacyProtection {
         if (!isMissingUsers) {
             return true;
         }
+        const key = roomId+server.domain+channel;
+        if (this.syncsInProgress.has(key)) {
+            req.log.debug(`Matrix user sync already in progress, waiting for outcome`);
+            return false;
+        }
+        this.syncsInProgress.add(key);
         // For the missing users, attempt to join them to the channel. Any that fail to join should be kicked.
-        this.ircBridge.syncMembersInRoomToIrc(req, roomId, new IrcRoom(server, channel), true);
+        this.ircBridge.syncMembersInRoomToIrc(req, roomId, new IrcRoom(server, channel), true).finally(() => {
+            this.syncsInProgress.delete(key);
+        });
         return false;
     }
 

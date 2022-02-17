@@ -264,6 +264,11 @@ export class MemberListSyncer {
         const idleRegex = this.server.ignoreIdleUsersOnStartupExcludeRegex;
         for (const roomInfo of filteredRooms) {
             for (const uid of roomInfo.realJoinedUsers) {
+                const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(uid);
+                if (banReason) {
+                    log.debug(`Not syncing ${uid} - user banned (${banReason})`)
+                    continue;
+                }
                 if (this.server.ignoreIdleUsersOnStartup) {
                     const idle = await this.ircBridge.activityTracker?.isUserOnline(
                         uid, this.server.ignoreIdleUsersOnStartupAfterMs, false
