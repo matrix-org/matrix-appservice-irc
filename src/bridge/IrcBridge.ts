@@ -1108,7 +1108,7 @@ export class IrcBridge {
             this.roomConfigs.invalidateConfig(event.room_id, event.state_key);
         }
         else if (typeof event.state_key === 'string' && this.matrixBanSyncer?.isInterestedInRoom(event.room_id)) {
-            if (await this.matrixBanSyncer.handleIncomingState(event as WeakStateEvent)) {
+            if (await this.matrixBanSyncer.handleIncomingState(event as WeakStateEvent, event.room_id)) {
                 await this.clientPool.checkForBannedConnectedUsers();
             }
         }

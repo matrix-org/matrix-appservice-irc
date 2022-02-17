@@ -5,14 +5,15 @@
 
 import { Intent, MatrixUser, WeakStateEvent } from "matrix-appservice-bridge";
 import { MatrixGlob } from "matrix-bot-sdk";
+import { getLogger } from "../logging";
 
+const log = getLogger("MatrixBanSync");
 export interface MatrixBanSyncConfig {
     rooms: string[];
 }
 
 enum BanEntityType {
     Server = "m.policy.rule.server",
-    Room = "m.policy.rule.room",
     User = "m.policy.rule.user"
 }
 
@@ -32,8 +33,6 @@ function eventTypeToBanEntityType(eventType: string): BanEntityType|null {
     switch (eventType) {
         case "m.policy.rule.user":
             return BanEntityType.User;
-        case "m.policy.rule.room":
-            return BanEntityType.Room;
         case "m.policy.rule.server":
             return BanEntityType.Server
         default:
@@ -43,15 +42,23 @@ function eventTypeToBanEntityType(eventType: string): BanEntityType|null {
 
 export class MatrixBanSync {
     private bannedEntites = new Map<string, BanEntity>();
+    private interestingRooms = new Set<string>();
     constructor(private config: MatrixBanSyncConfig) { }
 
     public async syncRules(intent: Intent) {
         this.bannedEntites.clear();
-        for (const roomId of this.config.rooms) {
-            await intent.join(await intent.resolveRoom(roomId));
-            const roomState = await intent.roomState(roomId, false) as WeakStateEvent[];
-            for (const evt of roomState) {
-                this.handleIncomingState(evt);
+        this.interestingRooms.clear();
+        for (const roomIdOrAlias of this.config.rooms) {
+            try {
+                const roomId = await intent.join(roomIdOrAlias);
+                this.interestingRooms.add(roomId);
+                const roomState = await intent.roomState(roomId, false) as WeakStateEvent[];
+                for (const evt of roomState) {
+                    this.handleIncomingState(evt, roomId);
+                }
+            }
+            catch (ex) {
+                log.error(`Failed to read ban list from ${roomIdOrAlias}`, ex);
             }
         }
     }
@@ -62,18 +69,24 @@ export class MatrixBanSync {
      * @returns true if state should be handled from the room, false otherwise.
      */
     public isInterestedInRoom(roomId: string): boolean {
-        return this.config.rooms.includes(roomId);
+        return this.interestingRooms.has(roomId);
     }
 
-    public handleIncomingState(evt: WeakStateEvent) {
+    /**
+     * Checks to see if the incoming state is a reccomendation entry.
+     * @param evt A Matrix state event. Unknown state events will be filtered out.
+     * @returns True if the event was a new ban, and existing clients should be checked. False otherwise.
+     */
+    public handleIncomingState(evt: WeakStateEvent, roomId: string) {
         const content = evt.content as unknown as MPolicyContent;
         const entityType = eventTypeToBanEntityType(evt.type);
         if (!entityType) {
             return false;
         }
-        const key = `${evt.room_id}:${evt.state_key}`;
+        const key = `${roomId}:${evt.state_key}`;
         if (evt.content.entity === undefined) {
             // Empty, delete instead.
+            log.info(`Deleted ban rule ${evt.type} matching ${content.entity}`);
             this.bannedEntites.delete(key);
             return false;
         }
@@ -86,6 +99,7 @@ export class MatrixBanSync {
             entityType,
             reason: content.reason || "No reason given",
         });
+        log.info(`New ban rule ${evt.type} matching ${content.entity}`);
         return true;
     }
 
@@ -107,6 +121,11 @@ export class MatrixBanSync {
         return false;
     }
 
+    /**
+     * Should be called when the bridge config has been updated.
+     * @param config The new config.
+     * @param intent The bot user intent.
+     */
     public async updateConfig(config: MatrixBanSyncConfig, intent: Intent) {
         this.config = config;
         await this.syncRules(intent);
