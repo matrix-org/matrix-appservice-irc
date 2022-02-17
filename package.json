@@ -35,6 +35,7 @@
     "logform": "^2.4.0",
     "matrix-appservice-bridge": "^3.2.0",
     "matrix-org-irc": "^1.2.0",
+    "matrix-bot-sdk": "0.5.19",
     "nopt": "^3.0.1",
     "p-queue": "^6.6.2",
     "pg": "^8.7.3",
