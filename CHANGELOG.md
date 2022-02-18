@@ -1,3 +1,12 @@
+0.33.0-rc2 (2022-02-18)
+=======================
+
+Bugfixes
+--------
+
+- Fix a duplicate metric that would prevent the bridge from starting. ([\#1534](https://github.com/matrix-org/matrix-appservice-irc/issues/1534))
+
+
 0.33.0-rc1 (2022-02-17)
 =======================
 
