@@ -10,7 +10,7 @@ import ident from "./irc/Ident";
 import * as logging from "./logging";
 import { BridgeConfig } from "./config/BridgeConfig";
 import * as Sentry from "@sentry/node";
-import { getBridgeVersion } from "./util/PackageInfo";
+import { getBridgeVersion } from "matrix-appservice-bridge";
 import { TestingOptions } from "./config/TestOpts";
 
 const log = logging.get("main");

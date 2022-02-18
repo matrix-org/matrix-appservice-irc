@@ -46,7 +46,6 @@ import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
 import { Registry } from "prom-client";
 import { spawnMetricsWorker } from "../workers/MetricsWorker";
-import { getBridgeVersion } from "../util/PackageInfo";
 import { globalAgent as gAHTTP } from "http";
 import { globalAgent as gAHTTPS } from "https";
 import { RoomConfig } from "./RoomConfig";
@@ -428,12 +427,6 @@ export class IrcBridge {
             help: "Track IRC connection failures resulting in kicks",
             labels: ["server"]
         });
-
-        metrics.addCounter({
-            name: "app_version",
-            help: "Version number of the bridge",
-            labels: ["version"],
-        }).inc({ version: getBridgeVersion()}, 1);
 
         const maxRemoteGhosts = metrics.addGauge({
             name: "remote_ghosts_max",
