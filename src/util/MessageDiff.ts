@@ -103,6 +103,9 @@ export function messageDiff(from: string, to: string): string|undefined {
         diffs => !diffs.find(diff => diff.match(/\n/))
     ).map(
         diffs => diffs.join(', ')
+    ).filter(
+        // a diff longer than the new message is worthless
+        diff => diff.length < to.length
     ).sort(
         // prefer shorter overall length
         (a, b) => a.length - b.length

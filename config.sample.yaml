@@ -368,6 +368,16 @@ ircService:
           # Older kernels will need IP_FREEBIND, which requires an LD_PRELOAD with the library
           # https://github.com/matrix-org/freebindfree as Node does not expose setsockopt.
           # prefix: "2001:0db8:85a3::"  # modify appropriately
+  
+          # Optional. Define blocks of IPv6 addresses for different homeservers
+          # which can be used to restrict users of those homeservers to a given
+          # IP. These blocks should be considered immutable once set, as changing
+          # the startFrom value will NOT adjust existing IP addresses. 
+          # Changing the startFrom value to a lower value may conflict with existing clients.
+          # Multiple homeservers may NOT share blocks.
+          blocks:
+            - homeserver: another-server.org
+              startFrom: '10:0000'
         #
         # The maximum amount of time in seconds that the client can exist
         # without sending another message before being disconnected. Use 0 to
@@ -615,6 +625,13 @@ ircService:
     # If this is true, configuration in the room state will take priority over
     # the configuration in the config file.
     # allowUnconnectedMatrixUsers: true
+
+  # Options for hooking into Matrix moderation policy lists 
+  banLists:
+    # A list of rooms containing "m.policy.rule.*" events which can be used
+    # to identify banned users, rooms and servers.
+    rooms:
+      - "#matrix-org-coc-bl:matrix.org"
 
 # Options here are generally only applicable to large-scale bridges and may have
 # consequences greater than other options in this configuration file.

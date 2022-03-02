@@ -1,20 +1,17 @@
 {
+  "extends": "@tsconfig/node14/tsconfig.json",
   "compilerOptions": {
     "incremental": true,
-    "target": "ES2017",
-    "module": "commonjs",
     "allowJs": true,
     "checkJs": false,
-    "declaration": false,
+    "declaration": true,
     "sourceMap": true,
     "outDir": "./lib",
     "composite": false,
-    "strict": true,
-    "esModuleInterop": true,
     "strictNullChecks": true,
-    // TODO: Type errors
+    /* We don't support this yet */
     "useUnknownInCatchVariables": false,
-    // Until the fix to https://github.com/turt2live/matrix-bot-sdk/issues/155 is released.
+     /* matrix-js-sdk throws up errors */
     "skipLibCheck": true,
   },
   "include": [

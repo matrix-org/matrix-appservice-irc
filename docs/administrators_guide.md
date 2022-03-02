@@ -78,6 +78,28 @@ membershipLists:
 in the config. Users can choose to disable this on a per-room basis by modfiying their
 [room config](./room_configuration.md#allowunconnectedmatrixusers) options, if the bridge permits it.
 
+## Subscribing to Moderation policies
+
+Matrix has support for specifying [moderation policy lists](https://spec.matrix.org/v1.2/client-server-api/#moderation-policy-lists).
+Moderation policies are set by services such as [Mjolnir](https://github.com/matrix-org/mjolnir) and can be
+used to inform other services as to how to deal with content.
+
+The bridge can subscribe to rooms containing these policies and can then choose to filter out users and
+servers matching these rules.
+
+```yaml
+  banLists:
+    rooms:
+      - "#matrix-org-coc-bl:matrix.org" # The matrix.org code of conduct ban list
+```
+
+A `m.ban` rule will forcibly kill the connection of any user matching a ban, and will not
+allow them to reconnect. The rules are enforced on startup, when the ban list is modified
+and when the configuration file is reloaded.
+
+Administrators should beware that this configuration is **very** powerful, and any user caught
+on this list will not be able to use the bridge at all.
+
 ## Metrics / Grafana
 
 The bridge includes a prometheus compatible metrics endpoint which can be used to inspect

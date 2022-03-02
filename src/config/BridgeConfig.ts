@@ -4,6 +4,7 @@ import { IrcHandlerConfig } from "../bridge/IrcHandler";
 import { RoomConfigConfig } from "../bridge/RoomConfig";
 import { MatrixHandlerConfig } from "../bridge/MatrixHandler";
 import { Rules } from "matrix-appservice-bridge";
+import { MatrixBanSyncConfig } from "../bridge/MatrixBanSync";
 
 export interface BridgeConfig {
     database: {
@@ -64,6 +65,7 @@ export interface BridgeConfig {
             minUserActiveDays?: number;
             inactiveAfterDays?: number;
         };
+        banLists?: MatrixBanSyncConfig;
     };
     sentry?: {
         enabled: boolean;

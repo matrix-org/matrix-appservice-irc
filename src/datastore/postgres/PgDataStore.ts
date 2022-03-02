@@ -54,7 +54,7 @@ interface RoomRecord {
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 7;
+    public static readonly LATEST_SCHEMA = 8;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -431,13 +431,27 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query("DELETE FROM rooms WHERE origin = 'config'");
     }
 
-    public async getIpv6Counter(): Promise<number> {
-        const res = await this.pgPool.query("SELECT count FROM ipv6_counter");
-        return res ? parseInt(res.rows[0].count, 10) : 0;
+    public async getIpv6Counter(server: IrcServer, homeserver: string|null): Promise<number> {
+        homeserver = homeserver || "*";
+        const res = await this.pgPool.query(
+            "SELECT count FROM ipv6_counter WHERE server = $1 AND homeserver = $2",
+            [server.domain, homeserver]
+        );
+        return res.rows[0]?.count !== undefined ? parseInt(res.rows[0].count, 10) : 0;
     }
 
-    public async setIpv6Counter(counter: number): Promise<void> {
-        await this.pgPool.query("UPDATE ipv6_counter SET count = $1", [counter]);
+    public async setIpv6Counter(counter: number, server: IrcServer, homeserver: string|null): Promise<void> {
+        await this.pgPool.query(
+            PgDataStore.BuildUpsertStatement(
+                "ipv6_counter",
+                "ON CONSTRAINT cons_ipv6_counter_unique", [
+                    "count",
+                    "homeserver",
+                    "server"
+                ],
+            ),
+            [counter, homeserver || "*", server.domain],
+        );
     }
 
     public async upsertMatrixRoom(room: MatrixRoom): Promise<void> {

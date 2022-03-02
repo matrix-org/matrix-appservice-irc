@@ -38,6 +38,7 @@ import {
     UserActivityState,
     UserActivityTracker,
     UserActivityTrackerConfig,
+    WeakStateEvent,
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
@@ -45,12 +46,12 @@ import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
 import { Registry } from "prom-client";
 import { spawnMetricsWorker } from "../workers/MetricsWorker";
-import { getBridgeVersion } from "../util/PackageInfo";
 import { globalAgent as gAHTTP } from "http";
 import { globalAgent as gAHTTPS } from "https";
 import { RoomConfig } from "./RoomConfig";
 import { PrivacyProtection } from "../irc/PrivacyProtection";
 import { TestingOptions } from "../config/TestOpts";
+import { MatrixBanSync } from "./MatrixBanSync";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -58,6 +59,7 @@ const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
 const TXN_SIZE_DEFAULT = 10000000 // 10MB
+const CLIENTS_BY_HOMESERVER_TOP_N = 20;
 export const MEMBERSHIP_DEFAULT_TTL = 10 * 60 * 1000;
 
 /**
@@ -81,12 +83,13 @@ export class IrcBridge {
     public readonly publicitySyncer: PublicitySyncer;
     public activityTracker: ActivityTracker|null = null;
     public readonly roomConfigs: RoomConfig;
+    public readonly matrixBanSyncer?: MatrixBanSync;
     private clientPool!: ClientPool; // This gets defined in the `run` function
     private ircServers: IrcServer[] = [];
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
     private dataStore!: DataStore;
-    private startedUp = false;
+    private bridgeState: "not-started"|"running"|"killed" = "not-started";
     private debugApi: DebugApi|null = null;
     private provisioner: Provisioner|null = null;
     private bridge: Bridge;
@@ -200,6 +203,7 @@ export class IrcBridge {
             maxActionDelayMs: 5 * 60 * 1000, // 5 mins,
             defaultTtlMs: 10 * 60 * 1000, // 10 mins
         });
+        this.matrixBanSyncer = this.config.ircService.banLists && new MatrixBanSync(this.config.ircService.banLists);
         this.matrixHandler = new MatrixHandler(this, this.config.ircService.matrixHandler, this.membershipQueue);
         this.privacyProtection = new PrivacyProtection(this);
         this.ircHandler = new IrcHandler(
@@ -271,6 +275,8 @@ export class IrcBridge {
             Logging.configure(newConfig.ircService.logging);
         }
 
+        const banSyncPromise = this.matrixBanSyncer?.syncRules(this.bridge.getIntent());
+
         await this.dataStore.removeConfigMappings();
 
         // All config mapped channels will be briefly unavailable
@@ -289,6 +295,8 @@ export class IrcBridge {
 
         await this.fetchJoinedRooms();
         await this.joinMappedMatrixRooms();
+        await banSyncPromise;
+        await this.clientPool.checkForBannedConnectedUsers();
     }
 
     private initialiseMetrics(bindPort: number) {
@@ -377,6 +385,13 @@ export class IrcBridge {
             labels: ["server", "state"]
         });
 
+        const clientsByHomeserver = metrics.addGauge({
+            name: "clientpool_by_homeserver",
+            help: "Number of clients by homeserver and state. " +
+                `Only lists the top ${CLIENTS_BY_HOMESERVER_TOP_N} homeservers`,
+            labels: ["homeserver", "state"]
+        });
+
         const memberListLeaveQueue = metrics.addGauge({
             name: "user_leave_queue",
             help: "Number of leave requests queued up for virtual users on the bridge.",
@@ -412,12 +427,6 @@ export class IrcBridge {
             help: "Track IRC connection failures resulting in kicks",
             labels: ["server"]
         });
-
-        metrics.addCounter({
-            name: "app_version",
-            help: "Version number of the bridge",
-            labels: ["version"],
-        }).inc({ version: getBridgeVersion()}, 1);
 
         const maxRemoteGhosts = metrics.addGauge({
             name: "remote_ghosts_max",
@@ -493,7 +502,9 @@ export class IrcBridge {
         });
 
         metrics.addCollector(async () => {
-            this.clientPool.collectConnectionStatesForAllServers(clientStates);
+            this.clientPool.collectConnectionStatesForAllServers(
+                clientStates, clientsByHomeserver, CLIENTS_BY_HOMESERVER_TOP_N
+            );
         });
 
         this.membershipQueue.registerMetrics();
@@ -568,6 +579,7 @@ export class IrcBridge {
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
         await this.bridge.initalise();
+        await this.matrixBanSyncer?.syncRules(this.bridge.getIntent());
         this.matrixHandler.initalise();
 
         this.activityTracker = new ActivityTracker(this.bridge.getIntent().matrixClient, {
@@ -591,13 +603,15 @@ export class IrcBridge {
             if (!userStore || !roomStore || !userActivityStore) {
                 throw Error('Could not load user(Activity)Store or roomStore');
             }
-            this.dataStore = new NeDBDataStore(
+            const ndbDatastore = new NeDBDataStore(
                 userStore,
                 userActivityStore,
                 roomStore,
                 this.config.homeserver.domain,
                 pkeyPath,
             );
+            await ndbDatastore.runMigrations();
+            this.dataStore = ndbDatastore;
             if (this.config.ircService.debugApi.enabled) {
                 // monkey patch inspect() values to avoid useless NeDB
                 // struct spam on the debug API.
@@ -667,7 +681,9 @@ export class IrcBridge {
         this.bridge.opts.controller.userActivityTracker = new UserActivityTracker(
             uatConfig,
             await this.getStore().getUserActivity(),
-            (changes) => this.onUserActivityChanged(changes),
+            (changes) => this.onUserActivityChanged(changes).catch(
+                (ex) => log.warn("onUserActivityChanged encountered an error", ex),
+            ),
         );
         this.bridgeBlocker?.checkLimits(this.bridge.opts.controller.userActivityTracker.countActiveUsers().allUsers);
 
@@ -780,7 +796,7 @@ export class IrcBridge {
 
         log.info("Startup complete.");
 
-        this.startedUp = true;
+        this.bridgeState = "running";
     }
 
     private logMetric(req: Request<BridgeRequestData>, outcome: string) {
@@ -861,6 +877,7 @@ export class IrcBridge {
     //  See (BridgedClient.prototype.kill)
     public async kill(reason?: string) {
         log.info("Killing all clients");
+        this.bridgeState = "killed";
         await this.clientPool.killAllClients(reason);
         if (this.dataStore) {
             await this.dataStore.destroy();
@@ -869,7 +886,7 @@ export class IrcBridge {
     }
 
     public get isStartedUp() {
-        return this.startedUp;
+        return this.bridgeState === "running";
     }
 
     private async joinMappedMatrixRooms() {
@@ -934,6 +951,17 @@ export class IrcBridge {
         );
         for (const [userId, {display_name}] of Object.entries(members)) {
             try {
+                // If the user is banned, skip any connection attempts and go straight for a kick.
+                const banReason = this.matrixBanSyncer?.isUserBanned(userId);
+                if (banReason) {
+                    req.log.debug(`Not syncing ${userId} - user banned (${banReason})`);
+                    this.membershipQueue.leave(
+                        roomId, userId, req, true,
+                        `You are banned: ${banReason}`,
+                        this.appServiceUserId
+                    );
+                    continue;
+                }
                 if (bot.isRemoteUser(userId)) {
                     // Don't bridge remote.
                     continue;
@@ -1071,6 +1099,11 @@ export class IrcBridge {
         }
         else if (event.type === RoomConfig.STATE_EVENT_TYPE && typeof event.state_key === 'string') {
             this.roomConfigs.invalidateConfig(event.room_id, event.state_key);
+        }
+        else if (typeof event.state_key === 'string' && this.matrixBanSyncer?.isTrackingRoomState(event.room_id)) {
+            if (await this.matrixBanSyncer.handleIncomingState(event as WeakStateEvent, event.room_id)) {
+                await this.clientPool.checkForBannedConnectedUsers();
+            }
         }
         else if (event.type === "m.room.member" && event.state_key) {
             if (!event.content || !event.content.membership) {
@@ -1526,10 +1559,14 @@ export class IrcBridge {
         return current >= limit;
     }
 
-    private onUserActivityChanged(userActivity: UserActivityState) {
-        for (const userId of userActivity.changed) {
-            this.getStore().storeUserActivity(userId, userActivity.dataSet.users[userId]);
+    private async onUserActivityChanged(userActivity: UserActivityState) {
+        if (!this.isStartedUp) {
+            // Only handle activity if we're running
+            return;
         }
-        this.bridgeBlocker?.checkLimits(userActivity.activeUsers);
+        for (const userId of userActivity.changed) {
+            await this.getStore().storeUserActivity(userId, userActivity.dataSet.users[userId]);
+        }
+        await this.bridgeBlocker?.checkLimits(userActivity.activeUsers);
     }
 }

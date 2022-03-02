@@ -176,6 +176,13 @@ properties:
                         type: "number"
                     allowUnconnectedMatrixUsers:
                         type: "boolean"
+            banLists:
+                type: "object"
+                properties:
+                    rooms:
+                        type: "array"
+                        items:
+                            pattern: "^(!|#).+:.+"
             servers:
                 type: "object"
                 # all properties must follow the following
@@ -422,6 +429,15 @@ properties:
                                             pattern: "[ABCDEFabcdef0123456789:]+"
                                         only:
                                             type: "boolean"
+                                        blocks:
+                                            type: "array"
+                                            properties:
+                                                startFrom:
+                                                    type: "string"
+                                                    pattern: "(?:[0-9a-f]{1,4}:)*[0-9a-f]{1,4}"
+                                                homeserver:
+                                                    type: "string"
+                                            required: ["startFrom", "homeserver"]
                                 lineLimit:
                                     type: "integer"
                                 userModes:

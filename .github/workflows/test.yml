@@ -1,0 +1,89 @@
+name: Tests
+
+on:
+  push:
+    branches: ["develop", "release-*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  changelog:
+    if: ${{ github.base_ref == 'develop'  || contains(github.base_ref, 'release-') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v2
+      - run: pip install towncrier==19.2.0
+      - run: scripts/check-newsfragment
+        env:
+          PULL_REQUEST_NUMBER: ${{ github.event.number }}
+
+  lint:
+    runs-on: ubuntu-20.04
+    container: node:16
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - run: npm ci
+      - run: npm run-script lint
+
+  test-14:
+    runs-on: ubuntu-20.04
+    container: node:14
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+      - run: npm ci
+      - run: npm run-script test
+
+  test-16:
+    runs-on: ubuntu-20.04
+    container: node:16
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - run: npm ci
+      - run: npm run-script test
+
+  test-16-postgres:
+    runs-on: ubuntu-20.04
+    container: node:16
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres_password
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres_user
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - run: npm ci
+      - run: npm run-script test
+        env:
+          IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
+          IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@postgres"
+          IRCBRIDGE_TEST_ENABLEPG: "yes"
