@@ -237,7 +237,7 @@ export class IdentGenerator {
 
     /**
      * Checks if a user provided username is valid for an IRC network.
-     * @param username
+     * @param username User provided username
      */
     public static validateUsername(username: string): boolean {
         // Following rules from
