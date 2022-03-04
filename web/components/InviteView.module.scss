@@ -1,0 +1,52 @@
+.inputField {
+    color: #747474;
+    font-weight: 300;
+    font-size: 1.25rem;
+    width: 100%;
+    background-color: #f3f8fd;
+    border-radius: 4px;
+    min-height: 25px;
+    padding-left: 8px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    flex-wrap: wrap;
+}
+
+.form {
+    border: none;
+    background: none;
+    padding: 10px;
+}
+
+.userItem {
+    margin-left: 5px;
+    margin-top: 5px;
+    display: flex;
+}
+
+.avatar {
+    border-radius: 16pt;
+    width: 36px;
+    height: 36px;
+    max-height: 36px;
+    max-width: 36px;
+    flex: 1;
+}
+
+.identifiers {
+    flex: 2;
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-left: 5px;
+
+    .service {
+        color: #747474;
+    }
+}
+
+.loading {
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    width: 100px;
+}

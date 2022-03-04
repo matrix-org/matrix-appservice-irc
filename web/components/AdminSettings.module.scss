@@ -1,0 +1,57 @@
+
+.root {
+    margin-left: 30px;
+    margin-right: 30px;
+    padding: 20px;
+}
+
+.root > .card {
+    max-width: 95%;
+}
+
+.header {
+    text-align: left;
+    font-size: 24pt;
+    margin-bottom: 0.6em;
+}
+
+.sidebar {
+    min-height: 60vh;
+    max-width: 10vw;
+    flex: 200px;
+    margin-right: 1.2em;
+}
+
+.content {
+    padding-left: 20px;
+    h2 {
+        font-size: 16pt;
+    }
+}
+
+.contents {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: row;
+}
+
+.sidebar > ul {
+    list-style: none;
+}
+
+.sidebar > ul > a > li {
+    border-radius: 5px;
+    margin-bottom: 5px;
+    padding: 0.3em;
+
+}
+
+.sidebar > ul > a:hover {
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.sidebar > ul > a > li.active {
+    background-color: var(--foreground-color);
+    color: var(--background-color);
+}

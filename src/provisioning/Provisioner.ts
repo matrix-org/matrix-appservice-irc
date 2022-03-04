@@ -10,10 +10,11 @@ import * as promiseutil from "../promiseutil";
 import * as express from "express";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcUser } from "../models/IrcUser";
-import { GetNicksResponseOperators } from "../irc/BridgedClient";
+import { BridgedClientStatus, GetNicksResponseOperators } from "../irc/BridgedClient";
 import { IrcErrCode, IrcProvisioningError, LinkValidator, LinkValidatorProperties, QueryLinkValidator,
-    QueryLinkValidatorProperties, RoomIdValidator, UnlinkValidator, UnlinkValidatorProperties } from "./Schema";
+    QueryLinkValidatorProperties, RoomIdValidator, UnlinkValidator, UnlinkValidatorProperties, UserStatusNetworkResponse } from "./Schema";
 import { NeDBDataStore } from "../datastore/NedbDataStore";
+import { AddressInfo } from "net";
 
 const log = logging("Provisioner");
 
@@ -42,6 +43,12 @@ export interface ProvisionerConfig {
     secret?: string;
     apiPrefix?: string;
     openIdDisallowedIpRanges?: string[];
+    widgets?: {
+
+        staticPath?: string;
+        tokenLifetimeMs?: number;
+        openIdOverride?: Record<string, string>;
+    };
 }
 
 interface StrictProvisionerConfig extends ProvisionerConfig {
@@ -79,13 +86,18 @@ export class Provisioner extends ProvisioningApi {
     ) {
         super(ircBridge.getStore(), {
             provisioningToken: config.secret,
-            widgetTokenPrefix: "ircbr-wdt-",
             // Use the bridge express instance if we don't define our own ports
             expressApp: !config.http ? ircBridge.getAppServiceBridge().appService.expressApp : undefined,
             apiPrefix: "/_matrix/provision",
             disallowedIpRanges: config.openIdDisallowedIpRanges,
             ratelimit: true,
-        })
+            widgetTokenPrefix: "ircbr-wdt-",
+            widgetFrontendLocation: config.widgets?.staticPath,
+            widgetTokenLifetimeMs: config.widgets?.tokenLifetimeMs,
+            openIdOverride: {
+                "halfyxps": new URL("http://localhost:8008")
+            }
+        });
 
         if (config.enabled) {
             log.info("Starting provisioning...");
@@ -116,7 +128,9 @@ export class Provisioner extends ProvisioningApi {
         this.addRoute("get", "/listlinks/:roomId", this.createProvisionEndpoint(this.listings), "listings");
         this.addRoute("post", "/querylink", this.createProvisionEndpoint(this.queryLink), "queryLink");
         this.addRoute("get", "/querynetworks", this.createProvisionEndpoint(this.queryNetworks), "queryNetworks");
+        this.addRoute("get", "/v1/querynetworks", this.createProvisionEndpoint(this.queryNetworks), "queryNetworks");
         this.addRoute("get", "/limits", this.createProvisionEndpoint(this.getLimits), "limits");
+        this.addRoute("get", "/v1/user_status/:networkId", this.createProvisionEndpoint(this.userStatus), "userStatus");
 
         // CORS is handled for us.
 
@@ -1023,6 +1037,38 @@ export class Provisioner extends ProvisioningApi {
             count,
             limit,
         };
+    }
+
+
+    // Get the list of currently network instances
+    private async userStatus(req: ProvisioningRequest<unknown, {networkId: string}>) {
+        if (!req.userId) {
+            throw new ApiError('Missing `user_id` in body', ErrCode.BadValue);
+        }
+        const server = this.ircBridge.getServer(req.params.networkId);
+        if (!server) {
+            throw new IrcProvisioningError(
+                `Server not found`,
+                IrcErrCode.UnknownNetwork,
+            );
+        }
+        const client = this.ircBridge.getClientPool().getBridgedClientByUserId(server, req.userId);
+        const address = client?.getIpAddress() as AddressInfo;
+        const roomChannels = [];
+        for (const channel of [...(client?.chanList || [])]) {
+            const rooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
+            roomChannels.push({
+                channel: channel,
+                room: rooms?.[0]?.getId(),
+            });
+        }
+        return {
+            connected: client?.status === BridgedClientStatus.CONNECTED,
+            nick: client?.nick,
+            ipAddress: address.address,
+            username: client?.getClientConfig().getUsername(),
+            roomChannels,
+        } as UserStatusNetworkResponse;
     }
 
     private static validatePayload(validator: ConfigValidator, payload: unknown) {

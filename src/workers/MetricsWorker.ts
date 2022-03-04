@@ -2,6 +2,7 @@ import { Worker, isMainThread, parentPort, workerData } from "worker_threads";
 import { createServer, ServerResponse } from "http";
 import { Registry, Gauge } from "prom-client";
 import getLog from "../logging";
+import { level as WinstomLogLevel } from "winston";
 const METRICS_DUMP_TIMEOUT_MS = 20000;
 
 function writeLog(level: string, msg: string) {
@@ -79,7 +80,7 @@ export function spawnMetricsWorker(port: number, hostname = "127.0.0.1", onMetri
         }
         else if (msg.startsWith("log")) {
             const [, logLevel, logMsg] = msg.split(":");
-            workerLogger.log(logLevel, logMsg, { loggerName: "MetricsWorker" });
+            workerLogger.log(logLevel as WinstomLogLevel, logMsg, { loggerName: "MetricsWorker" });
         }
     })
     return worker;

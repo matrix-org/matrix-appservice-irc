@@ -50,6 +50,11 @@ export interface MatrixHandlerConfig {
     longReplyTemplate: string;
     // Format of the text explaining why a message is truncated and pastebinned
     truncatedMessageTemplate: string;
+    // Autocreate an admin room widget for use with provisioning widgets. Only
+    // works if the provisioning API is enabled.
+    autoCreateWidget?: {
+        publicUrl: string,
+    };
 }
 
 const DEFAULTS: MatrixHandlerConfig = {
@@ -171,8 +176,8 @@ export class MatrixHandler {
         const matrixClient = this.ircBridge.getAppServiceBridge().getIntent();
 
         try {
-            const plumbedState = await matrixClient.getStateEvent(event.room_id, 'm.room.plumbing');
-            if (plumbedState.status === "enabled") {
+            const plumbedState = await matrixClient.getStateEvent(event.room_id, 'm.room.plumbing', '', true);
+            if (plumbedState?.status === "enabled") {
                 req.log.info(
                     'This room is marked for plumbing (m.room.plumbing.status = "enabled"). ' +
                     'Not treating room as admin room.'
@@ -181,11 +186,18 @@ export class MatrixHandler {
             }
         }
         catch (err) {
-            req.log.debug(`Not a plumbed room: Error retrieving m.room.plumbing (${err.data.error})`);
+            req.log.warn(`Error retrieving m.room.plumbing (${err})`);
         }
 
         // clobber any previous admin room ID
         await this.ircBridge.getStore().storeAdminRoom(mxRoom, inviter.userId);
+        if (this.config.autoCreateWidget) {
+            await matrixClient.ensureWidgetInRoom(event.room_id, "bridge_control", {
+                waitForIframeLoad: true,
+                name: 'Bridge Control',
+                url: `${this.config.autoCreateWidget.publicUrl}/#/?roomId=$matrix_room_id&widgetId=$matrix_widget_id`,
+            });
+        }
     }
 
     /**

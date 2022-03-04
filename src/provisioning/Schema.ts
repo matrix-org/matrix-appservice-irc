@@ -30,6 +30,7 @@ interface RouteValidatorSchema {
     required: string[],
 }
 
+
 export interface LinkValidatorProperties {
     matrix_room_id: string;
     remote_room_channel: string;
@@ -85,6 +86,15 @@ export const UnlinkValidator = new ConfigValidator({
 export interface ListingsProperties {
     matrix_room_id: string;
 }
+
+export interface UserStatusNetworkResponse {
+    connected: boolean;
+    nick?: string;
+    ipAddress?: string;
+    username?: string;
+    roomChannels: {room: string, channel: string}[];
+}
+
 
 export const RoomIdValidator = new ConfigValidator({
     type: "object",

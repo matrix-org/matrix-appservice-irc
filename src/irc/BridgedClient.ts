@@ -29,6 +29,7 @@ import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
 import { Client, WhoisResponse } from "matrix-org-irc";
+import { ClientPool } from "./ClientPool";
 
 const log = getLogger("BridgedClient");
 
@@ -1141,5 +1142,10 @@ export class BridgedClient extends EventEmitter {
             throw Error('Client is not connected');
         }
         return this.state.client as Client;
+    }
+
+    public getIpAddress() {
+        const client = this.assertConnected();
+        return client.conn?.address();
     }
 }

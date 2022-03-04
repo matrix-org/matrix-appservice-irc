@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import winston, { LeveledLogMethod, Logger, format as WinstonFormat } from "winston";
+import winston, { LeveledLogMethod, Logger, format as WinstonFormat, level as WinstomLogLevel } from "winston";
 import * as Transport from "winston-transport";
 import "winston-daily-rotate-file";
 
@@ -75,7 +75,7 @@ export function formatterFn(forceTimestamp = false) {
     return WinstonFormat.combine(...layers);
 }
 
-export function simpleLogger(level = "info") {
+export function simpleLogger(level: WinstomLogLevel = "info") {
     const l = winston.createLogger({
         level: level,
     });
