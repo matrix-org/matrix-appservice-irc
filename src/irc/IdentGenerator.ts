@@ -32,6 +32,8 @@ export class IdentGenerator {
     private static readonly USER_NAME_DELIMITER = "_";
     // The delimiter of the username.
     private static readonly MAX_USER_NAME_SUFFIX = 9999;
+    // Valid usernames accoridng to solanum
+    private static readonly USERNAME_REGEX = /^[\-\.0-9A-Z\[\]\\\^_`a-z\{\|\}\~]+$/;
 
     private queue: Queue<{ matrixUser: MatrixUser; ircClientConfig: IrcClientConfig, unique: boolean}>;
     constructor (private readonly dataStore: DataStore) {
@@ -231,6 +233,27 @@ export class IdentGenerator {
             suffixLength++;
         }
         throw Error("Ran out of entries: " + username);
+    }
+
+    /**
+     * Checks if a user provided username is valid for an IRC network.
+     * @param username
+     */
+    public static validateUsername(username: string): boolean {
+        // Following rules from
+        // https://github.com/solanum-ircd/solanum/blob/78825899cd6b68037fd1b3c6c77afb7d10c4774e/ircd/s_user.c#L914-L927
+        if (!username || username === "") {
+            return false;
+        }
+        // If the first char is ~, skip forward
+        if (username.startsWith('~')) {
+            username = username.slice(1);
+        }
+        // First char must be alpha num
+        if (!username[0].match(/[A-Za-z0-9]/)) {
+            return false;
+        }
+        return IdentGenerator.USERNAME_REGEX.test(username);
     }
 
     public static sanitiseUsername(username: string, replacementChar = "") {

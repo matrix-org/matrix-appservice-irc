@@ -484,7 +484,7 @@ export class AdminRoomHandler {
                     `Username is longer than the maximum permitted by the bridge (${SANE_USERNAME_LENGTH}).`
                 );
             }
-            else if (IdentGenerator.sanitiseUsername(username) !== username) {
+            else if (IdentGenerator.validateUsername(username)) {
                 notice = new MatrixAction(
                     "notice",
                     `Username contained invalid characters not supported by IRC.`
