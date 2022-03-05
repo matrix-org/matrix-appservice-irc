@@ -592,16 +592,14 @@ export class IrcServer {
     }
 
     public getUserIdFromNick(nick: string) {
-        const template = this.config.matrixClients.userTemplate;
-        return template.replace(/\$NICK/g, nick).replace(/\$SERVER/g, this.domain) +
-            ":" + this.homeserverDomain;
+        return "@" + getUserLocalpart(nick) + ":" + this.homeserverDomain;
     }
 
     public getDisplayNameFromNick(nick: string) {
-        const template = this.config.matrixClients.displayName;
-        let displayName = template.replace(/\$NICK/g, nick);
-        displayName = displayName.replace(/\$SERVER/g, this.domain);
-        return displayName;
+        return renderTemplate(this.config.matrixClients.displayName, {
+            server: this.domain,
+            nick,
+        });
     }
 
     public claimsAlias(alias: string) {
