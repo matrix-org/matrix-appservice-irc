@@ -1,6 +1,6 @@
 # Freebind build
 # node:16-slim uses debian:stretch-slim as a base, so it's safe to build on here.
-FROM debian:stretch-slim as freebind 
+FROM debian:stretch-slim as freebind
 
 RUN apt-get update \
  && apt-get install -y git build-essential
@@ -13,13 +13,14 @@ FROM node:16-slim as builder
 
 WORKDIR /build
 
-COPY src/ /build/src/ 
+COPY src/ /build/src/
 COPY .eslintrc *json /build/
 
 RUN npm ci
 RUN npm run build
+RUN npm prune --omit dev
 
-# App
+# Runtime container image
 FROM node:16-slim
 
 RUN apt-get update && apt-get install -y sipcalc iproute2 openssl --no-install-recommends
