@@ -201,12 +201,12 @@ export class MatrixAction {
 
                 if (filename) {
                     url += `/${encodeURIComponent(filename)}`;
-                    text = `${fileSize} < ${url} >`;
+                    text = `${fileSize} <${url}>`;
                 }
                 else {
                     fileSize = fileSize ? ` ${fileSize}` : "";
                     // If not a filename, print the body
-                    text = `${event.content.body}${fileSize} < ${url} >`;
+                    text = `${event.content.body}${fileSize} <${url}>`;
                 }
             }
         }
