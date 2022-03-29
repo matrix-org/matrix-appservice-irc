@@ -265,7 +265,7 @@ export class MemberListSyncer {
         for (const roomInfo of filteredRooms) {
             for (const uid of roomInfo.realJoinedUsers) {
                 const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(uid);
-                if (banReason) {
+                if (typeof banReason === "string") {
                     log.debug(`Not syncing ${uid} - user banned (${banReason})`)
                     continue;
                 }

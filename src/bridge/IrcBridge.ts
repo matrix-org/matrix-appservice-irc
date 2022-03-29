@@ -953,7 +953,7 @@ export class IrcBridge {
             try {
                 // If the user is banned, skip any connection attempts and go straight for a kick.
                 const banReason = this.matrixBanSyncer?.isUserBanned(userId);
-                if (banReason) {
+                if (typeof banReason === "string") {
                     req.log.debug(`Not syncing ${userId} - user banned (${banReason})`);
                     this.membershipQueue.leave(
                         roomId, userId, req, true,
