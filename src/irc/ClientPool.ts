@@ -558,7 +558,7 @@ export class ClientPool {
             for (const [userId, client] of set.userIds.entries()) {
                 try {
                     const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(userId);
-                    if (banReason) {
+                    if (typeof banReason === "string") {
                         log.warn(`Killing ${userId} client connection due - user is banned (${banReason})`);
                         await client.kill('User was banned');
                     }
