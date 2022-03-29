@@ -257,7 +257,7 @@ export class ClientPool {
                 throw Error("Cannot create bridged client - user is excluded from bridging");
             }
             const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(matrixUser);
-            if (banReason) {
+            if (banReason !== false) {
                 throw Error(`Cannot create bridged client - user is banned (${banReason})`);
             }
         }
