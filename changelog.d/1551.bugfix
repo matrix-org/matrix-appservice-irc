@@ -1,1 +1,0 @@
-Fix an issue where synchronising a ban list would cause all users to get banned.
