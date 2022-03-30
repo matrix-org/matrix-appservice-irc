@@ -1,3 +1,25 @@
+0.33.1 (2022-03-30)
+===================
+
+This release fixes a critical bug which would cause bans across the bridge when using the new ban list feature.
+
+Bugfixes
+--------
+
+- Fix an issue where synchronising a ban list would cause all users to get banned. ([\#1551](https://github.com/matrix-org/matrix-appservice-irc/issues/1551))
+
+
+Deprecations and Removals
+-------------------------
+
+- Remove several scripts in `scripts/` which were unmaintained and obsolete. ([\#1531](https://github.com/matrix-org/matrix-appservice-irc/issues/1531))
+
+
+Internal Changes
+----------------
+
+- Fix towncrier script for summarising the newsfiles. ([\#1549](https://github.com/matrix-org/matrix-appservice-irc/issues/1549))
+
 0.33.0 (2022-03-02)
 ===================
 

@@ -257,7 +257,7 @@ export class ClientPool {
                 throw Error("Cannot create bridged client - user is excluded from bridging");
             }
             const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(matrixUser);
-            if (banReason) {
+            if (typeof banReason === "string") {
                 throw Error(`Cannot create bridged client - user is banned (${banReason})`);
             }
         }
@@ -558,8 +558,10 @@ export class ClientPool {
             for (const [userId, client] of set.userIds.entries()) {
                 try {
                     const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(userId);
-                    log.warn(`Killing ${userId} client connection due - user is banned (${banReason})`);
-                    await client.kill('User was banned');
+                    if (typeof banReason === "string") {
+                        log.warn(`Killing ${userId} client connection due - user is banned (${banReason})`);
+                        await client.kill('User was banned');
+                    }
                 }
                 catch (ex) {
                     log.warn(`Failed to kill connection for ${userId}`);
