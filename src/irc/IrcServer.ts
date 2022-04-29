@@ -174,7 +174,7 @@ export class IrcServer {
      * will never expire.
      */
     constructor(public domain: string, public config: IrcServerConfig,
-                private homeserverDomain: string, private expiryTimeSeconds: number = 0) {
+                public readonly homeserverDomain: string, private expiryTimeSeconds: number = 0) {
         this.reconfigure(config, expiryTimeSeconds);
     }
 
