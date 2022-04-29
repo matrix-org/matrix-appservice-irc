@@ -43,7 +43,7 @@ const FLOOD_PROTECTION_DELAY_MS = 700;
 const THROTTLE_WAIT_MS = 20 * 1000;
 
 // String reply of any CTCP Version requests
-const CTCP_VERSION = 
+const CTCP_VERSION =
     (homeserverName: string) => `matrix-appservice-irc ${getBridgeVersion()} bridged via ${homeserverName}`;
 
 const CONN_LIMIT_MESSAGES = [
