@@ -250,7 +250,9 @@ export class BridgedClient extends EventEmitter {
                     this.server.getIpv6Prefix() ? this.clientConfig.getIpv6Address() : undefined
                 ),
                 encodingFallback: this.encodingFallback,
-            }, (inst: ConnectionInstance) => {
+            },
+            this.server.homeserverDomain,
+            (inst: ConnectionInstance) => {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 this.onConnectionCreated(inst, nameInfo, identResolver!);
             });
