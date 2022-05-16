@@ -145,6 +145,7 @@ export class IrcBridge {
                " so user activity will not be captured");
         }
         this.bridge = new Bridge({
+            authenticateThirdpartyEndpoints: true,
             registration: this.registration,
             homeserverUrl: this.config.homeserver.url,
             domain: this.config.homeserver.domain,
