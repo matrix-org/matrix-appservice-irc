@@ -735,7 +735,7 @@ export class IrcServer {
             excludedUsers: [],
             matrixClients: {
                 userTemplate: "@$SERVER_$NICK",
-                displayName: "$NICK (IRC)",
+                displayName: "$NICK",
                 joinAttempts: -1,
             },
             ircClients: {
