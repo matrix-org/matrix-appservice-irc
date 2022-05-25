@@ -205,11 +205,12 @@ export class DebugApi {
         const server = query["server"] as string;
         const since = parseInt(query["since"] as string);
         const msg = query["msg"] as string;
+        const limit = query["targetCount"] !== undefined ? parseInt(query["targetCount"] as string) : undefined;
         const defaultOnline = (query["defaultOnline"] ?? "true") === "true";
         const excludeRegex = query["excludeRegex"] as string;
         const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
         this.ircBridge.warnConnectionReap(
-            req, server, since, msg, defaultOnline, excludeRegex,
+            req, server, since, msg, defaultOnline, excludeRegex, limit,
         ).catch((err: Error) => {
             log.warn(`Failed to handle onWarnReapUsers`, err);
             if (!response.headersSent) {
