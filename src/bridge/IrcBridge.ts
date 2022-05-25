@@ -1486,17 +1486,29 @@ export class IrcBridge {
         log.info(`Ghost migration to ${newRoomId} complete`);
     }
 
+    /**
+     * Calculate the number of idle users
+     * @param server The IRC server which we want to scope the idle check to.
+     * @param minIdleHours The minimum number of hours to be considered idle.
+     * @param defaultOnline Whether the user should be defaulted to online or offline if we hold no data for them.
+     * @param excludeRegex A regex of users to exclude from the check.
+     * @param maxIdleHours The maximum number of hours to be considered
+     *                     idle before they aren't considered part of the pool. By default, this isn't checked.
+     * @returns A ordered set of userIds by their idle time in ascending order.
+     */
     public async calculateIdlenessPool(
-        server: IrcServer, maxIdleHours: number,
-        defaultOnline?: boolean, excludeRegex?: string
+        server: IrcServer, minIdleHours: number,
+        defaultOnline?: boolean, excludeRegex?: string,
+        maxIdleHours?: number,
     ) {
         if (!this.activityTracker) {
             throw Error("activityTracker is not enabled");
         }
-        if (!maxIdleHours || maxIdleHours < 0) {
+        if (!minIdleHours || minIdleHours < 0) {
             throw Error("'since' must be greater than 0");
         }
-        const maxIdleTime = maxIdleHours * 60 * 60 * 1000;
+        const minIdleTime = minIdleHours * 60 * 60 * 1000;
+        const maxIdleTime = maxIdleHours && maxIdleHours * 60 * 60 * 1000;
 
         const users: (string|null)[] = this.clientPool.getConnectedMatrixUsersForServer(server);
         log.debug(`${users.length} users are connected to the bridge`);
@@ -1511,8 +1523,11 @@ export class IrcBridge {
                 log.debug(`${userId} is excluded`);
                 continue;
             }
-            const {online, inactiveMs} = await this.activityTracker.isUserOnline(userId, maxIdleTime, defaultOnline);
+            const {online, inactiveMs} = await this.activityTracker.isUserOnline(userId, minIdleTime, defaultOnline);
             if (online) {
+                continue;
+            }
+            if (maxIdleTime && inactiveMs > maxIdleTime) {
                 continue;
             }
             const clients = this.clientPool.getBridgedClientsForUserId(userId);
@@ -1530,14 +1545,14 @@ export class IrcBridge {
      * Warn users that they are in danger of being reaped from a room.
      * @param serverName The name of the IRC server which we want to scope the idle check to.
      * @param maxIdleHours The maximum number of hours a user can be considered idle for.
+     * @param msg A message to send to affected idle users.
      * @param defaultOnline Whether the user should be defaulted to online or offline if we hold no data for them.
      * @param excludeRegex A regex of users to exclude from the check.
-     * @param msg A message to send to affected idle users.
      */
     public async warnConnectionReap(
-        req: BridgeRequest, serverName: string, maxIdleHours: number, msg: string,
-        defaultOnline?: boolean, excludeRegex?: string, ) {
-        if (!maxIdleHours || maxIdleHours < 0) {
+        req: BridgeRequest, serverName: string, minIdleHours: number, msg: string,
+        defaultOnline?: boolean, excludeRegex?: string, limit?: number) {
+        if (!minIdleHours || minIdleHours < 0) {
             throw Error("'since' must be greater than 0");
         }
         const server = serverName ? this.getServer(serverName) : this.getServers()[0];
@@ -1545,9 +1560,20 @@ export class IrcBridge {
             throw Error("Server not found");
         }
 
-        for (const user of await this.calculateIdlenessPool(server, maxIdleHours, defaultOnline, excludeRegex)) {
+        let userNumber = 0;
+        for (const user of await this.calculateIdlenessPool(
+            // If a user has been inactive for double the time that we consider idle,
+            // then there isn't any point in notifying them, it's probably a dead or idle account.
+            server, minIdleHours, defaultOnline, excludeRegex, minIdleHours * 2
+        )) {
+            userNumber++;
+            if (limit && userNumber > limit) {
+                break;
+            }
             const internalRoom = await this.ircHandler.getOrCreateAdminRoom(req, user, server);
-            this.sendMatrixAction(internalRoom, undefined, new MatrixAction(ActionType.Notice, msg));
+            await this.sendMatrixAction(internalRoom, undefined, new MatrixAction(ActionType.Notice, msg));
+            // Sleep between requests, to avoid murdering the homeserver
+            await new Promise<void>(r => setTimeout(() => r(), 500));
         }
     }
 
