@@ -1486,9 +1486,10 @@ export class IrcBridge {
         log.info(`Ghost migration to ${newRoomId} complete`);
     }
 
-    public async connectionReap(logCb: (line: string) => void, reqServerName: string,
-                                maxIdleHours: number, reason = "User is inactive", dry = false,
-                                defaultOnline?: boolean, excludeRegex?: string, limit?: number) {
+    public async calculateIdlenessPool(
+        server: IrcServer, maxIdleHours: number,
+        defaultOnline?: boolean, excludeRegex?: string
+    ) {
         if (!this.activityTracker) {
             throw Error("activityTracker is not enabled");
         }
@@ -1496,16 +1497,9 @@ export class IrcBridge {
             throw Error("'since' must be greater than 0");
         }
         const maxIdleTime = maxIdleHours * 60 * 60 * 1000;
-        const server = reqServerName ? this.getServer(reqServerName) : this.getServers()[0];
-        const serverName = server?.getReadableName();
-        if (server === null) {
-            throw Error("Server not found");
-        }
-        log.warn(`Running connection reaper for ${serverName} dryrun=${dry}`);
-        const req = new BridgeRequest(this.bridge.getRequestFactory().newRequest());
-        logCb(`Connection reaping for ${serverName}`);
+
         const users: (string|null)[] = this.clientPool.getConnectedMatrixUsersForServer(server);
-        logCb(`${users.length} users are connected to the bridge`);
+        log.debug(`${users.length} users are connected to the bridge`);
         const exclude = excludeRegex ? new RegExp(excludeRegex) : null;
         const usersToActiveTime = new Map<string, number>();
         for (const userId of users) {
@@ -1514,7 +1508,7 @@ export class IrcBridge {
                 continue;
             }
             if (exclude && exclude.test(userId)) {
-                logCb(`${userId} is excluded`);
+                log.debug(`${userId} is excluded`);
                 continue;
             }
             const {online, inactiveMs} = await this.activityTracker.isUserOnline(userId, maxIdleTime, defaultOnline);
@@ -1523,16 +1517,61 @@ export class IrcBridge {
             }
             const clients = this.clientPool.getBridgedClientsForUserId(userId);
             if (clients.length === 0) {
-                logCb(`${userId} has no active clients`);
+                log.debug(`${userId} has no active clients`);
                 continue;
             }
             usersToActiveTime.set(userId, inactiveMs);
         }
-        logCb(`${usersToActiveTime.size} users are considered idle`);
 
-        const sortedByActiveTime = [...usersToActiveTime.entries()].sort((a, b) => b[1] - a[1]).map(user => user[0]);
+        return [...usersToActiveTime.entries()].sort((a, b) => b[1] - a[1]).map(user => user[0]);
+    }
+
+    /**
+     * Warn users that they are in danger of being reaped from a room.
+     * @param serverName The name of the IRC server which we want to scope the idle check to.
+     * @param maxIdleHours The maximum number of hours a user can be considered idle for.
+     * @param defaultOnline Whether the user should be defaulted to online or offline if we hold no data for them.
+     * @param excludeRegex A regex of users to exclude from the check.
+     * @param msg A message to send to affected idle users.
+     */
+    public async warnConnectionReap(
+        req: BridgeRequest, serverName: string, maxIdleHours: number, msg: string,
+        defaultOnline?: boolean, excludeRegex?: string, ) {
+        if (!maxIdleHours || maxIdleHours < 0) {
+            throw Error("'since' must be greater than 0");
+        }
+        const server = serverName ? this.getServer(serverName) : this.getServers()[0];
+        if (server === null) {
+            throw Error("Server not found");
+        }
+
+        for (const user of await this.calculateIdlenessPool(server, maxIdleHours, defaultOnline, excludeRegex)) {
+            const internalRoom = await this.ircHandler.getOrCreateAdminRoom(req, user, server);
+            this.sendMatrixAction(internalRoom, undefined, new MatrixAction(ActionType.Notice, msg));
+        }
+    }
+
+    public async connectionReap(logCb: (line: string) => void, reqServerName: string,
+                                maxIdleHours: number, reason = "User is inactive", dry = false,
+                                defaultOnline?: boolean, excludeRegex?: string, limit?: number) {
+        if (!maxIdleHours || maxIdleHours < 0) {
+            throw Error("'since' must be greater than 0");
+        }
+        const server = reqServerName ? this.getServer(reqServerName) : this.getServers()[0];
+        if (server === null) {
+            throw Error("Server not found");
+        }
+
+        const req = new BridgeRequest(this.bridge.getRequestFactory().newRequest());
+        const idleUsers = await this.calculateIdlenessPool(server, maxIdleHours, defaultOnline, excludeRegex);
+
+        logCb(`${(await idleUsers).length} users are considered idle`);
+
+        const serverName = server?.getReadableName();
+        log.warn(`Running connection reaper for ${serverName} dryrun=${dry}`);
+
         let userNumber = 0;
-        for (const userId of sortedByActiveTime) {
+        for (const userId of idleUsers) {
             userNumber++;
             if (limit && userNumber > limit) {
                 logCb(`Hit limit. Not kicking any more users.`);
@@ -1544,10 +1583,10 @@ export class IrcBridge {
                 logCb(`Didn't quit ${userId}: ${quitRes}`);
                 continue;
             }
-            logCb(`Quit ${userId} (${userNumber}/${usersToActiveTime.size})`);
+            logCb(`Quit ${userId} (${userNumber}/${idleUsers.length})`);
         }
 
-        logCb(`Quit ${userNumber}/${users.length}`);
+        logCb(`Quit ${userNumber}/${idleUsers.length}`);
     }
 
     public async atBridgedRoomLimit() {

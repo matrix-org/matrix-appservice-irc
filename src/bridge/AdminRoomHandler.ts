@@ -74,6 +74,11 @@ const COMMANDS: {[command: string]: Command|Heading} = {
         summary: "Leave all bridged channels, on all networks, and remove your " +
                 "connections to all networks.",
     },
+    "!active": {
+        example: "!active",
+        summary: "Informs the bridge that you do not wish to be idlekicked. This will reset your idleness timer " +
+                 "but you may need to run this again."
+    },
     'Authentication': { heading: true },
     "!storepass": {
         example: `!storepass [irc.example.net] passw0rd`,
@@ -162,6 +167,10 @@ export class AdminRoomHandler {
             return new MatrixAction(ActionType.Notice, "You do not have permission to use this command");
         }
         switch (cmd) {
+            case "!active":
+                // The bridge treats ANY message appearing over the network as an idleness reset,
+                // so the act of running this commmand resets that timer.
+                return new MatrixAction(ActionType.Notice, "Your have been marked as active by the bridge");
             case "!join":
                 return await this.handleJoin(req, args, event.sender);
             case "!cmd":
