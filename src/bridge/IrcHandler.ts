@@ -916,6 +916,46 @@ export class IrcHandler {
         await this.roomAccessSyncer.onModeIs(req, server, channel, mode);
     }
 
+    public async getOrCreateAdminRoom(
+        req: BridgeRequest, userId: string, server: IrcServer, newRoomMsg?: string): Promise<MatrixRoom> {
+        let adminRoom: MatrixRoom;
+        const botUser = new MatrixUser(this.ircBridge.appServiceUserId);
+        const fetchedAdminRoom = await this.ircBridge.getStore().getAdminRoomByUserId(userId);
+        if (fetchedAdminRoom) {
+            return fetchedAdminRoom;
+        }
+        const adminRoomPromise = this.pendingAdminRooms.get(userId);
+        if (adminRoomPromise) {
+            return adminRoomPromise;
+        }
+        const adminRoomNewPromise = (async () => {
+            req?.log.info("Creating an admin room with %s", userId);
+            const response = await this.ircBridge.getAppServiceBridge().getIntent().createRoom({
+                createAsClient: false,
+                options: {
+                    name: `${server.getReadableName()} IRC Bridge status`,
+                    topic:  `This room shows any errors or status messages from ` +
+                            `${server.domain}, as well as letting you control ` +
+                            "the connection.",
+                    preset: "trusted_private_chat",
+                    visibility: "private",
+                    is_direct: true,
+                    invite: [userId]
+                }
+            });
+            adminRoom = new MatrixRoom(response.room_id);
+            await this.ircBridge.getStore().storeAdminRoom(adminRoom, userId);
+            const notice = new MatrixAction(ActionType.Notice, newRoomMsg);
+            await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
+            // This is stored now so we can delete the promise.
+            this.pendingAdminRooms.delete(userId);
+            return adminRoom;
+        })();
+        this.pendingAdminRooms.set(userId, adminRoomNewPromise);
+        return adminRoomNewPromise;
+
+    }
+
     /**
      * Called when the AS connects/disconnects a Matrix user to IRC.
      * @param {Request} req The metadata request
@@ -965,56 +1005,19 @@ export class IrcHandler {
             // No room associated, fall through
         }
 
-        let adminRoom: MatrixRoom;
-        const fetchedAdminRoom = await this.ircBridge.getStore().getAdminRoomByUserId(userId);
-        if (!fetchedAdminRoom) {
-            const adminRoomPromise = this.pendingAdminRooms.get(client.userId);
-            if (adminRoomPromise) {
-                adminRoom = await adminRoomPromise;
-            }
-            else {
-                const adminRoomNewPromise = (async () => {
-                    req.log.info("Creating an admin room with %s", userId);
-                    const response = await this.ircBridge.getAppServiceBridge().getIntent().createRoom({
-                        createAsClient: false,
-                        options: {
-                            name: `${client.server.getReadableName()} IRC Bridge status`,
-                            topic:  `This room shows any errors or status messages from ` +
-                                    `${client.server.domain}, as well as letting you control ` +
-                                    "the connection.",
-                            preset: "trusted_private_chat",
-                            visibility: "private",
-                            is_direct: true,
-                            invite: [userId]
-                        }
-                    });
-                    adminRoom = new MatrixRoom(response.room_id);
-                    await this.ircBridge.getStore().storeAdminRoom(adminRoom, userId);
-                    const newRoomMsg = `You've joined a Matrix room which is bridged to the IRC network ` +
-                                    `'${client.server.domain}', where you ` +
-                                    `are now connected as ${client.nick}. ` +
-                                    `This room shows any errors or status messages from IRC, as well as ` +
-                                    `letting you control the connection. Type !help for more information.`
-                    const notice = new MatrixAction("notice", newRoomMsg);
-                    await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
-                    // This is stored now so we can delete the promise.
-                    this.pendingAdminRooms.delete(userId);
-                    return adminRoom;
-                })();
-                this.pendingAdminRooms.set(client.userId, adminRoomNewPromise);
-                adminRoom = await adminRoomNewPromise;
-            }
-        }
-        else {
-            adminRoom = fetchedAdminRoom;
-        }
-
-
         if (ircMsg?.command === "err_cannotsendtochan") {
             msg = `Message could not be sent to ${ircMsg.args[1]}`;
         }
 
-        const notice = new MatrixAction("notice", msg);
+
+        const newRoomMsg = `You've joined a Matrix room which is bridged to the IRC network ` +
+            `'${client.server.domain}', where you are now connected as ${client.nick}. ` +
+            `This room shows any errors or status messages from IRC, as well as ` +
+            `letting you control the connection. Type !help for more information.`
+
+        const adminRoom = await this.getOrCreateAdminRoom(req, userId, client.server, newRoomMsg);
+
+        const notice = new MatrixAction(ActionType.Notice, msg);
         await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
         return undefined;
     }
