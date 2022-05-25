@@ -8,7 +8,7 @@ import { MatrixRoom, MatrixUser, MembershipQueue } from "matrix-appservice-bridg
 import { IrcUser } from "../models/IrcUser";
 import { IrcAction } from "../models/IrcAction";
 import { IrcRoom } from "../models/IrcRoom";
-import { MatrixAction } from "../models/MatrixAction";
+import { ActionType, MatrixAction } from "../models/MatrixAction";
 import { RequestLogger } from "../logging";
 import { RoomOrigin } from "../datastore/DataStore";
 import QuickLRU from "quick-lru";
@@ -948,14 +948,15 @@ export class IrcHandler {
                 if (ircMsg.command === "err_nosuchnick") {
                     return this.ircBridge.sendMatrixAction(
                         room, otherUser, new MatrixAction(
-                            "notice", `User is not online or does not exist. Message not sent.`
+                            ActionType.Notice, `User is not online or does not exist. Message not sent.`
                         ),
                     );
                 }
                 else if (ircMsg.command === "err_nononreg") {
                     return this.ircBridge.sendMatrixAction(
                         room, otherUser, new MatrixAction(
-                            "notice", `User is blocking messages from unregistered users, and you are not registered.`
+                            ActionType.Notice,
+                            `User is blocking messages from unregistered users, and you are not registered.`
                         ),
                     );
                 }

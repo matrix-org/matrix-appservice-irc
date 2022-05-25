@@ -42,7 +42,7 @@ import {
 } from "matrix-appservice-bridge";
 import { IrcAction } from "../models/IrcAction";
 import { DataStore } from "../datastore/DataStore";
-import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
+import { ActionType, MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { BridgeConfig } from "../config/BridgeConfig";
 import { Registry } from "prom-client";
 import { spawnMetricsWorker } from "../workers/MetricsWorker";
@@ -901,12 +901,12 @@ export class IrcBridge {
         await promiseutil.allSettled(promises);
     }
 
-    public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction): Promise<void> {
+    public async sendMatrixAction(room: MatrixRoom, from: MatrixUser|undefined, action: MatrixAction): Promise<void> {
         if (this.bridgeBlocker?.isBlocked) {
             log.info("Bridge is blocked, dropping Matrix action");
             return;
         }
-        const intent = this.bridge.getIntent(from.userId);
+        const intent = this.bridge.getIntent(from?.userId);
         const extraContent: Record<string, unknown> = {};
         if (action.replyEvent) {
             extraContent["m.relates_to"] = {
