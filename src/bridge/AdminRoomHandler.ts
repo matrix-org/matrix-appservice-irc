@@ -225,7 +225,8 @@ export class AdminRoomHandler {
         }
         catch (ex) {
             log.error(`Could not join the target room of a !plumb command`, ex);
-            return new MatrixAction(ActionType.Notice, "Could not join the target room, you may need to invite the bot");
+            return new MatrixAction(
+                ActionType.Notice, "Could not join the target room, you may need to invite the bot");
         }
         try {
             await this.ircBridge.getProvisioner().doLink(
@@ -509,7 +510,8 @@ export class AdminRoomHandler {
                 config.setUsername(username);
                 await this.ircBridge.getStore().storeIrcClientConfig(config);
                 notice = new MatrixAction(
-                    ActionType.Notice, `Successfully stored username for ${domain}. Use !reconnect to use this username now.`
+                    ActionType.Notice,
+                    `Successfully stored username for ${domain}. Use !reconnect to use this username now.`
                 );
             }
         }
@@ -541,7 +543,8 @@ export class AdminRoomHandler {
             else {
                 await this.ircBridge.getStore().storePass(userId, domain, pass);
                 notice = new MatrixAction(
-                    ActionType.Notice, `Successfully stored password for ${domain}. Use !reconnect to use this password now.`
+                    ActionType.Notice,
+                    `Successfully stored password for ${domain}. Use !reconnect to use this password now.`
                 );
             }
         }
