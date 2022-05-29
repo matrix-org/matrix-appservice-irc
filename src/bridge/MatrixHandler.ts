@@ -58,7 +58,7 @@ const DEFAULTS: MatrixHandlerConfig = {
     shortReplyTresholdSeconds: 5 * 60,
     shortReplyTemplate: "$NICK: $REPLY",
     longReplyTemplate: "<$NICK> \"$ORIGINAL\" <- $REPLY",
-    truncatedMessageTemplate: "(full message at $URL)",
+    truncatedMessageTemplate: "(full message at <$URL>)",
 };
 
 export interface MatrixEventInvite {
