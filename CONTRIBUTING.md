@@ -4,9 +4,9 @@ projects.
 ## Matrix-appservice-irc Guidelines
 
  - We use the [matrix.org-support](https://github.com/matrix-org/matrix-appservice-irc/labels/matrix.org-support) label for issues involving
-   Matrix.org maintained bridges.
+   matrix.org-maintained bridges.
  - When creating an issue, please clearly state the IRC network you bridged to. If possible, please also state the IRCd (server implementation).
- - The official hookshot support/development room is [#irc:matrix.org](https://matrix.to/#/#irc:matrix.org)
+ - The official IRC bridge support/development room is [#irc:matrix.org](https://matrix.to/#/#irc:matrix.org)
 
 ### Doing a release
 
