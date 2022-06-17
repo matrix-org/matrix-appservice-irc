@@ -76,8 +76,7 @@ const COMMANDS: {[command: string]: Command|Heading} = {
     },
     "!active": {
         example: "!active",
-        summary: "Informs the bridge that you do not wish to be idlekicked. This will reset your idleness timer " +
-                 "but you may need to run this again."
+        summary: "Mark yourself as active, which will exclude you from any idleness kicks."
     },
     'Authentication': { heading: true },
     "!storepass": {

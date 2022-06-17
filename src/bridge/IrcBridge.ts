@@ -1496,9 +1496,9 @@ export class IrcBridge {
      *                     idle before they aren't considered part of the pool. By default, this isn't checked.
      * @returns A ordered set of userIds by their idle time in ascending order.
      */
-    public async calculateIdlenessPool(
+    private async calculateIdlenessPool(
         server: IrcServer, minIdleHours: number,
-        defaultOnline?: boolean, excludeRegex?: string,
+        defaultOnline = true, excludeRegex?: string,
         maxIdleHours?: number,
     ) {
         if (!this.activityTracker) {
