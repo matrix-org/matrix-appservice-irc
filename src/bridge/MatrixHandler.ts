@@ -10,7 +10,7 @@ import {
     Intent,
 } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
-import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
+import { ActionType, MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { IrcRoom } from "../models/IrcRoom";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcServer } from "../irc/IrcServer";
@@ -209,7 +209,7 @@ export class MatrixHandler {
             req.log.error("Accepting invite, and then leaving: This server does not allow PMs.");
             await intent.join(event.room_id);
             await this.ircBridge.sendMatrixAction(mxRoom, invitedUser, new MatrixAction(
-                "notice",
+                ActionType.Notice,
                 MSG_PMS_DISABLED
             ));
             await intent.leave(event.room_id);
@@ -226,7 +226,7 @@ export class MatrixHandler {
                 );
                 await intent.join(event.room_id);
                 await this.ircBridge.sendMatrixAction(mxRoom, invitedUser, new MatrixAction(
-                    "notice",
+                    ActionType.Notice,
                     MSG_PMS_DISABLED_FEDERATION
                 ));
                 await intent.leave(event.room_id);
@@ -277,7 +277,7 @@ export class MatrixHandler {
             );
 
             // Notify users in admin room
-            const notice = new MatrixAction("notice",
+            const notice = new MatrixAction(ActionType.Notice,
                 "There are more than 2 users in this admin room"
             );
             await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
