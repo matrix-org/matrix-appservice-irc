@@ -45,10 +45,8 @@ export class MemberListSyncer {
     private memberLists: {
         irc: {[channel: string]: string[]};
         matrix: {[roomId: string]: RoomInfo};
-    } = {
-        irc: {},
-        matrix: {},
-    }
+    } = { irc: {}, matrix: {} };
+
     constructor(private ircBridge: IrcBridge, private memberQueue: MembershipQueue,
                 private appServiceBot: AppServiceBot, private server: IrcServer,
                 private appServiceUserId: string, private injectJoinFn: InjectJoinFn) {
@@ -138,7 +136,7 @@ export class MemberListSyncer {
         for (let i = 0; i < matrixRooms.length; i++) {
             const roomId = matrixRooms[i].getId();
             req.log.debug("checkBotPartRoom: Querying room state in room %s", roomId);
-            const res = await this.appServiceBot.getClient().roomState(roomId);
+            const res = await this.appServiceBot.getClient().getRoomState(roomId);
             const data = MemberListSyncer.getRoomMemberData(ircRoom.server, roomId, res, this.appServiceUserId);
             req.log.debug(
                 "checkBotPartRoom: %s Matrix users are in room %s", data.reals.length, roomId
@@ -165,6 +163,7 @@ export class MemberListSyncer {
             log.debug("Returning existing getSyncableRooms Promise");
             return this.syncableRoomsPromise;
         }
+        const client = this.ircBridge.getAppServiceBridge().getIntent().matrixClient;
 
         const fetchRooms = async () => {
             const roomInfoList: RoomInfo[] = [];
@@ -178,14 +177,14 @@ export class MemberListSyncer {
             // fetch joined members allowing 50 in-flight reqs at a time
             const pool = new QueuePool(50, async (_roomId) => {
                 const roomId = _roomId as string;
-                let userMap: Record<string, {display_name: string}>|undefined;
+                let userMap: Record<string, {display_name?: string}>|undefined;
                 while (!userMap) {
                     try {
-                        userMap = await this.appServiceBot.getJoinedMembers(roomId);
+                        userMap = await client.getJoinedRoomMembersWithProfiles(roomId);
                     }
                     catch (err) {
                         log.error(`Failed to getJoinedMembers in room ${roomId}: ${err}`);
-                        if (err.data?.errcode === "M_FORBIDDEN") {
+                        if (err.body?.errcode === "M_FORBIDDEN") {
                             // If we're not allowed to, just give up.
                             return;
                         }
@@ -198,9 +197,7 @@ export class MemberListSyncer {
                     realJoinedUsers: [], // user IDs
                     remoteJoinedUsers: [], // user IDs
                 };
-                const userIds = Object.keys(userMap);
-                for (let j = 0; j < userIds.length; j++) {
-                    const userId = userIds[j];
+                for (const [userId, {display_name}] of Object.entries(userMap)) {
                     if (this.appServiceUserId === userId) {
                         continue;
                     }
@@ -211,8 +208,8 @@ export class MemberListSyncer {
                         roomInfo.realJoinedUsers.push(userId);
                     }
 
-                    if (userMap[userId].display_name) {
-                        roomInfo.displayNames[userId] = userMap[userId].display_name as string;
+                    if (display_name) {
+                        roomInfo.displayNames[userId] = display_name;
                     }
                 }
                 roomInfoList.push(roomInfo);
@@ -267,6 +264,11 @@ export class MemberListSyncer {
         const idleRegex = this.server.ignoreIdleUsersOnStartupExcludeRegex;
         for (const roomInfo of filteredRooms) {
             for (const uid of roomInfo.realJoinedUsers) {
+                const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(uid);
+                if (banReason) {
+                    log.debug(`Not syncing ${uid} - user banned (${banReason})`)
+                    continue;
+                }
                 if (this.server.ignoreIdleUsersOnStartup) {
                     const idle = await this.ircBridge.activityTracker?.isUserOnline(
                         uid, this.server.ignoreIdleUsersOnStartupAfterMs, false

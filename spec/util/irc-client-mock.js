@@ -124,9 +124,11 @@ function Client(addr, nick, opts) {
         return channel.toLowerCase();
     }
 
-    this.getSplitMessages = function(target, text) {
-        return [];
+    this.getSplitMessages = function(_target, text) {
+        return text.split('\n');
     }
+
+    this.maxLineLength = 400;
 
     this.modeForPrefix = {
         "@" : "o",

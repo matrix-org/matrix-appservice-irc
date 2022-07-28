@@ -4,35 +4,30 @@
 
 const envBundle = require("../util/env-bundle");
 
-describe("Initialisation", function() {
+describe("Initialisation", () => {
     const {env, roomMapping, test} = envBundle();
-    let ircAddr = roomMapping.server;
-    let ircNick = roomMapping.botNick;
-    let ircChannel = roomMapping.channel;
+    const ircAddr = roomMapping.server;
+    const ircNick = roomMapping.botNick;
+    const ircChannel = roomMapping.channel;
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
-    }));
+    beforeEach(async () => {
+        await test.beforeEach(env);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => test.afterEach(env));
 
-    it("should connect to the IRC network and channel in the config",
-    function(done) {
+    it("should connect to the IRC network and channel in the config", (done) => {
         let clientConnected = false;
         let clientJoined = false;
 
-        env.ircMock._whenClient(ircAddr, ircNick, "connect",
-        function(client, fn) {
+        env.ircMock._whenClient(ircAddr, ircNick, "connect", (client, fn) => {
             expect(clientJoined).toBe(false, "Joined before connect call");
             clientConnected = true;
             fn();
         });
 
 
-        env.ircMock._whenClient(ircAddr, ircNick, "join",
-        function(client, chan, fn) {
+        env.ircMock._whenClient(ircAddr, ircNick, "join", (client, chan, fn) => {
             expect(chan).toEqual(ircChannel);
             expect(clientConnected).toBe(true, "Didn't connect before join call");
             clientJoined = true;
@@ -43,13 +38,11 @@ describe("Initialisation", function() {
         test.initEnv(env);
     });
 
-    it("[BOTS-70] should attempt to set the bot nick if ircd assigned random string",
-    function(done) {
-        let assignedNick = "5EXABJ6GG";
+    it("[BOTS-70] should attempt to set the bot nick if ircd assigned random string", (done) => {
+        const assignedNick = "5EXABJ6GG";
 
         // let the bot connect
-        env.ircMock._whenClient(roomMapping.server, ircNick, "connect",
-        function(client, cb) {
+        env.ircMock._whenClient(roomMapping.server, ircNick, "connect", (client, cb) => {
             // after the connect callback, modify their nick and emit an event.
             client._invokeCallback(cb).then(function() {
                 process.nextTick(function() {
@@ -60,8 +53,7 @@ describe("Initialisation", function() {
             });
         });
 
-        env.ircMock._whenClient(roomMapping.server, ircNick, "send",
-        function(client, command, arg) {
+        env.ircMock._whenClient(roomMapping.server, ircNick, "send", (client, command, arg) => {
             expect(client.nick).toEqual(ircNick, "use the old nick on /nick");
             expect(client.addr).toEqual(roomMapping.server);
             expect(command).toEqual("NICK");

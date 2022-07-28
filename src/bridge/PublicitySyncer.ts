@@ -31,11 +31,8 @@ export class PublicitySyncer {
         roomVisibilities: {
             [roomId: string]: "private"|"public";
         };
-    } = {
-        mappings: {},
-        channelIsSecret: {},
-        roomVisibilities: {},
-    };
+    } = { mappings: {}, channelIsSecret: {}, roomVisibilities: {} };
+
     private initModeQueue: Queue<{server: IrcServer; channel: string}>;
     constructor (private ircBridge: IrcBridge) {
         this.initModeQueue = new Queue(this.initModeForChannel.bind(this));
@@ -131,7 +128,6 @@ export class PublicitySyncer {
 
         this.visibilityMap.mappings = {};
 
-        const cli = this.ircBridge.getAppServiceBridge().getBot().getClient();
         // Update rooms to correct visibilities
         let currentStates: {[roomId: string]: "public"|"private"} = {};
 
@@ -157,12 +153,12 @@ export class PublicitySyncer {
                 return;
             }
             try {
+                const intent = this.ircBridge.getAppServiceBridge().getIntent();
                 if (server.shouldPublishRoomsToHomeserverDirectory()) {
-                    const intent = this.ircBridge.getAppServiceBridge().getIntent();
                     await intent.setRoomDirectoryVisibility(roomId, correctState);
                 }
                 else {
-                    await cli.setRoomDirectoryVisibilityAppService(server.getNetworkId(), roomId, correctState);
+                    await intent.setRoomDirectoryVisibilityAppService(roomId, server.getNetworkId(), correctState);
                 }
                 await this.ircBridge.getStore().setRoomVisibility(roomId, correctState);
                 // Update cache

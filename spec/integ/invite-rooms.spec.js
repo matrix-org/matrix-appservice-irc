@@ -1,7 +1,6 @@
-const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
-describe("Invite-only rooms", function() {
+describe("Invite-only rooms", () => {
     const {env, config, roomMapping, botUserId, test} = envBundle();
     const testUser = {
         id: "@flibble:wibble",
@@ -21,7 +20,6 @@ describe("Invite-only rooms", function() {
             roomMapping.server, roomMapping.botNick, roomMapping.server
         );
 
-        // do the init
         await test.initEnv(env);
     });
 
@@ -29,7 +27,7 @@ describe("Invite-only rooms", function() {
         await test.afterEach(env);
     });
 
-    it("should be joined by the bot if the AS does know the room ID", async() => {
+    it("should be joined by the bot if the AS does know the room ID", async () => {
         const adminRoomId = "!adminroom:id";
         const sdk = env.clientMock._client(botUserId);
         let joinRoomCount = 0;
@@ -49,7 +47,7 @@ describe("Invite-only rooms", function() {
             room_id: adminRoomId,
             type: "m.room.member"
         });
-        expect(joinRoomCount).toEqual(1, "Failed to join admin room");
+        expect(joinRoomCount).withContext("Failed to join admin room").toEqual(1);
         // inviting them AGAIN to an existing known ADMIN room should trigger a join
         await env.mockAppService._trigger("type:m.room.member", {
             content: {
@@ -65,11 +63,9 @@ describe("Invite-only rooms", function() {
     });
 
     it("should be joined by a virtual IRC user if the bot invited them, " +
-        "regardless of the number of people in the room.",
-    function(done) {
+        "regardless of the number of people in the room.", async () => {
         // when it queries whois, say they exist
-        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois",
-        function(client, nick, cb) {
+        env.ircMock._whenClient(roomMapping.server, roomMapping.botNick, "whois", (client, nick, cb) => {
             expect(nick).toEqual(testIrcUser.nick);
             // say they exist (presence of user key)
             cb({
@@ -78,58 +74,58 @@ describe("Invite-only rooms", function() {
             });
         });
 
-        let sdk = env.clientMock._client(testIrcUser.id);
+        const intent = env.clientMock._intent(testIrcUser.id);
         // if it tries to register, accept.
-        sdk._onHttpRegister({
+        intent._onHttpRegister({
             expectLocalpart: testIrcUser.localpart,
             returnUserId: testIrcUser.id
         });
+        const sdk = intent.underlyingClient;
 
         let joinedRoom = false;
-        sdk.joinRoom.and.callFake(function(roomId) {
+        sdk.joinRoom.and.callFake((roomId) => {
             expect(roomId).toEqual(roomMapping.roomId);
             joinedRoom = true;
-            return Promise.resolve({});
         });
 
         let leftRoom = false;
-        sdk.kick.and.callFake(function(roomId) {
+        sdk.kickUser.and.callFake((_kickee, roomId) => {
             expect(roomId).toEqual(roomMapping.roomId);
             leftRoom = true;
-            return Promise.resolve({});
+            return {};
         });
 
         let askedForRoomState = false;
-        sdk.roomState.and.callFake(function(roomId) {
+        sdk.getRoomState.and.callFake((roomId) => {
             expect(roomId).toEqual(roomMapping.roomId);
             askedForRoomState = true;
-            return Promise.resolve([
-            {
-                content: {membership: "join"},
-                user_id: botUserId,
-                state_key: botUserId,
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            },
-            {
-                content: {membership: "join"},
-                user_id: testIrcUser.id,
-                state_key: testIrcUser.id,
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            },
-            // Group chat, so >2 users!
-            {
-                content: {membership: "join"},
-                user_id: "@someone:else",
-                state_key: "@someone:else",
-                room_id: roomMapping.roomId,
-                type: "m.room.member"
-            }
-            ]);
+            return [
+                {
+                    content: {membership: "join"},
+                    user_id: botUserId,
+                    state_key: botUserId,
+                    room_id: roomMapping.roomId,
+                    type: "m.room.member"
+                },
+                {
+                    content: {membership: "join"},
+                    user_id: testIrcUser.id,
+                    state_key: testIrcUser.id,
+                    room_id: roomMapping.roomId,
+                    type: "m.room.member"
+                },
+                // Group chat, so >2 users!
+                {
+                    content: {membership: "join"},
+                    user_id: "@someone:else",
+                    state_key: "@someone:else",
+                    room_id: roomMapping.roomId,
+                    type: "m.room.member"
+                },
+            ];
         });
 
-        env.mockAppService._trigger("type:m.room.member", {
+        await env.mockAppService._trigger("type:m.room.member", {
             content: {
                 membership: "invite",
             },
@@ -137,12 +133,10 @@ describe("Invite-only rooms", function() {
             user_id: botUserId,
             room_id: roomMapping.roomId,
             type: "m.room.member"
-        }).then(function() {
-            expect(joinedRoom).toBe(true);
-            expect(leftRoom).toBe(false);
-            // should go off the fact that the inviter was the bot
-            expect(askedForRoomState).toBe(false);
-            done();
         });
+        expect(joinedRoom).toBe(true);
+        expect(leftRoom).toBe(false);
+        // should go off the fact that the inviter was the bot
+        expect(askedForRoomState).toBe(false);
     });
 });

@@ -3,6 +3,8 @@ import { LoggerConfig } from "../logging";
 import { IrcHandlerConfig } from "../bridge/IrcHandler";
 import { RoomConfigConfig } from "../bridge/RoomConfig";
 import { MatrixHandlerConfig } from "../bridge/MatrixHandler";
+import { Rules } from "matrix-appservice-bridge";
+import { MatrixBanSyncConfig } from "../bridge/MatrixBanSync";
 
 export interface BridgeConfig {
     database: {
@@ -25,7 +27,7 @@ export interface BridgeConfig {
         provisioning: {
             enabled: boolean;
             requestTimeoutSeconds: number;
-            ruleFile: string;
+            rules: Rules;
             enableReload: boolean;
             roomLimit?: number;
         };
@@ -58,6 +60,12 @@ export interface BridgeConfig {
             [userIdOrDomain: string]: "admin";
         };
         perRoomConfig?: RoomConfigConfig;
+        RMAUlimit?: number;
+        userActivity?: {
+            minUserActiveDays?: number;
+            inactiveAfterDays?: number;
+        };
+        banLists?: MatrixBanSyncConfig;
     };
     sentry?: {
         enabled: boolean;

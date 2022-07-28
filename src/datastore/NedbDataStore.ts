@@ -14,13 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import Bluebird from "bluebird";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
 import { getLogger } from "../logging";
 
-import { MatrixRoom, MatrixUser, RemoteUser, RemoteRoom,
-    UserBridgeStore, RoomBridgeStore, RoomBridgeStoreEntry as Entry } from "matrix-appservice-bridge";
+import {
+    MatrixRoom, MatrixUser, RemoteUser, RemoteRoom,
+    UserBridgeStore, UserActivityStore,
+    RoomBridgeStore, RoomBridgeStoreEntry as Entry,
+    UserActivity, UserActivitySet
+} from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "./DataStore";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
 import { StringCrypto } from "./StringCrypto";
@@ -36,6 +39,7 @@ export class NeDBDataStore implements DataStore {
     private cryptoStore?: StringCrypto;
     constructor(
         private userStore: UserBridgeStore,
+        private userActivityStore: UserActivityStore,
         private roomStore: RoomBridgeStore,
         private bridgeDomain: string,
         pkeyPath?: string) {
@@ -80,12 +84,27 @@ export class NeDBDataStore implements DataStore {
             this.cryptoStore = new StringCrypto();
             this.cryptoStore.load(pkeyPath);
         }
-        // Cache as many mappings as possible for hot paths like message sending.
+    }
 
-        // TODO: cache IRC channel -> [room_id] mapping (only need to remove them in
-        //       removeRoom() which is infrequent)
-        // TODO: cache room_id -> [#channel] mapping (only need to remove them in
-        //       removeRoom() which is infrequent)
+
+    public async runMigrations() {
+        const config = await this.userStore.getRemoteUser("config");
+        if (!config) {
+            // No migrations needed.
+            return;
+        }
+        const counter = config.get<number>("ipv6_counter");
+        if (!counter) {
+            // No migrations needed.
+            return;
+        }
+        log.warn(`Migrating NeDB datastore ipv6 counters`);
+        const servers = Object.values(this.serverMappings).map(s => s.domain.replace(/\./g, '_'));
+        for (const server of servers) {
+            config.set(`ipv6_counter_${server}`, {'*': counter});
+        }
+        config.set("ipv6_counter", null);
+        await this.userStore.setRemoteUser(config);
     }
 
     public async setServerFromConfig(server: IrcServer, serverConfig: IrcServerConfig): Promise<void> {
@@ -105,7 +124,7 @@ export class NeDBDataStore implements DataStore {
         const domainKey = server.domain.replace(/\./g, "_");
         this.userStore.db.ensureIndex({
             fieldName: "data.client_config." + domainKey + ".username",
-            unique: true,
+            unique: false,
             sparse: true
         }, (err: Error|null) => {
             if (err) {
@@ -209,12 +228,9 @@ export class NeDBDataStore implements DataStore {
      * @return {Promise} A promise which resolves to a list
      * of entries.
      */
-    public getProvisionedMappings(roomId: string): Bluebird<Entry[]> {
-        return Bluebird.cast(this.roomStore.getEntriesByMatrixId(roomId)).filter(
-            (entry: Entry) => {
-                return entry.data && entry.data.origin === 'provision'
-            }
-        );
+    public async getProvisionedMappings(roomId: string): Promise<Entry[]> {
+        const mappings = await this.roomStore.getEntriesByMatrixId(roomId);
+        return mappings.filter(entry => entry.data && entry.data.origin === 'provision');
     }
 
     /**
@@ -436,23 +452,40 @@ export class NeDBDataStore implements DataStore {
         });
     }
 
-    public async getIpv6Counter(): Promise<number> {
+    public async getIpv6Counter(server: IrcServer, homeserver: string|null): Promise<number> {
+        const domain = server.domain.replace(/\./g, '_');
+        homeserver = homeserver && homeserver.replace(/\./g, '_');
         let config = await this.userStore.getRemoteUser("config");
         if (!config) {
             config = new RemoteUser("config");
-            config.set("ipv6_counter", 0);
+        }
+        let counters = config.get<{[homeserver: string]: number}>(`ipv6_counter_${domain}`);
+        if (!counters) {
+            counters = {'*': 0 };
+            config.set(`ipv6_counter_${domain}`, counters);
             await this.userStore.setRemoteUser(config);
         }
-        return config.get("ipv6_counter") as number;
+
+        if (homeserver && counters[homeserver] === undefined) {
+            counters[homeserver] = 0;
+            config.set(`ipv6_counter_${domain}`, counters);
+            await this.userStore.setRemoteUser(config);
+        }
+
+        return homeserver ? counters[homeserver] : counters['*'];
     }
 
 
-    public async setIpv6Counter(counter: number) {
+    public async setIpv6Counter(counter: number, server: IrcServer, homeserver: string|null) {
+        const domain = server.domain.replace(/\./g, '_');
+        homeserver = homeserver && homeserver.replace(/\./g, '_');
         let config = await this.userStore.getRemoteUser("config");
         if (!config) {
             config = new RemoteUser("config");
         }
-        config.set("ipv6_counter", counter);
+        const counters = config.get<{[homeserver: string]: number}>(`ipv6_counter_${domain}`) || {};
+        counters[homeserver || '*'] = counter;
+        config.set(`ipv6_counter_${domain}`, counters);
         await this.userStore.setRemoteUser(config);
     }
 
@@ -588,6 +621,14 @@ export class NeDBDataStore implements DataStore {
         }
         matrixUser.set("features", features);
         await this.userStore.setMatrixUser(matrixUser);
+    }
+
+    public async getUserActivity(): Promise<UserActivitySet> {
+        return this.userActivityStore.getActivitySet();
+    }
+
+    public async storeUserActivity(userId: string, activity: UserActivity) {
+        this.userActivityStore.storeUserActivity(userId, activity);
     }
 
     public async storePass(userId: string, domain: string, pass: string) {

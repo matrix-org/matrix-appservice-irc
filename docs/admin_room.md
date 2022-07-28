@@ -1,8 +1,8 @@
 # Admin Room
 
-Most bridges will send you an invite to an admin room once you connectto control your connection 
-to IRC, but larger bridges like matrix.org's Freenode bridge will not (you will need to start a
-conversation with the bot manually).
+Most bridges will send you an invite to an admin room once you join a IRC bridged room, to control your connection 
+to IRC. Some larger bridges will not (you will need to start a conversation with the bot manually). See 
+[bridged_networks](./bridged_networks) for a list of bot userIds.
 
 ## Bot Commands
 

@@ -108,14 +108,36 @@ properties:
                         type: "boolean"
                     requestTimeoutSeconds:
                         type: "number"
-                    ruleFile:
-                        type: "string"
+                    rules:
+                        type: "object"
+                        properties:
+                            userIds:
+                                type: "object"
+                                properties:
+                                    exempt:
+                                        type: "array"
+                                        items:
+                                            type: "string"
+                                    conflict:
+                                        type: "array"
+                                        items:
+                                            type: "string"
+                                    
                     enableReload:
                         type: "boolean"
                     roomLimit:
                         type: "number"
             passwordEncryptionKeyPath:
                 type: "string"
+            RMAUlimit:
+                type: "integer"
+            userActivity:
+                type: "object"
+                properties:
+                    minUserActiveDays:
+                        type: "number"
+                    inactiveAfterDays:
+                        type: "number"
             matrixHandler:
                 type: "object"
                 properties:
@@ -154,6 +176,13 @@ properties:
                         type: "number"
                     allowUnconnectedMatrixUsers:
                         type: "boolean"
+            banLists:
+                type: "object"
+                properties:
+                    rooms:
+                        type: "array"
+                        items:
+                            pattern: "^(!|#).+:.+"
             servers:
                 type: "object"
                 # all properties must follow the following
@@ -400,6 +429,15 @@ properties:
                                             pattern: "[ABCDEFabcdef0123456789:]+"
                                         only:
                                             type: "boolean"
+                                        blocks:
+                                            type: "array"
+                                            properties:
+                                                startFrom:
+                                                    type: "string"
+                                                    pattern: "(?:[0-9a-f]{1,4}:)*[0-9a-f]{1,4}"
+                                                homeserver:
+                                                    type: "string"
+                                            required: ["startFrom", "homeserver"]
                                 lineLimit:
                                     type: "integer"
                                 userModes:

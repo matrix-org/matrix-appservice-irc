@@ -1,8 +1,16 @@
 import { IrcBridge } from "./IrcBridge";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
-import { MatrixUser, MatrixRoom, StateLookup, StateLookupEvent, MembershipQueue } from "matrix-appservice-bridge";
+import {
+    ContentRepo,
+    MatrixUser,
+    MatrixRoom,
+    MembershipQueue,
+    StateLookup,
+    StateLookupEvent,
+    Intent,
+} from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
-import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
+import { ActionType, MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { IrcRoom } from "../models/IrcRoom";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcServer } from "../irc/IrcServer";
@@ -11,8 +19,10 @@ import { toIrcLowerCase } from "../irc/formatting";
 import { AdminRoomHandler } from "./AdminRoomHandler";
 import { trackChannelAndCreateRoom } from "./RoomCreation";
 import { renderTemplate } from "../util/Template";
+import { trimString } from "../util/TrimString";
+import { messageDiff } from "../util/MessageDiff";
 
-async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
+async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>|void) {
     try {
         const res = await promise;
         req.resolve(res);
@@ -27,16 +37,29 @@ async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>) {
 const MSG_PMS_DISABLED = "[Bridge] Sorry, PMs are disabled on this bridge.";
 const MSG_PMS_DISABLED_FEDERATION = "[Bridge] Sorry, PMs are disabled on this bridge over federation.";
 
-/* Number of events to store in memory for use in replies. */
-const DEFAULT_EVENT_CACHE_SIZE = 4096;
-/* Length of the source text in a formatted reply message */
-const REPLY_SOURCE_MAX_LENGTH = 32;
-// How many seconds needs to pass between a message and a reply to it to switch to the long reply format
-const DEFAULT_SHORT_REPLY_TRESHOLD_SECONDS = 5 * 60;
-// Format of replies sent shortly after the original message
-const DEFAULT_SHORT_REPLY_TEMPLATE = "$NICK: $REPLY";
-// Format of replies sent a while after the original message
-const DEFAULT_LONG_REPLY_TEMPLATE = "<$NICK> \"$ORIGINAL\" <- $REPLY";
+export interface MatrixHandlerConfig {
+    /* Number of events to store in memory for use in replies. */
+    eventCacheSize: number;
+    /* Length of the source text in a formatted reply message */
+    replySourceMaxLength: number;
+    // How many seconds needs to pass between a message and a reply to it to switch to the long reply format
+    shortReplyTresholdSeconds: number;
+    // Format of replies sent shortly after the original message
+    shortReplyTemplate: string;
+    // Format of replies sent a while after the original message
+    longReplyTemplate: string;
+    // Format of the text explaining why a message is truncated and pastebinned
+    truncatedMessageTemplate: string;
+}
+
+const DEFAULTS: MatrixHandlerConfig = {
+    eventCacheSize: 4096,
+    replySourceMaxLength: 32,
+    shortReplyTresholdSeconds: 5 * 60,
+    shortReplyTemplate: "$NICK: $REPLY",
+    longReplyTemplate: "<$NICK> \"$ORIGINAL\" <- $REPLY",
+    truncatedMessageTemplate: "(full message at <$URL>)",
+};
 
 export interface MatrixEventInvite {
     room_id: string;
@@ -95,37 +118,39 @@ interface CachedEvent {
     timestamp: number;
 }
 
-export interface MatrixHandlerConfig {
-    eventCacheSize?: number;
-    shortReplyTresholdSeconds?: number;
-    shortReplyTemplate?: string;
-    longReplyTemplate?: string;
-}
-
 export class MatrixHandler {
     private readonly processingInvitesForRooms: {
         [roomIdUserId: string]: Promise<unknown>;
     } = {};
+    // maintain a list of room IDs which are being processed invite-wise. This is
+    // required because invites are processed asyncly, so you could get invite->msg
+    // and the message is processed before the room is created.
     private readonly eventCache: Map<string, CachedEvent> = new Map();
-    private readonly eventCacheMaxSize: number;
     private readonly metrics: {[domain: string]: {
         [metricName: string]: number;
     };} = {};
     private readonly mediaUrl: string;
-    private memberTracker: StateLookup|null = null;
+    private memberTracker?: StateLookup;
     private adminHandler: AdminRoomHandler;
+    private config: MatrixHandlerConfig = DEFAULTS;
 
     constructor(
-        private ircBridge: IrcBridge,
-        private config: MatrixHandlerConfig = {},
-        private readonly membershipQueue: MembershipQueue) {
-        // maintain a list of room IDs which are being processed invite-wise. This is
-        // required because invites are processed asyncly, so you could get invite->msg
-        // and the message is processed before the room is created.
-        this.eventCacheMaxSize = config.eventCacheSize ?? DEFAULT_EVENT_CACHE_SIZE;
+        private readonly ircBridge: IrcBridge,
+        config: MatrixHandlerConfig|undefined,
+        private readonly membershipQueue: MembershipQueue
+    ) {
+        this.onConfigChanged(config);
+
         // The media URL to use to transform mxc:// URLs when handling m.room.[file|image]s
         this.mediaUrl = ircBridge.config.homeserver.media_url || ircBridge.config.homeserver.url;
         this.adminHandler = new AdminRoomHandler(ircBridge, this);
+    }
+
+    public initalise() {
+        this.memberTracker = new StateLookup({
+            intent: this.ircBridge.getAppServiceBridge().getIntent(),
+            eventTypes: ['m.room.member']
+        });
     }
 
     // ===== Matrix Invite Handling =====
@@ -144,19 +169,13 @@ export class MatrixHandler {
 
         // Do not create an admin room if the room is marked as 'plumbed'
         const matrixClient = this.ircBridge.getAppServiceBridge().getIntent();
-
-        try {
-            const plumbedState = await matrixClient.getStateEvent(event.room_id, 'm.room.plumbing');
-            if (plumbedState.status === "enabled") {
-                req.log.info(
-                    'This room is marked for plumbing (m.room.plumbing.status = "enabled"). ' +
-                    'Not treating room as admin room.'
-                );
-                return;
-            }
-        }
-        catch (err) {
-            req.log.debug(`Not a plumbed room: Error retrieving m.room.plumbing (${err.data.error})`);
+        const plumbedState = await matrixClient.getStateEvent(event.room_id, 'm.room.plumbing', '', true);
+        if (plumbedState?.status === "enabled") {
+            req.log.info(
+                'This room is marked for plumbing (m.room.plumbing.status = "enabled"). ' +
+                'Not treating room as admin room.'
+            );
+            return;
         }
 
         // clobber any previous admin room ID
@@ -190,7 +209,7 @@ export class MatrixHandler {
             req.log.error("Accepting invite, and then leaving: This server does not allow PMs.");
             await intent.join(event.room_id);
             await this.ircBridge.sendMatrixAction(mxRoom, invitedUser, new MatrixAction(
-                "notice",
+                ActionType.Notice,
                 MSG_PMS_DISABLED
             ));
             await intent.leave(event.room_id);
@@ -207,7 +226,7 @@ export class MatrixHandler {
                 );
                 await intent.join(event.room_id);
                 await this.ircBridge.sendMatrixAction(mxRoom, invitedUser, new MatrixAction(
-                    "notice",
+                    ActionType.Notice,
                     MSG_PMS_DISABLED_FEDERATION
                 ));
                 await intent.leave(event.room_id);
@@ -220,15 +239,7 @@ export class MatrixHandler {
         req.log.info("Joined %s to room %s", invitedUser.getId(), event.room_id);
 
         // check if this room is a PM room or not.
-
-        let isPmRoom = event.content.is_direct === true;
-        if (isPmRoom !== true) {
-            // Legacy check
-            const joinedMembers = Object.keys(
-                await this.ircBridge.getAppServiceBridge().getBot().getJoinedMembers(event.room_id)
-            );
-            isPmRoom = joinedMembers.length === 2 && joinedMembers.includes(event.sender);
-        }
+        const isPmRoom = event.content.is_direct === true;
 
         if (isPmRoom) {
             // nick is the channel
@@ -249,23 +260,16 @@ export class MatrixHandler {
 
         const botUser = new MatrixUser(this.ircBridge.appServiceUserId, undefined, false);
 
+        // First call begins tracking, subsequent calls do nothing
+        await this.memberTracker?.trackRoom(adminRoom.getId());
+        const members = ((this.memberTracker?.getState(
+            adminRoom.getId(),
+            "m.room.member",
+        ) || []) as Array<StateLookupEvent>).filter((m) =>
+            (m.content as {membership: string}).membership === "join"
+        );
+
         // If an admin room has more than 2 people in it, kick the bot out
-        let members = [];
-        if (this.memberTracker) {
-            // First call begins tracking, subsequent calls do nothing
-            await this.memberTracker.trackRoom(adminRoom.getId());
-
-            members = (this.memberTracker.getState(
-                adminRoom.getId(),
-                "m.room.member",
-            ) as Array<StateLookupEvent>).filter((m) =>
-                (m.content as {membership: string}).membership === "join"
-            );
-        }
-        else {
-            req.log.warn('Member tracker not running');
-        }
-
         if (members.length > 2) {
             req.log.error(
                 `onAdminMessage: admin room has ${members.length}` +
@@ -273,7 +277,7 @@ export class MatrixHandler {
             );
 
             // Notify users in admin room
-            const notice = new MatrixAction("notice",
+            const notice = new MatrixAction(ActionType.Notice,
                 "There are more than 2 users in this admin room"
             );
             await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
@@ -380,23 +384,8 @@ export class MatrixHandler {
      * Called when the AS receives a new Matrix invite/join/leave event.
      * @param {Object} event : The Matrix member event.
      */
-    private async _onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {
-        if (!this.memberTracker) {
-            const clientFactory = this.ircBridge.getAppServiceBridge().getClientFactory();
-            if (!clientFactory) {
-                // Client factory isn't ready...yet.
-                return;
-            }
-            const matrixClient = clientFactory.getClientAs();
-
-            this.memberTracker = new StateLookup({
-                client : matrixClient,
-                eventTypes: ['m.room.member']
-            });
-        }
-        else {
-            this.memberTracker.onEvent(event);
-        }
+    private _onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {
+        this.memberTracker?.onEvent(event);
     }
 
     /**
@@ -911,12 +900,13 @@ export class MatrixHandler {
 
         // wait a while if we just got an invite else we may not have the mapping stored
         // yet...
-        if (this.processingInvitesForRooms[event.room_id + event.sender]) {
+        const key = `${event.room_id}+${event.sender}`;
+        if (key in this.processingInvitesForRooms) {
             req.log.info(
                 "Holding request for %s until invite for room %s is done.",
                 event.sender, event.room_id
             );
-            await this.processingInvitesForRooms[event.room_id + event.sender];
+            await this.processingInvitesForRooms[key];
             req.log.info(
                 "Finished holding event for %s in room %s", event.sender, event.room_id
             );
@@ -988,17 +978,17 @@ export class MatrixHandler {
             let bridgedClient = this.ircBridge.getIrcUserFromCache(ircRoom.server, event.sender);
             if (!bridgedClient) {
                 messageSendPromiseSet.push((async () => {
-                    let displayName = undefined;
-                    try {
-                        const res = await this.ircBridge.getAppServiceBridge().getIntent().getStateEvent(
-                            event.room_id, "m.room.member", event.sender
-                        );
-                        displayName = res.displayname;
-                    }
-                    catch (err) {
-                        req.log.warn("Failed to get display name: %s", err);
-                        // this is non-fatal, continue.
-                    }
+                    const intent = this.ircBridge.getAppServiceBridge().getIntent();
+                    const displayName = await intent.getStateEvent(
+                        event.room_id, "m.room.member", event.sender
+                    ).catch(err => {
+                        req.log.warn(`Failed to get display name for the room: ${err}`);
+                        return intent.getProfileInfo(event.sender, "displayname");
+                    }).then(
+                        res => res.displayname
+                    ).catch(err => {
+                        req.log.error(`Failed to get display name: ${err}`);
+                    });
                     bridgedClient = await this.ircBridge.getBridgedClient(
                         ircRoom.server, event.sender, displayName
                     );
@@ -1036,12 +1026,14 @@ export class MatrixHandler {
     private async sendIrcAction(req: BridgeRequest, ircRoom: IrcRoom, ircClient: BridgedClient, ircAction: IrcAction,
                                 event: MatrixMessageEvent) {
         // Send the action as is if it is not a text message
-        if (event.content.msgtype !== "m.text" || !event.content.body) {
+        if (!["m.text", "m.notice"].find(msgtype => msgtype === event.content.msgtype) || !event.content.body) {
             await this.ircBridge.sendIrcAction(ircRoom, ircClient, ircAction);
             return;
         }
 
         let cacheBody = ircAction.text;
+
+        // special handling for replies
         if (event.content["m.relates_to"] && event.content["m.relates_to"]["m.in_reply_to"]) {
             const eventId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
             const reply = await this.textForReplyEvent(event, eventId, ircRoom);
@@ -1050,14 +1042,51 @@ export class MatrixHandler {
                 cacheBody = reply.reply;
             }
         }
-        let body = cacheBody.trim().substring(0, REPLY_SOURCE_MAX_LENGTH);
+
+        // special handling for edits
+        if (event.content["m.relates_to"]?.rel_type === "m.replace") {
+            const originalEventId = event.content["m.relates_to"].event_id;
+            let originalBody = this.getCachedEvent(originalEventId)?.body;
+            if (!originalBody) {
+                try {
+                    // FIXME: this will return the new event rather than the original one
+                    // to actually see the original content we'd need to use whatever
+                    // https://github.com/matrix-org/matrix-doc/pull/2675 stabilizes on
+                    let intent: Intent;
+                    if (ircRoom.getType() === "pm") {
+                        // no Matrix Bot, use the IRC user's intent
+                        const userId = ircRoom.server.getUserIdFromNick(ircRoom.channel);
+                        intent = this.ircBridge.getAppServiceBridge().getIntent(userId);
+                    }
+                    else {
+                        intent = this.ircBridge.getAppServiceBridge().getIntent();
+                    }
+                    const eventContent = await intent.getEvent(
+                        event.room_id, originalEventId
+                    );
+                    originalBody = eventContent.content.body;
+                }
+                catch (_err) {
+                    req.log.warn("Couldn't find an event being edited, using fallback text");
+                }
+            }
+            const newBody = event.content["m.new_content"]?.body;
+            if (originalBody && newBody) {
+                const diff = messageDiff(originalBody, newBody);
+                if (diff) {
+                    ircAction.text = diff;
+                }
+            }
+        }
+
+        let body = cacheBody.trim().substring(0, this.config.replySourceMaxLength);
         const nextNewLine = body.indexOf("\n");
         if (nextNewLine !== -1) {
             body = body.substring(0, nextNewLine);
         }
         // Cache events in here so we can refer to them for replies.
         this.cacheEvent(event.event_id, {
-            body,
+            body: cacheBody,
             sender: event.sender,
             timestamp: event.origin_server_ts,
         });
@@ -1102,25 +1131,38 @@ export class MatrixHandler {
 
         // This is true if the upload was a success
         if (contentUri) {
-            // Alter event object so that it is treated as if a file has been uploaded
-            event.content.url = contentUri;
-            event.content.msgtype = "m.file";
-            event.content.body = "sent a long message: ";
+            const httpUrl = ContentRepo.getHttpUriForMxc(this.mediaUrl, contentUri);
+            // we check event.content.body since ircAction already has the markers stripped
+            const codeBlockMatch = event.content.body.match(/^```(\w+)?/);
+            if (codeBlockMatch) {
+                const type = codeBlockMatch[1] ? ` ${codeBlockMatch[1]}` : '';
+                event.content = {
+                    msgtype: "m.emote",
+                    body:    `sent a${type} code block: ${httpUrl}`
+                };
+            }
+            else {
+                const explanation = renderTemplate(this.config.truncatedMessageTemplate, { url: httpUrl });
+                let messagePreview = trimString(
+                    potentialMessages[0],
+                    ircClient.getMaxLineLength() - 4 /* "... " */ - explanation.length - ircRoom.channel.length
+                );
+                if (potentialMessages.length > 1 || messagePreview.length < potentialMessages[0].length) {
+                    messagePreview += '...';
+                }
 
-            // Create a file event to reflect the recent upload
-            const mAction = MatrixAction.fromEvent(event, this.mediaUrl, "message.txt");
-            const bigFileIrcAction = IrcAction.fromMatrixAction(mAction);
-            if (!bigFileIrcAction) {
-                return;
+                event.content = {
+                    ...event.content,
+                    body: `${messagePreview} ${explanation}`,
+                };
             }
 
-            if (mAction.text) {
-                // Replace "Posted a File with..."
-                bigFileIrcAction.text = mAction.text;
+            const truncatedIrcAction = IrcAction.fromMatrixAction(
+                MatrixAction.fromEvent(event, this.mediaUrl)
+            );
+            if (truncatedIrcAction) {
+                await this.ircBridge.sendIrcAction(ircRoom, ircClient, truncatedIrcAction);
             }
-
-            // Notify the IRC side of the uploaded text file
-            await this.ircBridge.sendIrcAction(ircRoom, ircClient, bigFileIrcAction);
         }
         else {
             req.log.debug("Sending truncated message");
@@ -1131,8 +1173,8 @@ export class MatrixHandler {
 
             const sendingEvent: MatrixMessageEvent = { ...event,
                 content: {
-                    msgtype : "m.text",
-                    body : potentialMessages.splice(0, lineLimit - 1).join('\n') + msg
+                    ...event.content,
+                    body: potentialMessages.splice(0, lineLimit - 1).join('\n') + msg
                 }
             };
 
@@ -1190,7 +1232,7 @@ export class MatrixHandler {
             // TODO: Take first with public join_rules
             const roomId = matrixRooms[0].getId();
             req.log.info("Pointing alias %s to %s", roomAlias, roomId);
-            await this.ircBridge.getAppServiceBridge().getBot().getClient().createAlias(
+            await this.ircBridge.getAppServiceBridge().getIntent().createAlias(
                 roomAlias, roomId
             );
         }
@@ -1247,7 +1289,6 @@ export class MatrixHandler {
                 else {
                     rplSource = eventContent.content.body;
                 }
-                rplSource = rplSource.substring(0, REPLY_SOURCE_MAX_LENGTH);
                 cachedEvent = {sender: rplName, body: rplSource, timestamp: eventContent.origin_server_ts};
                 this.cacheEvent(eventId, cachedEvent);
             }
@@ -1268,10 +1309,10 @@ export class MatrixHandler {
         // Get the first non-blank line from the source.
         const lines = rplSource.split('\n').filter((line) => !/^\s*$/.test(line))
         if (lines.length > 0) {
-            // Cut to a maximum length.
-            rplSource = lines[0].substring(0, REPLY_SOURCE_MAX_LENGTH);
+            rplSource = trimString(lines[0], this.config.replySourceMaxLength);
+
             // Ellipsis if needed.
-            if (lines[0].length > REPLY_SOURCE_MAX_LENGTH) {
+            if (lines.length > 1 || rplSource.length < lines[0].length) {
                 rplSource = rplSource + "...";
             }
         }
@@ -1295,12 +1336,12 @@ export class MatrixHandler {
         }
 
         let replyTemplate: string;
-        const tresholdMs = (this.config.shortReplyTresholdSeconds || DEFAULT_SHORT_REPLY_TRESHOLD_SECONDS) * 1000;
+        const tresholdMs = (this.config.shortReplyTresholdSeconds) * 1000;
         if (rplSource && event.origin_server_ts - cachedEvent.timestamp > tresholdMs) {
-            replyTemplate = this.config.longReplyTemplate || DEFAULT_LONG_REPLY_TEMPLATE;
+            replyTemplate = this.config.longReplyTemplate;
         }
         else {
-            replyTemplate = this.config.shortReplyTemplate || DEFAULT_SHORT_REPLY_TEMPLATE;
+            replyTemplate = this.config.shortReplyTemplate;
         }
 
         const formattedReply = renderTemplate(replyTemplate, {
@@ -1331,7 +1372,7 @@ export class MatrixHandler {
     private cacheEvent(id: string, event: CachedEvent) {
         this.eventCache.set(id, event);
 
-        if (this.eventCache.size > this.eventCacheMaxSize) {
+        if (this.eventCache.size > this.config.eventCacheSize) {
             const delKey = this.eventCache.entries().next().value[0];
             this.eventCache.delete(delKey);
         }
@@ -1342,8 +1383,8 @@ export class MatrixHandler {
     }
 
     // EXPORTS
-    public onConfigChanged(config: MatrixHandlerConfig) {
-        this.config = config;
+    public onConfigChanged(config: MatrixHandlerConfig|undefined) {
+        this.config = {...DEFAULTS, ...config};
     }
 
     public onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {

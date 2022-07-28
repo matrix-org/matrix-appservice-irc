@@ -1,12 +1,11 @@
-const Promise = require("bluebird");
 const envBundle = require("../util/env-bundle");
 
-describe("MemberListSyncer", function() {
+describe("MemberListSyncer", () => {
 
     const {env, config, roomMapping, test} = envBundle();
-    let botClient = null;
+    let intent, botClient = null;
 
-    beforeEach(test.coroutine(function*() {
+    beforeEach(async () => {
         config.ircService.servers[roomMapping.server].membershipLists.enabled = true;
         config.ircService.servers[roomMapping.server].membershipLists.floodDelayMs = 0;
         config.ircService.servers[
@@ -15,7 +14,7 @@ describe("MemberListSyncer", function() {
         config.ircService.servers[
             roomMapping.server
         ].membershipLists.global.matrixToIrc.initial = true;
-        yield test.beforeEach(env);
+        await test.beforeEach(env);
 
         // make the bot automatically connect and join the mapped channel
         env.ircMock._autoConnectNetworks(
@@ -26,13 +25,11 @@ describe("MemberListSyncer", function() {
         );
 
         botClient = env.clientMock._client(config._botUserId);
-    }));
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => test.afterEach(env));
 
-    it("should sync initial leaves from IRC to Matrix", test.coroutine(function*() {
+    it("should sync initial leaves from IRC to Matrix", async () => {
         env.ircMock._autoConnectNetworks(
             roomMapping.server, "M-alice", roomMapping.server
         );
@@ -48,42 +45,35 @@ describe("MemberListSyncer", function() {
             });
         });
 
-        let ircUserId = function(nick) {
-            return `@${roomMapping.server}_${nick}:${config.homeserver.domain}`;
-        };
-        botClient.getJoinedRooms.and.callFake(
-        () => {
-            return Promise.resolve({joined_rooms: [
-                roomMapping.roomId
-            ]});
-        });
+        const ircUserId = (nick) => `@${roomMapping.server}_${nick}:${config.homeserver.domain}`;
 
-        botClient.getJoinedRoomMembers.and.callFake(
-        () => {
-            return Promise.resolve({joined: {
-                "@alice:bar": {},
-                [ircUserId("alpha")]: {},
-                [ircUserId("beta")]: {},
-            }});
-        });
+        botClient.getJoinedRooms.and.callFake(() => ([
+            roomMapping.roomId,
+        ]));
 
-        let promise = new Promise((resolve, reject) => {
+        botClient.getJoinedRoomMembersWithProfiles.and.callFake(() => ({
+            "@alice:bar": {},
+            [ircUserId("alpha")]: {},
+            [ircUserId("beta")]: {},
+        }));
+
+        const promise = new Promise((resolve) => {
             // 'alpha' should leave
-            let alphaClient = env.clientMock._client(ircUserId("alpha"));
-            alphaClient.leave.and.callFake((roomId) => {
+            const alphaClient = env.clientMock._intent(ircUserId("alpha"));
+            alphaClient.leaveRoom.and.callFake((roomId) => {
                 expect(roomId).toEqual(roomMapping.roomId);
                 resolve();
-                return Promise.resolve({});
+                return {};
             });
         });
 
-        yield test.initEnv(env);
-        yield promise;
-    }));
+        await test.initEnv(env);
+        await promise;
+    });
 
-    it("should sync initial joins from Matrix to IRC", test.coroutine(function*() {
-        botClient.getJoinedRoomMembers.and.callFake(() => {
-            return Promise.resolve({joined: {
+    it("should sync initial joins from Matrix to IRC", async () => {
+        botClient.getJoinedRoomMembersWithProfiles.and.callFake(() => {
+            return Promise.resolve({
                 "@alice:bar": {
                     display_name: null,
                     avatar_url: null,
@@ -92,13 +82,11 @@ describe("MemberListSyncer", function() {
                     display_name: "Bob",
                     avatar_url: null,
                 }
-            }});
+            });
         });
-        botClient.getJoinedRooms.and.callFake(() => {
-            return Promise.resolve({joined_rooms: [roomMapping.roomId]});
-        });
-        let alicePromise = new Promise((resolve, reject) => {
-            let aliceNick = "M-alice";
+        botClient.getJoinedRooms.and.callFake(() => ({joined_rooms: [roomMapping.roomId]}));
+        const alicePromise = new Promise((resolve, reject) => {
+            const aliceNick = "M-alice";
             env.ircMock._whenClient(roomMapping.server, aliceNick, "connect", function(client, cb) {
                 client._invokeCallback(cb);
             });
@@ -109,8 +97,8 @@ describe("MemberListSyncer", function() {
             });
         });
 
-        let bobPromise = new Promise((resolve, reject) => {
-            let bobNick = "M-Bob";
+        const bobPromise = new Promise((resolve, reject) => {
+            const bobNick = "M-Bob";
             env.ircMock._whenClient(roomMapping.server, bobNick, "connect", function(client, cb) {
                 client._invokeCallback(cb);
             });
@@ -121,7 +109,7 @@ describe("MemberListSyncer", function() {
             });
         });
 
-        yield test.initEnv(env);
-        yield Promise.all([alicePromise, bobPromise]);
-    }));
+        await test.initEnv(env);
+        await Promise.all([alicePromise, bobPromise]);
+    });
 });

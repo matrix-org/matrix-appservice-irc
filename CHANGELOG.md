@@ -1,4 +1,289 @@
- 0.27.0 (2021-06-16)
+0.33.1 (2022-03-30)
+===================
+
+This release fixes a critical bug which would cause bans across the bridge when using the new ban list feature.
+
+Bugfixes
+--------
+
+- Fix an issue where synchronising a ban list would cause all users to get banned. ([\#1551](https://github.com/matrix-org/matrix-appservice-irc/issues/1551))
+
+
+Deprecations and Removals
+-------------------------
+
+- Remove several scripts in `scripts/` which were unmaintained and obsolete. ([\#1531](https://github.com/matrix-org/matrix-appservice-irc/issues/1531))
+
+
+Internal Changes
+----------------
+
+- Fix towncrier script for summarising the newsfiles. ([\#1549](https://github.com/matrix-org/matrix-appservice-irc/issues/1549))
+
+0.33.0 (2022-03-02)
+===================
+
+No significant changes.
+
+
+0.33.0-rc2 (2022-02-18)
+=======================
+
+Bugfixes
+--------
+
+- Fix a duplicate metric that would prevent the bridge from starting. ([\#1534](https://github.com/matrix-org/matrix-appservice-irc/issues/1534))
+
+
+0.33.0-rc1 (2022-02-17)
+=======================
+
+Features
+--------
+
+- Support splitting users from different homeservers into different IPv6 blocks. ([\#1514](https://github.com/matrix-org/matrix-appservice-irc/issues/1514))
+- Added a new metric `clientpool_by_homeserver` which lists the states of IRC clients, by the top 25 homeservers. ([\#1517](https://github.com/matrix-org/matrix-appservice-irc/issues/1517))
+- Add support for subscribing to moderation policy. See http://matrix-org.github.io/matrix-appservice-irc/administrators_guide.html#subscribing-to-moderation-policies for more information. ([\#1532](https://github.com/matrix-org/matrix-appservice-irc/issues/1532))
+
+
+Bugfixes
+--------
+
+- Matrix message edits no longer bridge as a diff if it's longer than the new message ([\#1477](https://github.com/matrix-org/matrix-appservice-irc/issues/1477))
+
+
+Improved Documentation
+----------------------
+
+- Update the list of bridged networks after hackint started offering a bridge once again. ([\#1501](https://github.com/matrix-org/matrix-appservice-irc/issues/1501))
+- Removed freenode from bridged networks. ([\#1523](https://github.com/matrix-org/matrix-appservice-irc/issues/1523))
+
+
+Deprecations and Removals
+-------------------------
+
+- The bridge will no longer treat invites without a `is_direct: true` as DM invites (and will henceforth reject group room invites). This may break some Matrix
+  clients that do not supply this metadata when creating a room. ([\#1506](https://github.com/matrix-org/matrix-appservice-irc/issues/1506))
+- **Minimum required Node version is now 14**. Users on Node 12 are advised to update to newer versions. ([\#1515](https://github.com/matrix-org/matrix-appservice-irc/issues/1515))
+
+
+Internal Changes
+----------------
+
+- Check changelog.d entries in CI. ([\#1527](https://github.com/matrix-org/matrix-appservice-irc/issues/1527))
+- Update various packages that were out of date. ([\#1530](https://github.com/matrix-org/matrix-appservice-irc/issues/1530))
+
+
+0.32.1 (2021-10-25)
+====================
+
+Bugfixes
+--------
+
+- Fix a regression that prevented the bridge to run for multiple networks ([\#1491](https://github.com/matrix-org/matrix-appservice-irc/issues/1491))
+
+
+0.32.0 (2021-10-18)
+====================
+
+No significant changes.
+
+
+0.32.0-rc2 (2021-10-15)
+========================
+
+Bugfixes
+--------
+
+- Fix an issue where the bridge would excessively log state event content ([\#1487](https://github.com/matrix-org/matrix-appservice-irc/issues/1487))
+
+
+0.32.0-rc1 (2021-10-08)
+========================
+
+Features
+--------
+
+- Add optional bridge blocking upon exceeding a monthly active user limit ([\#1472](https://github.com/matrix-org/matrix-appservice-irc/issues/1472))
+- **Breaking**: Upgrade to `matrix-appservice-bridge` 3.1.0.
+
+  This change removes the `ruleFile` option from the config, and replaces it with `rules`. See `config.sample.yaml` for an example. ([\#1485](https://github.com/matrix-org/matrix-appservice-irc/issues/1485))
+
+
+0.31.0 (2021-09-20)
+========================
+
+Bugfixes
+--------
+
+- Fixed an issue where bridges using the NEdB datastore would still erroneously require IRC usernames to be unique. ([\#1471](https://github.com/matrix-org/matrix-appservice-irc/issues/1471))
+- Fixed a bug where `!help` in an admin room would not show admin commands. ([\#1478](https://github.com/matrix-org/matrix-appservice-irc/issues/1478))
+- Fix an edgecase where an nickname was not always set right for matrix users in PMs ([\#1479](https://github.com/matrix-org/matrix-appservice-irc/issues/1479))
+
+
+0.31.0-rc1 (2021-08-23)
+========================
+
+Features
+--------
+
+- Render Matrix message edits as sed-like diff statements, falling back to asterisk formatted messages ([\#1465](https://github.com/matrix-org/matrix-appservice-irc/issues/1465))
+
+
+Bugfixes
+--------
+
+- Make sure we don't exceed the line limit when trimming long messages ([\#1459](https://github.com/matrix-org/matrix-appservice-irc/issues/1459))
+- Make sure Matrix notice messages are also pastebinned when they exceed the line limit for IRC. ([\#1461](https://github.com/matrix-org/matrix-appservice-irc/issues/1461))
+- Fallback to sending an invite as a bot if the regular invite fails ([\#1467](https://github.com/matrix-org/matrix-appservice-irc/issues/1467))
+
+
+Improved Documentation
+----------------------
+
+- Replace HOWTO.md with a link to our hosted documentation, and generally improve documentation wording. ([\#1458](https://github.com/matrix-org/matrix-appservice-irc/issues/1458))
+
+
+Internal Changes
+----------------
+
+- Remove extra `encodingFallback` from sample config. ([\#1468](https://github.com/matrix-org/matrix-appservice-irc/issues/1468))
+
+
+0.30.0 (2021-08-18)
+====================
+
+No significant changes.
+
+
+0.30.0-rc1 (2021-08-17)
+========================
+
+Features
+--------
+
+- Show message previews for uploaded long messages ([\#1430](https://github.com/matrix-org/matrix-appservice-irc/issues/1430))
+- Export the `ircClients.maxClients` config value as a metric (`bridge_remote_ghosts_max`) ([\#1448](https://github.com/matrix-org/matrix-appservice-irc/issues/1448))
+
+
+Bugfixes
+--------
+
+- Make sure that admin commands that don't need a server (like !help) don't require it ([\#1433](https://github.com/matrix-org/matrix-appservice-irc/issues/1433))
+- Remove `client_config_domain_username_idx` which would have required a unique username for IPv6 users. ([\#1455](https://github.com/matrix-org/matrix-appservice-irc/issues/1455))
+
+
+Improved Documentation
+----------------------
+
+- Expand documentation for irc_modes.md ([\#1429](https://github.com/matrix-org/matrix-appservice-irc/issues/1429))
+- docs/usage.md: point to bridged networks in-tree ([\#1450](https://github.com/matrix-org/matrix-appservice-irc/issues/1450))
+- Adding LibertaCasa to network bridges. Thanks @Mikaela. ([\#1454](https://github.com/matrix-org/matrix-appservice-irc/issues/1454))
+
+
+Internal Changes
+----------------
+
+- Do not generate a unique username for users on a IPv6 bridge, as it's unnessacery. ([\#1446](https://github.com/matrix-org/matrix-appservice-irc/issues/1446))
+- Docker images are now automatically build and published via GitHub Actions, replacing DockerHub Autobuilds. ([\#1456](https://github.com/matrix-org/matrix-appservice-irc/issues/1456))
+
+
+0.29.0 (2021-08-02)
+====================
+
+Bugfixes
+--------
+
+- Add prometheus metrics for IRC connection times ([\#1442](https://github.com/matrix-org/matrix-appservice-irc/issues/1442))
+
+
+0.29.0-rc2 (2021-07-27)
+========================
+
+Internal Changes
+----------------
+
+- Update node-irc to 1.1.1 (see https://github.com/matrix-org/node-irc/blob/master/CHANGELOG.md) ([\#1434](https://github.com/matrix-org/matrix-appservice-irc/issues/1434))
+
+
+0.29.0-rc1 (2021-07-21)
+========================
+
+**Please note:** `0.28.0(-rc1)` is abandoned as more features became ready to ship before we reached the end of the release candidate stage. Users of `0.28.0-rc1` should upgrade
+to this release. Some changelog entries below will be duplicated from `0.28.0-rc1`.
+
+Features
+--------
+
+- Add prometheus metrics for IRC connection times ([\#1418](https://github.com/matrix-org/matrix-appservice-irc/issues/1418))
+- Change the reply rendering to something more IRCish (and configurable) ([\#1424](https://github.com/matrix-org/matrix-appservice-irc/issues/1424))
+- Truncate original messages more gently when replying ([\#1428](https://github.com/matrix-org/matrix-appservice-irc/issues/1428))
+
+
+Bugfixes
+--------
+
+- Require explicit server selection for !storepass when more than one possibility exists.
+  This makes the command a bit more verbose, but avoids the situation where a password could've been accidentally specified for the wrong server. ([\#1363](https://github.com/matrix-org/matrix-appservice-irc/issues/1363))
+
+- Fix an issue where a hot reload would fail if `advanced` was not defined in the original config. ([\#1383](https://github.com/matrix-org/matrix-appservice-irc/issues/1383))
+- Update `matrix-org-irc` to `1.0.0` to fix a bug where the bridge can crash. ([\#1388](https://github.com/matrix-org/matrix-appservice-irc/issues/1388))
+- Fix an issue where a Matrix user's IRC connection is stuck and unable to join some channels. ([\#1394](https://github.com/matrix-org/matrix-appservice-irc/issues/1394))
+- Fix multiline replies having only one line sent to IRC ([\#1425](https://github.com/matrix-org/matrix-appservice-irc/issues/1425))
+- Ensure the `irc_connection_time_ms` histrogram metric uses sensible bucket sizes. ([\#1426](https://github.com/matrix-org/matrix-appservice-irc/issues/1426))
+
+
+Improved Documentation
+----------------------
+
+- Fix typo regarding examples of hostname and port in Bridge Setup documentation (4. Registration) ([\#1405](https://github.com/matrix-org/matrix-appservice-irc/issues/1405))
+- Migrate the list of bridged IRC networks from the deprecated github wiki to the hosted documentation (https://matrix-org.github.io/matrix-appservice-irc/latest/).
+  Add libera.chat to the list. ([\#1416](https://github.com/matrix-org/matrix-appservice-irc/issues/1416))
+
+- The Debug API is now documented in the hosted documentation, replacing the wiki page. ([\#1420](https://github.com/matrix-org/matrix-appservice-irc/issues/1420))
+
+
+Internal Changes
+----------------
+
+- Handle known error-codes when OPER command fails instead of disconnecting. ([\#1385](https://github.com/matrix-org/matrix-appservice-irc/issues/1385))
+- Add a link referring to the in-tree documentation to the admin room help text. ([\#1402](https://github.com/matrix-org/matrix-appservice-irc/issues/1402))
+- Add linting for test files ([\#1403](https://github.com/matrix-org/matrix-appservice-irc/issues/1403))
+- Fix a bug where messages from IRC would be blocked by the privacy filter when `allowUnconnectedMatrixUsers` set to `true` in a room config event. ([\#1406](https://github.com/matrix-org/matrix-appservice-irc/issues/1406))
+
+
+0.28.0-rc1 (2021-07-19)
+====================
+
+Features
+--------
+
+- Add Prometheus metrics for IRC connection times ([\#1418](https://github.com/matrix-org/matrix-appservice-irc/issues/1418))
+
+
+Bugfixes
+--------
+
+- Fix an issue where a hot reload would fail if `advanced` was not defined in the original config. ([\#1383](https://github.com/matrix-org/matrix-appservice-irc/issues/1383))
+- Update `matrix-org-irc` to `1.0.0` to fix a bug where the bridge can crash. ([\#1388](https://github.com/matrix-org/matrix-appservice-irc/issues/1388))
+- Fix an issue where a Matrix user's IRC connection is stuck and unable to join some channels. ([\#1394](https://github.com/matrix-org/matrix-appservice-irc/issues/1394))
+
+
+Improved Documentation
+----------------------
+
+- Migrate the list of bridged IRC networks from the deprecated GitHub wiki to the hosted documentation (https://matrix-org.github.io/matrix-appservice-irc/latest/). Add libera.chat to the list. ([\#1416](https://github.com/matrix-org/matrix-appservice-irc/issues/1416))
+
+
+Internal Changes
+----------------
+
+- Handle known error-codes when OPER command fails instead of disconnecting. ([\#1385](https://github.com/matrix-org/matrix-appservice-irc/issues/1385))
+- Add a link referring to the in-tree documentation to the admin room help text. ([\#1402](https://github.com/matrix-org/matrix-appservice-irc/issues/1402))
+- Fix a bug where messages from IRC would be blocked by the privacy filter when `allowUnconnectedMatrixUsers` set to `true` in a room config event. ([\#1406](https://github.com/matrix-org/matrix-appservice-irc/issues/1406))
+
+
+0.27.0 (2021-06-16)
 ====================
 
 Bugfixes

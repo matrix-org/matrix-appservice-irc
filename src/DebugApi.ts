@@ -27,7 +27,7 @@ import { getLogger } from "./logging";
 import { BridgedClient, BridgedClientStatus } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { ProvisionRequest } from "./provisioning/ProvisionRequest";
-import { getBridgeVersion } from "./util/PackageInfo";
+import { getBridgeVersion } from "matrix-appservice-bridge";
 
 const log = getLogger("DebugApi");
 
@@ -84,6 +84,10 @@ export class DebugApi {
         }
         else if (req.method === "POST" && path === "/reapUsers") {
             this.onReapUsers(query, response);
+            return;
+        }
+        else if (req.method === "POST" && path === "/warnReapUsers") {
+            this.onWarnReapUsers(query, response);
             return;
         }
         else if (req.method === "POST" && path === "/killRoom") {
@@ -197,6 +201,27 @@ export class DebugApi {
         });
     }
 
+    public onWarnReapUsers(query: ParsedUrlQuery, response: ServerResponse) {
+        const server = query["server"] as string;
+        const since = parseInt(query["since"] as string);
+        const msg = query["msg"] as string;
+        const limit = query["targetCount"] !== undefined ? parseInt(query["targetCount"] as string) : undefined;
+        const defaultOnline = (query["defaultOnline"] ?? "true") === "true";
+        const excludeRegex = query["excludeRegex"] as string;
+        const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
+        this.ircBridge.warnConnectionReap(
+            req, server, since, msg, defaultOnline, excludeRegex, limit,
+        ).catch((err: Error) => {
+            log.warn(`Failed to handle onWarnReapUsers`, err);
+            if (!response.headersSent) {
+                response.writeHead(500, {"Content-Type": "text/plain"});
+            }
+            response.write(err + "\n");
+        }).finally(() => {
+            response.end();
+        });
+    }
+
     public onReapUsers(query: ParsedUrlQuery, response: ServerResponse) {
         const msgCb = (msg: string) => {
             if (!response.headersSent) {
@@ -214,8 +239,7 @@ export class DebugApi {
         this.ircBridge.connectionReap(
             msgCb, server, since, reason, dry, defaultOnline, excludeRegex, limit,
         ).catch((err: Error) => {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            log.error(err.stack!);
+            log.warn(`Failed to handle onReapUsers`, err);
             if (!response.headersSent) {
                 response.writeHead(500, {"Content-Type": "text/plain"});
             }
@@ -377,7 +401,7 @@ export class DebugApi {
         if (removeAlias) {
             const roomAlias = server.getAliasFromChannel(channel);
             try {
-                await this.ircBridge.getAppServiceBridge().getIntent().client.deleteAlias(roomAlias);
+                await this.ircBridge.getAppServiceBridge().getIntent().matrixClient.deleteRoomAlias(roomAlias);
                 result.stages.push("Deleted alias for room");
             }
             catch (e) {

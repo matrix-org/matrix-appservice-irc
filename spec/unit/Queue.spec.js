@@ -4,8 +4,8 @@ const { Queue } = require("../../lib/util/Queue.js");
 const test = require("../util/test");
 
 describe("Queue", function() {
-    var queue;
-    var procFn;
+    let queue;
+    let procFn;
 
     beforeEach(function() {
         procFn = jasmine.createSpy("procFn");
@@ -13,9 +13,9 @@ describe("Queue", function() {
     });
 
     it("should process requests FIFO", (done) => {
-        var thing1 = { foo: "bar"};
-        var thing2 = { bar: "baz"};
-        var things = [thing1, thing2];
+        const thing1 = { foo: "bar"};
+        const thing2 = { bar: "baz"};
+        const things = [thing1, thing2];
         procFn.and.callFake((thing) => {
             expect(thing).toBeDefined();
             expect(things.shift()).toEqual(thing);
@@ -29,7 +29,7 @@ describe("Queue", function() {
     });
 
     it("should pass the item given in enqueue() to procFn", (done) => {
-        var theThing = { foo: "buzz" };
+        const theThing = { foo: "buzz" };
         procFn.and.callFake((thing) => {
             expect(thing).toBeDefined();
             expect(thing).toEqual(theThing);
@@ -40,46 +40,48 @@ describe("Queue", function() {
     });
 
     it("should return a Promise from enqueue() which is resolved with the result from procFn",
-    (done) => {
-        var theThing = { foo: "buzz" };
-        var thePromise = Promise.resolve("flibble");
-        procFn.and.callFake((thing) => {
-            expect(thing).toBeDefined();
-            expect(thing).toEqual(theThing);
-            return thePromise;
-        });
-        queue.enqueue("id", theThing).then((res) => {
-            expect(res).toEqual("flibble");
-            done();
-        });
-    });
+        (done) => {
+            const theThing = { foo: "buzz" };
+            const thePromise = Promise.resolve("flibble");
+            procFn.and.callFake((thing) => {
+                expect(thing).toBeDefined();
+                expect(thing).toEqual(theThing);
+                return thePromise;
+            });
+            queue.enqueue("id", theThing).then((res) => {
+                expect(res).toEqual("flibble");
+                done();
+            });
+        }
+    );
 
     it("should return a Promise from enqueue() which is rejected if procFn rejects",
-    test.coroutine(function*(done) {
-        var theThing = { foo: "buzz" };
-        var thePromise = Promise.reject(new Error("oh no"));
-        thePromise.catch(() => {}); // stop bluebird whining
-        procFn.and.callFake((thing) => {
-            expect(thing).toBeDefined();
-            expect(thing).toEqual(theThing);
-            return thePromise;
-        });
-        try {
-            yield queue.enqueue("id", theThing);
-            expect(true).toBe(false, "Enqueued promise resolved: expected rejected")
-        }
-        catch (err) {
-            expect(err.message).toEqual("oh no");
-        }
-    }));
+        test.coroutine(function*(done) {
+            const theThing = { foo: "buzz" };
+            const thePromise = Promise.reject(new Error("oh no"));
+            thePromise.catch(() => {}); // stop bluebird whining
+            procFn.and.callFake((thing) => {
+                expect(thing).toBeDefined();
+                expect(thing).toEqual(theThing);
+                return thePromise;
+            });
+            try {
+                yield queue.enqueue("id", theThing);
+                expect(true).withContext("Enqueued promise resolved: expected rejected").toBe(false);
+            }
+            catch (err) {
+                expect(err.message).toEqual("oh no");
+            }
+        })
+    );
 
     it("should only ever have 1 procFn in-flight at any one time", (done) => {
-        var callCount = 0;
-        var resolve;
-        var thePromise = new Promise((resolveFn, rejectFn) => {
+        let callCount = 0;
+        let resolve;
+        const thePromise = new Promise((resolveFn) => {
             resolve = resolveFn;
         });
-        procFn.and.callFake((thing) => {
+        procFn.and.callFake(() => {
             callCount += 1;
             return thePromise;
         });
@@ -96,17 +98,17 @@ describe("Queue", function() {
     });
 
     it("should return the same promise for requests with the same ID", (done) => {
-        var theThing = { foo: "buzz" };
-        var thePromise = Promise.resolve("flibble");
-        var callCount = 0;
+        const theThing = { foo: "buzz" };
+        const thePromise = Promise.resolve("flibble");
+        let callCount = 0;
         procFn.and.callFake((thing) => {
             expect(thing).toBeDefined();
             expect(thing).toEqual(theThing);
             callCount += 1;
             return thePromise;
         });
-        var promise1 = queue.enqueue("id", theThing);
-        var promise2 = queue.enqueue("id", theThing);
+        const promise1 = queue.enqueue("id", theThing);
+        const promise2 = queue.enqueue("id", theThing);
         expect(promise1).toEqual(promise2);
         promise1.then((res) => {
             expect(promise2.isPending()).toBe(false);
@@ -121,7 +123,7 @@ describe("Queue", function() {
         const thing2 = { bar: "baz"};
         const things = [thing1, thing2];
         let expectedSize = things.length;
-        procFn.and.callFake((thing) => {
+        procFn.and.callFake(() => {
             things.shift();
             expect(queue.size()).toEqual(expectedSize);
             if (things.length === 0) {

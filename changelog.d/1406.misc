@@ -1,1 +1,0 @@
-Fix a bug where messages from IRC would be blocked by the privacy filter when `allowUnconnectedMatrixUsers` set to `true` in a room config event.

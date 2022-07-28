@@ -94,6 +94,10 @@ export interface IrcServerConfig {
         ipv6: {
             only: boolean;
             prefix?: string;
+            blocks?: {
+                homeserver: string;
+                startFrom: string;
+            }[]
         };
         lineLimit: number;
         userModes?: string;
@@ -170,7 +174,7 @@ export class IrcServer {
      * will never expire.
      */
     constructor(public domain: string, public config: IrcServerConfig,
-                private homeserverDomain: string, private expiryTimeSeconds: number = 0) {
+                public readonly homeserverDomain: string, private expiryTimeSeconds: number = 0) {
         this.reconfigure(config, expiryTimeSeconds);
     }
 
@@ -687,6 +691,14 @@ export class IrcServer {
         );
     }
 
+    public getIpv6BlockForHomeserver(homeserver: string): string|null {
+        const result = this.config.ircClients.ipv6.blocks?.find(block => block.homeserver === homeserver);
+        if (result) {
+            return result.startFrom;
+        }
+        return null;
+    }
+
     public static get DEFAULT_CONFIG(): IrcServerConfig {
         return {
             sendConnectionMessages: true,
@@ -774,6 +786,16 @@ export class IrcServer {
                 ...config.tlsOptions,
                 ca: config.ca,
             };
+        }
+
+        if (config.ircClients.ipv6.blocks) {
+            // Check those blocks
+            const invalidBlocks = config.ircClients.ipv6.blocks.filter( block =>
+                isNaN(parseInt(block.startFrom.replace(/:/g, ''), 16))
+            ).map(block => block.homeserver).join(', ');
+            if (invalidBlocks) {
+                throw Error(`Invalid ircClients.ipv6.blocks entry(s): ${invalidBlocks}`);
+            }
         }
 
         this.config = config;

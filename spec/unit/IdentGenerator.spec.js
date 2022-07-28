@@ -15,6 +15,7 @@ describe("Username generation", function() {
     let ircClientConfigsUsernames;
     const serverMock = {
         getRealNameFormat: () => "mxid",
+        getIpv6Only: () => false,
     };
 
     beforeEach(function() {
@@ -47,7 +48,7 @@ describe("Username generation", function() {
             return obj;
         };
         storeMock.getIrcClientConfig = async (sender, domain) => ircClientConfigs[sender+domain];
-        storeMock.storeIrcClientConfig = async (config) => { 
+        storeMock.storeIrcClientConfig = async (config) => {
             ircClientConfigs[config.userId+config.domain] = config;
             ircClientConfigsUsername[config.getUsername()+config.domain] = config;
             ircClientConfigsUsernames.push(config.getUsername());
@@ -68,6 +69,7 @@ describe("Username generation", function() {
         var userId = "@myreallylonguseridhere:localhost";
         const info = await identGenerator.getIrcNames(ircClientConfig, {
             getRealNameFormat: () => "reverse-mxid",
+            getIpv6Only: () => false
         }, new MatrixUser(userId));
         expect(info.realname).toEqual("localhost:myreallylonguseridhere");
     });
@@ -85,7 +87,9 @@ describe("Username generation", function() {
         const uname = "myrea_10";
         storeMock.storeIrcClientConfig(new IrcClientConfig("@someone:else", IRC_DOMAIN, { username: "myreally" }));
         for (let i = 1; i < 10; i++) {
-            storeMock.storeIrcClientConfig(new IrcClientConfig(`@someone${i}:else`, IRC_DOMAIN, { username: "myreal_" + i }));
+            storeMock.storeIrcClientConfig(
+                new IrcClientConfig(`@someone${i}:else`, IRC_DOMAIN, { username: "myreal_" + i })
+            );
         }
         const info = await identGenerator.getIrcNames(ircClientConfig, serverMock, new MatrixUser(userId));
         expect(info.username).toEqual(uname);
@@ -130,10 +134,26 @@ describe("Username generation", function() {
             const result = await identGenerator.getIrcNames(config, serverMock, new MatrixUser(userId));
             if (i === 0) {
                 expect(result.username).toBe("longpref");
-            } else {
+            }
+            else {
                 // longpref_1, _2, _3 etc
                 expect(result.username).toBe(`${"longprefix".substr(0, 8 - 1 - (i).toString().length)}_${i}`);
             }
         }
+    });
+
+    it("should not generate a unique username for IPv6 enabled bridges", async function() {
+        const userId = "@-myname:localhost";
+        const uname = "M-myname";
+        const ipv6Mock = {
+            getRealNameFormat: () => "mxid",
+            getIpv6Only: () => true,
+        }
+        // This ensures that we will always return a result for whatever username it picks.
+        storeMock.getMatrixUserByUsername = async () => ({
+            getId: () => ({userId})
+        });
+        const info = await identGenerator.getIrcNames(ircClientConfig, ipv6Mock, new MatrixUser(userId));
+        expect(info.username).toEqual(uname);
     });
 });

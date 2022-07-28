@@ -21,7 +21,9 @@ import {
     MatrixRoom,
     RemoteRoom,
     RoomBridgeStoreEntry as Entry,
-    MatrixRoomData
+    MatrixRoomData,
+    UserActivitySet,
+    UserActivity,
 } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
 import { IrcRoom } from "../../models/IrcRoom";
@@ -52,7 +54,7 @@ interface RoomRecord {
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 5;
+    public static readonly LATEST_SCHEMA = 8;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -215,10 +217,11 @@ export class PgDataStore implements DataStore {
         ])).then((result) => result.rows).map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
-    public getProvisionedMappings(roomId: string): Bluebird<Entry[]> {
-        return Bluebird.cast(this.pgPool.query("SELECT * FROM rooms WHERE room_id = $1 AND origin = 'provision'", [
+    public async getProvisionedMappings(roomId: string): Promise<Entry[]> {
+        const res = await this.pgPool.query("SELECT * FROM rooms WHERE room_id = $1 AND origin = 'provision'", [
             roomId
-        ])).then((result) => result.rows).map((e) => PgDataStore.pgToRoomEntry(e));
+        ]).then((result) => result.rows);
+        return res.map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
     public async removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<void> {
@@ -428,13 +431,27 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query("DELETE FROM rooms WHERE origin = 'config'");
     }
 
-    public async getIpv6Counter(): Promise<number> {
-        const res = await this.pgPool.query("SELECT count FROM ipv6_counter");
-        return res ? parseInt(res.rows[0].count, 10) : 0;
+    public async getIpv6Counter(server: IrcServer, homeserver: string|null): Promise<number> {
+        homeserver = homeserver || "*";
+        const res = await this.pgPool.query(
+            "SELECT count FROM ipv6_counter WHERE server = $1 AND homeserver = $2",
+            [server.domain, homeserver]
+        );
+        return res.rows[0]?.count !== undefined ? parseInt(res.rows[0].count, 10) : 0;
     }
 
-    public async setIpv6Counter(counter: number): Promise<void> {
-        await this.pgPool.query("UPDATE ipv6_counter SET count = $1", [counter]);
+    public async setIpv6Counter(counter: number, server: IrcServer, homeserver: string|null): Promise<void> {
+        await this.pgPool.query(
+            PgDataStore.BuildUpsertStatement(
+                "ipv6_counter",
+                "ON CONSTRAINT cons_ipv6_counter_unique", [
+                    "count",
+                    "homeserver",
+                    "server"
+                ],
+            ),
+            [counter, homeserver || "*", server.domain],
+        );
     }
 
     public async upsertMatrixRoom(room: MatrixRoom): Promise<void> {
@@ -553,6 +570,24 @@ export class PgDataStore implements DataStore {
             "features",
         ]);
         await this.pgPool.query(statement, [userId, JSON.stringify(features)]);
+    }
+
+    public async getUserActivity(): Promise<UserActivitySet> {
+        const res = await this.pgPool.query('SELECT * FROM user_activity');
+        const users: {[mxid: string]: UserActivity} = {};
+        for (const row of res.rows) {
+            users[row['user_id']] = row['data'];
+        }
+        return { users };
+    }
+
+    public async storeUserActivity(userId: string, activity: UserActivity) {
+        const stmt = PgDataStore.BuildUpsertStatement(
+            'user_activity',
+            '(user_id)',
+            ['user_id', 'data'],
+        );
+        await this.pgPool.query(stmt, [userId, JSON.stringify(activity)]);
     }
 
     public async storePass(userId: string, domain: string, pass: string, encrypt = true): Promise<void> {

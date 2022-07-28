@@ -1,14 +1,13 @@
-"use strict";
-let { QueuePool } = require("../../lib/util/QueuePool");
-let promiseutil = require("../../lib/promiseutil");
-let test = require("../util/test");
+const { QueuePool } = require("../../lib/util/QueuePool");
+const promiseutil = require("../../lib/promiseutil");
 
-let nextTick = function() {
-    return new Promise((resolve, reject) => {
-        process.nextTick(() => {
-            resolve();
-        });
-    });
+async function nextTick(ticks = 1) {
+    await new Promise(resolve => process.nextTick(resolve));
+    ticks--;
+    if (ticks > 0) {
+        return nextTick(ticks);
+    }
+    return undefined;
 }
 
 describe("QueuePool", function() {
@@ -38,113 +37,120 @@ describe("QueuePool", function() {
     });
 
     it("should let multiple items be processed at once",
-    test.coroutine(function*() {
+    async () => {
         pool.enqueue("a", "a");
         pool.enqueue("b", "b");
         // procFn is called on the next tick so check they've been called after
-        yield nextTick();
+        await nextTick();
         expect(Object.keys(itemToDeferMap).length).toBe(2);
-    }));
+    });
 
     it("should resolve enqueued items when they resolve",
-    test.coroutine(function*() {
+    async () => {
         pool.enqueue("a", "a");
-        let promise = pool.enqueue("b", "b");
-        yield nextTick();
+        const promise = pool.enqueue("b", "b");
+        await nextTick();
         resolveItem("b", "stuff");
-        let res = yield promise;
+        let res = await promise;
         expect(res).toEqual("stuff");
-    }));
+    });
 
-    it("should not let more items than the pool size be processed at once",
-    test.coroutine(function*() {
+    it("should not let more items than the pool size be processed at once", async () => {
         pool.enqueue("a", "a");
-        pool.enqueue("b", "b");
+        const b = pool.enqueue("b", "b");
         pool.enqueue("c", "c");
         pool.enqueue("d", "d");
-        yield nextTick();
+        await nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
         resolveItem("b");
-        yield nextTick();
+        // wait for b to complete, so that the queue empies up and accepts "d"
+        await b;
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "c", "d"]);
-    }));
+    });
 
-    it("should wait until a queue is free", test.coroutine(function*() {
+    it("should wait until a queue is free", async () => {
         pool.enqueue("a", "a");
         pool.enqueue("b", "b");
-        pool.enqueue("c", "c");
-        yield nextTick();
+        const c = pool.enqueue("c", "c");
+        await nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
-        yield nextTick();
-        yield nextTick();
+        await nextTick(2);
         pool.enqueue("d", "d");
         // wait a while
-        yield nextTick();
-        yield nextTick();
-        yield nextTick();
-        yield nextTick();
+        await nextTick(4);
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
         resolveItem("c");
-        yield nextTick();
+        // wait for c to complete, so that the queue empies up and accepts "d"
+        await c;
+        await nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "d"]);
-    }));
+    });
 
-    it("should process overflows FIFO", test.coroutine(function*() {
-        pool.enqueue("a", "a");
-        pool.enqueue("b", "b");
-        pool.enqueue("c", "c");
+    it("should process overflows FIFO", async () => {
+        const a = pool.enqueue("a", "a");
+        const b = pool.enqueue("b", "b");
+        const c = pool.enqueue("c", "c");
         pool.enqueue("d", "d");
         pool.enqueue("e", "e");
-        yield nextTick();
+        await nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
         resolveItem("b");
+        await b;
         pool.enqueue("f", "f");
-        yield nextTick();
+        await nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "c", "d"]);
         resolveItem("a");
+        await a;
         resolveItem("c");
-        yield nextTick();
+        await c;
+        await nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["d", "e", "f"]);
-    }));
+    });
 
-    it("should repopulate empty queues", test.coroutine(function*() {
-        pool.enqueue("a", "a");
-        pool.enqueue("b", "b");
-        pool.enqueue("c", "c");
-        yield nextTick();
+    it("should repopulate empty queues", async () => {
+        const a = pool.enqueue("a", "a");
+        const b = pool.enqueue("b", "b");
+        const c = pool.enqueue("c", "c");
+        await nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a", "b", "c"]);
         resolveItem("a");
+        await a;
         resolveItem("b");
+        await b;
         resolveItem("c");
-        yield nextTick();
+        await c;
+        await nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual([]);
         pool.enqueue("d", "d");
         pool.enqueue("e", "e");
         pool.enqueue("f", "f");
-        yield nextTick();
+        await nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["d", "e", "f"]);
-    }));
+    });
 
-    it("should allow index-based queue manipulation", test.coroutine(function*() {
-        pool.enqueue("a", "a", 0);
+    it("should allow index-based queue manipulation", async () => {
+        const a = pool.enqueue("a", "a", 0);
         pool.enqueue("b", "b", 0);
         pool.enqueue("c", "c", 0);
-        yield nextTick();
+        await nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["a"]);
         resolveItem("a");
-        yield nextTick();
+        await a;
+        await nextTick();
         expect(Object.keys(itemToDeferMap).sort()).toEqual(["b"]);
-    }));
+    });
 
-    it("should accurately track waiting items", test.coroutine(function*() {
+    it("should accurately track waiting items", async () => {
+        const promises = [];
         for (let i = 0; i < 10; i++) {
-            pool.enqueue(i, i);
+            promises[i] = pool.enqueue(i, i);
         }
         expect(pool.waitingItems).toEqual(7);
         for (let j = 0; j < 10; j++) {
-            yield nextTick();
+            await nextTick();
             resolveItem(j);
+            await promises[j];
         }
         expect(pool.waitingItems).toEqual(0);
-    }));
+    });
 });

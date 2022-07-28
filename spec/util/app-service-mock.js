@@ -4,23 +4,21 @@ const util = require("util");
 var instance = null;
 
 function MockAppService() {
-    let self = this;
-
     this.expressApp = {
-        post: function(path, handler) {
+        post: (path, handler) => {
             if (path === '/_matrix/provision/link') {
-                self.link = handler;
+                this.link = handler;
             }
             else if (path === '/_matrix/provision/unlink') {
-                self.unlink = handler;
+                this.unlink = handler;
             }
         },
-        get: function(path, handler) {
+        get: (path, handler) => {
             if (path === '/_matrix/provision/listlinks/:roomId') {
-                self.listLinks = handler;
+                this.listLinks = handler;
             }
         },
-        use: function(req, res, next) {
+        use: (req, res, next) => {
             //stub
         }
     };
@@ -39,12 +37,12 @@ MockAppService.prototype._linkAction = function(reqBody, statusCallback, jsonCal
         throw new Error("IRC AS hasn't hooked into link/unlink yet.");
     }
 
-    let req = {
+    const req = {
         body : reqBody,
         getId : () => 'test@' + Date.now()
     };
 
-    let res = {
+    const res = {
         status : function (number) { statusCallback(number); return res;},
         json : function (obj) { jsonCallback(obj); return res;},
     }
@@ -68,12 +66,12 @@ MockAppService.prototype._unlink = function(reqBody, statusCallback, jsonCallbac
 //  statusCallback {function} - Called when the server returns a HTTP response code.
 //  jsonCallback {function} - Called when the server returns a JSON object.
 MockAppService.prototype._listLinks = function(reqParameters, statusCallback, jsonCallback) {
-    let req = {
+    const req = {
         params : reqParameters,
         getId : () => 'test@' + Date.now()
     };
 
-    let res = {
+    const res = {
         status : function (number) { statusCallback(number); return res;},
         json : function (obj) { jsonCallback(obj); return res;},
     }

@@ -256,6 +256,10 @@ export class ClientPool {
             if (excluded) {
                 throw Error("Cannot create bridged client - user is excluded from bridging");
             }
+            const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(matrixUser);
+            if (typeof banReason === "string") {
+                throw Error(`Cannot create bridged client - user is banned (${banReason})`);
+            }
         }
 
         if (!this.identGenerator) {
@@ -513,12 +517,55 @@ export class ClientPool {
         return [...users.userIds.keys()];
     }
 
-    public collectConnectionStatesForAllServers(gauge: Gauge<string>) {
-        gauge.reset();
+    public collectConnectionStatesForAllServers(
+        allClients: Gauge<string>, clientsByHomeserver: Gauge<string>, clientsByHomeserverMax: number
+    ) {
+        allClients.reset();
+        const homeserverStats: {[homeserver: string]: {[state: string]: number}} = { };
         for (const [domain, {userIds}] of Object.entries(this.virtualClients)) {
             for (const client of userIds.values()) {
                 const state = BridgedClientStatus[client.status].toLowerCase();
-                gauge.inc({ server: domain, state});
+                allClients.inc({ server: domain, state });
+                if (client.matrixUser) {
+                    const key = client.matrixUser.host;
+                    if (!homeserverStats[key]) {
+                        homeserverStats[key] = {
+                            connected: 0,
+                        }
+                    }
+                    homeserverStats[key][state] = (homeserverStats[key][state] || 0) + 1;
+                }
+            }
+        }
+        clientsByHomeserver.reset();
+        // We intentionally limit the number of clients to reduce label bloat.
+        Object.entries(homeserverStats)
+            .sort(((a, b) => b[1]["connected"] - a[1]["connnected"]))
+            .slice(0, clientsByHomeserverMax-1).forEach(
+                ([homeserver, stateSet]) => {
+                    Object.entries(stateSet).forEach(([state, count]) => {
+                        clientsByHomeserver.set({ homeserver, state }, count);
+                    });
+                }
+            );
+    }
+
+    /**
+     * Kill any clients for users matching a ban rule on a Matrix ban list.
+     */
+    public async checkForBannedConnectedUsers() {
+        for (const set of Object.values(this.virtualClients)) {
+            for (const [userId, client] of set.userIds.entries()) {
+                try {
+                    const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(userId);
+                    if (typeof banReason === "string") {
+                        log.warn(`Killing ${userId} client connection due - user is banned (${banReason})`);
+                        await client.kill('User was banned');
+                    }
+                }
+                catch (ex) {
+                    log.warn(`Failed to kill connection for ${userId}`);
+                }
             }
         }
     }

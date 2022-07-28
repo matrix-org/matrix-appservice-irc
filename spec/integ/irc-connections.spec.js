@@ -1,13 +1,11 @@
 /*
  * Tests IRC connections are managed correctly.
  */
-const Promise = require("bluebird");
-
 const envBundle = require("../util/env-bundle");
 
-describe("IRC connections", function() {
+describe("IRC connections", () => {
 
-    let testUser = {
+    const testUser = {
         id: "@alice:hs",
         nick: "M-alice"
     };
@@ -20,8 +18,8 @@ describe("IRC connections", function() {
         }
     ];
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
+    beforeEach(async () => {
+        await test.beforeEach(env);
 
         // make the bot automatically connect and join the mapped channel
         env.ircMock._autoConnectNetworks(
@@ -31,16 +29,12 @@ describe("IRC connections", function() {
             roomMapping.server, roomMapping.botNick, roomMapping.channel
         );
 
-        // do the init
-        yield test.initEnv(env, config);
-    }));
+        await test.initEnv(env, config);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => test.afterEach(env));
 
-    it("should use the matrix user's display name if they have one",
-    function(done) {
+    it("should use the matrix user's display name if they have one", async () => {
         let displayName = "Some_Name";
         let nickForDisplayName = "M-Some_Name";
 
@@ -51,38 +45,34 @@ describe("IRC connections", function() {
 
         // listen for the display name nick and let it connect
         let gotConnectCall = false;
-        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "connect",
-        function(client, cb) {
+        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "connect", (client, cb) => {
             gotConnectCall = true;
             client._invokeCallback(cb);
         });
 
         // also listen for the normal nick so we can whine more coherently
         // rather than just time out the test.
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect",
-        function(client, cb) {
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect", (client, cb) => {
             console.error("Wrong nick connected: %s", testUser.nick);
             client._invokeCallback(cb);
         });
 
         // mock a response for the state event.
-        env.clientMock._client(config._botUserId).getStateEvent.and.callFake(function() {
-            return Promise.resolve({
-                displayname: displayName
-            });
-        });
+        env.clientMock._client(config._botUserId).getRoomStateEvent.and.callFake(() => ({
+            displayname: displayName
+        }));
 
         let gotSayCall = false;
-        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "say",
-        function(client, channel, text) {
+        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "say", (client, channel, text) => {
             expect(client.nick).toEqual(nickForDisplayName);
             expect(client.addr).toEqual(roomMapping.server);
             expect(channel).toEqual(roomMapping.channel);
+            expect(text).toEqual("A message");
             gotSayCall = true;
         });
 
         // send a message to kick start the AS
-        env.mockAppService._trigger("type:m.room.message", {
+        await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -90,16 +80,12 @@ describe("IRC connections", function() {
             user_id: testUser.id,
             room_id: roomMapping.roomId,
             type: "m.room.message"
-        }).then(function() {
-            expect(gotConnectCall).toBe(
-                true, nickForDisplayName + " failed to connect to IRC."
-            );
-            expect(gotSayCall).toBe(true, "Didn't get say");
-            done();
         });
+        expect(gotConnectCall).withContext(`${nickForDisplayName} failed to connect to IRC.`).toBeTrue();
+        expect(gotSayCall).withContext("Didn't get say").toBeTrue();
     });
 
-    it("should coerce invalid nicks into a valid form", function(done) {
+    it("should coerce invalid nicks into a valid form", async () => {
         let displayName = "123Num£Ber";
         let nickForDisplayName = "M-123NumBer";
 
@@ -110,38 +96,34 @@ describe("IRC connections", function() {
 
         // listen for the display name nick and let it connect
         let gotConnectCall = false;
-        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "connect",
-        function(client, cb) {
+        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "connect", (client, cb) => {
             gotConnectCall = true;
             client._invokeCallback(cb);
         });
 
         // also listen for the normal nick so we can whine more coherently
         // rather than just time out the test.
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect",
-        function(client, cb) {
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect", (client, cb) => {
             console.error("Wrong nick connected: %s", testUser.nick);
             client._invokeCallback(cb);
         });
 
         // mock a response for the state event.
-        env.clientMock._client(config._botUserId).getStateEvent.and.callFake(function() {
-            return Promise.resolve({
-                displayname: displayName
-            });
-        });
+        env.clientMock._client(config._botUserId).getRoomStateEvent.and.callFake(() => ({
+            displayname: displayName
+        }));
 
         let gotSayCall = false;
-        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "say",
-        function(client, channel, text) {
+        env.ircMock._whenClient(roomMapping.server, nickForDisplayName, "say", (client, channel, text) => {
             expect(client.nick).toEqual(nickForDisplayName);
             expect(client.addr).toEqual(roomMapping.server);
             expect(channel).toEqual(roomMapping.channel);
+            expect(text).toEqual("A message");
             gotSayCall = true;
         });
 
         // send a message to kick start the AS
-        env.mockAppService._trigger("type:m.room.message", {
+        await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -149,37 +131,29 @@ describe("IRC connections", function() {
             user_id: testUser.id,
             room_id: roomMapping.roomId,
             type: "m.room.message"
-        }).then(function() {
-            expect(gotConnectCall).toBe(
-                true, nickForDisplayName + " failed to connect to IRC."
-            );
-            expect(gotSayCall).toBe(true, "Didn't get say");
-            done();
         });
+        expect(gotConnectCall).withContext(`${nickForDisplayName} failed to connect to IRC.`).toBeTrue();
+        expect(gotSayCall).withContext("Didn't get say").toBeTrue();
     });
 
-    it("should use the nick assigned in the rpl_welcome (registered) event",
-    function(done) {
+    it("should use the nick assigned in the rpl_welcome (registered) event", async () => {
         let assignedNick = "monkeys";
 
         // catch attempts to send messages and fail coherently
-        let sdk = env.clientMock._client(config._botUserId);
-        sdk._onHttpRegister({
+        const intent = env.clientMock._intent(config._botUserId);
+        intent._onHttpRegister({
             expectLocalpart: roomMapping.server + "_" + testUser.nick,
             returnUserId: testUser.id
         });
-        sdk.sendEvent.and.callFake(function(roomId, type, c) {
-            expect(false).toBe(
-                true, "bridge tried to send a msg to matrix from a virtual " +
-                "irc user with a nick assigned from rpl_welcome."
+        const sdk = intent.underlyingClient;
+        sdk.sendEvent.and.callFake((_roomId, type, c) => {
+            throw Error(
+                "bridge tried to send a msg to matrix from a virtual irc user with a nick assigned from rpl_welcome."
             );
-            done();
-            return Promise.resolve();
         });
 
         // let the user connect
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect",
-        function(client, cb) {
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "connect", (client, cb) => {
             // cb fires *AFTER* the 'registered' event. The 'registered' event
             // fires on receipt of rpl_welcome which may modify the underlying nick.
             // Change the nick and then invoke the callback.
@@ -197,7 +171,7 @@ describe("IRC connections", function() {
         );
 
         // send a message from matrix to make them join the room.
-        env.mockAppService._trigger("type:m.room.message", {
+        await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -205,27 +179,23 @@ describe("IRC connections", function() {
             user_id: testUser.id,
             room_id: roomMapping.roomId,
             type: "m.room.message"
-        }).then(function() {
-            // send a message in response from the assigned nick: if it is using
-            // the assigned nick then it shouldn't try to pass it on (virtual
-            // user error)
-            env.ircMock._findClientAsync(
-                roomMapping.server, roomMapping.botNick
-            ).then(function(client) {
-                client.emit(
-                    "message", assignedNick, roomMapping.channel, "some text"
-                );
-                // TODO: We should really have a means to notify tests if the
-                // bridge decides to do nothing due to it being an ignored user.
-                setTimeout(function() {
-                    done();
-                }, 200);
-            });
-        });
+        })
+        // send a message in response from the assigned nick: if it is using
+        // the assigned nick then it shouldn't try to pass it on (virtual
+        // user error)
+        const client = await env.ircMock._findClientAsync(
+            roomMapping.server, roomMapping.botNick
+        )
+        client.emit(
+            "message", assignedNick, roomMapping.channel, "some text"
+        );
+
+        // TODO: We should really have a means to notify tests if the
+        // bridge decides to do nothing due to it being an ignored user.
+        return new Promise((resolve) => setTimeout(resolve, 200));
     });
 
-    it("should be made once per client, regardless of how many messages are " +
-    "to be sent to IRC", async function() {
+    it("should be made once per client, regardless of how many messages are to be sent to IRC", async () => {
         let connectCount = 0;
 
         env.ircMock._autoJoinChannels(
@@ -266,9 +236,7 @@ describe("IRC connections", function() {
         expect(connectCount).toBe(1);
     });
 
-    // BOTS-41
-    it("[BOTS-41] should be able to handle clashing nicks without causing echos",
-    function(done) {
+    it("should be able to handle clashing nicks without causing echos", async () => {
         let nickToClash = "M-kermit";
         let users = [
             {
@@ -282,8 +250,7 @@ describe("IRC connections", function() {
         ];
 
         let connectCount = 0;
-        env.ircMock._whenClient(roomMapping.server, nickToClash, "connect",
-        function(client, cb) {
+        env.ircMock._whenClient(roomMapping.server, nickToClash, "connect", (client, cb) => {
             if (connectCount === 0) {
                 client._invokeCallback(cb);
             }
@@ -296,29 +263,27 @@ describe("IRC connections", function() {
         });
 
         // not interested in joins
-        users.forEach(function(user) {
+        users.forEach((user) => {
             env.ircMock._autoJoinChannels(
                 roomMapping.server, user.assignedNick, roomMapping.channel
             );
         });
 
         // catch attempts to send messages and fail coherently
-        let sdk = env.clientMock._client(config._botUserId);
-        sdk._onHttpRegister({
+        const intent = env.clientMock._intent(config._botUserId);
+        intent._onHttpRegister({
             expectLocalpart: roomMapping.server + "_" + users[0].assignedNick,
             returnUserId: users[0].id
         });
+        const sdk = intent.underlyingClient;
         sdk.sendEvent.and.callFake(function(roomId, type, c) {
-            expect(false).toBe(
-                true, "bridge tried to send a msg to matrix from a virtual " +
-                "irc user (clashing nicks)."
+            throw Error(
+                "bridge tried to send a msg to matrix from a virtual irc user (clashing nicks)."
             );
-            done();
-            return Promise.resolve();
         });
 
         // send a message from the first guy
-        env.mockAppService._trigger("type:m.room.message", {
+        await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -326,54 +291,49 @@ describe("IRC connections", function() {
             user_id: users[0].id,
             room_id: roomMapping.roomId,
             type: "m.room.message"
-        }).then(function() {
-            // send a message from the second guy
-            return env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "Another message",
-                    msgtype: "m.text"
-                },
-                user_id: users[1].id,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
-        }).then(function() {
-            // send a message from the first guy
-            return env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "3rd message",
-                    msgtype: "m.text"
-                },
-                user_id: users[0].id,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
-        }).then(function() {
-            // send an echo of the 3rd message: it shouldn't pass it through
-            // because it is a virtual user!
-            env.ircMock._findClientAsync(
-                roomMapping.server, roomMapping.botNick
-            ).then(function(client) {
-                client.emit(
-                    "message", users[0].assignedNick, roomMapping.channel,
-                    "3rd message"
-                );
-                // TODO: We should really have a means to notify tests if the
-                // bridge decides to do nothing due to it being an ignored user.
-                setTimeout(function() {
-                    done();
-                }, 200);
-            });
         });
+        // send a message from the second guy
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "Another message",
+                msgtype: "m.text"
+            },
+            user_id: users[1].id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+        // send a message from the first guy
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "3rd message",
+                msgtype: "m.text"
+            },
+            user_id: users[0].id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+
+        // send an echo of the 3rd message: it shouldn't pass it through
+        // because it is a virtual user!
+        const client = await env.ircMock._findClientAsync(
+            roomMapping.server, roomMapping.botNick
+        )
+        client.emit(
+            "message", users[0].assignedNick, roomMapping.channel,
+            "3rd message"
+        );
+
+        // TODO: We should really have a means to notify tests if the
+        // bridge decides to do nothing due to it being an ignored user.
+        return new Promise((resolve) => setTimeout(resolve, 200));
     });
 
-    it("should assign different ident usernames for long user IDs",
-    function(done) {
-        let usr1 = {
+    it("should assign different ident usernames for long user IDs", async() => {
+        const usr1 = {
             nick: "M-averyverylongname",
             id: "@averyverylongname:localhost"
         };
-        let usr2 = {
+        const usr2 = {
             nick: "M-averyverylongnameagain",
             id: "@averyverylongnameagain:localhost"
         };
@@ -386,88 +346,17 @@ describe("IRC connections", function() {
             roomMapping.server, usr2.nick, roomMapping.channel
         );
 
-        env.ircMock._whenClient(roomMapping.server, usr1.nick, "connect",
-        function(client, cb) {
+        env.ircMock._whenClient(roomMapping.server, usr1.nick, "connect", (client, cb) => {
             usr1.username = client.opts.userName;
             client._invokeCallback(cb);
         });
-        env.ircMock._whenClient(roomMapping.server, usr2.nick, "connect",
-        function(client, cb) {
+        env.ircMock._whenClient(roomMapping.server, usr2.nick, "connect", (client, cb) => {
             usr2.username = client.opts.userName;
             client._invokeCallback(cb);
         });
 
-        // mock a response for the state event.
-        env.clientMock._client(config._botUserId).getStateEvent.and.callFake(function() {
-            return Promise.resolve({});
-        });
-
         // send a message to kick start the AS
-        env.mockAppService._trigger("type:m.room.message", {
-            content: {
-                body: "A message",
-                msgtype: "m.text"
-            },
-            user_id: usr1.id,
-            room_id: roomMapping.roomId,
-            type: "m.room.message"
-        }).then(function() {
-            return env.mockAppService._trigger("type:m.room.message", {
-                content: {
-                    body: "A message2",
-                    msgtype: "m.text"
-                },
-                user_id: usr2.id,
-                room_id: roomMapping.roomId,
-                type: "m.room.message"
-            });
-        }).then(function() {
-            expect(usr1.username).toBeDefined();
-            expect(usr2.username).toBeDefined();
-            expect(usr1.username).not.toEqual(usr2.username);
-            // should do something like "foo~1"
-            expect(usr2.username[usr2.username.length - 1]).toEqual("1");
-            done();
-        });
-    });
-
-    it("should queue ident generation requests to avoid racing when querying for " +
-            "cached ident usernames", function(done) {
-        let usr1 = {
-            nick: "M-averyverylongname",
-            id: "@averyverylongname:localhost"
-        };
-        let usr2 = {
-            nick: "M-averyverylongnameagain",
-            id: "@averyverylongnameagain:localhost"
-        };
-
-        // not interested in join calls
-        env.ircMock._autoJoinChannels(
-            roomMapping.server, usr1.nick, roomMapping.channel
-        );
-        env.ircMock._autoJoinChannels(
-            roomMapping.server, usr2.nick, roomMapping.channel
-        );
-
-        env.ircMock._whenClient(roomMapping.server, usr1.nick, "connect",
-        function(client, cb) {
-            usr1.username = client.opts.userName;
-            client._invokeCallback(cb);
-        });
-        env.ircMock._whenClient(roomMapping.server, usr2.nick, "connect",
-        function(client, cb) {
-            usr2.username = client.opts.userName;
-            client._invokeCallback(cb);
-        });
-
-        // mock a response for the state event.
-        env.clientMock._client(config._botUserId).getStateEvent.and.callFake(function() {
-            return Promise.resolve({});
-        });
-
-        // send a message to kick start the AS
-        let p1 = env.mockAppService._trigger("type:m.room.message", {
+        await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message",
                 msgtype: "m.text"
@@ -476,7 +365,8 @@ describe("IRC connections", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
-        let p2 = env.mockAppService._trigger("type:m.room.message", {
+
+        await env.mockAppService._trigger("type:m.room.message", {
             content: {
                 body: "A message2",
                 msgtype: "m.text"
@@ -485,23 +375,73 @@ describe("IRC connections", function() {
             room_id: roomMapping.roomId,
             type: "m.room.message"
         });
-        Promise.all([p1, p2]).then(function() {
-            expect(usr1.username).toBeDefined();
-            expect(usr2.username).toBeDefined();
-            expect(usr1.username).not.toEqual(usr2.username);
-            done();
-        });
+
+        expect(usr1.username).toBeDefined();
+        expect(usr2.username).toBeDefined();
+        expect(usr1.username).not.toEqual(usr2.username);
+        // should do something like "foo~1"
+        expect(usr2.username[usr2.username.length - 1]).toEqual("1");
     });
 
-    it("should gracefully fail if it fails to join a channel when sending a message",
-    async function() {
+    it("should queue ident generation requests to avoid racing when querying for cached ident usernames", async () => {
+        const usr1 = {
+            nick: "M-averyverylongname",
+            id: "@averyverylongname:localhost"
+        };
+        const usr2 = {
+            nick: "M-averyverylongnameagain",
+            id: "@averyverylongnameagain:localhost"
+        };
+
+        // not interested in join calls
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, usr1.nick, roomMapping.channel
+        );
+        env.ircMock._autoJoinChannels(
+            roomMapping.server, usr2.nick, roomMapping.channel
+        );
+
+        env.ircMock._whenClient(roomMapping.server, usr1.nick, "connect", (client, cb) => {
+            usr1.username = client.opts.userName;
+            client._invokeCallback(cb);
+        });
+        env.ircMock._whenClient(roomMapping.server, usr2.nick, "connect", (client, cb) => {
+            usr2.username = client.opts.userName;
+            client._invokeCallback(cb);
+        });
+
+        // send a message to kick start the AS
+        const p1 = env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "A message",
+                msgtype: "m.text"
+            },
+            user_id: usr1.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+        const p2 = env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "A message2",
+                msgtype: "m.text"
+            },
+            user_id: usr2.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+        await Promise.all([p1, p2]);
+        expect(usr1.username).toBeDefined();
+        expect(usr2.username).toBeDefined();
+        expect(usr1.username).not.toEqual(usr2.username);
+    });
+
+    it("should gracefully fail if it fails to join a channel when sending a message", async() => {
         env.ircMock._autoConnectNetworks(
             roomMapping.server, testUser.nick, roomMapping.server
         );
 
         let errorEmitted = false;
-        env.ircMock._whenClient(roomMapping.server, testUser.nick, "join",
-        (client) => {
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "join", (client) => {
             errorEmitted = true;
             client.emit("error", {
                 command: "err_bannedfromchan",
@@ -520,22 +460,22 @@ describe("IRC connections", function() {
                 type: "m.room.message"
             });
             throw Error('Expected exception');
-        } catch (ex) {
+        }
+        catch (ex) {
             expect(errorEmitted).toBe(true);
         }
     });
 
-    it("should not bridge matrix users who are excluded", async function() {
+    it("should not bridge matrix users who are excluded", async () => {
         const excludedUserId = "@excluded:hs";
         const nick = "M-excluded";
 
-        env.ircMock._whenClient(roomMapping.server, nick, "connect",
-        function() {
+        env.ircMock._whenClient(roomMapping.server, nick, "connect", () => {
             throw Error("Client should not be saying anything")
         });
 
-        const botSdk = env.clientMock._client(config._botUserId);
-        botSdk.kick.and.callFake(async (roomId, userId) => {
+        const sdk = env.clientMock._client(config._botUserId);
+        sdk.kickUser.and.callFake(async (userId, roomId, reason) => {
             if (roomId === roomMapping.roomId && userId === excludedUserId) {
                 throw Error("Should not kick");
             }
@@ -556,15 +496,14 @@ describe("IRC connections", function() {
         throw Error("Should have thrown");
     });
 
-    it("should not bridge matrix users who are deactivated", async function() {
+    it("should not bridge matrix users who are deactivated", async () => {
         const deactivatedUserId = "@deactivated:hs";
         const nick = "M-deactivated";
 
         const store = env.ircBridge.getStore();
         await store.deactivateUser(deactivatedUserId);
         expect(await store.isUserDeactivated(deactivatedUserId)).toBe(true);
-        env.ircMock._whenClient(roomMapping.server, nick, "connect",
-        function() {
+        env.ircMock._whenClient(roomMapping.server, nick, "connect", () => {
             throw Error("Client should not be saying anything")
         });
         try {
@@ -582,3 +521,4 @@ describe("IRC connections", function() {
         throw Error("Should have thrown");
     });
 });
+

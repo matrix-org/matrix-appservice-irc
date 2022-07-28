@@ -227,7 +227,7 @@ export class BridgedClient extends EventEmitter {
             if (ipv6Prefix) {
                 // side-effects setting the IPv6 address on the client config
                 await this.ipv6Generator.generate(
-                    ipv6Prefix, this.clientConfig
+                    ipv6Prefix, this.clientConfig, this.server,
                 );
             }
             this.log.info(
@@ -250,7 +250,9 @@ export class BridgedClient extends EventEmitter {
                     this.server.getIpv6Prefix() ? this.clientConfig.getIpv6Address() : undefined
                 ),
                 encodingFallback: this.encodingFallback,
-            }, (inst: ConnectionInstance) => {
+            },
+            this.server.homeserverDomain,
+            (inst: ConnectionInstance) => {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 this.onConnectionCreated(inst, nameInfo, identResolver!);
             });
@@ -1049,90 +1051,81 @@ export class BridgedClient extends EventEmitter {
         return defer.promise;
     }
 
+    public getMaxLineLength(): number {
+        return this.assertConnected().maxLineLength;
+    }
+
     public getSplitMessages(target: string, text: string) {
-        if (this.state.status === BridgedClientStatus.CONNECTED) {
-            return this.state.client.getSplitMessages(target, text);
-        }
-        throw Error('Client is not connected');
+        return this.assertConnected().getSplitMessages(target, text);
     }
 
     public getClientInternalNick() {
-        if (this.state.status === BridgedClientStatus.CONNECTED) {
-            return this.state.client.nick;
-        }
-        throw Error('Client is not connected');
+        return this.assertConnected().nick;
     }
 
     public async mode(channelOrNick: string) {
-        if (this.state.status === BridgedClientStatus.CONNECTED) {
-            return this.state.client.mode(channelOrNick);
-        }
-        throw Error('Client is not connected');
+        return this.assertConnected().mode(channelOrNick);
     }
 
     public sendCommands(...data: string[]) {
-        if (this.state.status === BridgedClientStatus.CONNECTED) {
-            this.state.client.send(...data);
-            return;
-        }
-        throw Error('Client is not connected');
+        return this.assertConnected().send(...data);
     }
 
     public writeToConnection(buffer: string|Uint8Array) {
-        if (this.state.status === BridgedClientStatus.CONNECTED && this.state.client.conn) {
-            this.state.client.conn.write(buffer);
-            return;
+        const client = this.assertConnected();
+        if (!client.conn) {
+            throw Error('Client is not connected');
         }
-        throw Error('Client is not connected');
+        client.conn.write(buffer);
     }
 
     public addClientListener(type: string, listener: (msg: unknown) => void) {
-        if (this.state.status === BridgedClientStatus.CONNECTED) {
-            this.state.client.on(type, listener);
-            return;
-        }
-        throw Error('Client is not connected');
+        this.assertConnected().on(type, listener);
     }
 
     public removeClientListener(type: string, listener: (msg: unknown) => void) {
-        if (this.state.status === BridgedClientStatus.CONNECTED) {
-            this.state.client.removeListener(type, listener);
-            return;
+        try {
+            this.assertConnected().removeListener(type, listener);
         }
-        // no-op
-        this.log.info("Tried to unbind listener from client but client was not connected");
+        catch {
+            // no-op
+            this.log.info("Tried to unbind listener from client but client was not connected");
+        }
     }
 
+    // Using ISUPPORT rules supported by MatrixBridge bot, case map ircChannel
     public caseFold(channel: string) {
-        // Using ISUPPORT rules supported by MatrixBridge bot, case map ircChannel
-        if (this.state.status !== BridgedClientStatus.CONNECTED) {
+        try {
+            return this.assertConnected().toLowerCase(channel);
+        }
+        catch {
             log.warn(`Could not case map ${channel} - BridgedClient has no IRC client`);
             return channel;
         }
-        return this.state.client.toLowerCase(channel);
     }
 
     public modeForPrefix(prefix: string) {
-        if (this.state.status === BridgedClientStatus.CONNECTED) {
-            return this.state.client.modeForPrefix[prefix];
+        try {
+            return this.assertConnected().modeForPrefix[prefix];
         }
-        this.log.error("Could not get mode for prefix, client not connected");
-        return null;
+        catch {
+            this.log.error("Could not get mode for prefix, client not connected");
+            return null;
+        }
     }
 
     public isUserPrefixMorePowerfulThan(prefix: string, testPrefix: string) {
-        if (this.state.status === BridgedClientStatus.CONNECTED) {
-            return this.state.client.isUserPrefixMorePowerfulThan(prefix, testPrefix);
+        try {
+            return this.assertConnected().isUserPrefixMorePowerfulThan(prefix, testPrefix);
         }
-        this.log.error("Could not call isUserPrefixMorePowerfulThan, client not connected");
-        return null;
+        catch {
+            this.log.error("Could not call isUserPrefixMorePowerfulThan, client not connected");
+            return null;
+        }
     }
 
     public chanData(channel: string) {
-        if (this.state.status === BridgedClientStatus.CONNECTED) {
-            return this.state.client.chanData(channel, false);
-        }
-        throw Error('Client is not connected');
+        return this.assertConnected().chanData(channel, false);
     }
 
     public async waitForConnected(): Promise<void> {
@@ -1143,5 +1136,12 @@ export class BridgedClient extends EventEmitter {
             throw Error('Client is not connecting or connected');
         }
         return this.connectDefer.promise;
+    }
+
+    private assertConnected(): Client {
+        if (this.state.status !== BridgedClientStatus.CONNECTED) {
+            throw Error('Client is not connected');
+        }
+        return this.state.client as Client;
     }
 }

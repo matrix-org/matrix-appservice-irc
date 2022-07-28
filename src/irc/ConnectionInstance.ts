@@ -21,6 +21,7 @@ import * as logging from "../logging";
 import Bluebird from "bluebird";
 import { Defer } from "../promiseutil";
 import { IrcServer } from "./IrcServer";
+import { getBridgeVersion } from "matrix-appservice-bridge";
 
 const log = logging.get("client-connection");
 
@@ -42,7 +43,8 @@ const FLOOD_PROTECTION_DELAY_MS = 700;
 const THROTTLE_WAIT_MS = 20 * 1000;
 
 // String reply of any CTCP Version requests
-const CTCP_VERSION = 'matrix-appservice-irc, part of the Matrix.org Network';
+const CTCP_VERSION =
+    (homeserverName: string) => `matrix-appservice-irc ${getBridgeVersion()} bridged via ${homeserverName}`;
 
 const CONN_LIMIT_MESSAGES = [
     "too many host connections", // ircd-seven
@@ -79,21 +81,24 @@ export class ConnectionInstance {
     private state: "created"|"connecting"|"connected" = "created";
     private pingRateTimerId: NodeJS.Timer|null = null;
     private clientSidePingTimeoutTimerId: NodeJS.Timer|null = null;
+    // eslint-disable-next-line no-use-before-define
     private connectDefer: Defer<ConnectionInstance>;
     public onDisconnect?: (reason: string) => void;
     /**
-     * Create an IRC connection instance. Wraps the node-irc library to handle
+     * Create an IRC connection instance. Wraps the matrix-org-irc library to handle
      * connections correctly.
      * @constructor
-     * @param {IrcClient} ircClient The new IRC client.
-     * @param {string} domain The domain (for logging purposes)
-     * @param {string} nick The nick (for logging purposes)
+     * @param client The new IRC client.
+     * @param domain The domain (for logging purposes)
+     * @param nick The nick (for logging purposes)
+     * @param pingOpts Options for automatic pings to the IRCd.
+     * @param homeserverDomain The homeserver's domain, for the CTCP version string.
      */
     constructor (public readonly client: Client, private readonly domain: string, private nick: string,
         private pingOpts: {
         pingRateMs: number;
         pingTimeoutMs: number;
-    }) {
+    }, private readonly homeserverDomain: string) {
         this.listenForErrors();
         this.listenForPings();
         this.listenForCTCPVersions();
@@ -328,7 +333,7 @@ export class ConnectionInstance {
     private listenForCTCPVersions() {
         this.client.addListener("ctcp-version", (from: string) => {
             if (from) { // Ensure the sender is valid before we try to respond
-                this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
+                this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION(this.homeserverDomain)}`);
             }
         });
     }
@@ -358,10 +363,13 @@ export class ConnectionInstance {
      * @param {string} opts.realname The real name of the user.
      * @param {string} opts.password The password to give NickServ.
      * @param {string} opts.localAddress The local address to bind to when connecting.
+     * @param {string} homeserverDomain Domain of the homeserver bridging requests.
      * @param {Function} onCreatedCallback Called with the client when created.
      * @return {Promise} Resolves to an ConnectionInstance or rejects.
      */
-    public static async create (server: IrcServer, opts: ConnectionOpts,
+    public static async create (server: IrcServer,
+                                opts: ConnectionOpts,
+                                homeserverDomain: string,
                                 onCreatedCallback?: (inst: ConnectionInstance) => void): Promise<ConnectionInstance> {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
@@ -395,7 +403,8 @@ export class ConnectionInstance {
                 nodeClient, server.domain, opts.nick, {
                     pingRateMs: server.pingRateMs,
                     pingTimeoutMs: server.pingTimeout,
-                }
+                },
+                homeserverDomain,
             );
             if (onCreatedCallback) {
                 onCreatedCallback(inst);
