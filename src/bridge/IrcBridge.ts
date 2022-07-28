@@ -54,7 +54,7 @@ import { TestingOptions } from "../config/TestOpts";
 import { MatrixBanSync } from "./MatrixBanSync";
 
 const log = getLogger("IrcBridge");
-const DEFAULT_PORT = 9999;
+const DEFAULT_PORT = 8090;
 const DELAY_TIME_MS = 10 * 1000;
 const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;

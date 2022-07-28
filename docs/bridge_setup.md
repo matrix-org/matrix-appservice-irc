@@ -77,10 +77,10 @@ homeserver which Matrix events the bridge should receive.
 Execute the following command:
 
 ```
-node app.js -r -f appservice-registration-irc.yaml -u "http://localhost:9999" -c config.yaml -l my_bot
+node app.js -r -f appservice-registration-irc.yaml -u "http://localhost:8090" -c config.yaml -l my_bot
 ```
 
-Change `-u "http://localhost:9999"` to wherever your Matrix server can contact this IRC bridge.
+Change `-u "http://localhost:8090"` to wherever your Matrix server can contact this IRC bridge.
 By changing the option `-l my_bot` you can modify the localpart of the bridge bot user. It contacts
 Matrix users of your bridge to control their usage of the bridge (e.g. to change their nickname).
 
@@ -96,7 +96,7 @@ namespaces:
   aliases:
     - exclusive: true
       regex: '#irc_.*:yourhomeserverdomain'
-url: 'http://localhost:9999'
+url: 'http://localhost:8090'
 sender_localpart: appservice-irc
 rate_limited: false
 protocols:
@@ -119,12 +119,12 @@ app_service_config_files: ["appservice-registration-irc.yaml"]
 Finally, the bridge can be run using the following command:
 
 ```
-$ node app.js -c config.yaml -f appservice-registration-irc.yaml -p 9999
+$ node app.js -c config.yaml -f appservice-registration-irc.yaml -p 8090
 ```
 
 Or for Docker:
 
 ```
 # Remember to expose ports for metrics, debug API if you need to.
-docker run --volume $PWD/data:/data --publish 9999 matrixdotorg/matrix-appservice-irc
+docker run --volume $PWD/data:/data --publish 8090 matrixdotorg/matrix-appservice-irc
 ```
