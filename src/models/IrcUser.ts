@@ -27,19 +27,25 @@ export class IrcUser extends RemoteUser {
      * @param {boolean} isVirtual : True if the user is not a real IRC user.
      * @param {string} password : The password to give to NickServ.
      * @param {string} username : The username of the client (for ident)
+     * @param {string} saslKey : The private key for SASL external auth
+     * @param {string} saslCert : The certifcate for SASL external auth
      */
     constructor(
         public readonly server: IrcServer,
         public readonly nick: string,
         public readonly isVirtual: boolean,
         public readonly password: string|null = null,
+        public readonly saslKey: string|null = null,
+        public readonly saslCert: string|null = null,
         username: string|null = null) {
         super(server.domain + "__@__" + nick, {
             domain: server.domain,
             nick: nick,
             isVirtual: Boolean(isVirtual),
             password: password || null,
-            username: username || null
+            username: username || null,
+            saslKey: saslKey || null,
+            saslCert: saslCert || null
         });
     }
 

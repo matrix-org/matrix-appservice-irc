@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import * as crypto from "crypto";
 import { BridgeRequest } from "../models/BridgeRequest";
 import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import { IrcBridge } from "./IrcBridge";
@@ -94,6 +95,22 @@ const COMMANDS: {[command: string]: Command|Heading} = {
     "!username": {
         example: `!username [irc.example.net] username`,
         summary: "Store a username to use for future connections.",
+    },
+    "!storecert": {
+        example: `!storecert irc.example.net] -----BEGIN CERTIFICATE-----[...]`,
+        summary: `Store a SASL certificate for CertFP`,
+    },
+    "!storekey": {
+        example: `!storekey [irc.example.net] -----BEGIN PRIVATE KEY-----[...]`,
+        summary: `Store a SASL private key for CertFP`,
+    },
+    "!removecert": {
+        example: `!removecert [irc.example.net]`,
+        summary: `Remove a previously stored SASL certificate`,
+    },
+    "!removekey": {
+        example: `!removekey [irc.example.net]`,
+        summary: `Remove a previously stored SASL private key`,
     },
     'Info': { heading: true},
     "!bridgeversion": {
@@ -184,6 +201,14 @@ export class AdminRoomHandler {
                 return await this.handleStorePass(req, args, event.sender);
             case "!removepass":
                 return await this.handleRemovePass(args, event.sender);
+            case "!storekey":
+                return await this.handleStoreKey(req, args, event.sender);
+            case "!storecert":
+                return await this.handleStoreCert(req, args, event.sender);
+            case "!removekey":
+                return await this.handleRemoveKey(args, event.sender);
+            case "!removecert":
+                return await this.handleRemoveCert(args, event.sender);
             case "!listrooms":
                 return await this.handleListRooms(args, event.sender);
             case "!quit":
@@ -478,7 +503,7 @@ export class AdminRoomHandler {
         let notice;
 
         try {
-            // Allow passwords with spaces
+            // Allow usernames with spaces
             const username = args[0]?.trim();
             if (!username) {
                 notice = new MatrixAction(
@@ -570,6 +595,143 @@ export class AdminRoomHandler {
         catch (err) {
             return new MatrixAction(
                 ActionType.Notice, `Failed to remove password: ${err.message}`
+            );
+        }
+    }
+
+    private async handleStoreKey(req: BridgeRequest, args: string[], userId: string) {
+        const server = this.extractServerFromArgs(args);
+        const domain = server.domain;
+        let notice;
+
+        try {
+            const key = args.join(' ').replace(/(-----([A-Z ]*)-----)\s*/g, '\n$1\n').trim().replace('\n\n', '\n');
+            if (key.length === 0) {
+                notice = new MatrixAction(
+                    "notice",
+                    "Format: '!storekey key' or '!storepass irc.server.name key'\n"
+                );
+            }
+            else {
+                try {
+                    const pk = crypto.createPrivateKey(key);
+                    const config = await this.ircBridge.getStore().getIrcClientConfig(userId, server.domain);
+                    if (config) {
+                        const cert = config.getSASLCert();
+                        if (cert) {
+                            const c = new crypto.X509Certificate(cert);
+                            if (!c.checkPrivateKey(pk)) {
+                                return new MatrixAction(
+                                    "notice",
+                                    "Private key does not match stored certificate. " +
+                                    "To store a new pair, first call !removecert.\n"
+                                );
+                            }
+                        }
+                    }
+                }
+                catch (err) {
+                    throw new Error(`Invalid private key: ${err.message})`);
+                }
+                await this.ircBridge.getStore().storeKey(userId, domain, key);
+                notice = new MatrixAction(
+                    "notice", `Successfully stored SASL key for ${domain}. Use !reconnect to reauthenticate.`
+                );
+            }
+        }
+        catch (err) {
+            req.log.error(err.stack);
+            return new MatrixAction(
+                "notice", `Failed to store SASL key: ${err.message}`
+            );
+        }
+        return notice;
+    }
+
+    private async handleRemoveKey(args: string[], userId: string) {
+        const server = this.extractServerFromArgs(args);
+
+        try {
+            await this.ircBridge.getStore().removeKey(userId, server.domain);
+            return new MatrixAction(
+                "notice", `Successfully removed SASL key.`
+            );
+        }
+        catch (err) {
+            return new MatrixAction(
+                "notice", `Failed to remove SASL key: ${err.message}`
+            );
+        }
+    }
+
+    private async handleStoreCert(req: BridgeRequest, args: string[], userId: string) {
+        const server = this.extractServerFromArgs(args);
+        const domain = server.domain;
+        let notice;
+
+        try {
+            const cert = args.join(' ').replace(/(-----([A-Z ]*)-----)\s*/g, '\n$1\n').trim().replace('\n\n', '\n');
+            if (cert.length === 0) {
+                notice = new MatrixAction(
+                    "notice",
+                    "Format: '!storecert cert' or '!storecert irc.server.name cert'\n"
+                );
+            }
+            else {
+                let config = await this.ircBridge.getStore().getIrcClientConfig(userId, server.domain);
+                if (!config) {
+                    config = IrcClientConfig.newConfig(
+                        new MatrixUser(userId), server.domain
+                    );
+                }
+                let c: crypto.X509Certificate;
+                try {
+                    c = new crypto.X509Certificate(cert);
+                    const pk = config.getSASLKey();
+                    if (pk) {
+                        if (!c.checkPrivateKey(crypto.createPrivateKey(pk))) {
+                            return new MatrixAction(
+                                "notice",
+                                "Certificate does not match stored private key. " +
+                                "To store a new pair, first call !removekey.\n"
+                            );
+                        }
+                    }
+                }
+                catch (err) {
+                    throw new Error(`Invalid certificate: ${err.message})`);
+                }
+                const fingerprint512 = crypto.createHash('sha512').update(c.raw).digest('hex')
+                    .replace(/:/g, '').toLowerCase();
+                config.setSASLCert(cert);
+                await this.ircBridge.getStore().storeIrcClientConfig(config);
+                notice = new MatrixAction(
+                    "notice", `Successfully stored SASL cert for ${domain} with fingerprint ${fingerprint512}.\n' +
+                        'Use !reconnect to reauthenticate.`
+                );
+            }
+        }
+        catch (err) {
+            req.log.error(err.stack);
+            return new MatrixAction(
+                "notice", `Failed to store SASL cert: ${err.message}`
+            );
+        }
+        return notice;
+    }
+
+    private async handleRemoveCert(args: string[], userId: string) {
+        const server = this.extractServerFromArgs(args);
+
+        try {
+            await this.ircBridge.getStore().removeCert(userId, server.domain);
+            return new MatrixAction(
+                "notice", `Successfully removed SASL cert.`
+            );
+        }
+        catch (err) {
+            return new MatrixAction(
+                "notice", `Failed to remove SASL cert: ${err.message}`
             );
         }
     }

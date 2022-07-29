@@ -257,6 +257,10 @@ properties:
                                     type: "string"
                                 joinChannelsIfNoUsers:
                                     type: "boolean"
+                                saslKey:
+                                    type: "string"
+                                saslCert:
+                                    type: "string"
                         privateMessages:
                             type: "object"
                             properties:

@@ -85,6 +85,8 @@ export class BridgedClient extends EventEmitter {
     private _nick: string;
     public readonly id: string;
     private readonly password?: string;
+    private readonly saslKey?: string;
+    private readonly saslCert?: string;
     private lastActionTs: number;
     private _explicitDisconnect = false;
     private _disconnectReason: string|null = null;
@@ -135,9 +137,16 @@ export class BridgedClient extends EventEmitter {
             throw Error("Could not determine nick for user");
         }
         this._nick = BridgedClient.getValidNick(chosenNick, false, this.state);
-        this.password = (
-            clientConfig.getPassword() ? clientConfig.getPassword() : server.config.password
-        );
+        if (isBot) {
+            this.password = clientConfig.getPassword() || server.config.password;
+            this.saslKey = clientConfig.getSASLKey() || server.config.botConfig.saslKey;
+            this.saslCert = clientConfig.getSASLCert() || server.config.botConfig.saslCert;
+        }
+        else {
+            this.password = clientConfig.getPassword();
+            this.saslKey = clientConfig.getSASLKey();
+            this.saslCert = clientConfig.getSASLCert();
+        }
 
         this.lastActionTs = Date.now();
         this.connectDefer = promiseutil.defer();
@@ -250,6 +259,10 @@ export class BridgedClient extends EventEmitter {
                     this.server.getIpv6Prefix() ? this.clientConfig.getIpv6Address() : undefined
                 ),
                 encodingFallback: this.encodingFallback,
+                secure: {
+                    key: this.saslKey,
+                    cert: this.saslCert,
+                },
             },
             this.server.homeserverDomain,
             (inst: ConnectionInstance) => {

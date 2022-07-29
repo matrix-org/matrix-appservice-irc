@@ -164,6 +164,17 @@ ircService:
         # real matrix users in them, even if there is a mapping for the channel.
         # Default: true
         joinChannelsIfNoUsers: true
+        #
+        # Explicit key/cert to use when connecting. Optional.
+        # When setting up with https://freenode.net/kb/answer/certfp , you can copy these from the .pem file
+        #sslKey: |
+        #  -----BEGIN PRIVATE KEY-----
+        #  ...
+        #  -----END PRIVATE KEY-----
+        #saslCert: |
+        #  -----BEGIN CERTIFICATE-----
+        #  ...
+        #  -----END CERTIFICATE-----
 
       # Configuration for PMs / private 1:1 communications between users.
       privateMessages:

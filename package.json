@@ -5,7 +5,7 @@
   "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",
   "engines": {
-    "node": ">=14"
+    "node": ">=16"
   },
   "scripts": {
     "prepare": "npm run build",
@@ -54,7 +54,7 @@
     "@types/extend": "^3.0.1",
     "@types/he": "^1.1.2",
     "@types/nedb": "^1.8.12",
-    "@types/node": "^14",
+    "@types/node": "^16",
     "@types/nopt": "^3.0.29",
     "@types/pg": "^8.6.4",
     "@types/sanitize-html": "^2.6.2",
