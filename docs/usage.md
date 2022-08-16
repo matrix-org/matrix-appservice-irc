@@ -37,8 +37,8 @@ section.
 
 ### Customising your experience
 
-You may also want to customise your nickname or set a password to authenticate with services, you
-can do this by PMing the bridge bot user.
+You may also want to customise your nickname or set a password to authenticate with services.
+You can do this by PMing the Appservice user as follows:
 
 ```
 !nick Alice
