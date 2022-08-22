@@ -485,7 +485,7 @@ ircService:
   # This key CANNOT be hot-reloaded
   metrics:
     # Whether to actually enable the metric endpoint. Default: false
-    enabled: true
+    enabled: false
     # Which port to listen on (omit to listen on the bindPort)
     port: 7001
     # Which hostname to listen on (omit to listen on 127.0.0.1), requires port to be set
