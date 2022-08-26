@@ -88,5 +88,5 @@ Bridged IRC rooms do not share history to Matrix users from before they have joi
 but history visibility can be changed by users with the correct power level on Matrix.
 
 The bridge can also be configured to stop bridging all traffic from a channel to Matrix if it
-cannot garuntee that a Matrix user is joined to the IRC channel, which is usually a step of last
+cannot guarantee that a Matrix user is joined to the IRC channel, which is usually a step of last
 resort should the bridge have failed to connect them. See the [administrators guide](administrators_guide.md#enforcing-matrix-users-to-be-connected-to-irc).
