@@ -12,7 +12,7 @@ designed for maximum compatibility with [Libera's IRCd](https://github.com/solan
 User modes are mapped to certain power levels on Matrix. For those unaware, Matrix power levels typically range between
 0-100 where zero represents a user that may only speak and 100 is an admin of the room (although these are modifiable).
 
-By default the bridge maps users like so
+By default the bridge maps users like so:
 
 ```yaml
 # taken from config.sample.yaml
@@ -52,7 +52,7 @@ or, if the Matrix user is identified to services, using the `$a` extban syntax:
 ```
 
 Note that exempting a user means that user will not be affected by bans or quiets,
-so be sure you trust the user before giving them an exemption
+so be sure you trust the user before giving them an exemption.
 
 ### Invite only (`+i`)
 
@@ -67,7 +67,7 @@ This will also work on other IRC networks that support IPv6 and do not automatic
 the IP address range will be different. Running `/whois` on a Matrix user nick will give you the IPv6 /64 range to use.
 
 Adding an invite exemption for a single Matrix user is done the same way as the ban exemption methods above, replacing `+e`
-with `+I`
+with `+I`.
 
 ### Registered only (`+r`)
 
@@ -86,7 +86,7 @@ for information and updates.
 
 ## Other important channel modes
 
-These channel modes do not prevent a user from joining, but they still affect various properties of the room
+These channel modes do not prevent a user from joining, but they still affect various properties of the room.
 
 ### Secret (`+s`)
 

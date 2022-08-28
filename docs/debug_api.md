@@ -39,7 +39,7 @@ curl http://127.0.0.1:11100/inspectUsers?access_token=AS_TOKEN_FROM_REGISTRATION
 
 #### Request Parameters
 
-- `userRegex` A JS regex string which should match against MXIDs. E.g. `@foobar_.*:matrix.org`
+- `userRegex` A JS regex string which should match against MXIDs. E.g. `@foobar_.*:matrix.org`.
 
 #### Example Response
 

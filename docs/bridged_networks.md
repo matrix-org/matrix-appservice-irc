@@ -46,9 +46,9 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 [SNT]: https://snt.utwente.nl/en/
 
 * Random.sh is no longer contactable. Status of the bridge is unknown.
-* Foonetic IRC has shut down. #xkcd channels [moved to slashnet](https://web.archive.org/web/20190824061533/http://wiki.xkcd.com/irc/Main_Page#Channel_Migration)
+* Foonetic IRC has shut down. #xkcd channels [moved to slashnet](https://web.archive.org/web/20190824061533/http://wiki.xkcd.com/irc/Main_Page#Channel_Migration).
 * The Espernet bridge was shut down after the 2019 matrix.org network breach.
-* The Moznet IRC network has been shut down. They now run their own Matrix homeserver at [chat.mozilla.org](https://chat.mozilla.org/) 🎉
+* The Moznet IRC network has been shut down. They now run their own Matrix homeserver at [chat.mozilla.org](https://chat.mozilla.org/) 🎉.
 * The freenode IRC bridge offically was shut down on 2021-12-20.
 
 ### Footnotes

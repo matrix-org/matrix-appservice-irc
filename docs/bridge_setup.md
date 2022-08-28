@@ -29,7 +29,7 @@ git checkout master # or 0.x.x to pin to a version
 npm i
 ```
 
-The bridge can now be started by: `node app.js`
+The bridge can now be started by: `node app.js`.
 
 ### Global Install
 
@@ -105,7 +105,7 @@ protocols:
 
 For Docker, copy the above to `data/appservice-registration-irc.yaml` and replace as necessary.
 
-*More information on the CLI args can be found by running* `$ node app.js --help`
+*More information on the CLI args can be found by running* `$ node app.js --help`.
 
 This will create a registration YAML file. Edit your **homeserver** config file (e.g. `homeserver.yaml`) to
 point to this registration file:

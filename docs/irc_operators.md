@@ -53,7 +53,7 @@ A Matrix room can be connected to a IRC network in one of two ways:
   However, it's possible for the IRC bot to lack kick abilities in the room so kicks and bans may not be
   bridged both ways.
 
-(This is explained in more depth at [matrix.org](https://matrix.org/docs/guides/types-of-bridging#types-of-rooms))
+(This is explained in more depth at [matrix.org](https://matrix.org/docs/guides/types-of-bridging#types-of-rooms).)
 
 Additionally, a channel may be connected to one portal and multiple plumbed rooms without issue as the 
 messages from Matrix users are replicated to the other rooms for them. We typically do not recommend
