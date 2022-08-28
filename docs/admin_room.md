@@ -26,7 +26,7 @@ portal room if a room doesn't exist. This is useful where you cannot with the al
 `!cmd [irc.example.net] COMMAND [arg0 [arg1 [...]]]`
 
 Send a raw command through the IRC connection. This is useful for making MODE changes to yourself
-or to a channel if you have operator priviledges. Note that this command will not produce any response
+or to a channel if you have operator privileges. Note that this command will not produce any response
 text, so commands will happen silently.
 
 
@@ -91,7 +91,7 @@ your password or stored data with the bridge. Ask the owner of the bridge to rem
 
 `!nick [irc.example.net] nick`
 
-Set your nickname for your IRC conenction and persist it across restarts. If the nickname clashes with another
+Set your nickname for your IRC connection and persist it across restarts. If the nickname clashes with another
 user's nickname, this will fail.
 
 

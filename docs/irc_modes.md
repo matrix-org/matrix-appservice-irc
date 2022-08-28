@@ -1,7 +1,7 @@
 IRC Modes
 =========
 
-This chapter explains how various IRC channel modes are interpteted by the bridge, and how you can best configure your
+This chapter explains how various IRC channel modes are interpreted by the bridge, and how you can best configure your
 channels to work well with the bridge.
 
 Note: While the bridge tries to follow the RFCs where possible, due to the somewhat fragmented nature of IRC the bridge is
@@ -56,7 +56,7 @@ so be sure you trust the user before giving them an exemption
 
 ### Invite only (`+i`)
 
-Some communties prefer to keep their channels invite only but allow the bridge to access the channel. An IRC channel
+Some communities prefer to keep their channels invite only but allow the bridge to access the channel. An IRC channel
 operator can set an invite exemption (`+I`) mask for the whole bridge:
 
 ```

@@ -4,7 +4,7 @@ This guide is written for server administrators who would like to set up their o
 
 ## Before setting up
 
-We recommend using Node.JS `v14` or greater when setting up the bridge, as we use `worker_threads` to handle 
+We recommend using Node.js `v14` or greater when setting up the bridge, as we use `worker_threads` to handle 
 some of the traffic for larger bridges.
 
 Versions older than Node 14 are no longer supported.
@@ -80,7 +80,7 @@ Execute the following command:
 node app.js -r -f appservice-registration-irc.yaml -u "http://localhost:9999" -c config.yaml -l my_bot
 ```
 
-Change `-u "http://localhost:9999"` to whereever your Matrix server can contact this IRC bridge.
+Change `-u "http://localhost:9999"` to wherever your Matrix server can contact this IRC bridge.
 By changing the option `-l my_bot` you can modify the localpart of the bridge bot user. It contacts
 Matrix users of your bridge to control their usage of the bridge (e.g. to change their nickname).
 

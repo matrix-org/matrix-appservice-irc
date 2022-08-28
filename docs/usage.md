@@ -73,7 +73,7 @@ Messages from Matrix are often richer than their IRC counterparts, as Matrix has
 
 Basic formatting is supported such as **bolding** and *italics* but other formats are discarded. Messages that exceed the maximum
 size of an IRC message *or* a message that contains newlines will be split into two or more messages. The configuration value
-`lineLimit` sets the maximum permittied number of messages to be sent before the whole message is stored as a file and sent as a link.
+`lineLimit` sets the maximum permitted number of messages to be sent before the whole message is stored as a file and sent as a link.
 
 For example:
 

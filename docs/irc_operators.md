@@ -47,8 +47,8 @@ A Matrix room can be connected to a IRC network in one of two ways:
   hold power over this room and grant moderator status (half-power) to any IRC operators or Matrix users
   with IRC ops in the room.
 - A plumbed room (also known as provisioning). A Matrix user may create a room ahead of time for their
-  community and later on decide to "plumb in" IRC users to that room. They can do this via an interative
-  UI in Element, via the `!plumb` command or even via a HTTP endpoint. If done interatively, the bridge
+  community and later on decide to "plumb in" IRC users to that room. They can do this via an interactive
+  UI in Element, via the `!plumb` command or even via a HTTP endpoint. If done interactively, the bridge
   has a verification process to ensure the user on the Matrix side has the blessing of the IRC ops first.
   However, it's possible for the IRC bot to lack kick abilities in the room so kicks and bans may not be
   bridged both ways.
@@ -81,12 +81,12 @@ at the discretion of the bridge admin.
 ### History protection
 
 Matrix is naturally history preserving, so that any message sent to a Matrix room is sent to all
-participating users/servers. They will be able to read these messsages for as long as they
+participating users/servers. They will be able to read these messages for as long as they
 are joined to the room.
 
 Bridged IRC rooms do not share history to Matrix users from before they have joined by default,
 but history visibility can be changed by users with the correct power level on Matrix.
 
 The bridge can also be configured to stop bridging all traffic from a channel to Matrix if it
-cannot garuntee that a Matrix user is joined to the IRC channel, which is usually a step of last
+cannot guarantee that a Matrix user is joined to the IRC channel, which is usually a step of last
 resort should the bridge have failed to connect them. See the [administrators guide](administrators_guide.md#enforcing-matrix-users-to-be-connected-to-irc).
