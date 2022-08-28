@@ -54,15 +54,15 @@ or by providing a password to the bridge itself. See the [Admin Room](./admin_ro
 
 ### SASL authentication
 
-SASL authentication is a new mechanism to authenticate with certain bridges, which requires you to also 
-set a `!username` as well as password before authenticating. Bridges such as the **libera.chat** bridge 
-require this authentication type. If you fail to authenticate, the bridge will notify you in the admin 
+SASL authentication is a new mechanism to authenticate with certain bridges, which requires you to also
+set a `!username` as well as password before authenticating. Bridges such as the **libera.chat** bridge
+require this authentication type. If you fail to authenticate, the bridge will notify you in the admin
 room.
 
 ## Message behaviours
 
 Messages from IRC to Matrix appear in roughly as you'd expect them to. Emotes (`/me` text) are applied as Matrix supports
-it, and mIRC format colours are applied too. The IRC bridge makes an attempt to replace nicknames in sent messages with 
+it, and mIRC format colours are applied too. The IRC bridge makes an attempt to replace nicknames in sent messages with
 user mention "pills".
 
 ![An illustration of the IRC mentions feature](images/irc_mentions.png)

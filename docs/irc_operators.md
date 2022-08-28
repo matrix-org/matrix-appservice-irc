@@ -12,7 +12,7 @@ on the number of Matrix users they'd expect to use the bridge.
 When a Matrix room is bridged to IRC, all users (by default) on the Matrix side will be provided with a connection
 to the room and will show up in the user list on IRC. The IRC users will also appear as "ghosts" on the Matrix side,
 bearing a Matrix ID like `@irc_alice:matrix.org`. This allows a "native" feeling so that users do not have to worry
-about the complexities of the protocols. 
+about the complexities of the protocols.
 
 However as with all bridges, the native feeling can catch IRC or Matrix users unaware when things do not bridge well
 (such as replies/threading or reactions).
@@ -55,7 +55,7 @@ A Matrix room can be connected to a IRC network in one of two ways:
 
 (This is explained in more depth at [matrix.org](https://matrix.org/docs/guides/types-of-bridging#types-of-rooms).)
 
-Additionally, a channel may be connected to one portal and multiple plumbed rooms without issue as the 
+Additionally, a channel may be connected to one portal and multiple plumbed rooms without issue as the
 messages from Matrix users are replicated to the other rooms for them. We typically do not recommend
 multiple points of entry to the channel due to the obvious confusion this causes.
 

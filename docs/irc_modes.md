@@ -33,7 +33,7 @@ Below are some common channel modes that prevent bridged users from joining. The
 given are for Libera.Chat, other IRCds may have different mode letters or not have the capability at all, so consult the
 help documentation of channel for other networks to find out what they support.
 
-If a user is not able to join the IRC channel, they will be kicked from the Matrix room. The reason is given in the 
+If a user is not able to join the IRC channel, they will be kicked from the Matrix room. The reason is given in the
 Matrix kick message, and a more verbose error is given in the user's admin room.
 
 ### Ban (`+b`)
@@ -71,7 +71,7 @@ with `+I`.
 
 ### Registered only (`+r`)
 
-If `+r` is set on a channel, Matrix users not identified to services cannot join. 
+If `+r` is set on a channel, Matrix users not identified to services cannot join.
 
 ### Key protected (`+k`)
 

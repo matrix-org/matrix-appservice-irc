@@ -123,21 +123,21 @@ message in plain text.
 
 ### `POST /reapUsers`
 
-This will kill multiple connections for users considered "idle". This is a powerful and 
+This will kill multiple connections for users considered "idle". This is a powerful and
 expensive operation and should be taken with care.
 
 Idleness is calculated by how long it has been since a user has sent a message/joined/left a room.
-This is calculated by whether the appservice bot or it's users have seen the user perform any actions 
-(i.e. left a IRC bridged room or sent a message). Due to limitations of Matrix, it is not possible to 
+This is calculated by whether the appservice bot or it's users have seen the user perform any actions
+(i.e. left a IRC bridged room or sent a message). Due to limitations of Matrix, it is not possible to
 discover "lurkers".
 
 #### Request Parameters
 
-- `server` is the server name you wish to disconnect users from. This is the key of 
+- `server` is the server name you wish to disconnect users from. This is the key of
   your server configuration object in the config section.
 - `since` is the number of hours a user has been idle for to be considered `idle`. This must be an integer.
 - `reason` is the reason string to disconnect users with. E.g. "You have been idle for too long".
-- `dryrun` is whether to actually disconnect users, or just calculate which users 
+- `dryrun` is whether to actually disconnect users, or just calculate which users
   should be disconnected and output it to the response.
 
 #### Response Body

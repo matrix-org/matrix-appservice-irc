@@ -11,7 +11,7 @@ bridge configuration.
 creating an issue.*
 
 The bridge allows room moderators to create a state event in the room to change the way the bridge
-behaves in that room. 
+behaves in that room.
 
 In Element you can modify the room state by:
 

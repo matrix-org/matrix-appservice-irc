@@ -26,7 +26,7 @@ which manifest as many QUITs. The IRC bridge will handle one QUIT per *room*, so
 rooms would manifest as 25 events. This can quickly overwhelm the bridge.
 
 The quit debouner is often overkill for smaller bridges, but if you find that the bridge becomes overwhelmed
-and unresponsive after a netsplit then it enabled. 
+and unresponsive after a netsplit then it enabled.
 
 ### Membership syncing
 
@@ -39,8 +39,8 @@ also adjust the membership settings of individual rooms or channels to lessen th
 
 ## Hot Reloading
 
-The bridge supports hot-reloading of the configuration file by sending a `SIGHUP` signal. Some configuration 
-keys will not be reloaded as they are required to be static to avoid bridge instability. Unsupported keys are 
+The bridge supports hot-reloading of the configuration file by sending a `SIGHUP` signal. Some configuration
+keys will not be reloaded as they are required to be static to avoid bridge instability. Unsupported keys are
 marked in [config.sample.yaml](https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml).
 Hot reloading is useful as restarting the bridge will drop all IRC connections, so it's worth using this
 method to avoid disruption.
@@ -63,7 +63,7 @@ When configured to do so, the IRC bridge typically tries to join all Matrix user
 the IRC channels to avoid Matrix users being able to read a conversation without being visible to IRC users.
 However since it is not always possible to ensure this happens in a timely manner, there is a safety net feature.
 
-Administrators can choose the default behaviour of allowing messages to continue to be bridged to the 
+Administrators can choose the default behaviour of allowing messages to continue to be bridged to the
 room (potentially leaking history) or enforcing strict rules to ensure that all Matrix users are joined
 before *anyone* can read messages. This can be enabled by setting
 

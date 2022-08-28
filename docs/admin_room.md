@@ -1,12 +1,12 @@
 # Admin Room
 
-Most bridges will send you an invite to an admin room once you join a IRC bridged room, to control your connection 
-to IRC. Some larger bridges will not (you will need to start a conversation with the bot manually). See 
+Most bridges will send you an invite to an admin room once you join a IRC bridged room, to control your connection
+to IRC. Some larger bridges will not (you will need to start a conversation with the bot manually). See
 [bridged_networks](./bridged_networks) for a list of bot userIds.
 
 ## Bot Commands
 
-The admin room allows you to send commands to a room to manipulate your IRC session. 
+The admin room allows you to send commands to a room to manipulate your IRC session.
 
 Some commands take a `[irc.example.net]` which lets you choose which IRC network to direct the
 request to, as some bridges host multiple IRC networks. Typically matrix.org bridges only host
@@ -51,11 +51,11 @@ should be lowercase, and contain only some special characters.
 
 Store a password, or a `username:password` combination to be sent as a PASS command on connection to the server.
 
-**This action will store your password in encrypted form on the IRC bridge**, so be sure to use a unique password for the IRC service. 
+**This action will store your password in encrypted form on the IRC bridge**, so be sure to use a unique password for the IRC service.
 
 If you are authenticating with a SASL enable bridge (such as libera.chat), you MUST specify a `!username`
 before you can authenticate.
- 
+
 To authenticate with your new settings, use [`!reconnect`](#reconnect).
 
 
@@ -121,7 +121,7 @@ commands are reserved for bridge administrators, which can be configured in the 
 
 *This command only works for bridge administrators.*
 
-This command allows you to plumb a IRC channel into a room without using the HTTP provisioning API. This command does NOT 
+This command allows you to plumb a IRC channel into a room without using the HTTP provisioning API. This command does NOT
 validate that you have permission to do this on the IRC channel so please take care to ensure that the IRC channel is
 aware of your actions.
 
