@@ -116,7 +116,7 @@ export class MatrixAction {
         return (ACTION_TYPE_TO_MSGTYPE as {[key: string]: string|undefined})[this.type];
     }
 
-    public async formatMentions(nickUserIdMap: {[nick: string]: string}, intent: Intent) {
+    public async formatMentions(nickUserIdMap: Map<string, string>, intent: Intent) {
         if (!this.text) {
             return;
         }
@@ -131,7 +131,7 @@ export class MatrixAction {
             if (matchName.length < PILL_MIN_LENGTH_TO_MATCH || matched.has(matchName.toLowerCase())) {
                 continue;
             }
-            let userId = nickUserIdMap[matchName];
+            let userId = nickUserIdMap.get(matchName);
             if (userId === undefined) {
                 // We might need to search case-insensitive.
                 const nick = Object.keys(nickUserIdMap).find((n) =>
@@ -140,9 +140,14 @@ export class MatrixAction {
                 if (nick === undefined) {
                     continue;
                 }
-                userId = nickUserIdMap[nick];
+                userId = nickUserIdMap.get(nick);
                 matchName = nick;
             }
+
+            if (!userId) {
+                continue;
+            }
+
             // If this message is not HTML, we should make it so.
             if (!this.htmlText) {
                 // This looks scary and unsafe, but further down we check

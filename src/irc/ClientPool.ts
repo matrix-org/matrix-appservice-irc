@@ -497,15 +497,15 @@ export class ClientPool {
         });
     }
 
-    public getNickUserIdMappingForChannel(server: IrcServer, channel: string): {[nick: string]: string} {
-        const nickUserIdMap: {[nick: string]: string} = {};
+    public getNickUserIdMappingForChannel(server: IrcServer, channel: string): Map<string, string> {
+        const nickUserIdMap = new Map<string, string>();
         for (const [userId, client] of this.virtualClients[server.domain].userIds.entries()) {
             if (client.inChannel(channel)) {
-                nickUserIdMap[client.nick] = userId;
+                nickUserIdMap.set(client.nick, userId);
             }
         }
         // Correctly map the bot too.
-        nickUserIdMap[server.getBotNickname()] = this.ircBridge.appServiceUserId;
+        nickUserIdMap.set(server.getBotNickname(), this.ircBridge.appServiceUserId);
         return nickUserIdMap;
     }
 
