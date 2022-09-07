@@ -120,7 +120,8 @@ export class MatrixAction {
         if (!this.text) {
             return;
         }
-        const regexString = `(${Object.keys(nickUserIdMap).map((value) => escapeStringRegexp(value)).join("|")})`;
+        const nicks = [...nickUserIdMap.keys()];
+        const regexString = `(${nicks.map((value) => escapeStringRegexp(value)).join("|")})`;
         const usersRegex = MentionRegex(regexString);
         const matched = new Set(); // lowercased nicknames we have matched already.
         let match;
@@ -134,7 +135,7 @@ export class MatrixAction {
             let userId = nickUserIdMap.get(matchName);
             if (userId === undefined) {
                 // We might need to search case-insensitive.
-                const nick = Object.keys(nickUserIdMap).find((n) =>
+                const nick = nicks.find((n) =>
                     n.toLowerCase() === matchName.toLowerCase()
                 );
                 if (nick === undefined) {
@@ -145,7 +146,7 @@ export class MatrixAction {
             }
 
             if (!userId) {
-                continue;
+                continue
             }
 
             // If this message is not HTML, we should make it so.

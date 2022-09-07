@@ -55,7 +55,7 @@ function Client(addr, nick, opts) {
     this.addr = addr;
     this.nick = nick;
     this.opts = opts;
-    this.chans = {};
+    this.chans = new Map();
 
     var spies = [
         "connect", "whois", "join", "send", "action", "ctcp", "say",
@@ -136,7 +136,7 @@ function Client(addr, nick, opts) {
     }
 
     this.chanData = function(channel) {
-        return this.chans[channel];
+        return this.chans.get(channel);
     }
 
     setClient(self, addr, nick);

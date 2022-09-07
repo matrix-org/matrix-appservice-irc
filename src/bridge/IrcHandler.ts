@@ -79,7 +79,8 @@ export class IrcHandler {
     private callCountMetrics?: {
         [key in MetricNames]: number;
     };
-    private registeredNicks: {[userId: string]: boolean} = {};
+
+    private readonly registeredNicks = new Set<string>();
 
     private pendingAdminRooms = new Map<string, Promise<MatrixRoom>>(); // userId -> adminRoom.
 
@@ -599,14 +600,14 @@ export class IrcHandler {
 
         const nickKey = server.domain + " " + fromUser.nick;
         let virtualMatrixUser: MatrixUser;
-        if (this.registeredNicks[nickKey]) {
+        if (this.registeredNicks.has(nickKey)) {
             // save the database hit
             const sendingUserId = server.getUserIdFromNick(fromUser.nick);
             virtualMatrixUser = new MatrixUser(sendingUserId);
         }
         else {
             virtualMatrixUser = await this.ircBridge.getMatrixUser(fromUser);
-            this.registeredNicks[nickKey] = true;
+            this.registeredNicks.add(nickKey);
         }
 
         const failed = [];
