@@ -735,11 +735,13 @@ export class ClientPool {
         await Promise.all(promises);
     }
 
-    private onNames(bridgedClient: BridgedClient, chan: string, names: {[key: string]: string}): Bluebird<void> {
+    private onNames(bridgedClient: BridgedClient, chan: string, names: Map<string, string>): void {
         const mls = this.ircBridge.getMemberListSyncer(bridgedClient.server);
         if (!mls) {
-            return Bluebird.resolve();
+            return;
         }
-        return Bluebird.cast(mls.updateIrcMemberList(chan, names));
+        mls.updateIrcMemberList(chan, names).catch(ex => {
+            bridgedClient.log.error(`Failed to handle NAMES for ${chan} %s`, ex);
+        });
     }
 }

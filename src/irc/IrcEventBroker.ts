@@ -469,16 +469,15 @@ export class IrcEventBroker {
 
         this.hookIfClaimed(client, connInst, "names", function(chan, names) {
             if (names) {
-                const userlist = Object.keys(names);
-                userlist.forEach(function(nick) {
+                for (const nick of names.keys()) {
                     namesBucket.push({
                         chan: chan,
                         nick: nick,
                         opLevel: names.get(nick) || "",
                     });
-                });
+                }
                 client.log.info(
-                    "NAMEs: Adding %s nicks from %s.", userlist.length, chan
+                    "NAMEs: Adding %s nicks from %s.", names.size, chan
                 );
                 client.log.debug("Names bucket has %s entries", namesBucket.length);
                 if (!processingBucket) {

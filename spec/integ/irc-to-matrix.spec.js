@@ -634,11 +634,9 @@ describe("IRC-to-Matrix name bridging", () => {
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
-            const names = {
-                Alicia: {},
-                Bertha: {},
-                Clarissa: {}
-            };
+            const names = new Map(
+                Object.keys(nicks).map(k => [k, {}])
+            );
             client.emit("names", roomMapping.channel, names);
         });
     });

@@ -288,7 +288,7 @@ export class BridgedClient extends EventEmitter {
             connInst.client.on("nick", (old, newNick) => {
                 if (old === this.nick) {
                     this.log.info(
-                        "NICK: Nick changed from '" + old + "' to '" + newNick + "'."
+                        `NICK: Nick changed from ${old} to ${newNick}.`
                     );
                     this._nick = newNick;
                     this.emit("nick-change", this, old, newNick);
