@@ -1,3 +1,13 @@
+0.34.0 (2022-05-04)
+===================
+
+This release fixes a High severity security vulnerability. See [the matrix blog](https://matrix.org/blog/2022/05/04/0-34-0-security-release-for-matrix-appservice-irc-high-severity) for more details.
+
+Internal Changes
+----------------
+
+- Updated node-irc to 1.2.1
+
 0.33.1 (2022-03-30)
 ===================
 
