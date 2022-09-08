@@ -217,8 +217,7 @@ module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
             reject(ex);
         }
     }));
-};
-};
+}
 
 /**
  * Automatically join IRC channels for a given IRC client.
