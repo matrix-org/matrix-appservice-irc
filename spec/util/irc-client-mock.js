@@ -55,7 +55,7 @@ function Client(addr, nick, opts) {
     this.addr = addr;
     this.nick = nick;
     this.opts = opts;
-    this.chans = {};
+    this.chans = new Map();
 
     var spies = [
         "connect", "whois", "join", "send", "action", "ctcp", "say",
@@ -136,7 +136,7 @@ function Client(addr, nick, opts) {
     }
 
     this.chanData = function(channel) {
-        return this.chans[channel];
+        return this.chans.get(channel);
     }
 
     setClient(self, addr, nick);
@@ -177,9 +177,8 @@ module.exports._findClientAsync = function(addr, nick) {
  * AS invoked the original function with.
  */
 module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
-    const d = defer();
     console.log("TEST: Test listening for %s to call function '%s'", (addr + "_" + nick), fnName);
-    clientEmitter.on((addr + "_" + nick), function(invokedFnName, client) {
+    return new Promise((resolve, reject) => clientEmitter.on((addr + "_" + nick), function(invokedFnName, client) {
         if (invokedFnName !== fnName) {
             return;
         }
@@ -205,21 +204,20 @@ module.exports._whenClient = function(addr, nick, fnName, invokeFn) {
             const p = invokeFn.apply(client, args);
             if (p && p.then) {
                 p.then((r) => {
-                    d.resolve(r);
+                    resolve(r);
                 });
                 p.catch((e) => {
-                    d.reject(e);
+                    reject(e);
                 });
                 return;
             }
-            d.resolve();
+            resolve();
         }
         catch (ex) {
-            d.reject(ex);
+            reject(ex);
         }
-    });
-    return d.promise;
-};
+    }));
+}
 
 /**
  * Automatically join IRC channels for a given IRC client.
@@ -233,7 +231,7 @@ module.exports._autoJoinChannels = function(addr, nick, channels) {
     }
     module.exports._whenClient(addr, nick, "join", function(client, chan, cb) {
         if (channels.includes(chan)) {
-            client.chans[chan] = {};
+            client.chans.set(chan, {});
             client._invokeCallback(cb);
         }
     });
