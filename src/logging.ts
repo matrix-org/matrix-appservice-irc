@@ -50,9 +50,7 @@ let loggerConfig: LoggerConfig = {
     timestamp: true,
 };
 
-const loggers: {[name: string]: Logger } = {
-    // name_of_logger: Logger
-};
+const loggers: Map<string, Logger> = new Map();
 
 let loggerTransports: Transport[]; // from config
 
@@ -128,7 +126,7 @@ const makeTransports = function() {
     return transports;
 };
 
-const createLogger = function(nameOfLogger: string) {
+const createLogger = function(nameOfLogger: string): Logger {
     // lazily load the transports if one wasn't set from configure()
     if (!loggerTransports) {
         loggerTransports = makeTransports();
@@ -146,11 +144,11 @@ const createLogger = function(nameOfLogger: string) {
  * Obtain a logger by name, creating one if necessary.
  */
 export function get(nameOfLogger: string) {
-    if (loggers[nameOfLogger]) {
-        return loggers[nameOfLogger];
+    let logger = loggers.get(nameOfLogger);
+    if (!logger) {
+        logger = createLogger(nameOfLogger);
+        loggers.set(nameOfLogger, logger);
     }
-    const logger = createLogger(nameOfLogger);
-    loggers[nameOfLogger] = logger;
     return logger;
 }
 
@@ -177,9 +175,7 @@ export function configure(opts: LoggerConfig) {
     // reconfigure any existing loggers. They may have been lazily loaded
     // with the default config, which is now being overwritten by this
     // configure() call.
-    Object.keys(loggers).forEach(function(loggerName) {
-        const existingLogger = loggers[loggerName];
-        // remove each individual transport
+    for (const [, existingLogger] of loggers) {
         for (const transport of existingLogger.transports) {
             existingLogger.remove(transport);
         }
@@ -187,7 +183,7 @@ export function configure(opts: LoggerConfig) {
         for (const transport of loggerTransports) {
             existingLogger.add(transport);
         }
-    });
+    }
 }
 
 export function isVerbose() {
