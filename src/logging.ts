@@ -86,7 +86,7 @@ export function simpleLogger(level = "info") {
 
 const makeTransports = function() {
 
-    const transports = [];
+    const transports: Transport[] = [];
     if (loggerConfig.toConsole) {
         transports.push(new (winston.transports.Console)({
             format: formatterFn(true),
@@ -120,9 +120,9 @@ const makeTransports = function() {
     // them. The 'transport' is an emitter which the loggers listen for errors
     // from. Since we have > 10 files (each with their own logger), we get
     // warnings. Set the max listeners to unlimited to suppress the warning.
-    transports.forEach(function(transport) {
+    for (const transport of transports) {
         transport.setMaxListeners(0);
-    });
+    }
     return transports;
 };
 
@@ -241,22 +241,21 @@ export function setUncaughtExceptionLogger(exceptionLogger: Logger) {
         exceptionLogger.error("Terminating (exitcode=1)", function() {
             let numFlushes = 0;
             let numFlushed = 0;
-            Object.values(exceptionLogger.transports).forEach((stream) => {
-                // We need to access the unexposed _stream
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                if (stream) {
-                    numFlushes += 1;
-                    stream.once("finish", function() {
-                        numFlushed += 1;
-                        if (numFlushes === numFlushed) {
-                            process.exit(UNCAUGHT_EXCEPTION_ERRCODE);
-                        }
-                    });
-                    stream.on("error", function() {
-                        // swallow
-                    });
-                    stream.end();
+            exceptionLogger.transports.forEach((stream) => {
+                if (!stream) {
+                    return;
                 }
+                numFlushes += 1;
+                stream.once("finish", function() {
+                    numFlushed += 1;
+                    if (numFlushes === numFlushed) {
+                        process.exit(UNCAUGHT_EXCEPTION_ERRCODE);
+                    }
+                });
+                stream.on("error", function() {
+                    // swallow
+                });
+                stream.end();
             });
             if (numFlushes === 0) {
                 process.exit(UNCAUGHT_EXCEPTION_ERRCODE);
