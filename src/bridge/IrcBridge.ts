@@ -86,7 +86,7 @@ export class IrcBridge {
     public readonly matrixBanSyncer?: MatrixBanSync;
     private clientPool!: ClientPool; // This gets defined in the `run` function
     private ircServers: IrcServer[] = [];
-    private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
+    private memberListSyncers: Map<string, MemberListSyncer> = new Map();
     private joinedRoomList: string[] = [];
     private dataStore!: DataStore;
     private bridgeState: "not-started"|"running"|"killed" = "not-started";
@@ -482,16 +482,16 @@ export class IrcBridge {
                 });
             }
 
-            Object.keys(this.memberListSyncers).forEach((server) => {
+            for (const [server, memberListSyncer] of this.memberListSyncers) {
                 memberListLeaveQueue.set(
                     {server},
-                    this.memberListSyncers[server].getUsersWaitingToLeave()
+                    memberListSyncer.getUsersWaitingToLeave()
                 );
                 memberListJoinQueue.set(
                     {server},
-                    this.memberListSyncers[server].getUsersWaitingToJoin()
+                    memberListSyncer.getUsersWaitingToJoin()
                 );
-            });
+            }
             ircBlockedRooms.set(this.privacyProtection.blockedRoomCount);
             const ircMetrics = this.ircHandler.getMetrics();
             Object.entries(ircMetrics).forEach((kv) => {
@@ -744,7 +744,7 @@ export class IrcBridge {
 
             // TODO reduce deps required to make MemberListSyncers.
             // TODO Remove injectJoinFn bodge
-            this.memberListSyncers[server.domain] = new MemberListSyncer(
+            const memberListSyncer = new MemberListSyncer(
                 this, this.membershipQueue, this.bridge.getBot(), server, this.appServiceUserId,
                 (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
                     const req = new BridgeRequest(
@@ -767,9 +767,8 @@ export class IrcBridge {
                     }, target);
                 }
             );
-            memberlistPromises.push(
-                this.memberListSyncers[server.domain].sync()
-            );
+            this.memberListSyncers.set(server.domain, memberListSyncer);
+            memberlistPromises.push(memberListSyncer.sync());
         });
 
         const provisioningEnabled = this.config.ircService.provisioning.enabled;
@@ -1304,8 +1303,8 @@ export class IrcBridge {
         return this.ircServers || [];
     }
 
-    public getMemberListSyncer(server: IrcServer) {
-        return this.memberListSyncers[server.domain];
+    public getMemberListSyncer(server: IrcServer): MemberListSyncer | undefined {
+        return this.memberListSyncers.get(server.domain);
     }
 
     // TODO: Check how many of the below functions need to reside on IrcBridge still.
@@ -1477,7 +1476,7 @@ export class IrcBridge {
                 log.info(
                     `Leaving ${roomInfo.remoteJoinedUsers.length} users from old room ${oldRoomId}.`
                 );
-                this.memberListSyncers[room.getServer().domain].addToLeavePool(
+                this.memberListSyncers.get(room.getServer().domain).addToLeavePool(
                     roomInfo.remoteJoinedUsers,
                     oldRoomId,
                 );
