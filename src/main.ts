@@ -1,4 +1,3 @@
-import Bluebird from "bluebird";
 import Datastore from "nedb";
 import extend from "extend";
 import http from "http";
@@ -132,12 +131,12 @@ export async function runBridge(
     return ircBridge;
 }
 
-export function killBridge(ircBridge: IrcBridge, reason?: string) {
+export async function killBridge(ircBridge: IrcBridge, reason?: string): Promise<void> {
     if (!ircBridge) {
         log.info('killBridge(): No bridge running');
-        return Bluebird.resolve();
+        return;
     }
     const logReason = reason || "(unknown reason)";
     log.info('Killing bridge: ' + logReason);
-    return ircBridge.kill(reason);
+    await ircBridge.kill(reason);
 }
