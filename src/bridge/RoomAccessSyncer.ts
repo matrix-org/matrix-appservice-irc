@@ -230,7 +230,7 @@ export class RoomAccessSyncer {
         }
 
         // Work out what power levels to give
-        const userPowers = [];
+        const userPowers: number[] = [];
         if (modeToPower[mode]) { // only give this power if it's +, not -
             userPowers.push(modeToPower[mode]);
         }

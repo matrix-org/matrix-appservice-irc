@@ -188,7 +188,7 @@ export class MemberListSyncer {
                             // If we're not allowed to, just give up.
                             return;
                         }
-                        await Bluebird.delay(3000); // wait a bit before retrying
+                        await promiseutil.delay(3000); // wait a bit before retrying
                     }
                 }
                 const roomInfo: RoomInfo = {
