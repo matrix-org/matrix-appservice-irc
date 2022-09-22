@@ -23,6 +23,7 @@ import { inspect } from "util";
 import { DataStore } from "./datastore/DataStore";
 import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
+import { delay } from "./promiseutil";
 import { BridgedClient, BridgedClientStatus } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { ProvisionRequest } from "./provisioning/ProvisionRequest";
@@ -300,7 +301,7 @@ export class DebugApi {
         });
 
         // wait 3s to pool responses
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await delay(3000);
 
         // unhook listener to avoid leaking
         client.removeClientListener("raw", listener);
