@@ -556,7 +556,7 @@ export class MatrixHandler {
                             user.getId(),
                             req,
                             true,
-                            excluded && excluded.kickReason ? excluded.kickReason : `IRC connection failure.`,
+                            excluded && excluded.kickReason || `IRC connection failure.`,
                             this.ircBridge.appServiceUserId,
                         );
                     }

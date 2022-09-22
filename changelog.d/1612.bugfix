@@ -1,0 +1,1 @@
+Fix distribution of IrcServer.randomDomain() which tended to pick domains with a lower index when there are a lot of addresses for a server.

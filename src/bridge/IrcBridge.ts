@@ -786,7 +786,7 @@ export class IrcBridge {
             log.error(err.stack);
         });
 
-        await Bluebird.all(memberlistPromises);
+        await Promise.all(memberlistPromises);
 
         // Reset reconnectIntervals
         this.ircServers.forEach((server) => {
@@ -1021,7 +1021,7 @@ export class IrcBridge {
         return matrixUser;
     }
 
-    public onEvent(request: BridgeRequestEvent) {
+    public onEvent(request: BridgeRequestEvent): void {
         if (this.bridgeBlocker?.isBlocked) {
             log.info("Bridge is blocked, dropping Matrix event");
             return;
@@ -1029,7 +1029,7 @@ export class IrcBridge {
         request.outcomeFrom(this._onEvent(request));
     }
 
-    private onEphemeralEvent(request: Request<EphemeralEvent>) {
+    private onEphemeralEvent(request: Request<EphemeralEvent>): void {
         // If we see one of these events over federation, bump the
         // last active time for those users.
         const event = request.getData();
@@ -1149,7 +1149,7 @@ export class IrcBridge {
         return undefined;
     }
 
-    public async onUserQuery(matrixUser: MatrixUser) {
+    public async onUserQuery(matrixUser: MatrixUser): Promise<null> {
         const baseRequest = this.bridge.getRequestFactory().newRequest<BridgeRequestData>();
         const request = new BridgeRequest(baseRequest);
         await this.matrixHandler.onUserQuery(request, matrixUser.getId());
@@ -1157,7 +1157,7 @@ export class IrcBridge {
         return null; // don't provision, we already do atm
     }
 
-    public async onAliasQuery (alias: string) {
+    public async onAliasQuery (alias: string): Promise<null> {
         const baseRequest = this.bridge.getRequestFactory().newRequest<BridgeRequestData>();
         const request = new BridgeRequest(baseRequest);
         await this.matrixHandler.onAliasQuery(request, alias);
@@ -1165,7 +1165,7 @@ export class IrcBridge {
         return null; // don't provision, we already do atm
     }
 
-    private onLog(line: string, isError: boolean) {
+    private onLog(line: string, isError: boolean): void {
         if (isError) {
             log.error(line);
         }
@@ -1279,11 +1279,11 @@ export class IrcBridge {
         ];
     }
 
-    public getIrcUserFromCache(server: IrcServer, userId: string) {
+    public getIrcUserFromCache(server: IrcServer, userId: string): BridgedClient | undefined {
         return this.clientPool.getBridgedClientByUserId(server, userId);
     }
 
-    public getBridgedClientsForUserId(userId: string) {
+    public getBridgedClientsForUserId(userId: string): BridgedClient[] {
         return this.clientPool.getBridgedClientsForUserId(userId);
     }
 
@@ -1291,15 +1291,15 @@ export class IrcBridge {
         return this.clientPool.getBridgedClientsForRegex(regex);
     }
 
-    public getBridgedClient(server: IrcServer, userId: string, displayName?: string) {
+    public getBridgedClient(server: IrcServer, userId: string, displayName?: string): Promise<BridgedClient> {
         return this.clientPool.getBridgedClient(server, userId, displayName);
     }
 
-    public getServer(domainName: string) {
+    public getServer(domainName: string): IrcServer | null {
         return this.ircServers.find((s) => s.domain === domainName) || null;
     }
 
-    public getServers() {
+    public getServers(): IrcServer[] {
         return this.ircServers || [];
     }
 
@@ -1319,11 +1319,11 @@ export class IrcBridge {
         };
     }
 
-    public getServerForUserId(userId: string) {
+    public getServerForUserId(userId: string): IrcServer | null {
         return this.getServers().find((s) => s.claimsUserId(userId)) || null;
     }
 
-    public async matrixToIrcUser(user: MatrixUser) {
+    public async matrixToIrcUser(user: MatrixUser): Promise<IrcUser> {
         const server = this.getServerForUserId(user.getId());
         const ircInfo = {
             server: server,
@@ -1335,8 +1335,8 @@ export class IrcBridge {
         return new IrcUser(ircInfo.server, ircInfo.nick, true);
     }
 
-    public connectToIrcNetworks() {
-        return promiseutil.allSettled(this.ircServers.map((server) =>
+    public async connectToIrcNetworks(): Promise<void> {
+        await promiseutil.allSettled(this.ircServers.map((server) =>
             Bluebird.cast(this.clientPool.loginToServer(server))
         ));
     }
@@ -1344,13 +1344,13 @@ export class IrcBridge {
     /**
      * Determines if a nick name already exists.
      */
-    public async checkNickExists(server: IrcServer, nick: string) {
+    public async checkNickExists(server: IrcServer, nick: string): Promise<boolean> {
         log.info("Querying for nick %s on %s", nick, server.domain);
         const client = await this.getBotClient(server);
         return await client.whois(nick) !== null;
     }
 
-    public async joinBot(ircRoom: IrcRoom) {
+    public async joinBot(ircRoom: IrcRoom): Promise<void> {
         if (!ircRoom.server.isBotEnabled()) {
             log.info("joinBot: Bot is disabled.");
             return;
@@ -1364,7 +1364,7 @@ export class IrcBridge {
         }
     }
 
-    public async partBot(ircRoom: IrcRoom) {
+    public async partBot(ircRoom: IrcRoom): Promise<void> {
         log.info(
             "Parting bot from %s on %s", ircRoom.channel, ircRoom.server.domain
         );
@@ -1372,7 +1372,7 @@ export class IrcBridge {
         await client.leaveChannel(ircRoom.channel);
     }
 
-    public async sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction) {
+    public async sendIrcAction(ircRoom: IrcRoom, bridgedClient: BridgedClient, action: IrcAction): Promise<void> {
         if (this.bridgeBlocker?.isBlocked) {
             log.info("Bridge is blocked, dropping IRC action");
             return;
@@ -1384,7 +1384,7 @@ export class IrcBridge {
         await bridgedClient.sendAction(ircRoom, action);
     }
 
-    public async getBotClient(server: IrcServer) {
+    public async getBotClient(server: IrcServer): Promise<BridgedClient> {
         const botClient = this.clientPool.getBot(server);
         if (botClient) {
             return botClient;
@@ -1392,7 +1392,7 @@ export class IrcBridge {
         return this.clientPool.loginToServer(server);
     }
 
-    private async fetchJoinedRooms() {
+    private async fetchJoinedRooms(): Promise<void> {
         /** Fetching joined rooms is quicker on larger homeservers than trying to
          * /join each room in the mappings list. To ensure we start quicker,
          * the bridge will block on this call rather than blocking on all join calls.
@@ -1412,12 +1412,12 @@ export class IrcBridge {
             }
             catch (ex) {
                 log.error(`Failed to fetch roomlist from joined_rooms: ${ex}. Retrying`);
-                await Bluebird.delay(DELAY_FETCH_ROOM_LIST_MS);
+                await promiseutil.delay(DELAY_FETCH_ROOM_LIST_MS);
             }
         }
     }
 
-    private async onRoomUpgrade(oldRoomId: string, newRoomId: string) {
+    private async onRoomUpgrade(oldRoomId: string, newRoomId: string): Promise<void> {
         log.info(`Room has been upgraded from ${oldRoomId} to ${newRoomId}`);
         log.info("Migrating channels");
         await this.getStore().roomUpgradeOnRoomMigrated(oldRoomId, newRoomId);
@@ -1468,7 +1468,7 @@ export class IrcBridge {
             }
         }
         log.info("Migrating ghosts");
-        await Bluebird.all(rooms.map((room) => {
+        await Promise.all(rooms.map((room) => {
             return this.getBridgedClient(room.getServer(), roomInfo.realJoinedUsers[0]).then((client) => {
                 // This will invoke NAMES and make members join the new room,
                 // so we don't need to await it.
@@ -1493,13 +1493,13 @@ export class IrcBridge {
      * @param excludeRegex A regex of users to exclude from the check.
      * @param maxIdleHours The maximum number of hours to be considered
      *                     idle before they aren't considered part of the pool. By default, this isn't checked.
-     * @returns A ordered set of userIds by their idle time in ascending order.
+     * @returns An ordered array of userIds by their idle time in ascending order.
      */
     private async calculateIdlenessPool(
         server: IrcServer, minIdleHours: number,
         defaultOnline = true, excludeRegex?: string,
         maxIdleHours?: number,
-    ) {
+    ): Promise<string[]> {
         if (!this.activityTracker) {
             throw Error("activityTracker is not enabled");
         }
@@ -1550,7 +1550,8 @@ export class IrcBridge {
      */
     public async warnConnectionReap(
         req: BridgeRequest, serverName: string, minIdleHours: number, msg: string,
-        defaultOnline?: boolean, excludeRegex?: string, limit?: number) {
+        defaultOnline?: boolean, excludeRegex?: string, limit?: number
+    ): Promise<void> {
         if (!minIdleHours || minIdleHours < 0) {
             throw Error("'since' must be greater than 0");
         }
@@ -1576,9 +1577,11 @@ export class IrcBridge {
         }
     }
 
-    public async connectionReap(logCb: (line: string) => void, reqServerName: string,
-                                maxIdleHours: number, reason = "User is inactive", dry = false,
-                                defaultOnline?: boolean, excludeRegex?: string, limit?: number) {
+    public async connectionReap(
+        logCb: (line: string) => void, reqServerName: string,
+        maxIdleHours: number, reason = "User is inactive", dry = false,
+        defaultOnline?: boolean, excludeRegex?: string, limit?: number
+    ): Promise<void> {
         if (!maxIdleHours || maxIdleHours < 0) {
             throw Error("'since' must be greater than 0");
         }
@@ -1614,7 +1617,7 @@ export class IrcBridge {
         logCb(`Quit ${userNumber}/${idleUsers.length}`);
     }
 
-    public async atBridgedRoomLimit() {
+    public async atBridgedRoomLimit(): Promise<boolean> {
         const limit = this.config.ircService.provisioning?.roomLimit;
         if (!limit) {
             return false;
@@ -1623,7 +1626,7 @@ export class IrcBridge {
         return current >= limit;
     }
 
-    private async onUserActivityChanged(userActivity: UserActivityState) {
+    private async onUserActivityChanged(userActivity: UserActivityState): Promise<void> {
         if (!this.isStartedUp) {
             // Only handle activity if we're running
             return;
