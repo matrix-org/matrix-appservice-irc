@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import Bluebird from "bluebird";
 import * as promiseutil from "../promiseutil";
 import { EventEmitter } from "events";
 import Ident from "./Ident"
@@ -88,7 +87,7 @@ export class BridgedClient extends EventEmitter {
     private lastActionTs: number;
     private _explicitDisconnect = false;
     private _disconnectReason: string|null = null;
-    private channelJoinDefers = new Map<string, Bluebird<IrcRoom>>();
+    private channelJoinDefers = new Map<string, Promise<IrcRoom>>();
     private _chanList: Set<string> = new Set();
     private connectDefer: promiseutil.Defer<void>;
     public readonly log: BridgedClientLogger;
@@ -185,7 +184,7 @@ export class BridgedClient extends EventEmitter {
         return this.clientConfig;
     }
 
-    public kill(reason?: string) {
+    public kill(reason?: string): Promise<void> {
         log.info('Killing client ', this.nick);
         const state = this.state;
         // so that no further commands can be issued
@@ -342,11 +341,16 @@ export class BridgedClient extends EventEmitter {
         this.log.info("Rejoined channels");
     }
 
-    public disconnect(reason: InstanceDisconnectReason, textReason?: string, explicit = true) {
+    public disconnect(reason: InstanceDisconnectReason, textReason?: string, explicit = true): Promise<void> {
         return this.disconnectWithState(this.state, reason, textReason, explicit);
     }
 
-    private disconnectWithState(state: State, reason: InstanceDisconnectReason, textReason?: string, explicit = true) {
+    private disconnectWithState(
+        state: State,
+        reason: InstanceDisconnectReason,
+        textReason?: string,
+        explicit = true
+    ): Promise<void> {
         this._explicitDisconnect = explicit;
         if (state.status !== BridgedClientStatus.CONNECTED) {
             return Promise.resolve();
@@ -921,7 +925,7 @@ export class BridgedClient extends EventEmitter {
         await defer.promise;
     }
 
-    public joinChannel(channel: string, key?: string, attemptCount = 1) {
+    public joinChannel(channel: string, key?: string, attemptCount = 1): Promise<IrcRoom> {
         // Wrap the join.
         const existing = this.channelJoinDefers.get(channel);
         if (existing) {
@@ -934,7 +938,7 @@ export class BridgedClient extends EventEmitter {
         return promise;
     }
 
-    private _joinChannel(channel: string, key?: string, attemptCount = 1): Bluebird<IrcRoom> {
+    private async _joinChannel(channel: string, key?: string, attemptCount = 1): Promise<IrcRoom> {
         if (this.state.status !== BridgedClientStatus.CONNECTED) {
             // we may be trying to join before we've connected, so check and wait
             if (this.connectDefer && this.connectDefer.promise.isPending()) {
@@ -942,17 +946,17 @@ export class BridgedClient extends EventEmitter {
                     return this._joinChannel(channel, key, attemptCount);
                 });
             }
-            return Bluebird.reject(new Error("No client"));
+            return Promise.reject(new Error("No client"));
         }
         if (this.state.client.chans.has(channel)) {
-            return Bluebird.resolve(new IrcRoom(this.server, channel));
+            return Promise.resolve(new IrcRoom(this.server, channel));
         }
         if (!channel.startsWith("#")) {
             // PM room
-            return Bluebird.resolve(new IrcRoom(this.server, channel));
+            return Promise.resolve(new IrcRoom(this.server, channel));
         }
         if (this.server.isExcludedChannel(channel)) {
-            return Bluebird.reject(new Error(channel + " is a do-not-track channel."));
+            return Promise.reject(new Error(channel + " is a do-not-track channel."));
         }
         const defer = promiseutil.defer() as promiseutil.Defer<IrcRoom>;
         this.log.debug("Joining channel %s", channel);

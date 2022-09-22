@@ -16,6 +16,7 @@ limitations under the License.
 
 import Bluebird from "bluebird";
 import { getLogger } from "../logging";
+import { delay } from "../promiseutil";
 import { Queue } from "../util/Queue";
 import { IrcServer } from "./IrcServer";
 
@@ -34,7 +35,7 @@ function getQueue (server: IrcServer) {
 
     if (!q) {
         q = new Queue((item) => {
-            return Bluebird.delay(item.addedDelayMs).then(item.fn);
+            return delay(item.addedDelayMs).then(item.fn);
         }, server.getReconnectIntervalMs());
         queues[server.domain] = q;
     }
