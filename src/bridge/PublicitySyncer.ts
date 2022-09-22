@@ -19,19 +19,15 @@ export class PublicitySyncer {
 
     // Cache the mode of each channel, the visibility of each room and the
     // known mappings between them. When any of these change, any inconsistencies
-    // should be resolved by keeping the matrix side as private as necessary
+    // should be resolved by keeping the Matrix side as private as necessary.
     private visibilityMap: {
-        mappings: {
-            [roomId: string]: string[];
-        };
-        channelIsSecret: {
-            [networkIdChannel: string]: boolean;
-            // '$networkId $channel': true | false
-        };
-        roomVisibilities: {
-            [roomId: string]: "private"|"public";
-        };
-    } = { mappings: {}, channelIsSecret: {}, roomVisibilities: {} };
+        // key: Matrix Room ID
+        mappings: Map<string, string[]>,
+        // key: '$networkId $channel'
+        channelIsSecret: Map<string, boolean>,
+        // key: Matrix Room ID
+        roomVisibilities: Map<string, "private"|"public">,
+    } = { mappings: new Map(), channelIsSecret: new Map(), roomVisibilities: new Map() };
 
     private initModeQueue: Queue<{server: IrcServer; channel: string}>;
     constructor (private ircBridge: IrcBridge) {
@@ -84,8 +80,8 @@ export class PublicitySyncer {
             if (typeof value !== 'boolean') {
                 throw new Error('+s state must be indicated with a boolean');
             }
-            if (this.visibilityMap.channelIsSecret[key] !== value) {
-                this.visibilityMap.channelIsSecret[key] = value;
+            if (this.visibilityMap.channelIsSecret.get(key) !== value) {
+                this.visibilityMap.channelIsSecret.set(key, value);
                 hasChanged = true;
             }
         }
@@ -94,8 +90,8 @@ export class PublicitySyncer {
                 throw new Error('Room visibility must = "private" | "public"');
             }
 
-            if (this.visibilityMap.roomVisibilities[key] !== value) {
-                this.visibilityMap.roomVisibilities[key] = value;
+            if (this.visibilityMap.roomVisibilities.get(key) !== value) {
+                this.visibilityMap.roomVisibilities.set(key, value);
                 hasChanged = true;
             }
         }
@@ -126,25 +122,27 @@ export class PublicitySyncer {
         const mappings = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
         const roomIds = mappings.map((m) => m.getId());
 
-        this.visibilityMap.mappings = {};
+        this.visibilityMap.mappings = new Map();
 
         // Update rooms to correct visibilities
-        let currentStates: {[roomId: string]: "public"|"private"} = {};
+        let currentStates: Map<string, "public"|"private"> = new Map();
 
         // Assume private by default
-        roomIds.forEach((r) => { currentStates[r] = "private" });
+        for (const roomId of roomIds) {
+            currentStates.set(roomId, "private");
+        }
 
         currentStates = {
             ...currentStates,
             ...await this.ircBridge.getStore().getRoomsVisibility(roomIds),
         };
 
-        const correctState = this.visibilityMap.channelIsSecret[visKey] ? 'private' : 'public';
+        const correctState = this.visibilityMap.channelIsSecret.get(visKey) ? 'private' : 'public';
 
         log.info(`Solved visibility rules for ${channel} (${server.domain}): ${correctState}`);
 
         return Promise.all(roomIds.map(async (roomId) => {
-            const currentState = currentStates[roomId];
+            const currentState = currentStates.get(roomId);
 
             // Use the server network ID of the first mapping
             // 'funNetwork #channel1' => 'funNetwork'
@@ -162,7 +160,7 @@ export class PublicitySyncer {
                 }
                 await this.ircBridge.getStore().setRoomVisibility(roomId, correctState);
                 // Update cache
-                this.visibilityMap.roomVisibilities[roomId] = correctState;
+                this.visibilityMap.roomVisibilities.set(roomId, correctState);
             }
             catch (ex) {
                 log.error(`Failed to setRoomDirectoryVisibility (${ex.message})`);

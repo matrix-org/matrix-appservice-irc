@@ -659,12 +659,12 @@ export class PgDataStore implements DataStore {
         return res.rows.map((u) => u.user_id);
     }
 
-    public async getRoomsVisibility(roomIds: string[]) {
-        const map: {[roomId: string]: "public"|"private"} = {};
+    public async getRoomsVisibility(roomIds: string[]): Promise<Map<string, "public"|"private">> {
+        const map: Map<string, "public"|"private"> = new Map();
         const list = `('${roomIds.join("','")}')`;
         const res = await this.pgPool.query(`SELECT room_id, visibility FROM room_visibility WHERE room_id IN ${list}`);
         for (const row of res.rows) {
-            map[row.room_id] = row.visibility ? "public" : "private";
+            map.set(row.room_id, row.visibility ? "public" : "private");
         }
         return map;
     }

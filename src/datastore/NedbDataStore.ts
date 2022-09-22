@@ -708,10 +708,10 @@ export class NeDBDataStore implements DataStore {
         return room.get("visibility") as "public"|"private";
     }
 
-    public async getRoomsVisibility(roomIds: string[]) {
-        const map: {[roomId: string]: "public"|"private"} = {};
+    public async getRoomsVisibility(roomIds: string[]): Promise<Map<string, "public"|"private">> {
+        const map: Map<string, "public"|"private"> = new Map();
         for (const roomId of roomIds) {
-            map[roomId] = await this.getRoomVisibility(roomId);
+            map.set(roomId, await this.getRoomVisibility(roomId));
         }
         return map;
     }

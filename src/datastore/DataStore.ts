@@ -181,7 +181,7 @@ export interface DataStore {
 
     getAllUserIds(): Promise<string[]>;
 
-    getRoomsVisibility(roomIds: string[]): Promise<{[roomId: string]: "public"|"private"}>;
+    getRoomsVisibility(roomIds: string[]): Promise<Map<string, "public"|"private">>;
 
     setRoomVisibility(roomId: string, vis: "public"|"private"): Promise<void>;
 
