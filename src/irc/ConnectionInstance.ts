@@ -18,7 +18,6 @@ import { Client, ClientEvents, Message } from "matrix-org-irc";
 import * as promiseutil from "../promiseutil";
 import Scheduler from "./Scheduler";
 import * as logging from "../logging";
-import Bluebird from "bluebird";
 import { Defer } from "../promiseutil";
 import { IrcServer } from "./IrcServer";
 import { getBridgeVersion } from "matrix-appservice-bridge";
@@ -133,9 +132,9 @@ export class ConnectionInstance {
      * @param {string} reason - Reason to reject with. One of:
      * throttled|irc_error|net_error|timeout|raw_error|toomanyconns|banned
      */
-    public disconnect(reason: InstanceDisconnectReason, ircReason?: string) {
+    public disconnect(reason: InstanceDisconnectReason, ircReason?: string): Promise<void> {
         if (this.dead) {
-            return Bluebird.resolve();
+            return Promise.resolve();
         }
         ircReason = ircReason || reason;
         log.info(
@@ -143,7 +142,7 @@ export class ConnectionInstance {
         );
         this.dead = true;
 
-        return new Bluebird((resolve) => {
+        return new Promise((resolve) => {
             // close the connection
             this.client.disconnect(ircReason, () => { /* This is needed for tests */ });
             // remove timers
@@ -454,7 +453,7 @@ export class ConnectionInstance {
                         Math.round((connAttempts * 1000) * Math.random());
                 log.info(`Retrying connection for ${opts.nick} on ${server.domain} `+
                         `in ${delay}ms (attempts ${connAttempts})`);
-                await Bluebird.delay(delay);
+                await promiseutil.delay(delay);
             }
         }
     }
