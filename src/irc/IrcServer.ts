@@ -205,12 +205,14 @@ export class IrcServer {
     }
 
     /**
-     * Return a randomised server domain from the default and additional addresses.
+     * Return a random server domain from the default and additional addresses.
      * @return {string}
      */
-    public randomDomain() {
+    public randomDomain(): string {
+        // This cannot return undefined because the construtor and .reconfigure()
+        // ensure that `addresses` isn't an empty array.
         return this.addresses[
-            Math.floor((Math.random() * 1000) % this.addresses.length)
+            Math.floor(Math.random() * this.addresses.length)
         ];
     }
 
