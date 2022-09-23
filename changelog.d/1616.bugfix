@@ -1,4 +1,4 @@
 Breaking change: Raises the required NodeJS version to 16.
 Fixes RoomConfig.getRoomState() returning Promise<undefined> instead of Promise<null> on timeouts. This violated the function's type signature.
-Fixes Room visibility setting being broken for appservice directories
-Upgrades dependencies
+Fixes Room visibility setting being broken for appservice directories.
+Upgrades dependencies.
