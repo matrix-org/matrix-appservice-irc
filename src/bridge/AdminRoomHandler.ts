@@ -728,7 +728,7 @@ export class AdminRoomHandler {
     }
 
     private showBridgeVersion() {
-        return new MatrixAction(ActionType.Notice, `BridgeVersion: ${getBridgeVersion()}`);
+        return new MatrixAction(ActionType.Notice, `BridgeVersion: 0.35.1`);
     }
 
     private showHelp(sender: string): MatrixAction {

@@ -87,7 +87,7 @@ export async function runBridge(
         log.info("Sentry ENABLED");
         Sentry.init({
             dsn: config.sentry.dsn,
-            release: getBridgeVersion(),
+            release: "0.35.1",
             environment: config.sentry.environment,
             serverName: config.sentry.serverName,
         });

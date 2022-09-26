@@ -27,7 +27,6 @@ import { getLogger } from "./logging";
 import { BridgedClient, BridgedClientStatus } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { ProvisionRequest } from "./provisioning/ProvisionRequest";
-import { getBridgeVersion } from "matrix-appservice-bridge";
 
 const log = getLogger("DebugApi");
 
@@ -100,7 +99,7 @@ export class DebugApi {
         }
         else if (req.method === "GET" && path === "/version") {
             response.writeHead(200, {"Content-Type": "text/plain"});
-            response.write(getBridgeVersion());
+            response.write("0.35.1");
             response.end();
             return;
         }
