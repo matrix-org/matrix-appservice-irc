@@ -4,16 +4,16 @@ This guide is written for server administrators who would like to set up their o
 
 ## Before setting up
 
-We recommend using Node.JS `v14` or greater when setting up the bridge, as we use `worker_threads` to handle 
+We recommend using Node.js `v16` or greater when setting up the bridge, as we use `worker_threads` to handle
 some of the traffic for larger bridges.
 
-Versions older than Node 14 are no longer supported.
+Versions older than Node 16 are no longer supported.
 
-You should also ensure you have a recent Matrix homeserver that you have permission to bridge to. This can 
+You should also ensure you have a recent Matrix homeserver that you have permission to bridge to. This can
 either be your own, or one that you have the ability to setup Application Services with.
 
 Finally **you should seek permission from the operator of the bridged IRC network before running this bridge.**
-**Bridging may be against the IRC network's Terms of Use.**. Failure to do so may get your bridge banned and 
+**Bridging may be against the IRC network's Terms of Use.**. Failure to do so may get your bridge banned and
 your IP address blocked by the IRC network. Most networks will only allow a limited number of IRC connections
 from a single IP, so you should ask them for permission before bridging.
 
@@ -29,7 +29,7 @@ git checkout master # or 0.x.x to pin to a version
 npm i
 ```
 
-The bridge can now be started by: `node app.js`
+The bridge can now be started by: `node app.js`.
 
 ### Global Install
 
@@ -80,7 +80,7 @@ Execute the following command:
 node app.js -r -f appservice-registration-irc.yaml -u "http://localhost:9999" -c config.yaml -l my_bot
 ```
 
-Change `-u "http://localhost:9999"` to whereever your Matrix server can contact this IRC bridge.
+Change `-u "http://localhost:9999"` to wherever your Matrix server can contact this IRC bridge.
 By changing the option `-l my_bot` you can modify the localpart of the bridge bot user. It contacts
 Matrix users of your bridge to control their usage of the bridge (e.g. to change their nickname).
 
@@ -105,7 +105,7 @@ protocols:
 
 For Docker, copy the above to `data/appservice-registration-irc.yaml` and replace as necessary.
 
-*More information on the CLI args can be found by running* `$ node app.js --help`
+*More information on the CLI args can be found by running* `$ node app.js --help`.
 
 This will create a registration YAML file. Edit your **homeserver** config file (e.g. `homeserver.yaml`) to
 point to this registration file:

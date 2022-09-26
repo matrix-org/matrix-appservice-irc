@@ -662,8 +662,9 @@ export class PgDataStore implements DataStore {
 
     public async getRoomsVisibility(roomIds: string[]): Promise<Map<string, MatrixDirectoryVisibility>> {
         const map: Map<string, MatrixDirectoryVisibility> = new Map();
-        const list = `('${roomIds.join("','")}')`;
-        const res = await this.pgPool.query(`SELECT room_id, visibility FROM room_visibility WHERE room_id IN ${list}`);
+        const res = await this.pgPool.query("SELECT room_id, visibility FROM room_visibility WHERE room_id IN $1", [
+            roomIds,
+        ]);
         for (const row of res.rows) {
             map.set(row.room_id, row.visibility ? "public" : "private");
         }

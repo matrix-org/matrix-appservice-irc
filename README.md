@@ -11,7 +11,7 @@ old release, be sure to read the [CHANGELOG](./CHANGELOG.md) as there may be bre
 This bridge will pass all IRC messages through to Matrix, and all Matrix messages through to IRC. It is highly
 configurable and is currently used on the matrix.org homeserver to bridge a number of popular IRC networks.
 
-We maintain a list of bridged IRC networks [here](https://matrix-org.github.io/matrix-appservice-irc/latest/bridged_networks)
+We maintain a list of bridged IRC networks [here](https://matrix-org.github.io/matrix-appservice-irc/latest/bridged_networks).
 
 
 ## What does it do?
@@ -23,7 +23,7 @@ two-way communication in channels and PMs are supported, along with a huge array
 
 ## Usage
 
-To learn how to use the bridge, see our [usage guide](https://matrix-org.github.io/matrix-appservice-irc/latest/usage)
+To learn how to use the bridge, see our [usage guide](https://matrix-org.github.io/matrix-appservice-irc/latest/usage).
 
 ## Setting up your own bridge
 
