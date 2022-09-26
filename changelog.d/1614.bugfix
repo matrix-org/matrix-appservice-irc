@@ -1,1 +1,1 @@
-PublicitySyncer: Replace Object with Map to avoid risk of prototype pollution by malicious Matrix Room IDs.
+Prevent possible attack by provisisioning a room with a specific roomID.
