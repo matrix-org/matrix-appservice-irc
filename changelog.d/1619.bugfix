@@ -1,0 +1,1 @@
+Prevent hard to exploit SQL injection from roomId values.
