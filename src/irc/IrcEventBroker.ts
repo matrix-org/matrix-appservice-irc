@@ -89,7 +89,8 @@ import { getLogger } from "../logging";
 import { Bridge } from "matrix-appservice-bridge";
 import { ClientPool } from "./ClientPool";
 import { BridgedClient, BridgedClientStatus } from "./BridgedClient";
-import { IrcMessage, ConnectionInstance } from "./ConnectionInstance";
+import { ConnectionInstance } from "./ConnectionInstance";
+import { ClientEvents, Message } from "matrix-org-irc";
 import { IrcHandler } from "../bridge/IrcHandler";
 import { QuitDebouncer } from "../bridge/QuitDebouncer";
 import { IrcServer } from "./IrcServer";
@@ -105,6 +106,9 @@ function complete(req: BridgeRequest, promise: Promise<BridgeRequestErr|void>) {
         req.reject(err);
     });
 }
+
+type InterestedHooks = "part"|"kick"|"quit"|"join"|"nick"|"names"|"+mode"|"-mode"
+    |"message"|"ctcp-privmsg"|"notice"|"topic";
 
 export class IrcEventBroker {
     private processed: ProcessedDict;
@@ -124,7 +128,7 @@ export class IrcEventBroker {
     * Attempt to claim this message as this client
     * @return {boolean} True if you successfully claimed it.
     */
-    private attemptClaim(client: BridgedClient, msg: IrcMessage) {
+    private attemptClaim(client: BridgedClient, msg: Message) {
         const domain = client.server.domain;
         if (!msg.prefix || !msg.rawCommand || !msg.args) {
             log.warn("Unexpected msg format: %s", JSON.stringify(msg));
@@ -156,20 +160,26 @@ export class IrcEventBroker {
         return false;
     }
 
-    private hookIfClaimed (client: BridgedClient, connInst: ConnectionInstance,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                           eventName: string, fn: (...args: Array<any>) => void) {
+
+    private hookIfClaimed<T extends InterestedHooks>(
+        client: BridgedClient, connInst: ConnectionInstance, eventName: T, fn: ClientEvents[T]) {
         if (client.isBot && !client.server.isBotEnabled()) {
             return; // don't both attaching listeners we'll never invoke.
         }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        connInst.addListener(eventName, (...args: Array<any>) => {
+        connInst.addListener(eventName, ((...args: any[]) => {
+            // This is fine, we're checking the types above and passing them through
+            // TypeScript doesn't handle us passing in typed arguments to an apply
+            // function all that well.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const typelessFn = fn as (...params: any[]) => void;
             if (client.server.isBotEnabled() && client.isBot) {
                 // the bot handles all the things! Just proxy straight through.
-                fn.apply(this, args);
+                typelessFn.apply(this, args);
             }
             else if (!client.server.isBotEnabled() && !client.isBot) {
-                // this works because the last arg in all the callbacks are the
+                // this works because the last arg in all the callbacks (that we use) are the
                 // raw msg object (default to empty obj just in case)
                 let msg = args[args.length - 1] || {};
                 if (eventName === "names") {
@@ -193,12 +203,12 @@ export class IrcEventBroker {
                     };
                 }
 
-                if (this.attemptClaim(client, msg)) {
+                if (this.attemptClaim(client, msg as Message)) {
                     // We're responsible for passing this message to the bridge.
-                    fn.apply(this, args);
+                    typelessFn.apply(this, args);
                 }
             }
-        });
+        }) as ClientEvents[T]);
     }
 
     /**
@@ -242,7 +252,7 @@ export class IrcEventBroker {
         }
     }
 
-    public sendMetadata(client: BridgedClient, msg: string, force = false, err?: IrcMessage) {
+    public sendMetadata(client: BridgedClient, msg: string, force = false, err?: Message) {
         if ((client.isBot || !client.server.shouldSendConnectionNotices()) && !force) {
             return;
         }
@@ -283,7 +293,7 @@ export class IrcEventBroker {
         // PMs to the bot now for provisioning.
         // listen for PMs for clients. If you listen for rooms, you'll get
         // duplicates since the bot will also invoke the callback fn!
-        connInst.addListener("message", (from: string, to: string, text: string) => {
+        connInst.addListener("message", (from, to, text) => {
             if (to.startsWith("#")) { return; }
             const req = createRequest();
             // Check and drop here, because we want to avoid the performance impact.
@@ -297,7 +307,7 @@ export class IrcEventBroker {
                 new IrcAction("message", text)
             ));
         });
-        connInst.addListener("notice", (from: string, to: string, text: string) => {
+        connInst.addListener("notice", (from, to, text) => {
             if (!from || to.startsWith("#")) { return; }
             const req = createRequest();
             // Check and drop here, because we want to avoid the performance impact.
@@ -327,7 +337,7 @@ export class IrcEventBroker {
                 ));
             }
         });
-        connInst.addListener("invite", (channel: string, from: string) => {
+        connInst.addListener("invite", (channel, from) => {
             const req = createRequest();
             complete(req, ircHandler.onInvite(
                 req, server, createUser(from), createUser(client.nick), channel
@@ -343,25 +353,25 @@ export class IrcEventBroker {
         }
 
         // When a names event is received, emit names event in the BridgedClient
-        connInst.addListener("names", (chan: string, names: string) => {
+        connInst.addListener("names", (chan, names) => {
             client.emit("irc-names", client, chan, names);
         });
 
         // Listen for other events
 
-        this.hookIfClaimed(client, connInst, "part", (chan: string, nick: string, reason: string) => {
+        this.hookIfClaimed(client, connInst, "part", (chan, nick, reason) => {
             const req = createRequest();
             complete(req, ircHandler.onPart(
                 req, server, createUser(nick), chan, "part", reason
             ));
         });
-        this.hookIfClaimed(client, connInst, "kick", (chan: string, nick: string, by: string, reason: string) => {
+        this.hookIfClaimed(client, connInst, "kick", (chan, nick, by, reason) => {
             const req = createRequest();
             complete(req, ircHandler.onKick(
                 req, server, createUser(by), createUser(nick), chan, reason
             ));
         });
-        this.hookIfClaimed(client, connInst, "quit", (nick: string, reason: string, chans: string[]) => {
+        this.hookIfClaimed(client, connInst, "quit", (nick, reason, chans) => {
             chans = chans || [];
             // True if a leave should be sent, otherwise false.
             if (this.quitDebouncer.debounceQuit(nick, server, chans)) {
@@ -373,7 +383,7 @@ export class IrcEventBroker {
                 });
             }
         });
-        this.hookIfClaimed(client, connInst, "join", (chan: string, nick: string) => {
+        this.hookIfClaimed(client, connInst, "join", (chan, nick) => {
             const req = createRequest();
             // True if a join should be sent, otherwise false
             if (this.quitDebouncer.onJoin(nick, chan, server)) {
@@ -382,7 +392,7 @@ export class IrcEventBroker {
                 ));
             }
         });
-        this.hookIfClaimed(client, connInst, "nick", (oldNick: string, newNick: string, chans: string[]) => {
+        this.hookIfClaimed(client, connInst, "nick", (oldNick, newNick, chans) => {
             chans = chans || [];
             chans.forEach((chan) => {
                 const req = createRequest();
@@ -457,18 +467,17 @@ export class IrcEventBroker {
             }
         };
 
-        this.hookIfClaimed(client, connInst, "names", function(chan: string, names) {
+        this.hookIfClaimed(client, connInst, "names", function(chan, names) {
             if (names) {
-                const userlist = Object.keys(names);
-                userlist.forEach(function(nick) {
+                for (const nick of names.keys()) {
                     namesBucket.push({
                         chan: chan,
                         nick: nick,
-                        opLevel: names[nick] || "",
+                        opLevel: names.get(nick) || "",
                     });
-                });
+                }
                 client.log.info(
-                    "NAMEs: Adding %s nicks from %s.", userlist.length, chan
+                    "NAMEs: Adding %s nicks from %s.", names.size, chan
                 );
                 client.log.debug("Names bucket has %s entries", namesBucket.length);
                 if (!processingBucket) {
@@ -478,19 +487,19 @@ export class IrcEventBroker {
             }
         });
         // listen for mode changes
-        this.hookIfClaimed(client, connInst, "+mode", function(channel: string, by: string, mode: string, arg) {
+        this.hookIfClaimed(client, connInst, "+mode", function(channel, by, mode, arg) {
             const req = createRequest();
             complete(req, ircHandler.onMode(
-                req, server, channel, by, mode, true, arg
+                req, server, channel, by, mode, true, arg ?? null
             ));
         });
-        this.hookIfClaimed(client, connInst, "-mode", function(channel: string, by: string, mode: string, arg: string) {
+        this.hookIfClaimed(client, connInst, "-mode", function(channel, by, mode, arg) {
             const req = createRequest();
             complete(req, ircHandler.onMode(
-                req, server, channel, by, mode, false, arg
+                req, server, channel, by, mode, false, arg ?? null
             ));
         });
-        this.hookIfClaimed(client, connInst, "message", (from: string, to: string, text: string) => {
+        this.hookIfClaimed(client, connInst, "message", (from, to, text) => {
             if (!to.startsWith("#")) { return; }
             const req = createRequest();
             this.bufferRequestToChannel(to, () => {
@@ -500,7 +509,7 @@ export class IrcEventBroker {
                 ));
             }, req);
         });
-        this.hookIfClaimed(client, connInst, "ctcp-privmsg", function(from: string, to: string, text: string) {
+        this.hookIfClaimed(client, connInst, "ctcp-privmsg", function(from, to, text) {
             if (!to.startsWith("#")) { return; }
             if (text.startsWith("ACTION ")) {
                 const req = createRequest();
@@ -510,7 +519,7 @@ export class IrcEventBroker {
                 ));
             }
         });
-        this.hookIfClaimed(client, connInst, "notice", (from: string, to: string, text: string) => {
+        this.hookIfClaimed(client, connInst, "notice", (from, to, text) => {
             if (!to.startsWith("#")) { return; }
             if (!from) { // ignore server notices
                 return;
@@ -522,9 +531,8 @@ export class IrcEventBroker {
                 ));
             }, req);
         });
-        this.hookIfClaimed(client, connInst, "topic", function(channel: string, topic: string, nick: string) {
+        this.hookIfClaimed(client, connInst, "topic", (channel, topic, nick) => {
             if (!channel.startsWith("#")) { return; }
-
             if (nick && nick.includes("@")) {
                 const match = nick.match(
                     // https://github.com/martynsmith/node-irc/blob/master/lib/parse_message.js#L26

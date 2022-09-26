@@ -56,9 +56,7 @@ interface PendingRequest {
 
 export class Provisioner {
     private pendingRequests: {
-        [domain: string]: {
-            [nick: string]: PendingRequest;
-        };
+        [domain: string]: Map<string, PendingRequest>; // nick -> request
     } = {};
     private linkValidator: ConfigValidator;
     private queryLinkValidator: ConfigValidator;
@@ -348,7 +346,7 @@ export class Provisioner {
 
         const info = await botClient.getOperators(ircChannel, {key : key});
 
-        if (!info.nicks.includes(opNick)) {
+        if (!info.names.has(opNick)) {
             throw new Error(`Provided user is not in channel ${ircChannel}.`);
         }
 
@@ -600,31 +598,23 @@ export class Provisioner {
     }
 
     private removeRequest (server: IrcServer, opNick: string) {
-        if (this.pendingRequests[server.domain]) {
-            delete this.pendingRequests[server.domain][opNick];
-        }
+        this.pendingRequests[server.domain]?.delete(opNick);
     }
 
     // Returns a pending request if it's promise isPending(), otherwise null
     private getRequest(server: IrcServer, opNick: string) {
-        const reqs = this.pendingRequests[server.domain];
-        if (reqs) {
-            if (!reqs[opNick]) {
-                return null;
-            }
-
-            if (reqs[opNick].defer.promise.isPending()) {
-                return reqs[opNick];
-            }
+        const req = this.pendingRequests[server.domain]?.get(opNick);
+        if (req?.defer.promise.isPending()) {
+            return req;
         }
         return null;
     }
 
     private setRequest (server: IrcServer, opNick: string, request: PendingRequest) {
         if (!this.pendingRequests[server.domain]) {
-            this.pendingRequests[server.domain] = {};
+            this.pendingRequests[server.domain] = new Map();
         }
-        this.pendingRequests[server.domain][opNick] = request;
+        this.pendingRequests[server.domain]?.set(opNick, request);
     }
 
     public async handlePm (server: IrcServer, fromUser: IrcUser, text: string) {

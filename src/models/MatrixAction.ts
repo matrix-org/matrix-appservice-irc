@@ -22,25 +22,42 @@ import escapeStringRegexp from "escape-string-regexp";
 import logging from "../logging";
 const log = logging("MatrixAction");
 
-const ACTION_TYPES = ["message", "emote", "topic", "notice", "file", "image", "video", "audio", "command"];
-const EVENT_TO_TYPE: {[mxKey: string]: string} = {
-    "m.room.message": "message",
-    "m.room.topic": "topic"
+export enum ActionType {
+    Audio = "audio",
+    Command = "command",
+    Emote = "emote",
+    File = "file",
+    Image = "image",
+    Message = "message",
+    Notice = "notice",
+    Topic = "topic",
+    Video = "video",
+}
+
+const EVENT_TO_TYPE: Record<string, ActionType> = {
+    "m.room.message": ActionType.Message,
+    "m.room.topic": ActionType.Topic,
 };
 
-const ACTION_TYPE_TO_MSGTYPE = {
-    message: "m.text",
+const ACTION_TYPE_TO_MSGTYPE: Record<ActionType, string|undefined> = {
+    audio: undefined,
+    command: undefined,
     emote: "m.emote",
-    notice: "m.notice"
+    file: undefined,
+    image: undefined,
+    message: "m.text",
+    notice: "m.notice",
+    topic: undefined,
+    video: undefined,
 };
 
-const MSGTYPE_TO_TYPE: {[mxKey: string]: string} = {
-    "m.emote": "emote",
-    "m.notice": "notice",
-    "m.image": "image",
-    "m.video": "video",
-    "m.audio": "audio",
-    "m.file": "file"
+const MSGTYPE_TO_TYPE: {[mxKey: string]: ActionType} = {
+    "m.emote": ActionType.Emote,
+    "m.notice": ActionType.Notice,
+    "m.image": ActionType.Image,
+    "m.video": ActionType.Video,
+    "m.audio": ActionType.Audio,
+    "m.file": ActionType.File,
 };
 
 const PILL_MIN_LENGTH_TO_MATCH = 4;
@@ -88,26 +105,23 @@ const MentionRegex = function(matcher: string): RegExp {
 export class MatrixAction {
 
     constructor(
-        public readonly type: string,
+        public readonly type: ActionType,
         public text: string|null = null,
         public htmlText: string|null = null,
         public readonly ts: number = 0,
         public replyEvent?: string,
-    ) {
-        if (!ACTION_TYPES.includes(type)) {
-            throw new Error("Unknown MatrixAction type: " + type);
-        }
-    }
+    ) { }
 
     public get msgType() {
         return (ACTION_TYPE_TO_MSGTYPE as {[key: string]: string|undefined})[this.type];
     }
 
-    public async formatMentions(nickUserIdMap: {[nick: string]: string}, intent: Intent) {
+    public async formatMentions(nickUserIdMap: Map<string, string>, intent: Intent) {
         if (!this.text) {
             return;
         }
-        const regexString = `(${Object.keys(nickUserIdMap).map((value) => escapeStringRegexp(value)).join("|")})`;
+        const nicks = [...nickUserIdMap.keys()];
+        const regexString = `(${nicks.map((value) => escapeStringRegexp(value)).join("|")})`;
         const usersRegex = MentionRegex(regexString);
         const matched = new Set(); // lowercased nicknames we have matched already.
         let match;
@@ -118,18 +132,23 @@ export class MatrixAction {
             if (matchName.length < PILL_MIN_LENGTH_TO_MATCH || matched.has(matchName.toLowerCase())) {
                 continue;
             }
-            let userId = nickUserIdMap[matchName];
+            let userId = nickUserIdMap.get(matchName);
             if (userId === undefined) {
                 // We might need to search case-insensitive.
-                const nick = Object.keys(nickUserIdMap).find((n) =>
+                const nick = nicks.find((n) =>
                     n.toLowerCase() === matchName.toLowerCase()
                 );
                 if (nick === undefined) {
                     continue;
                 }
-                userId = nickUserIdMap[nick];
+                userId = nickUserIdMap.get(nick);
                 matchName = nick;
             }
+
+            if (!userId) {
+                continue
+            }
+
             // If this message is not HTML, we should make it so.
             if (!this.htmlText) {
                 // This looks scary and unsafe, but further down we check
@@ -176,7 +195,7 @@ export class MatrixAction {
         else if (event.type === "m.room.message") {
             if (event.content.msgtype === 'm.text' && event.content.body?.startsWith('!irc ')) {
                 // This might be a command
-                type = "command";
+                type = ActionType.Command;
                 return new MatrixAction(type, text, null, event.origin_server_ts, event.event_id);
             }
             if (event.content.format === "org.matrix.custom.html") {
@@ -220,7 +239,7 @@ export class MatrixAction {
             case "notice": {
                 const htmlText = ircFormatting.ircToHtml(ircAction.text);
                 return new MatrixAction(
-                    ircAction.type,
+                    ircAction.type as ActionType,
                     ircFormatting.stripIrcFormatting(ircAction.text),
                     // only set HTML text if we think there is HTML, else the bridge
                     // will send everything as HTML and never text only.
@@ -228,7 +247,7 @@ export class MatrixAction {
                 );
             }
             case "topic":
-                return new MatrixAction("topic", ircAction.text);
+                return new MatrixAction(ActionType.Topic, ircAction.text);
             default:
                 log.error("MatrixAction.fromIrcAction: Unknown action: %s", ircAction.type);
                 return null;

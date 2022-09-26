@@ -38,10 +38,10 @@ describe("MemberListSyncer", () => {
             client._invokeCallback(cb);
             process.nextTick(() => {
                 // send the NAMES
-                client.emit("names", chan, {
-                    "not_alpha": "",
-                    "beta": "",
-                });
+                client.emit("names", chan, new Map([
+                    ["not_alpha", ""],
+                    ["beta", ""],
+                ]));
             });
         });
 

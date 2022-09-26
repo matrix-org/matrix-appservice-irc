@@ -1,3 +1,47 @@
+0.35.1 (2022-09-26)
+===================
+
+Bugfixes
+--------
+
+- Prevent possible attack by provisisioning a room with a specific roomID. ([\#1619](https://github.com/matrix-org/matrix-appservice-irc/issues/1619))
+
+
+0.35.0 (2022-09-13)
+===================
+
+Features
+--------
+
+- Add new Debug API `/warnReapUsers` which allows bridges to send a warning to users when they are going to be idle reaped. ([\#1571](https://github.com/matrix-org/matrix-appservice-irc/issues/1571))
+
+
+Bugfixes
+--------
+
+- Truncated messages now default to wrapping URLs in angle brackets. ([\#1573](https://github.com/matrix-org/matrix-appservice-irc/issues/1573))
+
+
+Internal Changes
+----------------
+
+- Include the bridge version and homeserver in the `CTCP VERSION` response body. ([\#1559](https://github.com/matrix-org/matrix-appservice-irc/issues/1559))
+- BREAKING: Remove (IRC) as a default displayName suffix. ([\#1567](https://github.com/matrix-org/matrix-appservice-irc/issues/1567))
+- Update CONTRIBUTING.md ([\#1570](https://github.com/matrix-org/matrix-appservice-irc/issues/1570))
+- Add new CI workflow to check for signoffs. ([\#1585](https://github.com/matrix-org/matrix-appservice-irc/issues/1585))
+- Strongly type emitted events from the IRC client. ([\#1604](https://github.com/matrix-org/matrix-appservice-irc/issues/1604))
+
+
+0.34.0 (2022-05-04)
+===================
+
+This release fixes a High severity security vulnerability. See [the matrix blog](https://matrix.org/blog/2022/05/04/0-34-0-security-release-for-matrix-appservice-irc-high-severity) for more details.
+
+Internal Changes
+----------------
+
+- Updated node-irc to 1.2.1
+
 0.33.1 (2022-03-30)
 ===================
 
