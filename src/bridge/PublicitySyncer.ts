@@ -1,5 +1,6 @@
 import logger from "../logging";
 import { IrcBridge } from "./IrcBridge";
+import { MatrixDirectoryVisibility } from "../bridge/IrcHandler";
 import { IrcServer } from "../irc/IrcServer";
 import { Queue } from "../util/Queue";
 
@@ -26,7 +27,7 @@ export class PublicitySyncer {
         // key: '$networkId $channel'
         channelIsSecret: Map<string, boolean>,
         // key: Matrix Room ID
-        roomVisibilities: Map<string, "private"|"public">,
+        roomVisibilities: Map<string, MatrixDirectoryVisibility>,
     } = { mappings: new Map(), channelIsSecret: new Map(), roomVisibilities: new Map() };
 
     private initModeQueue: Queue<{server: IrcServer; channel: string}>;
@@ -125,7 +126,7 @@ export class PublicitySyncer {
         this.visibilityMap.mappings = new Map();
 
         // Update rooms to correct visibilities
-        let currentStates: Map<string, "public"|"private"> = new Map();
+        let currentStates: Map<string, MatrixDirectoryVisibility> = new Map();
 
         // Assume private by default
         for (const roomId of roomIds) {

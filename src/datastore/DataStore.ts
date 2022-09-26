@@ -19,6 +19,7 @@ import {
     RoomBridgeStoreEntry as Entry,
     UserActivity, UserActivitySet
 } from "matrix-appservice-bridge";
+import { MatrixDirectoryVisibility } from "../bridge/IrcHandler";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
@@ -181,7 +182,7 @@ export interface DataStore {
 
     getAllUserIds(): Promise<string[]>;
 
-    getRoomsVisibility(roomIds: string[]): Promise<Map<string, "public"|"private">>;
+    getRoomsVisibility(roomIds: string[]): Promise<Map<string, MatrixDirectoryVisibility>>;
 
     setRoomVisibility(roomId: string, vis: "public"|"private"): Promise<void>;
 

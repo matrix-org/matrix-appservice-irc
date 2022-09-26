@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { MatrixDirectoryVisibility } from "../bridge/IrcHandler";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
 import { getLogger } from "../logging";
@@ -705,18 +706,18 @@ export class NeDBDataStore implements DataStore {
         if (!room) {
             return "private";
         }
-        return room.get("visibility") as "public"|"private";
+        return room.get("visibility") as MatrixDirectoryVisibility;
     }
 
-    public async getRoomsVisibility(roomIds: string[]): Promise<Map<string, "public"|"private">> {
-        const map: Map<string, "public"|"private"> = new Map();
+    public async getRoomsVisibility(roomIds: string[]): Promise<Map<string, MatrixDirectoryVisibility>> {
+        const map: Map<string, MatrixDirectoryVisibility> = new Map();
         for (const roomId of roomIds) {
             map.set(roomId, await this.getRoomVisibility(roomId));
         }
         return map;
     }
 
-    public async setRoomVisibility(roomId: string, visibility: "public"|"private") {
+    public async setRoomVisibility(roomId: string, visibility: MatrixDirectoryVisibility) {
         let room = await this.roomStore.getMatrixRoom(roomId);
         if (!room) {
             room = new MatrixRoom(roomId);

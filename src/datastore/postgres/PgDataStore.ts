@@ -26,6 +26,7 @@ import {
     UserActivity,
 } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
+import { MatrixDirectoryVisibility } from "../../bridge/IrcHandler";
 import { IrcRoom } from "../../models/IrcRoom";
 import { IrcClientConfig } from "../../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../../irc/IrcServer";
@@ -659,8 +660,8 @@ export class PgDataStore implements DataStore {
         return res.rows.map((u) => u.user_id);
     }
 
-    public async getRoomsVisibility(roomIds: string[]): Promise<Map<string, "public"|"private">> {
-        const map: Map<string, "public"|"private"> = new Map();
+    public async getRoomsVisibility(roomIds: string[]): Promise<Map<string, MatrixDirectoryVisibility>> {
+        const map: Map<string, MatrixDirectoryVisibility> = new Map();
         const list = `('${roomIds.join("','")}')`;
         const res = await this.pgPool.query(`SELECT room_id, visibility FROM room_visibility WHERE room_id IN ${list}`);
         for (const row of res.rows) {
@@ -669,7 +670,7 @@ export class PgDataStore implements DataStore {
         return map;
     }
 
-    public async setRoomVisibility(roomId: string, visibility: "public"|"private") {
+    public async setRoomVisibility(roomId: string, visibility: MatrixDirectoryVisibility) {
         const statement = PgDataStore.BuildUpsertStatement("room_visibility", "(room_id)", [
             "room_id",
             "visibility",
