@@ -116,7 +116,7 @@ export class BridgedClient extends EventEmitter {
         private readonly eventBroker: IrcEventBroker,
         private readonly identGenerator: IdentGenerator,
         private readonly ipv6Generator: Ipv6Generator,
-        private readonly encodingFallback: string) {
+        private readonly encodingFallback?: string) {
         super();
         this.userId = matrixUser ? matrixUser.getId() : null;
         this.displayName = matrixUser ? matrixUser.getDisplayName() : null;

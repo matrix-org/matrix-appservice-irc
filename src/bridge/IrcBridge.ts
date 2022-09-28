@@ -14,7 +14,7 @@ import { NeDBDataStore } from "../datastore/NedbDataStore";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
 import { getLogger } from "../logging";
 import { DebugApi } from "../DebugApi";
-import { Provisioner } from "../provisioning/Provisioner.js";
+import { Provisioner } from "../provisioning/Provisioner";
 import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
 
@@ -107,7 +107,7 @@ export class IrcBridge {
     constructor(
         public readonly config: BridgeConfig,
         private registration: AppServiceRegistration,
-        private readonly testOpts: TestingOptions,
+        private readonly testOpts: TestingOptions = {isDBInMemory: false},
     ) {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
@@ -544,9 +544,11 @@ export class IrcBridge {
             internalRoom = await this.dataStore.getAdminRoomByUserId("-internal-");
             if (!internalRoom) {
                 const result = await this.bridge.getIntent().createRoom({ options: {}});
+                console.log("Created room", result);
                 internalRoom = new MatrixRoom(result.room_id);
                 this.dataStore.storeAdminRoom(internalRoom, "-internal-");
             }
+            console.log(await this.bridge.getIntent().matrixClient.getJoinedRoomMembers(internalRoom.getId()));
             const time = await this.bridge.pingAppserviceRoute(internalRoom.getId());
             log.info(`Successfully pinged the bridge. Round trip took ${time}ms`);
         }

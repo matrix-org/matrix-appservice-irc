@@ -61,7 +61,7 @@ export interface ConnectionOpts {
     secure?: {
         ca?: string;
     };
-    encodingFallback: string;
+    encodingFallback?: string;
 }
 
 export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|
