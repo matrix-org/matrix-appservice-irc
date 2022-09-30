@@ -20,8 +20,8 @@ jobs:
           # enable buildkit for the docker builds
           export DOCKER_BUILDKIT=1
           docker build -f docker/Dockerfile-workers -t matrixdotorg/synapse-workers:latest .
-          docker build -f docker/complement/Dockerfile -t complement-synapse:latest  docker/complement
-          docker export complement-synapse:latest > /tmp/img-synapse.tar
+          docker build -f docker/complement/Dockerfile -t complement-synapse:latest docker/complement
+          docker image save complement-synapse:latest > /tmp/img-synapse.tar
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
