@@ -50,15 +50,6 @@ jobs:
         run: |
           echo "$GOROOT_1_17_X64/bin" >> $GITHUB_PATH
           echo "~/go/bin" >> $GITHUB_PATH
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Use Node.js
-        uses: actions/setup-node@v1
-        with:
-          node-version: 18
-      - run: npm ci
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
       - name: Cache complement-synapse image
         id: cache-npm
         uses: actions/cache@v3
@@ -73,7 +64,7 @@ jobs:
         with:
           repository: matrix-org/complement
           ref: master
-          path: /complement
+          path: complement
       - name: "Install Complement Dependencies"
         # We don't need to install Go because it is included on the Ubuntu 20.04 image:
         # See https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md specifically GOROOT_1_17_X64
@@ -81,8 +72,18 @@ jobs:
           sudo apt-get update && sudo apt-get install -y libolm3 libolm-dev
       - name: "Build homerunner"
         run: |
-          go build /complement/cmd/homerunner
-      - name: "Run Homerunner tests"
+          go build ./complement/cmd/homerunner
+      - name: Checkout matrix-appservice-irc
+        uses: actions/checkout@v3
+        with:
+          path: matrix-appservice-irc
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Run Homerunner tests
         run: |
-          /complement/homerunner &
+          cd matrix-appservice-irc
+          npm ci
+          ../complement/homerunner &
           bash -ic 'npm run-script test:e2e'
