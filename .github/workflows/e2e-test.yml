@@ -22,18 +22,19 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile
-          tags: matrixdotorg/synapse
+          tags: matrixdotorg/synapse:latest
       - name: Build matrixdotorg/synapse-workers
         uses: docker/build-push-action@v3
         with:
           context: .
           file: docker/Dockerfile-workers
-          tags: matrixdotorg/synapse-workers
-      - name: Build matrixdotorg/synapse-workers
+          tags: matrixdotorg/synapse-workers:latest
+      - name: Build complement-synapse
         uses: docker/build-push-action@v3
         with:
           context: docker/complement
           file: docker/complement/Dockerfile
+          build-args: SYNAPSE_VERSION=latest
           tags: complement-synapse:latest
           outputs: type=docker,dest=/tmp/img-synapse.tar
       - name: Upload artifact
