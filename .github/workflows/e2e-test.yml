@@ -64,13 +64,14 @@ jobs:
         with:
           repository: matrix-org/complement
           path: complement
-      - name: "Install Complement Dependencies"
+      - name: Install Complement Dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y libolm3 libolm-dev
-      - name: "Build homerunner"
+      - name: Build homerunner
         run: |
+          pwd
+          ls -l
           go build ./cmd/homerunner
-          cd ..
       - name: Checkout matrix-appservice-irc
         uses: actions/checkout@v3
         with:
