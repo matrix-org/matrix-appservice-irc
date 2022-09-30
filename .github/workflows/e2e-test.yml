@@ -73,7 +73,7 @@ jobs:
         with:
           repository: matrix-org/complement
           ref: master
-          path: complement
+          path: /complement
       - name: "Install Complement Dependencies"
         # We don't need to install Go because it is included on the Ubuntu 20.04 image:
         # See https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md specifically GOROOT_1_17_X64
@@ -81,8 +81,8 @@ jobs:
           sudo apt-get update && sudo apt-get install -y libolm3 libolm-dev
       - name: "Build homerunner"
         run: |
-          go build ./complement/cmd/homerunner
+          go build /complement/cmd/homerunner
       - name: "Run Homerunner tests"
         run: |
-          ./complement/homerunner &
+          /complement/homerunner &
           bash -ic 'npm run-script test:e2e'
