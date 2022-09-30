@@ -4,8 +4,15 @@ import { describe, beforeEach, afterEach, jest } from '@jest/globals';
 import { IrcBridge } from '../../src/bridge/IrcBridge';
 import { AppServiceRegistration } from "matrix-appservice";
 import { IrcServer } from "../../src/irc/IrcServer";
-import { mkdtemp, rm } from "fs/promises";
-import path from "path";
+import { mkdtemp, rm } from "node:fs/promises";
+import path from "node:path";
+import dns from 'node:dns';
+
+// Needed to make tests work on GitHub actions. Node 17+ defaults
+// to IPv6, and the homerunner domain resolves to IPv6, but the
+// runtime doesn't actually support IPv6 🤦
+dns.setDefaultResultOrder('ipv4first');
+
 
 const DEFAULT_E2E_TIMEOUT = parseInt(process.env.IRC_TEST_TIMEOUT ?? '30000', 10);
 
