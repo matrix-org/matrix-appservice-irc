@@ -15,14 +15,15 @@ jobs:
         with:
           repository: matrix-org/synapse
           ref: master
-
+      - name: Get synapse git sha
+        id: gitsha
+        run: echo '::set-output name=sha::'`git rev-parse --short HEAD`
       - name: Cache complement-synapse image
         id: cache-npm
         uses: actions/cache@v3
         with:
           path: /tmp/img-synapse.tar
-          key: ${{ runner.os }}-complement-synapse-${{ hashFiles('/tmp/img-synapse.tar') }}
-
+          key: ${{ runner.os }}-complement-synapse-${{ steps.gitsha.outputs.sha }}
       - if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
         name: Build images
         run: |
@@ -31,12 +32,6 @@ jobs:
           docker build -f docker/Dockerfile-workers -t matrixdotorg/synapse-workers:latest .
           docker build -f docker/complement/Dockerfile -t complement-synapse:latest docker/complement
           docker image save complement-synapse:latest > /tmp/img-synapse.tar
-      - if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
-        name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: img-synapse
-          path: /tmp/img-synapse.tar
 
   inspircd-test:
     runs-on: ubuntu-latest
@@ -64,20 +59,12 @@ jobs:
       - run: npm ci
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-
       - name: Cache complement-synapse image
         id: cache-npm
         uses: actions/cache@v3
         with:
           path: /tmp/img-synapse.tar
-          key: ${{ runner.os }}-complement-synapse-${{ hashFiles('/tmp/img-synapse.tar') }}
-      - if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
-        name: Download synapse
-        uses: actions/download-artifact@v3
-        with:
-          name: img-synapse
-          path: /tmp
-
+          key: ${{ runner.os }}-complement-synapse-${{ steps.gitsha.outputs.sha }}
       - name: Load images
         run: |
           docker load --input /tmp/img-synapse.tar
