@@ -15,12 +15,10 @@ jobs:
         with:
           repository: 'matrix-org/synapse'
           ref: 'master'
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          driver: docker
       - name: Build images
         run: |
+          # enable buildkit for the docker builds
+          export DOCKER_BUILDKIT=1
           docker build -f docker/Dockerfile-workers -t matrixdotorg/synapse-workers:latest .
           docker build -f docker/complement/Dockerfile -t complement-synapse:latest  docker/complement
           docker export complement-synapse:latest > /tmp/img-synapse.tar
