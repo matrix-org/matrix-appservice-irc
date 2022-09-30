@@ -17,6 +17,8 @@ jobs:
           ref: 'master'
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        with:
+          driver: docker
       - name: Build images
         run: |
           docker buildx build --load -f docker/Dockerfile-workers -t matrixdotorg/synapse-workers:latest .
