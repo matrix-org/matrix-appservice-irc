@@ -69,9 +69,9 @@ jobs:
           sudo apt-get update && sudo apt-get install -y libolm3 libolm-dev
       - name: Build homerunner
         run: |
-          pwd
-          ls -l
+          cd complement
           go build ./cmd/homerunner
+          cd ..
       - name: Checkout matrix-appservice-irc
         uses: actions/checkout@v3
         with:
@@ -82,6 +82,7 @@ jobs:
           node-version: 18
       - name: Run Homerunner tests
         run: |
+          cd matrix-appservice-irc
           npm ci
           ../complement/homerunner &
           bash -ic 'npm run-script test:e2e'
