@@ -17,21 +17,17 @@ jobs:
           ref: 'master'
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Build matrixdotorg/synapse
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: docker/Dockerfile
-          tags: matrixdotorg/synapse:latest
       - name: Build matrixdotorg/synapse-workers
         uses: docker/build-push-action@v3
         with:
+          load: true
           context: .
           file: docker/Dockerfile-workers
           tags: matrixdotorg/synapse-workers:latest
       - name: Build complement-synapse
         uses: docker/build-push-action@v3
         with:
+          load: true
           context: docker/complement
           file: docker/complement/Dockerfile
           build-args: SYNAPSE_VERSION=latest
