@@ -4,7 +4,7 @@ import { describe, beforeEach, afterEach, jest } from '@jest/globals';
 import { IrcBridge } from '../../src/bridge/IrcBridge';
 import { AppServiceRegistration } from "matrix-appservice";
 import { IrcServer } from "../../src/irc/IrcServer";
-import { mkdtemp } from "fs/promises";
+import { mkdtemp, rm } from "fs/promises";
 import path from "path";
 
 const DEFAULT_E2E_TIMEOUT = parseInt(process.env.IRC_TEST_TIMEOUT ?? '30000', 10);
@@ -121,6 +121,7 @@ export class IrcBridgeE2ETest extends IrcServerTest {
 
     public async tearDown(): Promise<void> {
         await Promise.all([
+            this.dbPath && rm(this.dbPath, { recursive: true}),
             this.ircBridge?.kill(),
             super.tearDown(),
             this.homeserver?.id && destroyHS(this.homeserver.id),
