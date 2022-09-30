@@ -20,7 +20,7 @@ jobs:
       - name: Build images
         run: |
           docker buildx build -f docker/Dockerfile-workers -t matrixdotorg/synapse-workers:latest .
-          docker buildx build -f docker/complement/Dockerfile -o type=docker,dest=/tmp/img-synapse.tar --build-arg SYNAPSE_VERSION=latest -t complement-synapse:latest  docker/complement
+          docker buildx build -f docker/complement/Dockerfile -o type=docker,dest=/tmp/img-synapse.tar -t complement-synapse:latest  docker/complement
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
