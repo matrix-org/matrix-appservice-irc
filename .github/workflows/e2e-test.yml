@@ -21,8 +21,9 @@ jobs:
           driver: docker
       - name: Build images
         run: |
-          docker buildx build --load -f docker/Dockerfile-workers -t matrixdotorg/synapse-workers:latest .
-          docker buildx build -f docker/complement/Dockerfile -o type=docker,dest=/tmp/img-synapse.tar -t complement-synapse:latest  docker/complement
+          docker build -f docker/Dockerfile-workers -t matrixdotorg/synapse-workers:latest .
+          docker build -f docker/complement/Dockerfile -t complement-synapse:latest  docker/complement
+          docker export complement-synapse:latest > /tmp/img-synapse.tar
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
