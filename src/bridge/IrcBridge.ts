@@ -1339,8 +1339,8 @@ export class IrcBridge {
     }
 
     public async connectToIrcNetworks(): Promise<void> {
-        await promiseutil.allSettled(this.ircServers.map((server) =>
-            Bluebird.cast(this.clientPool.loginToServer(server))
+        await Promise.all(this.ircServers.map((server) =>
+            this.clientPool.loginToServer(server)
         ));
     }
 
