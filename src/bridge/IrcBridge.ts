@@ -310,7 +310,7 @@ export class IrcBridge {
         const { userActivityThresholdHours, remoteUserAgeBuckets } = this.config.ircService.metrics;
         const usingRemoteMetrics = !!this.config.ircService.metrics.port;
 
-        const metrics = this.bridge.getPrometheusMetrics(!usingRemoteMetrics);
+        const metrics = this.bridge.getPrometheusMetrics(!usingRemoteMetrics, registry);
         let metricsUrl = `${this.config.homeserver.bindHostname || "0.0.0.0"}:${bindPort}`;
         if (this.config.ircService.metrics.port) {
             const hostname = this.config.ircService.metrics.host || this.config.homeserver.bindHostname || "0.0.0.0";
@@ -501,11 +501,11 @@ export class IrcBridge {
             bridgeBlocked.set(this.bridgeBlocker?.isBlocked ? 1 : 0);
         });
 
-        // metrics.addCollector(async () => {
-        //     this.clientPool.collectConnectionStatesForAllServers(
-        //         clientStates, clientsByHomeserver, CLIENTS_BY_HOMESERVER_TOP_N
-        //     );
-        // });
+        metrics.addCollector(async () => {
+            this.clientPool.collectConnectionStatesForAllServers(
+                clientStates, clientsByHomeserver, CLIENTS_BY_HOMESERVER_TOP_N
+            );
+        });
 
         this.membershipQueue.registerMetrics();
     }
