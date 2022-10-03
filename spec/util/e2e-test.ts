@@ -14,7 +14,7 @@ import dns from 'node:dns';
 dns.setDefaultResultOrder('ipv4first');
 
 
-const DEFAULT_E2E_TIMEOUT = parseInt(process.env.IRC_TEST_TIMEOUT ?? '30000', 10);
+const DEFAULT_E2E_TIMEOUT = parseInt(process.env.IRC_TEST_TIMEOUT ?? '60000', 10);
 
 // TODO: Expose these
 const DEFAULT_PORT = parseInt(process.env.IRC_TEST_PORT ?? '6667', 10);
@@ -59,7 +59,7 @@ export class IrcBridgeE2ETest extends IrcServerTest {
         // Set up Matrix homeserver - Need to register the bridge bot.
         this.homeserver = await createHS(["ircbridge_bot", ...matrixLocalparts || []]);
         // Set up IRC server
-        super.setUp(clients);
+        await super.setUp(clients);
         // Set up an IRC bridge.
         this.dbPath = path.join(await mkdtemp('ircbridge-'), 'test.db');
 
@@ -131,7 +131,7 @@ export class IrcBridgeE2ETest extends IrcServerTest {
             this.dbPath && rm(this.dbPath, { recursive: true }),
             this.ircBridge?.kill(),
             super.tearDown(),
-            this.homeserver?.id && destroyHS(this.homeserver.id),
+            this.homeserver && destroyHS(this.homeserver.id),
         ]);
     }
 }
