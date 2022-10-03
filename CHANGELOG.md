@@ -6,7 +6,6 @@ Bugfixes
 
 - Prevent possible attack by provisisioning a room with a specific roomID. ([\#1619](https://github.com/matrix-org/matrix-appservice-irc/issues/1619))
 
-
 0.35.0 (2022-09-13)
 ===================
 

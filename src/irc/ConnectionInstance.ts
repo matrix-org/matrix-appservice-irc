@@ -400,7 +400,6 @@ export class ConnectionInstance {
             sasl: opts.password ? server.useSasl() : false,
             secure: server.useSsl() ? server.getSecureOptions() : undefined,
             encodingFallback: opts.encodingFallback,
-            debug: true,
         };
 
         // Returns: A promise which resolves to a ConnectionInstance

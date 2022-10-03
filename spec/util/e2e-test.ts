@@ -2,7 +2,7 @@ import { IrcServer as IrcServerTest } from "matrix-org-irc/spec/util/irc-server"
 import { ComplementHomeServer, createHS, destroyHS } from "./homerunner";
 import { describe, beforeEach, afterEach, jest } from '@jest/globals';
 import { IrcBridge } from '../../src/bridge/IrcBridge';
-import { AppServiceRegistration } from "matrix-appservice";
+import { AppServiceRegistration } from "matrix-appservice-bridge";
 import { IrcServer } from "../../src/irc/IrcServer";
 import { mkdtemp, rm } from "node:fs/promises";
 import dns from 'node:dns';
@@ -70,7 +70,7 @@ export class IrcBridgeE2ETest extends IrcServerTest {
                 bindPort: this.homeserver.appserviceConfig.port,
             },
             database: {
-                connectionString: "nedb:/" + this.dbPath,
+                connectionString: "nedb://" + this.dbPath,
                 engine: "nedb",
             },
             ircService: {

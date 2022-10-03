@@ -94,6 +94,7 @@ export class ClientPool {
                 this.botClients.get(domain),
             ]
         ).flat();
+        this.ircEventBroker.stop();
         return Promise.all(clients.map((client) => client?.kill(reason)));
     }
 
