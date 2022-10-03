@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Client, ClientEvents, Message } from "matrix-org-irc";
+import { Client, ClientEvents, IrcClientOpts, Message } from "matrix-org-irc";
 import * as promiseutil from "../promiseutil";
 import Scheduler from "./Scheduler";
 import * as logging from "../logging";
@@ -382,7 +382,7 @@ export class ConnectionInstance {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
         }
-        const connectionOpts = {
+        const connectionOpts: IrcClientOpts = {
             userName: opts.username,
             realName: opts.realname,
             password: opts.password,
@@ -399,7 +399,8 @@ export class ConnectionInstance {
             bustRfc3484: true,
             sasl: opts.password ? server.useSasl() : false,
             secure: server.useSsl() ? server.getSecureOptions() : undefined,
-            encodingFallback: opts.encodingFallback
+            encodingFallback: opts.encodingFallback,
+            debug: true,
         };
 
         // Returns: A promise which resolves to a ConnectionInstance
