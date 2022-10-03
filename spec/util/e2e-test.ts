@@ -5,7 +5,6 @@ import { IrcBridge } from '../../src/bridge/IrcBridge';
 import { AppServiceRegistration } from "matrix-appservice";
 import { IrcServer } from "../../src/irc/IrcServer";
 import { mkdtemp, rm } from "node:fs/promises";
-import path from "node:path";
 import dns from 'node:dns';
 
 // Needed to make tests work on GitHub actions. Node 17+ defaults
@@ -61,7 +60,7 @@ export class IrcBridgeE2ETest extends IrcServerTest {
         // Set up IRC server
         await super.setUp(clients);
         // Set up an IRC bridge.
-        this.dbPath = path.join(await mkdtemp('ircbridge-'), 'test.db');
+        this.dbPath = await mkdtemp('ircbridge-');
 
         this.ircBridge = new IrcBridge({
             homeserver: {
@@ -71,7 +70,7 @@ export class IrcBridgeE2ETest extends IrcServerTest {
                 bindPort: this.homeserver.appserviceConfig.port,
             },
             database: {
-                connectionString: this.dbPath,
+                connectionString: "nedb:/" + this.dbPath,
                 engine: "nedb",
             },
             ircService: {
@@ -127,6 +126,9 @@ export class IrcBridgeE2ETest extends IrcServerTest {
     }
 
     public async tearDown(): Promise<void> {
+        if (this.dbPath) {
+            await rm(this.dbPath, { recursive: true });
+        }
         await Promise.allSettled([
             this.dbPath && rm(this.dbPath, { recursive: true }),
             this.ircBridge?.kill(),

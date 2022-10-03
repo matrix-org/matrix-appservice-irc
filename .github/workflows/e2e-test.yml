@@ -38,14 +38,6 @@ jobs:
     timeout-minutes: 30
     needs:
       - build-synapse
-    services:
-      ircd:
-        image: inspircd/inspircd-docker
-        env:
-          # Don't check domain against blacklists
-          INSP_ENABLE_DNSBL: no
-        ports:
-          - 6667:6667
     steps:
       - name: "Set Go Version"
         run: |
@@ -94,7 +86,13 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+      - name: Setup inspircd
+        run: |
+          apt update && apt install inspircd
+          cp matrix-appservice-irc/.github/support/inspircd.conf
+          inspircd --runasroot # This will fork
       - name: Run Homerunner tests
+        timeout-minutes: 10
         run: |
           cd matrix-appservice-irc
           npm ci
