@@ -51,6 +51,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install inspircd
+          sudo mkdir -p /etc/inspircd
           sudo cp matrix-appservice-irc/.github/support/inspircd.conf /etc/inspircd/inspircd.conf
           sudo inspircd --runasroot # This will fork
       # Need to get the SHA
