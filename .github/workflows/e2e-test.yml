@@ -35,6 +35,7 @@ jobs:
 
   inspircd-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs:
       - build-synapse
     services:
@@ -50,6 +51,19 @@ jobs:
         run: |
           echo "$GOROOT_1_17_X64/bin" >> $GITHUB_PATH
           echo "~/go/bin" >> $GITHUB_PATH
+      # Need to get the SHA
+      - name: Checkout synapse
+        uses: actions/checkout@v3
+        with:
+          path: synapse
+          repository: matrix-org/synapse
+          ref: master
+      - name: Get synapse git sha
+        id: gitsha
+        run: |
+          cd synapse
+          echo '::set-output name=sha::'`git rev-parse --short HEAD`
+          cd ..
       - name: Cache complement-synapse image
         id: cache-npm
         uses: actions/cache@v3
