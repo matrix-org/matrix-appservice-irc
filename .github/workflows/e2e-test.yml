@@ -45,7 +45,8 @@ jobs:
           echo "~/go/bin" >> $GITHUB_PATH
       - name: Setup inspircd
         run: |
-          sudo apt update && apt install inspircd
+          sudo apt update
+          sudo apt install inspircd
           sudo cp matrix-appservice-irc/.github/support/inspircd.conf /etc/inspircd/inspircd.conf
           sudo inspircd --runasroot # This will fork
       # Need to get the SHA
