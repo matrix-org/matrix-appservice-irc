@@ -43,6 +43,11 @@ jobs:
         run: |
           echo "$GOROOT_1_17_X64/bin" >> $GITHUB_PATH
           echo "~/go/bin" >> $GITHUB_PATH
+      - name: Setup inspircd
+        run: |
+          sudo apt update && apt install inspircd
+          sudo cp matrix-appservice-irc/.github/support/inspircd.conf /etc/inspircd/inspircd.conf
+          sudo inspircd --runasroot # This will fork
       # Need to get the SHA
       - name: Checkout synapse
         uses: actions/checkout@v3
@@ -86,11 +91,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      - name: Setup inspircd
-        run: |
-          apt update && apt install inspircd
-          cp matrix-appservice-irc/.github/support/inspircd.conf
-          inspircd --runasroot # This will fork
       - name: Run Homerunner tests
         timeout-minutes: 10
         run: |
