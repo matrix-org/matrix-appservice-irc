@@ -1,0 +1,4 @@
+{"$$indexCreated":{"fieldName":"id","unique":true,"sparse":false}}
+{"$$indexCreated":{"fieldName":"matrix_id","unique":false,"sparse":true}}
+{"$$indexCreated":{"fieldName":"remote_id","unique":false,"sparse":true}}
+{"id":"ADMIN_-internal-","matrix_id":"!bGvUpGOKwyhTCdLGhV:ircbridge","matrix":{"extras":{"admin_id":"-internal-"}},"data":{},"_id":"Gjj1HBx7RA2r2wzg"}

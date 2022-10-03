@@ -1,0 +1,8 @@
+{"$$indexCreated":{"fieldName":"data.localpart","unique":false,"sparse":true}}
+{"$$indexCreated":{"fieldName":"id","unique":true,"sparse":false}}
+{"$$indexCreated":{"fieldName":"data.client_config.localhost.username","unique":false,"sparse":true}}
+{"type":"matrix","id":"@ircbridge_bot:ircbridge","data":{"localpart":"ircbridge_bot","last_seen_ts":1664794073468},"_id":"WucZwZ6AZZEYex5S"}
+{"type":"matrix","id":"@ircbridge_bot:ircbridge","data":{"localpart":"ircbridge_bot","last_seen_ts":1664794074057},"_id":"WucZwZ6AZZEYex5S"}
+{"type":"matrix","id":"@ircbridge_bot:ircbridge","data":{"localpart":"ircbridge_bot","last_seen_ts":1664794074549},"_id":"WucZwZ6AZZEYex5S"}
+{"type":"matrix","id":"@ircbridge_bot:ircbridge","data":{"localpart":"ircbridge_bot","last_seen_ts":1664794075304},"_id":"WucZwZ6AZZEYex5S"}
+{"type":"matrix","id":"@ircbridge_bot:ircbridge","data":{"localpart":"ircbridge_bot","last_seen_ts":1664794076536},"_id":"WucZwZ6AZZEYex5S"}

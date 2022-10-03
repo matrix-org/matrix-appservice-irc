@@ -43,6 +43,10 @@ jobs:
         run: |
           echo "$GOROOT_1_17_X64/bin" >> $GITHUB_PATH
           echo "~/go/bin" >> $GITHUB_PATH
+      - name: Checkout matrix-appservice-irc
+        uses: actions/checkout@v3
+        with:
+          path: matrix-appservice-irc
       - name: Setup inspircd
         run: |
           sudo apt update
@@ -84,10 +88,6 @@ jobs:
           cd complement
           go build ./cmd/homerunner
           cd ..
-      - name: Checkout matrix-appservice-irc
-        uses: actions/checkout@v3
-        with:
-          path: matrix-appservice-irc
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
