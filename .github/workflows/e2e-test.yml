@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Build the latest version of complement-compatible-synapse, and cache the image for use in e2e tests.
   build-synapse:
     runs-on: ubuntu-latest
     steps:
@@ -47,12 +48,16 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: matrix-appservice-irc
+      
+      # Setup the IRCD
       - name: Setup inspircd
         run: |
           sudo apt update
           sudo apt install inspircd
+          sudo cp matrix-appservice-irc/.github/support/inspircd.conf /etc/inspircd/inspircd.conf
           sudo service inspircd start
-      # Need to get the SHA
+
+      # Pull the complement-synapse image from cache
       - name: Checkout synapse
         uses: actions/checkout@v3
         with:
@@ -65,7 +70,7 @@ jobs:
           cd synapse
           echo '::set-output name=sha::'`git rev-parse --short HEAD`
           cd ..
-      - name: Cache complement-synapse image
+      - name: Load cached complement-synapse image
         id: cache-npm
         uses: actions/cache@v3
         with:
@@ -74,6 +79,8 @@ jobs:
       - name: Load images
         run: |
           docker load --input /tmp/img-synapse.tar
+
+      # Build and install homerunner
       - name: Checkout matrix-org/complement
         uses: actions/checkout@v3
         with:
@@ -87,6 +94,8 @@ jobs:
           cd complement
           go build ./cmd/homerunner
           cd ..
+      
+      # Setup node & run tests
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
