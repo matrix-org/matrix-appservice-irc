@@ -28,9 +28,11 @@ import { IrcEventBroker } from "./IrcEventBroker";
 import { DataStore } from "../datastore/DataStore";
 import { Gauge } from "prom-client";
 import QuickLRU from "quick-lru";
+import { IRCConnectionError, IRCConnectionErrorCode } from "./ConnectionInstance";
 const log = getLogger("ClientPool");
 
 const NICK_CACHE_SIZE = 256;
+const BOT_CONNECTION_RETRY_TIME_MS = 2500;
 
 interface ReconnectionItem {
     cli: BridgedClient;
@@ -146,8 +148,12 @@ export class ClientPool {
             await bridgedClient.connect();
         }
         catch (err) {
-            log.error("Bot failed to connect to %s : %s - Retrying....",
-                server.domain, JSON.stringify(err));
+            if (err instanceof IRCConnectionError && err.code === IRCConnectionErrorCode.Banned) {
+                throw Error('Bridge bot client is banned, cannot start');
+            }
+            log.error("Bot failed to connect to %s : %s - Retrying....", server.domain, err);
+            // Wait a sensible amount of time before proceeding.
+            await new Promise(r => setTimeout(r, BOT_CONNECTION_RETRY_TIME_MS));
             return this.loginToServer(server);
         }
         this.setBot(server, bridgedClient);

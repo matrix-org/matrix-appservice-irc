@@ -68,6 +68,19 @@ export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"time
                                        "toomanyconns"|"banned"|"killed"|"idle"|"limit_reached"|
                                        "iwanttoreconnect";
 
+
+export enum IRCConnectionErrorCode {
+    Unknown = 0,
+    Banned = 1,
+    ILine = 2,
+}
+
+export class IRCConnectionError extends Error {
+    constructor(public readonly code: IRCConnectionErrorCode, message: string) {
+        super(message);
+    }
+}
+
 export class ConnectionInstance {
     public dead = false;
     private state: "created"|"connecting"|"connected" = "created";
@@ -433,10 +446,9 @@ export class ConnectionInstance {
 
                 if (err.message === "banned") {
                     log.error(
-                        `${opts.nick} is banned from ${server.domain}, ` +
-                        `throwing`
+                        `${opts.nick} is banned from ${server.domain}, throwing`
                     );
-                    throw new Error("User is banned from the network.");
+                    throw new IRCConnectionError(IRCConnectionErrorCode.Banned, "User is banned from the network.");
                     // If the user is banned, we should part them from any rooms.
                 }
 
@@ -444,7 +456,10 @@ export class ConnectionInstance {
                     log.error(
                         `User ${opts.nick} was ILINED. This may be the network limiting us!`
                     );
-                    throw new Error("Connection was ILINED. We cannot retry this.");
+                    throw new IRCConnectionError(
+                        IRCConnectionErrorCode.ILine,
+                        "Connection was ILINED. We cannot retry this."
+                    );
                 }
 
                 // always set a staggered delay here to avoid thundering herd
