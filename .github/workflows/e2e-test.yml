@@ -51,7 +51,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install inspircd
-          service inspircd start
+          sudo service inspircd start
       # Need to get the SHA
       - name: Checkout synapse
         uses: actions/checkout@v3
