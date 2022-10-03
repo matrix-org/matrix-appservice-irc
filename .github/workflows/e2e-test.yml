@@ -51,8 +51,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install inspircd
-          sudo ls -l /etc/inspircd
-          sudo inspircd --runasroot # This will fork
+          sudo su irc -c 'inspircd' # This will fork
       # Need to get the SHA
       - name: Checkout synapse
         uses: actions/checkout@v3
