@@ -127,8 +127,8 @@ export class IrcBridgeE2ETest extends IrcServerTest {
     }
 
     public async tearDown(): Promise<void> {
-        await Promise.all([
-            this.dbPath && rm(this.dbPath, { recursive: true}),
+        await Promise.allSettled([
+            this.dbPath && rm(this.dbPath, { recursive: true }),
             this.ircBridge?.kill(),
             super.tearDown(),
             this.homeserver?.id && destroyHS(this.homeserver.id),
