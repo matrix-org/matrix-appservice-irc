@@ -1,4 +1,4 @@
-import { IrcServer as IrcServerTest } from "matrix-org-irc/spec/util/irc-server";
+import { IrcServer as IrcServerTest, TestClient } from "matrix-org-irc/spec/util/irc-server";
 import { ComplementHomeServer, createHS, destroyHS } from "./homerunner";
 import { describe, beforeEach, afterEach, jest } from '@jest/globals';
 import { IrcBridge } from '../../src/bridge/IrcBridge';
@@ -6,6 +6,7 @@ import { AppServiceRegistration } from "matrix-appservice-bridge";
 import { IrcServer } from "../../src/irc/IrcServer";
 import { mkdtemp, rm } from "node:fs/promises";
 import dns from 'node:dns';
+import { MatrixClient } from "matrix-bot-sdk";
 
 // Needed to make tests work on GitHub actions. Node 17+ defaults
 // to IPv6, and the homerunner domain resolves to IPv6, but the
@@ -13,15 +14,23 @@ import dns from 'node:dns';
 dns.setDefaultResultOrder('ipv4first');
 
 
-const DEFAULT_E2E_TIMEOUT = parseInt(process.env.IRC_TEST_TIMEOUT ?? '60000', 10);
+const DEFAULT_E2E_TIMEOUT = parseInt(process.env.IRC_TEST_TIMEOUT ?? '90000', 10);
+const WAIT_EVENT_TIMEOUT = 10000;
 
 // TODO: Expose these
 const DEFAULT_PORT = parseInt(process.env.IRC_TEST_PORT ?? '6667', 10);
 const DEFAULT_ADDRESS = process.env.IRC_TEST_ADDRESS ?? "127.0.0.1";
 
 interface Opts {
-    clients: string[];
+    matrixLocalparts?: string[];
+    clients?: string[];
     timeout?: number;
+}
+
+interface DescribeEnv {
+    homeserver: ComplementHomeServer;
+    ircBridge: IrcBridge;
+    clients: TestClient[];
 }
 
 export class IrcBridgeE2ETest extends IrcServerTest {
@@ -32,22 +41,30 @@ export class IrcBridgeE2ETest extends IrcServerTest {
      * @param fn The inner function
      * @returns A jest describe function.
      */
-    static describe(name: string, fn: (env: () => IrcBridgeE2ETest) => void, opts?: Opts) {
+    static describeTest(name: string, fn: (env: () => DescribeEnv) => void, opts?: Opts) {
         return describe(name, () => {
             jest.setTimeout(opts?.timeout ?? DEFAULT_E2E_TIMEOUT);
             let env: IrcBridgeE2ETest;
             beforeEach(async () => {
                 env = new IrcBridgeE2ETest();
-                await env.setUp(opts?.clients);
+                await env.setUp(opts?.clients, opts?.matrixLocalparts);
             });
             afterEach(async () => {
                 await env.tearDown();
             });
-            fn(() => env);
+            fn(() => {
+                if (!env.homeserver) {
+                    throw Error('Homeserver not defined');
+                }
+                if (!env.ircBridge) {
+                    throw Error('ircBridge not defined');
+                }
+                return { homeserver: env.homeserver, ircBridge: env.ircBridge, clients: env.clients}
+            });
         });
     }
 
-    private homeserver?: ComplementHomeServer;
+    public homeserver?: ComplementHomeServer;
     public ircBridge?: IrcBridge;
     /**
      * TODO: Postgresql
@@ -56,8 +73,10 @@ export class IrcBridgeE2ETest extends IrcServerTest {
 
     public async setUp(clients?: string[], matrixLocalparts?: string[]): Promise<void> {
         // Set up Matrix homeserver - Need to register the bridge bot.
+        console.log('Setting up homeserver...');
         this.homeserver = await createHS(["ircbridge_bot", ...matrixLocalparts || []]);
         // Set up IRC server
+        console.log('Setting up IRC clients...');
         await super.setUp(clients);
         // Set up an IRC bridge.
         this.dbPath = await mkdtemp('ircbridge-');
@@ -80,6 +99,34 @@ export class IrcBridgeE2ETest extends IrcServerTest {
                         port: DEFAULT_PORT,
                         additionalAddresses: [DEFAULT_ADDRESS],
                         onlyAdditionalAddresses: true,
+                        matrixClients: {
+                            userTemplate: "@irc_$NICK",
+                            displayName: "$NICK",
+                            joinAttempts: 3,
+                        },
+                        dynamicChannels: {
+                            enabled: true,
+                            createAlias: true,
+                            published: true,
+                            joinRule: "public",
+                            federate: true,
+                            aliasTemplate: "#irc_$SERVER_$CHANNEL",
+                        },
+                        membershipLists: {
+                            enabled: true,
+                            floodDelayMs: 100,
+                            global: {
+                                ircToMatrix: {
+                                    incremental: true,
+                                    initial: true,
+                                    requireMatrixJoined: false,
+                                },
+                                matrixToIrc: {
+                                    incremental: true,
+                                    initial: true,
+                                }
+                            }
+                        }
                     }
                 },
                 provisioning: {
@@ -115,13 +162,14 @@ export class IrcBridgeE2ETest extends IrcServerTest {
                 }],
                 // TODO: No support on complement yet:
                 // https://github.com/matrix-org/complement/blob/8e341d54bbb4dbbabcea25e6a13b29ead82978e3/internal/docker/builder.go#L413
-                rooms: [{
+                aliases: [{
                     exclusive: true,
                     regex: `#irc_.+:${this.homeserver.domain}`,
                 }]
             },
             url: "not-used",
         }));
+        console.log('Starting bridge');
         await this.ircBridge.run(null);
     }
 
@@ -133,7 +181,76 @@ export class IrcBridgeE2ETest extends IrcServerTest {
             this.dbPath && rm(this.dbPath, { recursive: true }),
             this.ircBridge?.kill(),
             super.tearDown(),
+            this.homeserver?.users.map(c => c.client.stop()),
             this.homeserver && destroyHS(this.homeserver.id),
         ]);
+    }
+}
+
+export class E2ETestMatrixClient extends MatrixClient {
+
+    public async waitForRoomEvent(
+        opts: {eventType: string, sender: string, roomId?: string, stateKey?: string}
+    ): Promise<{roomId: string, data: unknown}> {
+        const {eventType, sender, roomId, stateKey} = opts;
+        return this.waitForEvent('room.event', (eventRoomId: string, eventData: {
+            sender: string, type: string, state_key?: string, content: unknown
+        }) => {
+            console.info(`Got ${eventRoomId}`, eventData);
+            if (eventData.sender !== sender) {
+                return undefined;
+            }
+            if (eventData.type !== eventType) {
+                return undefined;
+            }
+            if (roomId && eventRoomId !== roomId) {
+                return undefined;
+            }
+            if (stateKey && eventData.state_key !== stateKey) {
+                return undefined;
+            }
+            return {roomId: eventRoomId, data: eventData};
+        }, `Timed out waiting for ${eventType} from ${sender} in ${roomId || "any room"}`)
+    }
+
+    public async waitForRoomInvite(
+        opts: {sender: string, roomId?: string}
+    ): Promise<{roomId: string, data: unknown}> {
+        const {sender, roomId} = opts;
+        return this.waitForEvent('room.invite', (eventRoomId: string, eventData: {
+            sender: string
+        }) => {
+            const inviteSender = eventData.sender;
+            console.info(`Got invite to ${eventRoomId} from ${inviteSender}`);
+            if (eventData.sender !== sender) {
+                return undefined;
+            }
+            if (roomId && eventRoomId !== roomId) {
+                return undefined;
+            }
+            return {roomId: eventRoomId, data: eventData};
+        }, `Timed out waiting for invite to ${roomId || "any room"} from ${sender}`)
+    }
+
+    public async waitForEvent<T>(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        emitterType: string, filterFn: (...args: any[]) => T|undefined, timeoutMsg: string)
+    : Promise<T> {
+        return new Promise((resolve, reject) => {
+            // eslint-disable-next-line prefer-const
+            let timer: NodeJS.Timeout;
+            const fn = (...args: any[]) => {
+                const data = filterFn(...args);
+                if (data) {
+                    clearTimeout(timer);
+                    resolve(data);
+                }
+            };
+            timer = setTimeout(() => {
+                this.removeListener(emitterType, fn);
+                reject(new Error(timeoutMsg));
+            }, WAIT_EVENT_TIMEOUT);
+            this.on(emitterType, fn)
+        });
     }
 }

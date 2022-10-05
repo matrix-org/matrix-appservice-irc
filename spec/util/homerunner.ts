@@ -2,6 +2,7 @@ import { MatrixClient } from "matrix-bot-sdk";
 import { createHash, createHmac } from "crypto";
 import { Homerunner } from "homerunner-client";
 import { default as crossFetch } from 'cross-fetch';
+import { E2ETestMatrixClient } from "./e2e-test";
 
 const HOMERUNNER_IMAGE = process.env.HOMERUNNER_IMAGE || 'complement-synapse';
 export const DEFAULT_REGISTRATION_SHARED_SECRET = (
@@ -21,7 +22,7 @@ export interface ComplementHomeServer {
         hsToken: string;
         senderLocalpart: string;
     };
-    users: {userId: string, accessToken: string, deviceId: string}[]
+    users: {userId: string, accessToken: string, deviceId: string, client: E2ETestMatrixClient}[]
 }
 
 const AppserviceConfig = {
@@ -52,7 +53,7 @@ async function waitForHomerunner() {
     }
 }
 
-export async function createHS(users: string[] = []): Promise<ComplementHomeServer> {
+export async function createHS(localparts: string[] = []): Promise<ComplementHomeServer> {
     await waitForHomerunner();
     const blueprint = `${AppserviceConfig.id}_integration_test_${Date.now()}`;
     const asRegistration = {
@@ -73,17 +74,22 @@ export async function createHS(users: string[] = []): Promise<ComplementHomeServ
                     ...asRegistration,
                     URL: `http://host.docker.internal:${AppserviceConfig.port}`,
                 }],
-                Users: users.map(localpart => ({Localpart: localpart, DisplayName: localpart})),
+                Users: localparts.map(localpart => ({Localpart: localpart, DisplayName: localpart})),
             }],
         }
     });
     const [homeserverName, homeserver] = Object.entries(blueprintResponse.homeservers)[0];
+    const users = Object.entries(homeserver.AccessTokens).map(([userId, accessToken]) => ({
+        userId: userId,
+        accessToken,
+        deviceId: homeserver.DeviceIDs[userId],
+        client: new E2ETestMatrixClient(homeserver.BaseURL, accessToken),
+    }));
+
+    // Start syncing proactively.
+    await Promise.all(users.map(u => u.client.start()));
     return {
-        users: Object.entries(homeserver.AccessTokens).map(([userId, accessToken]) => ({
-            userId: userId,
-            accessToken,
-            deviceId: homeserver.DeviceIDs[userId],
-        })),
+        users,
         id: blueprint,
         url: homeserver.BaseURL,
         domain: homeserverName,

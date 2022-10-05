@@ -89,7 +89,7 @@ export class IrcBridge {
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
     private dataStore!: DataStore;
-    private bridgeState: "not-started"|"running"|"killed" = "not-started";
+    private bridgeState: "not-started"|'starting'|"running"|"killed" = "not-started";
     private debugApi: DebugApi|null = null;
     private provisioner: Provisioner|null = null;
     private bridge: Bridge;
@@ -544,11 +544,9 @@ export class IrcBridge {
             internalRoom = await this.dataStore.getAdminRoomByUserId("-internal-");
             if (!internalRoom) {
                 const result = await this.bridge.getIntent().createRoom({ options: {}});
-                console.log("Created room", result);
                 internalRoom = new MatrixRoom(result.room_id);
                 this.dataStore.storeAdminRoom(internalRoom, "-internal-");
             }
-            console.log(await this.bridge.getIntent().matrixClient.getJoinedRoomMembers(internalRoom.getId()));
             const time = await this.bridge.pingAppserviceRoute(internalRoom.getId());
             log.info(`Successfully pinged the bridge. Round trip took ${time}ms`);
         }
@@ -576,6 +574,7 @@ export class IrcBridge {
     }
 
     public async run(port: number|null) {
+        this.bridgeState = 'starting';
         const dbConfig = this.config.database;
         // cli port, then config port, then default port
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
@@ -878,12 +877,14 @@ export class IrcBridge {
     //
     //  See (BridgedClient.prototype.kill)
     public async kill(reason?: string) {
-        log.info("Killing all clients");
+        log.info("Killing bridge");
         this.bridgeState = "killed";
+        log.info("Killing all clients");
         await this.clientPool.killAllClients(reason);
         if (this.dataStore) {
             await this.dataStore.destroy();
         }
+        log.info("Closing bridge");
         await this.bridge.close();
         await this.appservice.close();
     }
@@ -1407,7 +1408,7 @@ export class IrcBridge {
             throw Error('Bridge is not ready');
         }
         let gotRooms = false;
-        while (!gotRooms) {
+        while (!gotRooms && this.bridgeState === 'starting') {
             try {
                 const roomIds = await this.bridge.getIntent().matrixClient.getJoinedRooms();
                 gotRooms = true;
