@@ -175,7 +175,7 @@ export function configure(opts: LoggerConfig) {
     // reconfigure any existing loggers. They may have been lazily loaded
     // with the default config, which is now being overwritten by this
     // configure() call.
-    for (const [, existingLogger] of loggers) {
+    for (const existingLogger of loggers.values()) {
         for (const transport of existingLogger.transports) {
             existingLogger.remove(transport);
         }
