@@ -1475,19 +1475,23 @@ export class IrcBridge {
             }
         }
         log.info("Migrating ghosts");
-        await Promise.all(rooms.map((room) => {
-            return this.getBridgedClient(room.getServer(), roomInfo.realJoinedUsers[0]).then((client) => {
-                // This will invoke NAMES and make members join the new room,
-                // so we don't need to await it.
-                client.getNicks(room.getChannel());
-                log.info(
-                    `Leaving ${roomInfo.remoteJoinedUsers.length} users from old room ${oldRoomId}.`
+        await Promise.all(rooms.map(async (room) => {
+            const client = await this.getBridgedClient(room.getServer(), roomInfo.realJoinedUsers[0]);
+            // This will invoke NAMES and make members join the new room,
+            // so we don't need to await it.
+            client.getNicks(room.getChannel()).catch(ex => {
+                log.warn(
+                    `Failed to fetch nicks for channel ${room.getChannel()} while handling upgraded room ${newRoomId}`,
+                    ex
                 );
-                this.memberListSyncers[room.getServer().domain].addToLeavePool(
-                    roomInfo.remoteJoinedUsers,
-                    oldRoomId,
-                );
-            })
+            });
+            log.info(
+                `Leaving ${roomInfo.remoteJoinedUsers.length} users from old room ${oldRoomId}.`
+            );
+            await this.memberListSyncers[room.getServer().domain].addToLeavePool(
+                roomInfo.remoteJoinedUsers,
+                oldRoomId,
+            );
         }));
         log.info(`Ghost migration to ${newRoomId} complete`);
     }

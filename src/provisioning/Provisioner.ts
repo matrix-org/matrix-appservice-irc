@@ -261,7 +261,8 @@ export class Provisioner extends ProvisioningApi {
      *  - (Matrix) update room state m.room.brdiging
     */
     private async authoriseProvisioning(req: ProvisioningRequest<unknown>, server: IrcServer, userId: string,
-                                        ircChannel: string, roomId: string, opNick: string, key?: string): Promise<void> {
+                                        ircChannel: string, roomId: string, opNick: string, key?: string
+    ): Promise<void> {
         const ircDomain = server.domain;
 
         const existing = this.getRequest(server, opNick);
@@ -287,13 +288,14 @@ export class Provisioner extends ProvisioningApi {
 
         const botClient = await this.ircBridge.getBotClient(server);
 
-        const info = await botClient.getOperators(ircChannel, {key : key});
+        let info = await botClient.getOperators(ircChannel, {key : key});
 
         if (!info.names.has(opNick)) {
             throw new IrcProvisioningError(
                 `Provided user is not in channel ${ircChannel}.`,
                 IrcErrCode.BadOpTarget,
-            );        }
+            );
+        }
 
         if (!info.operatorNicks.includes(opNick)) {
             throw new IrcProvisioningError(
