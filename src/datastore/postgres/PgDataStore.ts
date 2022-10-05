@@ -13,9 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-import { Pool } from "pg";
-
 import {
     MatrixUser,
     MatrixRoom,
@@ -24,6 +21,7 @@ import {
     MatrixRoomData,
     UserActivitySet,
     UserActivity,
+    PostgresStore,
 } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
 import { MatrixDirectoryVisibility } from "../../bridge/IrcHandler";
@@ -37,6 +35,7 @@ import { StringCrypto } from "../StringCrypto";
 import { toIrcLowerCase } from "../../irc/formatting";
 import { NeDBDataStore } from "../NedbDataStore";
 import QuickLRU from "quick-lru";
+import schemas from './schema';
 
 const log = getLogger("PgDatastore");
 
@@ -52,37 +51,24 @@ interface RoomRecord {
     origin: RoomOrigin;
 }
 
-export class PgDataStore implements DataStore {
+export class PgDataStore extends PostgresStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
     public static readonly LATEST_SCHEMA = 8;
-    private pgPool: Pool;
-    private hasEnded = false;
     private cryptoStore?: StringCrypto;
     private userFeatureCache = new QuickLRU<string, UserFeatures>({
         maxSize: FEATURE_CACHE_SIZE,
     });
 
-    constructor(private bridgeDomain: string, connectionString: string, pkeyPath?: string, min = 1, max = 4) {
-        this.pgPool = new Pool({
-            connectionString,
-            min,
+    constructor(private bridgeDomain: string, connectionString: string, pkeyPath?: string, max = 4) {
+        super(schemas, {
+            url: connectionString,
             max,
-        });
-        this.pgPool.on("error", (err) => {
-            log.error("Postgres Error: %s", err);
         });
         if (pkeyPath) {
             this.cryptoStore = new StringCrypto();
             this.cryptoStore.load(pkeyPath);
         }
-        process.on("beforeExit", () => {
-            if (this.hasEnded) {
-                return;
-            }
-            // Ensure we clean up on exit
-            this.pgPool.end();
-        })
     }
 
     public async setServerFromConfig(server: IrcServer, serverConfig: IrcServerConfig): Promise<void> {
@@ -689,61 +675,9 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query("INSERT INTO deactivated_users VALUES ($1, $2)", [userId, Date.now()]);
     }
 
-    public async ensureSchema() {
-        log.info("Starting postgres database engine");
-        let currentVersion = await this.getSchemaVersion();
-        while (currentVersion < PgDataStore.LATEST_SCHEMA) {
-            log.info(`Updating schema to v${currentVersion + 1}`);
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const runSchema = require(`./schema/v${currentVersion + 1}`).runSchema;
-            try {
-                await runSchema(this.pgPool);
-                currentVersion++;
-                await this.updateSchemaVersion(currentVersion);
-            }
-            catch (ex) {
-                log.warn(`Failed to run schema v${currentVersion + 1}:`, ex);
-                throw Error("Failed to update database schema");
-            }
-        }
-        log.info(`Database schema is at version v${currentVersion}`);
-    }
-
     public async getRoomCount(): Promise<number> {
         const res = await this.pgPool.query(`SELECT COUNT(*) FROM rooms`);
         return res.rows[0];
-    }
-
-    public async destroy() {
-        log.info("Destroy called");
-        if (this.hasEnded) {
-            // No-op if end has already been called.
-            return;
-        }
-        this.hasEnded = true;
-        await this.pgPool.end();
-        log.info("PostgresSQL connection ended");
-        // This will no-op
-    }
-
-    private async updateSchemaVersion(version: number) {
-        log.debug(`updateSchemaVersion: ${version}`);
-        await this.pgPool.query("UPDATE schema SET version = $1;", [version]);
-    }
-
-    private async getSchemaVersion(): Promise<number> {
-        try {
-            const { rows } = await this.pgPool.query("SELECT version FROM SCHEMA");
-            return rows[0].version;
-        }
-        catch (ex) {
-            if (ex.code === "42P01") { // undefined_table
-                log.warn("Schema table could not be found");
-                return 0;
-            }
-            log.error("Failed to get schema version: %s", ex);
-        }
-        throw Error("Couldn't fetch schema version");
     }
 
     private static BuildUpsertStatement(table: string, constraint: string, keyNames: string[]): string {

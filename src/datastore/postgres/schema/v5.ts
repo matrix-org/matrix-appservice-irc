@@ -1,7 +1,7 @@
-import { PoolClient } from "pg";
+import { SchemaUpdateFunction } from 'matrix-appservice-bridge';
 
-export async function runSchema(connection: PoolClient) {
-    await connection.query(`
-    CREATE INDEX client_config_domain_username_idx ON client_config (domain, (config->>'username'));
-    `);
-}
+const updateFn: SchemaUpdateFunction = async (sql) => {
+    await sql`CREATE INDEX client_config_domain_username_idx ON client_config (domain, (config->>'username'));`
+};
+
+export default updateFn;

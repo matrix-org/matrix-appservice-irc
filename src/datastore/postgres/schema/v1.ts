@@ -1,8 +1,8 @@
-import { PoolClient } from "pg";
+import { SchemaUpdateFunction } from 'matrix-appservice-bridge';
 
-export async function runSchema(connection: PoolClient) {
+const updateFn: SchemaUpdateFunction = async (sql) => {
     // Create schema
-    await connection.query(`
+    await sql`
     CREATE TABLE schema (
         version	INTEGER UNIQUE NOT NULL
     );
@@ -59,5 +59,8 @@ export async function runSchema(connection: PoolClient) {
         count INTEGER
     );
 
-    INSERT INTO ipv6_counter VALUES (0);`);
-}
+    INSERT INTO ipv6_counter VALUES (0);`;
+
+};
+
+export default updateFn;
