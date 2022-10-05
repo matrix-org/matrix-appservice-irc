@@ -56,7 +56,7 @@ interface RoomRecord {
 export class PgDataStore implements DataStore, ProvisioningStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 8;
+    public static readonly LATEST_SCHEMA = 9;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -433,13 +433,27 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         await this.pgPool.query("DELETE FROM rooms WHERE origin = 'config'");
     }
 
-    public async getIpv6Counter(): Promise<number> {
-        const res = await this.pgPool.query("SELECT count FROM ipv6_counter");
-        return res ? parseInt(res.rows[0].count, 10) : 0;
+    public async getIpv6Counter(server: IrcServer, homeserver: string|null): Promise<number> {
+        homeserver = homeserver || "*";
+        const res = await this.pgPool.query(
+            "SELECT count FROM ipv6_counter WHERE server = $1 AND homeserver = $2",
+            [server.domain, homeserver]
+        );
+        return res.rows[0]?.count !== undefined ? parseInt(res.rows[0].count, 10) : 0;
     }
 
-    public async setIpv6Counter(counter: number): Promise<void> {
-        await this.pgPool.query("UPDATE ipv6_counter SET count = $1", [counter]);
+    public async setIpv6Counter(counter: number, server: IrcServer, homeserver: string|null): Promise<void> {
+        await this.pgPool.query(
+            PgDataStore.BuildUpsertStatement(
+                "ipv6_counter",
+                "ON CONSTRAINT cons_ipv6_counter_unique", [
+                    "count",
+                    "homeserver",
+                    "server"
+                ],
+            ),
+            [counter, homeserver || "*", server.domain],
+        );
     }
 
     public async upsertMatrixRoom(room: MatrixRoom): Promise<void> {
@@ -649,8 +663,9 @@ export class PgDataStore implements DataStore, ProvisioningStore {
 
     public async getRoomsVisibility(roomIds: string[]) {
         const map: {[roomId: string]: "public"|"private"} = {};
-        const list = `('${roomIds.join("','")}')`;
-        const res = await this.pgPool.query(`SELECT room_id, visibility FROM room_visibility WHERE room_id IN ${list}`);
+        const res = await this.pgPool.query("SELECT room_id, visibility FROM room_visibility WHERE room_id IN $1", [
+            roomIds,
+        ]);
         for (const row of res.rows) {
             map[row.room_id] = row.visibility ? "public" : "private";
         }

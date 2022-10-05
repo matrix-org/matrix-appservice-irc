@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 import querystring, { ParsedUrlQuery } from "querystring";
-import Bluebird from "bluebird";
 import http, { IncomingMessage, ServerResponse } from "http";
 import { IrcServer } from "./irc/IrcServer";
 
@@ -24,6 +23,7 @@ import { inspect } from "util";
 import { DataStore } from "./datastore/DataStore";
 import { ClientPool } from "./irc/ClientPool";
 import { getLogger } from "./logging";
+import { delay } from "./promiseutil";
 import { BridgedClient, BridgedClientStatus } from "./irc/BridgedClient";
 import { IrcBridge } from "./bridge/IrcBridge";
 import { getBridgeVersion } from "matrix-appservice-bridge";
@@ -86,6 +86,10 @@ export class DebugApi {
             this.onReapUsers(query, response);
             return;
         }
+        else if (req.method === "POST" && path === "/warnReapUsers") {
+            this.onWarnReapUsers(query, response);
+            return;
+        }
         else if (req.method === "POST" && path === "/killRoom") {
             this.killRoom(req, response);
             return;
@@ -131,27 +135,27 @@ export class DebugApi {
 
         req.on("end", () => {
             // Create a promise which resolves to a response string
-            let promise = null;
+            let promise: Promise<string>;
             if (req.method === "GET") {
                 try {
                     let resBody = this.getClientState(server, user);
                     if (!resBody.endsWith("\n")) {
                         resBody += "\n";
                     }
-                    promise = Bluebird.resolve(resBody);
+                    promise = Promise.resolve(resBody);
                 }
                 catch (err) {
-                    promise = Bluebird.reject(err);
+                    promise = Promise.reject(err);
                 }
             }
             else if (req.method === "POST") {
                 promise = this.sendIRCCommand(server, user, body)
             }
             else {
-                promise = Bluebird.reject(new Error("Bad HTTP method"));
+                promise = Promise.reject(new Error("Bad HTTP method"));
             }
 
-            promise.done((r: string) => {
+            promise.then((r: string) => {
                 response.writeHead(200, {"Content-Type": "text/plain"});
                 response.write(r);
                 response.end();
@@ -170,7 +174,7 @@ export class DebugApi {
             bodyStr += chunk;
         });
         req.on("end", () => {
-            let promise = null;
+            let promise: Promise<string|null>;
             try {
                 const body = JSON.parse(bodyStr);
                 if (!body.user_id || !body.reason) {
@@ -197,6 +201,27 @@ export class DebugApi {
         });
     }
 
+    public onWarnReapUsers(query: ParsedUrlQuery, response: ServerResponse) {
+        const server = query["server"] as string;
+        const since = parseInt(query["since"] as string);
+        const msg = query["msg"] as string;
+        const limit = query["targetCount"] !== undefined ? parseInt(query["targetCount"] as string) : undefined;
+        const defaultOnline = (query["defaultOnline"] ?? "true") === "true";
+        const excludeRegex = query["excludeRegex"] as string;
+        const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
+        this.ircBridge.warnConnectionReap(
+            req, server, since, msg, defaultOnline, excludeRegex, limit,
+        ).catch((err: Error) => {
+            log.warn(`Failed to handle onWarnReapUsers`, err);
+            if (!response.headersSent) {
+                response.writeHead(500, {"Content-Type": "text/plain"});
+            }
+            response.write(err + "\n");
+        }).finally(() => {
+            response.end();
+        });
+    }
+
     public onReapUsers(query: ParsedUrlQuery, response: ServerResponse) {
         const msgCb = (msg: string) => {
             if (!response.headersSent) {
@@ -214,8 +239,7 @@ export class DebugApi {
         this.ircBridge.connectionReap(
             msgCb, server, since, reason, dry, defaultOnline, excludeRegex, limit,
         ).catch((err: Error) => {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            log.error(err.stack!);
+            log.warn(`Failed to handle onReapUsers`, err);
             if (!response.headersSent) {
                 response.writeHead(500, {"Content-Type": "text/plain"});
             }
@@ -241,7 +265,7 @@ export class DebugApi {
         return inspect(client, { colors:true, depth:7 });
     }
 
-    private async killUser(userId: string, reason: string, deactivate: boolean) {
+    private async killUser(userId: string, reason: string, deactivate: boolean): Promise<string|null> {
         const req = new BridgeRequest(this.ircBridge.getAppServiceBridge().getRequestFactory().newRequest());
         if (deactivate) {
             await this.ircBridge.getStore().deactivateUser(userId);
@@ -250,18 +274,14 @@ export class DebugApi {
         return this.ircBridge.matrixHandler.quitUser(req, userId, clients, null, reason);
     }
 
-    private sendIRCCommand(server: IrcServer, user: string, body: string) {
+    private async sendIRCCommand(server: IrcServer, user: string, body: string): Promise<string> {
         log.debug("sendIRCCommand(%s,%s,%s)", server.domain, user, body);
         const client = this.getClient(server, user);
         if (!client) {
-            return Bluebird.resolve(
-                "User " + user + " does not have a client on " + server.domain + "\n"
-            );
+            return "User " + user + " does not have a client on " + server.domain + "\n";
         }
         if (client.status !== BridgedClientStatus.CONNECTED) {
-            return Bluebird.resolve(
-                "There is no underlying client instance.\n"
-            );
+            return "There is no underlying client instance.\n";
         }
 
         // store all received response strings
@@ -281,11 +301,11 @@ export class DebugApi {
         });
 
         // wait 3s to pool responses
-        return Bluebird.delay(3000).then(function() {
-            // unhook listener to avoid leaking
-            client.removeClientListener("raw", listener);
-            return buffer.join("\n") + "\n";
-        });
+        await delay(3000);
+
+        // unhook listener to avoid leaking
+        client.removeClientListener("raw", listener);
+        return buffer.join("\n") + "\n";
     }
 
     private async killRoom (req: IncomingMessage, response: ServerResponse) {
@@ -448,10 +468,10 @@ export class DebugApi {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private wrapJsonReq (req: IncomingMessage, response: ServerResponse): Bluebird<unknown> {
+    private wrapJsonReq(req: IncomingMessage, response: ServerResponse): Promise<unknown> {
         let body = "";
         req.on("data", (chunk) => { body += chunk; });
-        return new Bluebird((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             req.on("error", (err) => {
                 reject(err);
             });
@@ -469,7 +489,7 @@ export class DebugApi {
         });
     }
 
-    private wrapJsonResponse (json: unknown, isOk: boolean, response: ServerResponse) {
+    private wrapJsonResponse(json: unknown, isOk: boolean, response: ServerResponse) {
         response.writeHead(isOk === true ? 200 : 500, {"Content-Type": "application/json"});
         response.write(JSON.stringify(json));
         response.end();

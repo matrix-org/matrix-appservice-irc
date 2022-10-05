@@ -61,11 +61,19 @@ describe("Provisioning API", function() {
 
         // Allow receiving of names by bot
         env.ircMock._whenClient(config._server, config._botnick, "names",
+<<<<<<< HEAD:spec/integ/provisioning.spec.ts
             function(client: unknown, chan: string, cb: (channel: string, names: Record<string, string>) => void) {
                 cb(chan, {
                     [receivingOp.nick]: '@', // is op
                     [notOp.nick]: '' // is not op
                 });
+=======
+            function(_client, chan, cb) {
+                const names = new Map();
+                names.set(receivingOp.nick, '@'); // is op
+                names.set(notOp.nick, ''); // is not op
+                cb(chan, names);
+>>>>>>> origin/develop:spec/integ/provisioning.spec.js
             }
         );
 
@@ -496,10 +504,17 @@ describe("Provisioning API", function() {
 
             // Allow receiving of names by bot
             env.ircMock._whenClient(config._server, config._botnick, "names",
+<<<<<<< HEAD:spec/integ/provisioning.spec.ts
                 function(client, chan, cb) {
                     const names = {};
                     names[receivingOp.nick] = '@'; // is op
                     names[notOp.nick] = ''; // is not op
+=======
+                function(_client, chan, cb) {
+                    const names = new Map();
+                    names.set(receivingOp.nick, '@'); // is op
+                    names.set(notOp.nick, ''); // is not op
+>>>>>>> origin/develop:spec/integ/provisioning.spec.js
                     cb(chan, names);
                 }
             );
@@ -572,10 +587,17 @@ describe("Provisioning API", function() {
 
             // Allow receiving of names by bot
             env.ircMock._whenClient(config._server, config._botnick, "names",
+<<<<<<< HEAD:spec/integ/provisioning.spec.ts
                 function(client, chan, cb) {
                     const names = {};
                     names[receivingOp.nick] = '@'; // is op
                     names[notOp.nick] = ''; // is not op
+=======
+                function(_client, chan, cb) {
+                    const names = new Map();
+                    names.set(receivingOp.nick, '@'); // is op
+                    names.set(notOp.nick, ''); // is not op
+>>>>>>> origin/develop:spec/integ/provisioning.spec.js
                     cb(chan, names);
                 }
             );
@@ -860,10 +882,17 @@ describe("Provisioning API", function() {
 
             // Allow receiving of names by bot
             env.ircMock._whenClient(config._server, config._botnick, "names",
+<<<<<<< HEAD:spec/integ/provisioning.spec.ts
                 function(client, chan, cb) {
                     const names = {};
                     names[receivingOp.nick] = '@'; // is op
                     names[notOp.nick] = ''; // is not op
+=======
+                function(_client, chan, cb) {
+                    const names = new Map();
+                    names.set(receivingOp.nick, '@'); // is op
+                    names.set(notOp.nick, ''); // is not op
+>>>>>>> origin/develop:spec/integ/provisioning.spec.js
                     cb(chan, names);
                 }
             );

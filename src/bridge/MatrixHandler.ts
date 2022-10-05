@@ -10,7 +10,7 @@ import {
     Intent,
 } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
-import { MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
+import { ActionType, MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
 import { IrcRoom } from "../models/IrcRoom";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcServer } from "../irc/IrcServer";
@@ -58,7 +58,7 @@ const DEFAULTS: MatrixHandlerConfig = {
     shortReplyTresholdSeconds: 5 * 60,
     shortReplyTemplate: "$NICK: $REPLY",
     longReplyTemplate: "<$NICK> \"$ORIGINAL\" <- $REPLY",
-    truncatedMessageTemplate: "(full message at $URL)",
+    truncatedMessageTemplate: "(full message at <$URL>)",
 };
 
 export interface MatrixEventInvite {
@@ -169,19 +169,13 @@ export class MatrixHandler {
 
         // Do not create an admin room if the room is marked as 'plumbed'
         const matrixClient = this.ircBridge.getAppServiceBridge().getIntent();
-
-        try {
-            const plumbedState = await matrixClient.getStateEvent(event.room_id, 'm.room.plumbing');
-            if (plumbedState.status === "enabled") {
-                req.log.info(
-                    'This room is marked for plumbing (m.room.plumbing.status = "enabled"). ' +
-                    'Not treating room as admin room.'
-                );
-                return;
-            }
-        }
-        catch (err) {
-            req.log.debug(`Not a plumbed room: Error retrieving m.room.plumbing (${err.data.error})`);
+        const plumbedState = await matrixClient.getStateEvent(event.room_id, 'm.room.plumbing', '', true);
+        if (plumbedState?.status === "enabled") {
+            req.log.info(
+                'This room is marked for plumbing (m.room.plumbing.status = "enabled"). ' +
+                'Not treating room as admin room.'
+            );
+            return;
         }
 
         // clobber any previous admin room ID
@@ -215,7 +209,7 @@ export class MatrixHandler {
             req.log.error("Accepting invite, and then leaving: This server does not allow PMs.");
             await intent.join(event.room_id);
             await this.ircBridge.sendMatrixAction(mxRoom, invitedUser, new MatrixAction(
-                "notice",
+                ActionType.Notice,
                 MSG_PMS_DISABLED
             ));
             await intent.leave(event.room_id);
@@ -232,7 +226,7 @@ export class MatrixHandler {
                 );
                 await intent.join(event.room_id);
                 await this.ircBridge.sendMatrixAction(mxRoom, invitedUser, new MatrixAction(
-                    "notice",
+                    ActionType.Notice,
                     MSG_PMS_DISABLED_FEDERATION
                 ));
                 await intent.leave(event.room_id);
@@ -245,14 +239,7 @@ export class MatrixHandler {
         req.log.info("Joined %s to room %s", invitedUser.getId(), event.room_id);
 
         // check if this room is a PM room or not.
-
-        let isPmRoom = event.content.is_direct === true;
-        if (isPmRoom !== true) {
-            // Legacy check
-            const joinedMembers = await this.ircBridge.getAppServiceBridge().getIntent().matrixClient
-                .getJoinedRoomMembers(event.room_id);
-            isPmRoom = joinedMembers.length === 2 && joinedMembers.includes(event.sender);
-        }
+        const isPmRoom = event.content.is_direct === true;
 
         if (isPmRoom) {
             // nick is the channel
@@ -290,7 +277,7 @@ export class MatrixHandler {
             );
 
             // Notify users in admin room
-            const notice = new MatrixAction("notice",
+            const notice = new MatrixAction(ActionType.Notice,
                 "There are more than 2 users in this admin room"
             );
             await this.ircBridge.sendMatrixAction(adminRoom, botUser, notice);
@@ -569,7 +556,7 @@ export class MatrixHandler {
                             user.getId(),
                             req,
                             true,
-                            excluded && excluded.kickReason ? excluded.kickReason : `IRC connection failure.`,
+                            excluded && excluded.kickReason || `IRC connection failure.`,
                             this.ircBridge.appServiceUserId,
                         );
                     }
@@ -828,7 +815,7 @@ export class MatrixHandler {
             throw Error('Cannot handle command with no text');
         }
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
-        const [command, ...args] = event.content.body.trim().substr("!irc ".length).split(" ");
+        const [command, ...args] = event.content.body.trim().substring("!irc ".length).split(" ");
         // We currently only check the first room.
         const [targetRoom] = await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
         if (command === "nick") {
@@ -1343,8 +1330,8 @@ export class MatrixHandler {
             // If we couldn't find a client for them, they might be a ghost.
             const ghostName = ircRoom.getServer().getNickFromUserId(rplName);
             // If we failed to get a name, just make a guess of it.
-            rplName = ghostName !== null ? ghostName : rplName.substr(1,
-                Math.min(REPLY_NAME_MAX_LENGTH, rplName.indexOf(":") - 1)
+            rplName = ghostName !== null ? ghostName : rplName.substring(1,
+                1 + Math.min(REPLY_NAME_MAX_LENGTH, rplName.indexOf(":") - 1)
             );
         }
 

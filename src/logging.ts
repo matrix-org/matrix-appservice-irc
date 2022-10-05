@@ -50,9 +50,7 @@ let loggerConfig: LoggerConfig = {
     timestamp: true,
 };
 
-const loggers: {[name: string]: Logger } = {
-    // name_of_logger: Logger
-};
+const loggers: Map<string, Logger> = new Map();
 
 let loggerTransports: Transport[]; // from config
 
@@ -88,7 +86,7 @@ export function simpleLogger(level = "info") {
 
 const makeTransports = function() {
 
-    const transports = [];
+    const transports: Transport[] = [];
     if (loggerConfig.toConsole) {
         transports.push(new (winston.transports.Console)({
             format: formatterFn(true),
@@ -122,13 +120,13 @@ const makeTransports = function() {
     // them. The 'transport' is an emitter which the loggers listen for errors
     // from. Since we have > 10 files (each with their own logger), we get
     // warnings. Set the max listeners to unlimited to suppress the warning.
-    transports.forEach(function(transport) {
+    for (const transport of transports) {
         transport.setMaxListeners(0);
-    });
+    }
     return transports;
 };
 
-const createLogger = function(nameOfLogger: string) {
+const createLogger = function(nameOfLogger: string): Logger {
     // lazily load the transports if one wasn't set from configure()
     if (!loggerTransports) {
         loggerTransports = makeTransports();
@@ -146,11 +144,11 @@ const createLogger = function(nameOfLogger: string) {
  * Obtain a logger by name, creating one if necessary.
  */
 export function get(nameOfLogger: string) {
-    if (loggers[nameOfLogger]) {
-        return loggers[nameOfLogger];
+    let logger = loggers.get(nameOfLogger);
+    if (!logger) {
+        logger = createLogger(nameOfLogger);
+        loggers.set(nameOfLogger, logger);
     }
-    const logger = createLogger(nameOfLogger);
-    loggers[nameOfLogger] = logger;
     return logger;
 }
 
@@ -177,9 +175,7 @@ export function configure(opts: LoggerConfig) {
     // reconfigure any existing loggers. They may have been lazily loaded
     // with the default config, which is now being overwritten by this
     // configure() call.
-    Object.keys(loggers).forEach(function(loggerName) {
-        const existingLogger = loggers[loggerName];
-        // remove each individual transport
+    for (const [, existingLogger] of loggers) {
         for (const transport of existingLogger.transports) {
             existingLogger.remove(transport);
         }
@@ -187,7 +183,7 @@ export function configure(opts: LoggerConfig) {
         for (const transport of loggerTransports) {
             existingLogger.add(transport);
         }
-    });
+    }
 }
 
 export function isVerbose() {
@@ -245,22 +241,21 @@ export function setUncaughtExceptionLogger(exceptionLogger: Logger) {
         exceptionLogger.error("Terminating (exitcode=1)", function() {
             let numFlushes = 0;
             let numFlushed = 0;
-            Object.values(exceptionLogger.transports).forEach((stream) => {
-                // We need to access the unexposed _stream
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                if (stream) {
-                    numFlushes += 1;
-                    stream.once("finish", function() {
-                        numFlushed += 1;
-                        if (numFlushes === numFlushed) {
-                            process.exit(UNCAUGHT_EXCEPTION_ERRCODE);
-                        }
-                    });
-                    stream.on("error", function() {
-                        // swallow
-                    });
-                    stream.end();
+            exceptionLogger.transports.forEach((stream) => {
+                if (!stream) {
+                    return;
                 }
+                numFlushes += 1;
+                stream.once("finish", function() {
+                    numFlushed += 1;
+                    if (numFlushes === numFlushed) {
+                        process.exit(UNCAUGHT_EXCEPTION_ERRCODE);
+                    }
+                });
+                stream.on("error", function() {
+                    // swallow
+                });
+                stream.end();
             });
             if (numFlushes === 0) {
                 process.exit(UNCAUGHT_EXCEPTION_ERRCODE);

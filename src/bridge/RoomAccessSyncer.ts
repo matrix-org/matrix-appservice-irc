@@ -230,7 +230,7 @@ export class RoomAccessSyncer {
         }
 
         // Work out what power levels to give
-        const userPowers = [];
+        const userPowers: number[] = [];
         if (modeToPower[mode]) { // only give this power if it's +, not -
             userPowers.push(modeToPower[mode]);
         }
@@ -245,12 +245,11 @@ export class RoomAccessSyncer {
                 req.log.info(`Bridged client for ${nick} has no IRC client.`);
                 return;
             }
-            const chanData = bridgedClient.chanData(channel);
-            if (!chanData?.users) {
-                req.log.error(`No channel data for ${channel}`);
+            const userPrefixes = bridgedClient.chanData(channel)?.users.get(nick);
+            if (!userPrefixes) {
+                req.log.error(`No channel data for ${channel}/${nick}`);
                 return;
             }
-            const userPrefixes = chanData.users[nick] as string;
             userPrefixes.split('').forEach(
                 prefix => {
                     const m = bridgedClient.modeForPrefix(prefix);

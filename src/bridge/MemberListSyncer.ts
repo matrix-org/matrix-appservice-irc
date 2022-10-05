@@ -45,10 +45,8 @@ export class MemberListSyncer {
     private memberLists: {
         irc: {[channel: string]: string[]};
         matrix: {[roomId: string]: RoomInfo};
-    } = {
-        irc: {},
-        matrix: {},
-    }
+    } = { irc: {}, matrix: {} };
+
     constructor(private ircBridge: IrcBridge, private memberQueue: MembershipQueue,
                 private appServiceBot: AppServiceBot, private server: IrcServer,
                 private appServiceUserId: string, private injectJoinFn: InjectJoinFn) {
@@ -190,7 +188,7 @@ export class MemberListSyncer {
                             // If we're not allowed to, just give up.
                             return;
                         }
-                        await Bluebird.delay(3000); // wait a bit before retrying
+                        await promiseutil.delay(3000); // wait a bit before retrying
                     }
                 }
                 const roomInfo: RoomInfo = {
@@ -266,6 +264,11 @@ export class MemberListSyncer {
         const idleRegex = this.server.ignoreIdleUsersOnStartupExcludeRegex;
         for (const roomInfo of filteredRooms) {
             for (const uid of roomInfo.realJoinedUsers) {
+                const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(uid);
+                if (banReason) {
+                    log.debug(`Not syncing ${uid} - user banned (${banReason})`)
+                    continue;
+                }
                 if (this.server.ignoreIdleUsersOnStartup) {
                     const idle = await this.ircBridge.activityTracker?.isUserOnline(
                         uid, this.server.ignoreIdleUsersOnStartupAfterMs, false
@@ -360,22 +363,20 @@ export class MemberListSyncer {
     // Update the MemberListSyncer with the IRC NAMES_RPL that has been received for channel.
     // This will leave any matrix users that do not have their associated IRC nick in the list
     // of names for this channel.
-    public async updateIrcMemberList(channel: string, names: {[nick: string]: unknown}) {
+    public async updateIrcMemberList(channel: string, names: Map<string, unknown>) {
         if (this.memberLists.irc[channel] !== undefined ||
                 !this.server.shouldSyncMembershipToMatrix("initial", channel)) {
             return;
         }
-        this.memberLists.irc[channel] = Object.keys(names);
+        const nickList = [...names.keys()];
+        this.memberLists.irc[channel] = nickList;
 
         log.info(
-            `updateIrcMemberList: Updating IRC member list for ${channel} with ` +
-            `${this.memberLists.irc[channel].length} IRC nicks`
+            `updateIrcMemberList: Updating IRC member list for ${channel} with ${nickList.length} IRC nicks`
         );
 
         // Convert the IRC channels nicks to userIds
-        const ircUserIds = this.memberLists.irc[channel].map(
-            (nick) => this.server.getUserIdFromNick(nick)
-        );
+        const ircUserIds = nickList.map(nick => this.server.getUserIdFromNick(nick));
 
         // For all bridged rooms, leave users from matrix that are not in the channel
         const roomsForChannel = await this.ircBridge.getStore().getMatrixRoomsForChannel(

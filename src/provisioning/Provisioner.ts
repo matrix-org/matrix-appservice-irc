@@ -52,9 +52,7 @@ const LINK_REQUIRED_POWER_DEFAULT = 50;
 
 export class Provisioner extends ProvisioningApi {
     private pendingRequests: {
-        [domain: string]: {
-            [nick: string]: PendingRequest;
-        };
+        [domain: string]: Map<string, PendingRequest>; // nick -> request
     } = {};
 
 
@@ -66,10 +64,16 @@ export class Provisioner extends ProvisioningApi {
      * @param params The url parameters of the request.
      * @returns A ProvisioningRequest object.
      */
-    static createFakeRequest(
+    static createFakeRequest<T>(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        fnName: string, userId = "-internal-", body?: any, params: Record<string, unknown> = {}) {
-        return new ProvisioningRequest({body: body || {}, params}, userId, "provisioner", fnName);
+        fnName: string, userId = "-internal-", params?: T, body?: unknown): ProvisioningRequest<T> {
+        return new ProvisioningRequest({
+            body: body || {},
+            query: {},
+            params,
+            // We know this isn't a real express request.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any, userId, "provisioner", fnName);
     }
 
     constructor(
@@ -134,7 +138,7 @@ export class Provisioner extends ProvisioningApi {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         fn: (req: ProvisioningRequest<any, any>) => PromiseLike<any>
     ) {
-        return async (req: ProvisioningRequest, res: express.Response) => {
+        return async (req: ProvisioningRequest<unknown>, res: express.Response) => {
             // Errors will be caught by the Provisioner class
             const result = (await fn.call(this, req)) || {};
             req.log.debug(`Sending result: ${JSON.stringify(result)}`);
@@ -153,6 +157,46 @@ export class Provisioner extends ProvisioningApi {
         catch (err) {
             throw new Error(`Could not update m.room.bridging state in ${roomId}`);
         }
+    }
+
+    /**
+     *  Utility function for attempting to send a request to a matrix endpoint
+     *  that might be rate-limited.
+     *
+     *  This function will try `attempts` times to apply function `fn` to `obj` by
+     *  calling fn.apply(obj, args), with args being any arguments passed to retry
+     *  after `fn`. If an error occurs, the same will be tried again after
+     *  `retryDelayMs`. If an error err is thrown by `fn` and err.data.retry_after_ms
+     *  is set, it will be added to that delay.
+     *
+     *  If the number of attempts is reached, an error is thrown.
+     */
+    private async _retry<V>(req: ProvisioningRequest<unknown>, attempts: number, retryDelayMS: number, obj: unknown,
+                            fn: (args: string) => V, args: string) {
+        for (;attempts > 0; attempts--) {
+            try {
+                const val = await fn.apply(obj, [args]);
+                return val;
+            }
+            catch (err) {
+                const msg = err.data && err.data.error ? err.data.error : err.message;
+                req.log.error(`Error doing rate limited action (${msg})`);
+
+                let waitTimeMs = retryDelayMS;
+
+                if (err.data && err.data.retry_after_ms && attempts > 0) {
+                    waitTimeMs += err.data.retry_after_ms;
+                }
+                await promiseutil.delay(waitTimeMs);
+            }
+        }
+
+        throw new Error(`Too many attempts to do rate limited action`);
+    }
+
+    private retry<V>(req: ProvisioningRequest<unknown>, attempts: number, retryDelayMS: number, obj: unknown,
+                     fn: (args: string) => V, args: string) {
+        return this._retry(req, attempts, retryDelayMS, obj, fn, args);
     }
 
     private async userHasProvisioningPower(req: ProvisioningRequest<unknown>, userId: string, roomId: string) {
@@ -217,7 +261,7 @@ export class Provisioner extends ProvisioningApi {
      *  - (Matrix) update room state m.room.brdiging
     */
     private async authoriseProvisioning(req: ProvisioningRequest<unknown>, server: IrcServer, userId: string,
-                                        ircChannel: string, roomId: string, opNick: string, key?: string) {
+                                        ircChannel: string, roomId: string, opNick: string, key?: string): Promise<void> {
         const ircDomain = server.domain;
 
         const existing = this.getRequest(server, opNick);
@@ -245,12 +289,11 @@ export class Provisioner extends ProvisioningApi {
 
         const info = await botClient.getOperators(ircChannel, {key : key});
 
-        if (!info.nicks.includes(opNick)) {
+        if (!info.names.has(opNick)) {
             throw new IrcProvisioningError(
                 `Provided user is not in channel ${ircChannel}.`,
                 IrcErrCode.BadOpTarget,
-            );
-        }
+            );        }
 
         if (!info.operatorNicks.includes(opNick)) {
             throw new IrcProvisioningError(
@@ -387,7 +430,7 @@ export class Provisioner extends ProvisioningApi {
             roomId, userId, skey, timeoutSeconds);
     }
 
-    private async sendToUser(receiverNick: string, server: IrcServer, message: string) {
+    private async sendToUser(receiverNick: string, server: IrcServer, message: string): Promise<void> {
         const botClient = await this.ircBridge.getBotClient(server);
         return this.ircBridge.sendIrcAction(
             new IrcRoom(server, receiverNick),
@@ -396,11 +439,14 @@ export class Provisioner extends ProvisioningApi {
         );
     }
 
-    // Contact an operator, asking for authorisation for a mapping, and if they reply
-    //  'yes' or 'y', create the mapping.
+    /**
+     * Contact an operator, asking for authorisation for a mapping, and if they reply
+     * 'yes' or 'y', create the mapping.
+     */
     private async createAuthorisedLink(
         req: ProvisioningRequest<unknown>, server: IrcServer, opNick: string, ircChannel: string, key: string|undefined,
-        roomId: string, userId: string, skey: string, timeoutSeconds: number) {
+        roomId: string, userId: string, skey: string, timeoutSeconds: number
+    ): Promise<void> {
         const d = promiseutil.defer();
 
         this.setRequest(server, opNick, {userId: userId, defer: d, log: req.log});
@@ -445,15 +491,15 @@ export class Provisioner extends ProvisioningApi {
             }
         }
 
-        let roomDesc = null;
+        let roomDesc: string | undefined;
         let matrixToLink = `https://matrix.to/#/${roomId}`;
 
-        if (aliasState && aliasState.alias) {
+        if (aliasState && typeof aliasState.alias === 'string') {
             roomDesc = aliasState.alias;
             matrixToLink = `https://matrix.to/#/${aliasState.alias}`;
         }
 
-        if (nameState && nameState.name) {
+        if (nameState && typeof nameState.name === 'string') {
             roomDesc = `'${nameState.name}'`;
         }
 
@@ -507,31 +553,25 @@ export class Provisioner extends ProvisioningApi {
     }
 
     private removeRequest (server: IrcServer, opNick: string) {
-        if (this.pendingRequests[server.domain]) {
-            delete this.pendingRequests[server.domain][opNick];
-        }
+        this.pendingRequests[server.domain]?.delete(opNick);
     }
 
-    // Returns a pending request if it's promise isPending(), otherwise null
+    /**
+     * Returns a pending request if it's promise isPending(), otherwise null
+     */
     private getRequest(server: IrcServer, opNick: string) {
-        const reqs = this.pendingRequests[server.domain];
-        if (reqs) {
-            if (!reqs[opNick]) {
-                return null;
-            }
-
-            if (reqs[opNick].defer.promise.isPending()) {
-                return reqs[opNick];
-            }
+        const req = this.pendingRequests[server.domain]?.get(opNick);
+        if (req?.defer.promise.isPending()) {
+            return req;
         }
         return null;
     }
 
     private setRequest (server: IrcServer, opNick: string, request: PendingRequest) {
         if (!this.pendingRequests[server.domain]) {
-            this.pendingRequests[server.domain] = {};
+            this.pendingRequests[server.domain] = new Map();
         }
-        this.pendingRequests[server.domain][opNick] = request;
+        this.pendingRequests[server.domain]?.set(opNick, request);
     }
 
     public async handlePm (server: IrcServer, fromUser: IrcUser, text: string) {
@@ -564,12 +604,11 @@ export class Provisioner extends ProvisioningApi {
         );
     }
 
-    // Get information that might be useful prior to calling requestLink
-    //  returns
-    //  {
-    //   operators: ['operator1', 'operator2',...] // an array of IRC chan op nicks
-    //  }
-    public async queryLink(req: ProvisioningRequest<QueryLinkValidatorProperties>) {
+    /**
+     * Get information that might be useful prior to calling requestLink
+     * @returns An array of IRC chan op nicks
+     */
+    public async queryLink(req: ProvisioningRequest<QueryLinkValidatorProperties>): Promise<{operators: string[]}> {
         const options = req.body;
         const ircDomain = options.remote_room_server;
         let ircChannel = options.remote_room_channel;
@@ -633,17 +672,21 @@ export class Provisioner extends ProvisioningApi {
         return queryInfo;
     }
 
-    // Get the list of currently network instances
+    /**
+     * Get the list of currently network instances.
+     */
     public async queryNetworks() {
         const thirdParty = await this.ircBridge.getThirdPartyProtocol();
 
         return {
-            servers: thirdParty.instances
+            servers: thirdParty.instances,
         };
     }
 
-    // Link an IRC channel to a matrix room ID
-    public async requestLink(req: ProvisioningRequest<LinkValidatorProperties>) {
+    /**
+     * Link an IRC channel to a matrix room ID.
+     */
+    public async requestLink(req: ProvisioningRequest<LinkValidatorProperties>): Promise<void> {
         const options = req.body;
         Provisioner.validatePayload(LinkValidator, options);
 
@@ -705,7 +748,7 @@ export class Provisioner extends ProvisioningApi {
     }
 
     public async doLink(req: ProvisioningRequest<unknown>, server: IrcServer, ircChannel: string,
-                        key: string|undefined, roomId: string, userId: string) {
+                        key: string|undefined, roomId: string, userId: string): Promise<void> {
         const ircDomain = server.domain;
         const mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
         req.log.info(`Provisioning link for room ${mappingLogId}`);
@@ -768,7 +811,7 @@ export class Provisioner extends ProvisioningApi {
      * @param ignorePermissions If true, permissions are ignored (e.g. for bridge admins).
      * Otherwise, the user needs to be a Moderator in the Matrix room.
      */
-    public async unlink(req: ProvisioningRequest<UnlinkValidatorProperties>, ignorePermissions = false) {
+    public async unlink(req: ProvisioningRequest<UnlinkValidatorProperties>, ignorePermissions = false): Promise<void> {
         const options = req.body;
         Provisioner.validatePayload(UnlinkValidator, options);
 
@@ -857,11 +900,13 @@ export class Provisioner extends ProvisioningApi {
         }
     }
 
-    // Force the bot to leave both sides of a provisioned mapping if there are no more mappings that
-    //  map either the channel or room. Force IRC clients to part the channel.
+    /**
+     * Force the bot to leave both sides of a provisioned mapping if there are no more mappings that
+     * map either the channel or room. Force IRC clients to part the channel.
+     */
     public async leaveIfUnprovisioned(
         req: ProvisioningRequest<unknown>, roomId: string, server: IrcServer, ircChannel: string
-    ) {
+    ): Promise<void> {
         try {
             await Promise.all([
                 this.partUnlinkedIrcClients(req, roomId, server, ircChannel),
@@ -885,11 +930,13 @@ export class Provisioner extends ProvisioningApi {
         await this.leaveMatrixRoomIfUnprovisioned(req, roomId);
     }
 
-    // Parts IRC clients who should no longer be in the channel as a result of the given mapping being
-    // unlinked.
+    /**
+     * Parts IRC clients who should no longer be in the channel as a result of the given mapping being
+     * unlinked.
+     */
     private async partUnlinkedIrcClients(
         req: ProvisioningRequest<unknown>, roomId: string, server: IrcServer, ircChannel: string
-    ) {
+    ): Promise<void> {
         // Get the full set of room IDs linked to this #channel
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
             server, ircChannel
@@ -986,9 +1033,11 @@ export class Provisioner extends ProvisioningApi {
         );
     }
 
-    // Cause the bot to leave the matrix room if there are no other channels being mapped to
-    // this room
-    private async leaveMatrixRoomIfUnprovisioned(req: ProvisioningRequest<unknown>, roomId: string) {
+    /**
+     *  Cause the bot to leave the matrix room if there are no other channels being mapped to
+     * this room
+     */
+    private async leaveMatrixRoomIfUnprovisioned(req: ProvisioningRequest<unknown>, roomId: string): Promise<void> {
         const ircChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(roomId);
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         if (ircChannels.length === 0) {
@@ -997,8 +1046,10 @@ export class Provisioner extends ProvisioningApi {
         }
     }
 
-    // List all mappings currently provisioned with the given matrix_room_id
-    public async listings(req: ProvisioningRequest<unknown, {roomId: string}>) {
+    /**
+     * List all mappings currently provisioned with the given matrix_room_id
+     */
+    public async listings(req: ProvisioningRequest<{roomId: string}>) {
         const roomId = req.params.roomId;
         Provisioner.validatePayload(RoomIdValidator, {"matrix_room_id": roomId});
 

@@ -54,15 +54,15 @@ or by providing a password to the bridge itself. See the [Admin Room](./admin_ro
 
 ### SASL authentication
 
-SASL authentication is a new mechanism to authenticate with certain bridges, which requires you to also 
-set a `!username` as well as password before authenticating. Bridges such as the **libera.chat** bridge 
-require this authentication type. If you fail to authenticate, the bridge will notify you in the admin 
+SASL authentication is a new mechanism to authenticate with certain bridges, which requires you to also
+set a `!username` as well as password before authenticating. Bridges such as the **libera.chat** bridge
+require this authentication type. If you fail to authenticate, the bridge will notify you in the admin
 room.
 
 ## Message behaviours
 
 Messages from IRC to Matrix appear in roughly as you'd expect them to. Emotes (`/me` text) are applied as Matrix supports
-it, and mIRC format colours are applied too. The IRC bridge makes an attempt to replace nicknames in sent messages with 
+it, and mIRC format colours are applied too. The IRC bridge makes an attempt to replace nicknames in sent messages with
 user mention "pills".
 
 ![An illustration of the IRC mentions feature](images/irc_mentions.png)
@@ -73,7 +73,7 @@ Messages from Matrix are often richer than their IRC counterparts, as Matrix has
 
 Basic formatting is supported such as **bolding** and *italics* but other formats are discarded. Messages that exceed the maximum
 size of an IRC message *or* a message that contains newlines will be split into two or more messages. The configuration value
-`lineLimit` sets the maximum permittied number of messages to be sent before the whole message is stored as a file and sent as a link.
+`lineLimit` sets the maximum permitted number of messages to be sent before the whole message is stored as a file and sent as a link.
 
 For example:
 

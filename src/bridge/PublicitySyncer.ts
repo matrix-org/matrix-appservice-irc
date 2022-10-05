@@ -31,11 +31,8 @@ export class PublicitySyncer {
         roomVisibilities: {
             [roomId: string]: "private"|"public";
         };
-    } = {
-        mappings: {},
-        channelIsSecret: {},
-        roomVisibilities: {},
-    };
+    } = { mappings: {}, channelIsSecret: {}, roomVisibilities: {} };
+
     private initModeQueue: Queue<{server: IrcServer; channel: string}>;
     constructor (private ircBridge: IrcBridge) {
         this.initModeQueue = new Queue(this.initModeForChannel.bind(this));

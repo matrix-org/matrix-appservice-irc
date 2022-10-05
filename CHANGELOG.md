@@ -1,4 +1,133 @@
- 0.32.0 (2021-10-18)
+0.35.1 (2022-09-26)
+===================
+
+Bugfixes
+--------
+
+- Prevent possible attack by provisisioning a room with a specific roomID. ([\#1619](https://github.com/matrix-org/matrix-appservice-irc/issues/1619))
+
+
+0.35.0 (2022-09-13)
+===================
+
+Features
+--------
+
+- Add new Debug API `/warnReapUsers` which allows bridges to send a warning to users when they are going to be idle reaped. ([\#1571](https://github.com/matrix-org/matrix-appservice-irc/issues/1571))
+
+
+Bugfixes
+--------
+
+- Truncated messages now default to wrapping URLs in angle brackets. ([\#1573](https://github.com/matrix-org/matrix-appservice-irc/issues/1573))
+
+
+Internal Changes
+----------------
+
+- Include the bridge version and homeserver in the `CTCP VERSION` response body. ([\#1559](https://github.com/matrix-org/matrix-appservice-irc/issues/1559))
+- BREAKING: Remove (IRC) as a default displayName suffix. ([\#1567](https://github.com/matrix-org/matrix-appservice-irc/issues/1567))
+- Update CONTRIBUTING.md ([\#1570](https://github.com/matrix-org/matrix-appservice-irc/issues/1570))
+- Add new CI workflow to check for signoffs. ([\#1585](https://github.com/matrix-org/matrix-appservice-irc/issues/1585))
+- Strongly type emitted events from the IRC client. ([\#1604](https://github.com/matrix-org/matrix-appservice-irc/issues/1604))
+
+
+0.34.0 (2022-05-04)
+===================
+
+This release fixes a High severity security vulnerability. See [the matrix blog](https://matrix.org/blog/2022/05/04/0-34-0-security-release-for-matrix-appservice-irc-high-severity) for more details.
+
+Internal Changes
+----------------
+
+- Updated node-irc to 1.2.1
+
+0.33.1 (2022-03-30)
+===================
+
+This release fixes a critical bug which would cause bans across the bridge when using the new ban list feature.
+
+Bugfixes
+--------
+
+- Fix an issue where synchronising a ban list would cause all users to get banned. ([\#1551](https://github.com/matrix-org/matrix-appservice-irc/issues/1551))
+
+
+Deprecations and Removals
+-------------------------
+
+- Remove several scripts in `scripts/` which were unmaintained and obsolete. ([\#1531](https://github.com/matrix-org/matrix-appservice-irc/issues/1531))
+
+
+Internal Changes
+----------------
+
+- Fix towncrier script for summarising the newsfiles. ([\#1549](https://github.com/matrix-org/matrix-appservice-irc/issues/1549))
+
+0.33.0 (2022-03-02)
+===================
+
+No significant changes.
+
+
+0.33.0-rc2 (2022-02-18)
+=======================
+
+Bugfixes
+--------
+
+- Fix a duplicate metric that would prevent the bridge from starting. ([\#1534](https://github.com/matrix-org/matrix-appservice-irc/issues/1534))
+
+
+0.33.0-rc1 (2022-02-17)
+=======================
+
+Features
+--------
+
+- Support splitting users from different homeservers into different IPv6 blocks. ([\#1514](https://github.com/matrix-org/matrix-appservice-irc/issues/1514))
+- Added a new metric `clientpool_by_homeserver` which lists the states of IRC clients, by the top 25 homeservers. ([\#1517](https://github.com/matrix-org/matrix-appservice-irc/issues/1517))
+- Add support for subscribing to moderation policy. See http://matrix-org.github.io/matrix-appservice-irc/administrators_guide.html#subscribing-to-moderation-policies for more information. ([\#1532](https://github.com/matrix-org/matrix-appservice-irc/issues/1532))
+
+
+Bugfixes
+--------
+
+- Matrix message edits no longer bridge as a diff if it's longer than the new message ([\#1477](https://github.com/matrix-org/matrix-appservice-irc/issues/1477))
+
+
+Improved Documentation
+----------------------
+
+- Update the list of bridged networks after hackint started offering a bridge once again. ([\#1501](https://github.com/matrix-org/matrix-appservice-irc/issues/1501))
+- Removed freenode from bridged networks. ([\#1523](https://github.com/matrix-org/matrix-appservice-irc/issues/1523))
+
+
+Deprecations and Removals
+-------------------------
+
+- The bridge will no longer treat invites without a `is_direct: true` as DM invites (and will henceforth reject group room invites). This may break some Matrix
+  clients that do not supply this metadata when creating a room. ([\#1506](https://github.com/matrix-org/matrix-appservice-irc/issues/1506))
+- **Minimum required Node version is now 14**. Users on Node 12 are advised to update to newer versions. ([\#1515](https://github.com/matrix-org/matrix-appservice-irc/issues/1515))
+
+
+Internal Changes
+----------------
+
+- Check changelog.d entries in CI. ([\#1527](https://github.com/matrix-org/matrix-appservice-irc/issues/1527))
+- Update various packages that were out of date. ([\#1530](https://github.com/matrix-org/matrix-appservice-irc/issues/1530))
+
+
+0.32.1 (2021-10-25)
+====================
+
+Bugfixes
+--------
+
+- Fix a regression that prevented the bridge to run for multiple networks ([\#1491](https://github.com/matrix-org/matrix-appservice-irc/issues/1491))
+
+
+0.32.0 (2021-10-18)
 ====================
 
 No significant changes.
