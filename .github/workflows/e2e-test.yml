@@ -39,6 +39,21 @@ jobs:
     timeout-minutes: 30
     needs:
       - build-synapse
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres_password
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres_user
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: "Set Go Version"
         run: |
@@ -102,6 +117,10 @@ jobs:
           node-version: 18
       - name: Run Homerunner tests
         timeout-minutes: 10
+        env:
+          IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
+          IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@postgres"
+          IRCBRIDGE_TEST_ENABLEPG: "yes"
         run: |
           cd matrix-appservice-irc
           npm ci

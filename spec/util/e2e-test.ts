@@ -4,9 +4,9 @@ import { describe, beforeEach, afterEach, jest } from '@jest/globals';
 import { IrcBridge } from '../../src/bridge/IrcBridge';
 import { AppServiceRegistration } from "matrix-appservice-bridge";
 import { IrcServer } from "../../src/irc/IrcServer";
-import { mkdtemp, rm } from "node:fs/promises";
 import dns from 'node:dns';
 import { MatrixClient } from "matrix-bot-sdk";
+import { Client as PgClient } from "pg";
 
 // Needed to make tests work on GitHub actions. Node 17+ defaults
 // to IPv6, and the homerunner domain resolves to IPv6, but the
@@ -59,27 +59,49 @@ export class IrcBridgeE2ETest extends IrcServerTest {
                 if (!env.ircBridge) {
                     throw Error('ircBridge not defined');
                 }
-                return { homeserver: env.homeserver, ircBridge: env.ircBridge, clients: env.clients}
+                return { homeserver: env.homeserver, ircBridge: env.ircBridge, clients: env.clients }
             });
         });
     }
 
     public homeserver?: ComplementHomeServer;
     public ircBridge?: IrcBridge;
-    /**
-     * TODO: Postgresql
-     */
-    private dbPath?: string;
+    public postgresDb?: string;
+
+    private async createDatabase() {
+        const pgClient = new PgClient(`${process.env.IRCBRIDGE_TEST_PGURL}/postgres`);
+        try {
+            await pgClient.connect();
+            const postgresDb = `${process.env.IRCBRIDGE_TEST_PGDB}_${process.hrtime().join("_")}`;
+            await pgClient.query(`CREATE DATABASE ${postgresDb}`);
+            return postgresDb;
+        }
+        finally {
+            await pgClient.end();
+        }
+    }
+
+    private async dropDatabase() {
+        if (!this.postgresDb) {
+            // Database was never set up.
+            return;
+        }
+        const pgClient = new PgClient(`${process.env.IRCBRIDGE_TEST_PGURL}/postgres`);
+        await pgClient.connect();
+        await pgClient.query(`DROP DATABASE ${this.postgresDb}`);
+        await pgClient.end();
+    }
 
     public async setUp(clients?: string[], matrixLocalparts?: string[]): Promise<void> {
-        // Set up Matrix homeserver - Need to register the bridge bot.
-        console.log('Setting up homeserver...');
-        this.homeserver = await createHS(["ircbridge_bot", ...matrixLocalparts || []]);
-        // Set up IRC server
-        console.log('Setting up IRC clients...');
-        await super.setUp(clients);
-        // Set up an IRC bridge.
-        this.dbPath = await mkdtemp('ircbridge-');
+        // Setup PostgreSQL.
+        this.postgresDb = await this.createDatabase();
+        const [postgresDb, homeserver] = await Promise.all([
+            this.createDatabase(),
+            createHS(["ircbridge_bot", ...matrixLocalparts || []]),
+            super.setUp(clients),
+        ]);
+        this.homeserver = homeserver;
+        this.postgresDb = postgresDb;
 
         this.ircBridge = new IrcBridge({
             homeserver: {
@@ -89,8 +111,8 @@ export class IrcBridgeE2ETest extends IrcServerTest {
                 bindPort: this.homeserver.appserviceConfig.port,
             },
             database: {
-                connectionString: "nedb://" + this.dbPath,
-                engine: "nedb",
+                engine: "postgres",
+                connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${this.postgresDb}`,
             },
             ircService: {
                 servers: {
@@ -174,15 +196,12 @@ export class IrcBridgeE2ETest extends IrcServerTest {
     }
 
     public async tearDown(): Promise<void> {
-        if (this.dbPath) {
-            await rm(this.dbPath, { recursive: true });
-        }
         await Promise.allSettled([
-            this.dbPath && rm(this.dbPath, { recursive: true }),
             this.ircBridge?.kill(),
             super.tearDown(),
             this.homeserver?.users.map(c => c.client.stop()),
             this.homeserver && destroyHS(this.homeserver.id),
+            this.dropDatabase(),
         ]);
     }
 }
@@ -206,7 +225,7 @@ export class E2ETestMatrixClient extends MatrixClient {
             if (roomId && eventRoomId !== roomId) {
                 return undefined;
             }
-            if (stateKey && eventData.state_key !== stateKey) {
+            if (stateKey !== undefined && eventData.state_key !== stateKey) {
                 return undefined;
             }
             return {roomId: eventRoomId, data: eventData};
@@ -239,7 +258,7 @@ export class E2ETestMatrixClient extends MatrixClient {
         return new Promise((resolve, reject) => {
             // eslint-disable-next-line prefer-const
             let timer: NodeJS.Timeout;
-            const fn = (...args: any[]) => {
+            const fn = (...args: unknown[]) => {
                 const data = filterFn(...args);
                 if (data) {
                     clearTimeout(timer);

@@ -325,7 +325,7 @@ export class IrcServer {
     }
 
     public isInWhitelist(userId: string) {
-        return !this.config.dynamicChannels.whitelist || this.config.dynamicChannels.whitelist.includes(userId);
+        return this.config.dynamicChannels.whitelist?.includes(userId) ?? true;
     }
 
     public getSecureOptions() {
