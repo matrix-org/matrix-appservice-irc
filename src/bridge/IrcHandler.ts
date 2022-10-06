@@ -12,7 +12,7 @@ import { ActionType, MatrixAction } from "../models/MatrixAction";
 import { RequestLogger } from "../logging";
 import { RoomOrigin } from "../datastore/DataStore";
 import QuickLRU from "quick-lru";
-import { IrcMessage } from "../irc/ConnectionInstance";
+import { Message } from "matrix-org-irc";
 import { trackChannelAndCreateRoom } from "../bridge/RoomCreation";
 import { PrivacyProtection } from "../irc/PrivacyProtection";
 const NICK_USERID_CACHE_MAX = 512;
@@ -21,6 +21,7 @@ const PM_POWERLEVEL_IRCUSER = 100;
 const MEMBERSHIP_INITIAL_TTL_MS = 30 * 60 * 1000; // 30 mins
 const PM_ROOM_CREATION_RETRIES = 3; // How often to retry to create a PM room, if it fails?
 
+export type MatrixDirectoryVisibility = "private"|"public";
 export type MatrixMembership = "join"|"invite"|"leave"|"ban";
 
 interface RoomIdtoPrivateMember {
@@ -62,7 +63,7 @@ export class IrcHandler {
     // to prevent races when many messages are sent as PMs at once and therefore
     // prevent many pm rooms from being created.
     private readonly pmRoomPromises: {[fromToUserId: string]: Promise<MatrixRoom>} = {};
-    private readonly nickUserIdMapCache: QuickLRU<string, {[nick: string]: string}> = new QuickLRU({
+    private readonly nickUserIdMapCache: QuickLRU<string, Map<string, string>> = new QuickLRU({
         maxSize: NICK_USERID_CACHE_MAX,
     }); // server:channel => mapping
 
@@ -79,7 +80,8 @@ export class IrcHandler {
     private callCountMetrics?: {
         [key in MetricNames]: number;
     };
-    private registeredNicks: {[userId: string]: boolean} = {};
+
+    private readonly registeredNicks = new Set<string>();
 
     private pendingAdminRooms = new Map<string, Promise<MatrixRoom>>(); // userId -> adminRoom.
 
@@ -571,22 +573,20 @@ export class IrcHandler {
                 server, channel
             );
             const store = this.ircBridge.getStore();
-            const nicks = Object.keys(mapping);
-            for (const nick of nicks) {
+            for (const [nick, userId] of mapping.entries()) {
                 if (nick === server.getBotNickname()) {
                     continue;
                 }
-                const userId = mapping[nick];
                 const feature = (await store.getUserFeatures(userId)).mentions;
                 const enabled = feature === true ||
                     (feature === undefined && this.mentionMode === "on");
                 if (!enabled) {
-                    delete mapping[nick];
+                    mapping.delete(nick);
                     // We MUST keep the userId in this mapping, because the user
                     // may enable the feature and we need to know which mappings
                     // need recalculating. This nick should hopefully never come
                     // up in the wild.
-                    mapping["disabled-matrix-mentions-for-" + nick] = userId;
+                    mapping.set("disabled-matrix-mentions-for-" + nick, userId);
                 }
             }
             this.nickUserIdMapCache.set(`${server.domain}:${channel}`, mapping);
@@ -601,14 +601,14 @@ export class IrcHandler {
 
         const nickKey = server.domain + " " + fromUser.nick;
         let virtualMatrixUser: MatrixUser;
-        if (this.registeredNicks[nickKey]) {
+        if (this.registeredNicks.has(nickKey)) {
             // save the database hit
             const sendingUserId = server.getUserIdFromNick(fromUser.nick);
             virtualMatrixUser = new MatrixUser(sendingUserId);
         }
         else {
             virtualMatrixUser = await this.ircBridge.getMatrixUser(fromUser);
-            this.registeredNicks[nickKey] = true;
+            this.registeredNicks.add(nickKey);
         }
 
         const failed = [];
@@ -966,7 +966,7 @@ export class IrcHandler {
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     public async onMetadata(req: BridgeRequest, client: BridgedClient, msg: string, force: boolean,
-                            ircMsg?: IrcMessage) {
+                            ircMsg?: Message) {
         if (!client.userId) {
             // Probably the bot
             return undefined;

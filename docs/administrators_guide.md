@@ -10,7 +10,7 @@ to medium sized bridges, but if you expect to handle extremely heavy IRC or Matr
 then it might be looking at tweaking some of these options.
 
 It should be noted that often the homeserver you have connected to the bridge will play a greater
-role in the percieved performance of your bridge, as it is usually the bottleneck in either handing
+role in the perceived performance of your bridge, as it is usually the bottleneck in either handing
 (federated) traffic towards the bridge, or persisting and federating traffic from the bridge to users.
 
 It is strongly advised that if you are suffering from performance issues, you should identify if there
@@ -26,7 +26,7 @@ which manifest as many QUITs. The IRC bridge will handle one QUIT per *room*, so
 rooms would manifest as 25 events. This can quickly overwhelm the bridge.
 
 The quit debouner is often overkill for smaller bridges, but if you find that the bridge becomes overwhelmed
-and unresponsive after a netsplit then it enabled. 
+and unresponsive after a netsplit then it enabled.
 
 ### Membership syncing
 
@@ -39,8 +39,8 @@ also adjust the membership settings of individual rooms or channels to lessen th
 
 ## Hot Reloading
 
-The bridge supports hot-reloading of the configuration file by sending a `SIGHUP` signal. Some configuration 
-keys will not be reloaded as they are required to be static to avoid bridge instability. Unsupported keys are 
+The bridge supports hot-reloading of the configuration file by sending a `SIGHUP` signal. Some configuration
+keys will not be reloaded as they are required to be static to avoid bridge instability. Unsupported keys are
 marked in [config.sample.yaml](https://github.com/matrix-org/matrix-appservice-irc/blob/develop/config.sample.yaml).
 Hot reloading is useful as restarting the bridge will drop all IRC connections, so it's worth using this
 method to avoid disruption.
@@ -63,7 +63,7 @@ When configured to do so, the IRC bridge typically tries to join all Matrix user
 the IRC channels to avoid Matrix users being able to read a conversation without being visible to IRC users.
 However since it is not always possible to ensure this happens in a timely manner, there is a safety net feature.
 
-Administatators can choose the default behaviour of allowing messages to continue to be bridged to the 
+Administrators can choose the default behaviour of allowing messages to continue to be bridged to the
 room (potentially leaking history) or enforcing strict rules to ensure that all Matrix users are joined
 before *anyone* can read messages. This can be enabled by setting
 
@@ -75,7 +75,7 @@ membershipLists:
       requireMatrixJoined: true
 ```
 
-in the config. Users can choose to disable this on a per-room basis by modfiying their
+in the config. Users can choose to disable this on a per-room basis by modifying their
 [room config](./room_configuration.md#allowunconnectedmatrixusers) options, if the bridge permits it.
 
 ## Subscribing to Moderation policies

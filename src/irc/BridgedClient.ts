@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import Bluebird from "bluebird";
 import * as promiseutil from "../promiseutil";
 import { EventEmitter } from "events";
 import Ident from "./Ident"
-import { ConnectionInstance, InstanceDisconnectReason, IrcMessage } from "./ConnectionInstance";
+import { ConnectionInstance, InstanceDisconnectReason } from "./ConnectionInstance";
+import { ClientEvents, Message } from "matrix-org-irc";
 import { IrcRoom } from "../models/IrcRoom";
 import { getLogger } from "../logging";
 import { IrcServer } from "./IrcServer";
@@ -40,8 +40,7 @@ const WHOIS_DELAY_TIMER_MS = 10 * 1000; // 10s
 export interface GetNicksResponse {
     server: IrcServer;
     channel: string;
-    nicks: string[];
-    names: {[nick: string]: string};
+    names: Map<string, string>;
 }
 
 export interface GetNicksResponseOperators extends GetNicksResponse {
@@ -88,7 +87,7 @@ export class BridgedClient extends EventEmitter {
     private lastActionTs: number;
     private _explicitDisconnect = false;
     private _disconnectReason: string|null = null;
-    private channelJoinDefers = new Map<string, Bluebird<IrcRoom>>();
+    private channelJoinDefers = new Map<string, Promise<IrcRoom>>();
     private _chanList: Set<string> = new Set();
     private connectDefer: promiseutil.Defer<void>;
     public readonly log: BridgedClientLogger;
@@ -185,7 +184,7 @@ export class BridgedClient extends EventEmitter {
         return this.clientConfig;
     }
 
-    public kill(reason?: string) {
+    public kill(reason?: string): Promise<void> {
         log.info('Killing client ', this.nick);
         const state = this.state;
         // so that no further commands can be issued
@@ -285,16 +284,16 @@ export class BridgedClient extends EventEmitter {
 
             this.eventBroker.sendMetadata(this, connectText);
 
-            connInst.client.addListener("nick", (old: string, newNick: string) => {
+            connInst.client.on("nick", (old, newNick) => {
                 if (old === this.nick) {
                     this.log.info(
-                        "NICK: Nick changed from '" + old + "' to '" + newNick + "'."
+                        `NICK: Nick changed from ${old} to ${newNick}.`
                     );
                     this._nick = newNick;
                     this.emit("nick-change", this, old, newNick);
                 }
             });
-            connInst.client.addListener("error", (err: IrcMessage) => {
+            connInst.client.on("error", (err) => {
                 // Errors we MUST notify the user about, regardless of the bridge's admin room config.
                 const ERRORS_TO_FORCE = ["err_nononreg", "err_nosuchnick", "err_cannotsendtochan"];
                 if (!err || !err.command || connInst.dead) {
@@ -342,11 +341,16 @@ export class BridgedClient extends EventEmitter {
         this.log.info("Rejoined channels");
     }
 
-    public disconnect(reason: InstanceDisconnectReason, textReason?: string, explicit = true) {
+    public disconnect(reason: InstanceDisconnectReason, textReason?: string, explicit = true): Promise<void> {
         return this.disconnectWithState(this.state, reason, textReason, explicit);
     }
 
-    private disconnectWithState(state: State, reason: InstanceDisconnectReason, textReason?: string, explicit = true) {
+    private disconnectWithState(
+        state: State,
+        reason: InstanceDisconnectReason,
+        textReason?: string,
+        explicit = true
+    ): Promise<void> {
         this._explicitDisconnect = explicit;
         if (state.status !== BridgedClientStatus.CONNECTED) {
             return Promise.resolve();
@@ -399,8 +403,8 @@ export class BridgedClient extends EventEmitter {
 
         return new Promise((resolve, reject) => {
             // These are nullified to prevent the linter from thinking these should be consts.
-            let nickListener: ((old: string, n: string) => void) | null = null;
-            let nickErrListener: ((err: IrcMessage) => void) | null = null;
+            let nickListener: ((old: string|undefined, n: string) => void) | null = null;
+            let nickErrListener: ((err: Message) => void) | null = null;
             const timeoutId = setTimeout(() => {
                 this.log.error("Timed out trying to change nick to %s", nick);
                 // may have disconnected between sending nick change and now so recheck
@@ -481,26 +485,23 @@ export class BridgedClient extends EventEmitter {
         return this._chanList.has(channel);
     }
 
-    public kick(nick: string, channel: string, reason: string) {
+    public async kick(nick: string, channel: string, reason: string): Promise<void> {
         reason = reason || "User kicked";
         if (this.state.status !== BridgedClientStatus.CONNECTED) {
-            return Promise.resolve(); // we were never connected to the network.
+            return; // we were never connected to the network.
         }
-        if (!Object.keys(this.state.client.chans).includes(channel)) {
+        if (!this.state.client.chans.has(channel)) {
             // we were never joined to it. We need to be joined to it to kick people.
-            return Promise.resolve();
+            return;
         }
         if (!channel.startsWith("#")) {
-            return Promise.resolve(); // PM room
+            return; // PM room
         }
 
         const c = this.state.client;
 
-        return new Promise<void>((resolve) => {
-            this.log.debug("Kicking %s from channel %s", nick, channel);
-            c.send("KICK", channel, nick, reason);
-            resolve(); // wait for some response? Is there even one?
-        });
+        this.log.debug("Kicking %s from channel %s", nick, channel);
+        await c.send("KICK", channel, nick, reason);
     }
 
     public sendAction(room: IrcRoom, action: IrcAction) {
@@ -537,11 +538,11 @@ export class BridgedClient extends EventEmitter {
         }
         const client = this.state.client;
         let timeout: NodeJS.Timeout|null = null;
-        let errorHandler!: (msg: IrcMessage) => void;
+        let errorHandler!: (msg: Message) => void;
         try {
             this.whoisPendingNicks.add(nick);
             const whois: WhoisResponse|null = await new Promise((resolve, reject) => {
-                errorHandler = (msg: IrcMessage) => {
+                errorHandler = (msg: Message) => {
                     if (msg.command !== "err_nosuchnick" || msg.args[1] !== nick) {
                         return;
                     }
@@ -620,7 +621,6 @@ export class BridgedClient extends EventEmitter {
         await this.joinChannel(channel, key);
         const nicksInfo = await this.getNicks(channel);
         await this.leaveChannel(channel);
-        const nicks = nicksInfo.nicks;
         // RFC 1459 1.3.1:
         // A channel operator is identified by the '@' symbol next to their
         // nickname whenever it is associated with a channel (ie replies to the
@@ -635,9 +635,9 @@ export class BridgedClient extends EventEmitter {
         // Note: Some servers only show the most powerful, others may show all of them.
 
         // Ergo: They are a chan op if they are "@" or "more powerful than @".
-        const operatorNicks = nicks.filter((nick) => {
-            for (let i = 0; i < nicksInfo.names[nick].length; i++) {
-                const prefix = nicksInfo.names[nick][i];
+        const operatorNicks = [...nicksInfo.names.entries()].filter(([, mode]) => {
+            for (let i = 0; i < mode.length; i++) {
+                const prefix = mode[i];
                 if (prefix === "@") {
                     return true;
                 }
@@ -649,7 +649,7 @@ export class BridgedClient extends EventEmitter {
                 }
             }
             return false;
-        });
+        }).map(([nick]) => nick);
 
         const nicksInfoExtended = {
             ...nicksInfo,
@@ -671,23 +671,24 @@ export class BridgedClient extends EventEmitter {
      * Get the nicks of the users in a channel
      * @param {string} channel : The channel to call /names on
      */
-    public getNicks(channel: string): Bluebird<GetNicksResponse> {
-        return new Bluebird((resolve, reject) => {
+    public getNicks(channel: string): Promise<GetNicksResponse> {
+        return new Promise((resolve, reject) => {
             if (this.state.status !== BridgedClientStatus.CONNECTED) {
                 reject(Error("unsafeClient not ready yet"));
                 return;
             }
-            this.state.client.names(channel, (channelName: string, names: {[nick: string]: string}) => {
+            const timeout = setTimeout(() => reject(new Error('Timed out fetching nicks')), 5000);
+            this.state.client.names(channel, (channelName, names) => {
                 // names maps nicks to chan op status, where '@' indicates chan op
                 // names = {'nick1' : '', 'nick2' : '@', ...}
+                clearTimeout(timeout);
                 resolve({
                     server: this.server,
                     channel: channelName,
-                    nicks: Object.keys(names),
                     names: names,
                 });
             });
-        }).timeout(5000) as Bluebird<GetNicksResponse>;
+        }) as Promise<GetNicksResponse>;
     }
 
 
@@ -924,7 +925,7 @@ export class BridgedClient extends EventEmitter {
         await defer.promise;
     }
 
-    public joinChannel(channel: string, key?: string, attemptCount = 1) {
+    public joinChannel(channel: string, key?: string, attemptCount = 1): Promise<IrcRoom> {
         // Wrap the join.
         const existing = this.channelJoinDefers.get(channel);
         if (existing) {
@@ -937,7 +938,7 @@ export class BridgedClient extends EventEmitter {
         return promise;
     }
 
-    private _joinChannel(channel: string, key?: string, attemptCount = 1): Bluebird<IrcRoom> {
+    private async _joinChannel(channel: string, key?: string, attemptCount = 1): Promise<IrcRoom> {
         if (this.state.status !== BridgedClientStatus.CONNECTED) {
             // we may be trying to join before we've connected, so check and wait
             if (this.connectDefer && this.connectDefer.promise.isPending()) {
@@ -945,17 +946,17 @@ export class BridgedClient extends EventEmitter {
                     return this._joinChannel(channel, key, attemptCount);
                 });
             }
-            return Bluebird.reject(new Error("No client"));
+            return Promise.reject(new Error("No client"));
         }
-        if (Object.keys(this.state.client.chans).includes(channel)) {
-            return Bluebird.resolve(new IrcRoom(this.server, channel));
+        if (this.state.client.chans.has(channel)) {
+            return Promise.resolve(new IrcRoom(this.server, channel));
         }
         if (!channel.startsWith("#")) {
             // PM room
-            return Bluebird.resolve(new IrcRoom(this.server, channel));
+            return Promise.resolve(new IrcRoom(this.server, channel));
         }
         if (this.server.isExcludedChannel(channel)) {
-            return Bluebird.reject(new Error(channel + " is a do-not-track channel."));
+            return Promise.reject(new Error(channel + " is a do-not-track channel."));
         }
         const defer = promiseutil.defer() as promiseutil.Defer<IrcRoom>;
         this.log.debug("Joining channel %s", channel);
@@ -977,7 +978,7 @@ export class BridgedClient extends EventEmitter {
                 return;
             }
             // we may have joined but didn't get the callback so check the client
-            if (Object.keys(this.state.client.chans).includes(channel)) {
+            if (this.state.client.chans.has(channel)) {
                 // we're joined
                 this.log.debug("Timed out joining %s - didn't get callback but " +
                     "are now joined. Resolving.", channel);
@@ -1002,7 +1003,7 @@ export class BridgedClient extends EventEmitter {
             });
         }, JOIN_TIMEOUT_MS);
 
-        const failFn = (err: IrcMessage) => {
+        const failFn = (err: Message) => {
             if (!err || !err.args || !err.args.includes(channel)) { return; }
             const failCodes = [
                 "err_nosuchchannel", "err_toomanychannels", "err_channelisfull",
@@ -1079,11 +1080,11 @@ export class BridgedClient extends EventEmitter {
         client.conn.write(buffer);
     }
 
-    public addClientListener(type: string, listener: (msg: unknown) => void) {
+    public addClientListener<T extends keyof ClientEvents>(type: T, listener: ClientEvents[T]) {
         this.assertConnected().on(type, listener);
     }
 
-    public removeClientListener(type: string, listener: (msg: unknown) => void) {
+    public removeClientListener(type: keyof ClientEvents, listener: (msg: unknown) => void) {
         try {
             this.assertConnected().removeListener(type, listener);
         }

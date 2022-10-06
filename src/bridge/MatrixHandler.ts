@@ -556,7 +556,7 @@ export class MatrixHandler {
                             user.getId(),
                             req,
                             true,
-                            excluded && excluded.kickReason ? excluded.kickReason : `IRC connection failure.`,
+                            excluded && excluded.kickReason || `IRC connection failure.`,
                             this.ircBridge.appServiceUserId,
                         );
                     }
@@ -815,7 +815,7 @@ export class MatrixHandler {
             throw Error('Cannot handle command with no text');
         }
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
-        const [command, ...args] = event.content.body.trim().substr("!irc ".length).split(" ");
+        const [command, ...args] = event.content.body.trim().substring("!irc ".length).split(" ");
         // We currently only check the first room.
         const [targetRoom] = await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
         if (command === "nick") {
@@ -1330,8 +1330,8 @@ export class MatrixHandler {
             // If we couldn't find a client for them, they might be a ghost.
             const ghostName = ircRoom.getServer().getNickFromUserId(rplName);
             // If we failed to get a name, just make a guess of it.
-            rplName = ghostName !== null ? ghostName : rplName.substr(1,
-                Math.min(REPLY_NAME_MAX_LENGTH, rplName.indexOf(":") - 1)
+            rplName = ghostName !== null ? ghostName : rplName.substring(1,
+                1 + Math.min(REPLY_NAME_MAX_LENGTH, rplName.indexOf(":") - 1)
             );
         }
 

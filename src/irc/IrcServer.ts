@@ -193,7 +193,7 @@ export class IrcServer {
      * an empty string.
      */
     public getReadableName() {
-        return this.config.name || "";
+        return this.config.name ?? "";
     }
 
     /**
@@ -205,12 +205,14 @@ export class IrcServer {
     }
 
     /**
-     * Return a randomised server domain from the default and additional addresses.
+     * Return a random server domain from the default and additional addresses.
      * @return {string}
      */
-    public randomDomain() {
+    public randomDomain(): string {
+        // This cannot return undefined because the construtor and .reconfigure()
+        // ensure that `addresses` isn't an empty array.
         return this.addresses[
-            Math.floor((Math.random() * 1000) % this.addresses.length)
+            Math.floor(Math.random() * this.addresses.length)
         ];
     }
 
@@ -263,12 +265,11 @@ export class IrcServer {
 
     public getHardCodedRoomIds() {
         const roomIds = new Set<string>();
-        const channels = Object.keys(this.config.mappings);
-        channels.forEach((chan) => {
-            this.config.mappings[chan].roomIds.forEach((roomId) => {
+        for (const mapping of Object.values(this.config.mappings)) {
+            for (const roomId of mapping.roomIds) {
                 roomIds.add(roomId);
-            });
-        });
+            }
+        }
         return Array.from(roomIds.keys());
     }
 
@@ -376,60 +377,58 @@ export class IrcServer {
         return this.config.dynamicChannels.useHomeserverDirectory;
     }
 
-    public allowsNickChanges() {
+    public allowsNickChanges(): boolean {
         return this.config.ircClients.allowNickChanges;
     }
 
-    public getBotNickname() {
+    public getBotNickname(): string {
         return this.config.botConfig.nick;
     }
 
-    public createBotIrcClientConfig() {
+    public createBotIrcClientConfig(): IrcClientConfig {
         return IrcClientConfig.newConfig(
             null, this.domain, this.config.botConfig.nick, this.config.botConfig.username,
             this.config.botConfig.password
         );
     }
 
-    public getIpv6Prefix() {
+    public getIpv6Prefix(): string | undefined {
         return this.config.ircClients.ipv6.prefix;
     }
 
-    public getIpv6Only() {
+    public getIpv6Only(): boolean {
         return this.config.ircClients.ipv6.only;
     }
 
-    public getLineLimit() {
+    public getLineLimit(): number {
         return this.config.ircClients.lineLimit;
     }
 
-    public getJoinAttempts() {
+    public getJoinAttempts(): number {
         return this.config.matrixClients.joinAttempts;
     }
 
-    public isExcludedChannel(channel: string) {
+    public isExcludedChannel(channel: string): boolean {
         return this.config.dynamicChannels.exclude.includes(channel);
     }
 
     public isExcludedUser(userId: string) {
-        return this.excludedUsers.find((exclusion) => {
-            return exclusion.regex.exec(userId) !== null;
-        });
+        return this.excludedUsers.find((exclusion) => exclusion.regex.test(userId));
     }
 
-    public get ignoreIdleUsersOnStartup() {
-        return this.config.membershipLists.ignoreIdleOnStartup?.enabled;
+    public get ignoreIdleUsersOnStartup(): boolean {
+        return this.config.membershipLists.ignoreIdleOnStartup?.enabled ?? false;
     }
 
-    public get ignoreIdleUsersOnStartupAfterMs() {
+    public get ignoreIdleUsersOnStartupAfterMs(): number {
         return (this.config.membershipLists.ignoreIdleOnStartup?.idleForHours || 0) * 1000 * 60 * 60;
     }
 
-    public get ignoreIdleUsersOnStartupExcludeRegex() {
+    public get ignoreIdleUsersOnStartupExcludeRegex(): RegExp | undefined {
         return this.idleUsersStartupExcludeRegex;
     }
 
-    public get aliasTemplateHasHashPrefix() {
+    public get aliasTemplateHasHashPrefix(): boolean {
         return this.config.dynamicChannels.aliasTemplate.startsWith("#");
     }
 
@@ -437,7 +436,7 @@ export class IrcServer {
      * The amount of time to allow for inactivty on the connection, before considering the connection
      * dead. This usually happens if the IRCd doesn't ping us.
      */
-    public get pingTimeout() {
+    public get pingTimeout(): number {
         return this.config.ircClients.pingTimeoutMs;
     }
 
@@ -446,11 +445,11 @@ export class IrcServer {
      * Whilst the IRCd *should* be sending pings to us to keep the connection alive, it appears
      * that sometimes they don't get around to it and end up ping timing us out.
     */
-    public get pingRateMs() {
+    public get pingRateMs(): number {
         return this.config.ircClients.pingRateMs;
     }
 
-    public canJoinRooms(userId: string) {
+    public canJoinRooms(userId: string): boolean {
         return (
             this.config.dynamicChannels.enabled &&
             (this.getJoinRule() === "public" || this.isInWhitelist(userId))
@@ -458,7 +457,7 @@ export class IrcServer {
     }
 
     // check if this server dynamically create rooms with aliases.
-    public createsDynamicAliases() {
+    public createsDynamicAliases(): boolean {
         return (
             this.config.dynamicChannels.enabled &&
             this.config.dynamicChannels.createAlias
@@ -466,26 +465,26 @@ export class IrcServer {
     }
 
     // check if this server dynamically creates rooms which are joinable via an alias only.
-    public createsPublicAliases() {
+    public createsPublicAliases(): boolean {
         return (
             this.createsDynamicAliases() &&
             this.getJoinRule() === "public"
         );
     }
 
-    public allowsPms() {
+    public allowsPms(): boolean {
         return this.config.privateMessages.enabled;
     }
 
-    public shouldSyncMembershipToIrc(kind: MembershipSyncKind, roomId?: string) {
+    public shouldSyncMembershipToIrc(kind: MembershipSyncKind, roomId?: string): boolean {
         return this.shouldSyncMembership(kind, roomId, true);
     }
 
-    public shouldSyncMembershipToMatrix(kind: MembershipSyncKind, channel: string) {
+    public shouldSyncMembershipToMatrix(kind: MembershipSyncKind, channel: string): boolean {
         return this.shouldSyncMembership(kind, channel, false);
     }
 
-    private shouldSyncMembership(kind: MembershipSyncKind, identifier: string|undefined, toIrc: boolean) {
+    private shouldSyncMembership(kind: MembershipSyncKind, identifier: string|undefined, toIrc: boolean): boolean {
         if (!["incremental", "initial"].includes(kind)) {
             throw new Error("Bad kind: " + kind);
         }
@@ -503,19 +502,17 @@ export class IrcServer {
         // check for specific rules for the room id / channel
         if (toIrc) {
             // room rules clobber global rules
-            this.config.membershipLists.rooms.forEach(function(r) {
-                if (r.room === identifier && r.matrixToIrc) {
-                    shouldSync = r.matrixToIrc[kind];
-                }
-            });
+            const room = this.config.membershipLists.rooms.find(r => r.room === identifier);
+            if (room?.matrixToIrc) {
+                shouldSync = room.matrixToIrc[kind];
+            }
         }
         else {
             // channel rules clobber global rules
-            this.config.membershipLists.channels.forEach(function(chan) {
-                if (chan.channel === identifier && chan.ircToMatrix) {
-                    shouldSync = chan.ircToMatrix[kind];
-                }
-            });
+            const chan = this.config.membershipLists.channels.find(c => c.channel === identifier);
+            if (chan?.ircToMatrix) {
+                shouldSync = chan.ircToMatrix[kind];
+            }
         }
 
         return shouldSync;
@@ -526,29 +523,23 @@ export class IrcServer {
      * @param channel The IRC channel.
      * @returns True if the server requires all Matrix users to be joined.
      */
-    public shouldRequireMatrixUserJoined(channel: string) {
-        let shouldSync = this.config.membershipLists.global.ircToMatrix.requireMatrixJoined;
-        this.config.membershipLists.channels.find((chan) => {
-            if (chan.channel === channel) {
-                if (typeof chan.ircToMatrix?.requireMatrixJoined === "boolean") {
-                    shouldSync = chan.ircToMatrix.requireMatrixJoined;
-                }
-                return true;
-            }
-            return false;
-        });
-        return shouldSync;
+    public shouldRequireMatrixUserJoined(channel: string): boolean {
+        const chan = this.config.membershipLists.channels.find(c => c.channel === channel);
+        if (typeof chan?.ircToMatrix?.requireMatrixJoined === "boolean") {
+            return chan.ircToMatrix.requireMatrixJoined;
+        }
+        return this.config.membershipLists.global.ircToMatrix.requireMatrixJoined;
     }
 
-    public shouldJoinChannelsIfNoUsers() {
+    public shouldJoinChannelsIfNoUsers(): boolean {
         return this.config.botConfig.joinChannelsIfNoUsers;
     }
 
-    public isMembershipListsEnabled() {
+    public isMembershipListsEnabled(): boolean {
         return this.config.membershipLists.enabled;
     }
 
-    public getUserLocalpart(nick: string) {
+    public getUserLocalpart(nick: string): string {
         // the template is just a literal string with special vars; so find/replace
         // the vars and strip the @
         return renderTemplate(this.config.matrixClients.userTemplate, {
@@ -557,7 +548,7 @@ export class IrcServer {
         }).substring(1); // the first character is guaranteed by config schema to be '@'
     }
 
-    public claimsUserId(userId: string) {
+    public claimsUserId(userId: string): boolean {
         // the server claims the given user ID if the ID matches the user ID template.
         const regex = IrcServer.templateToRegex(
             this.config.matrixClients.userTemplate,
@@ -572,7 +563,7 @@ export class IrcServer {
         return new RegExp(regex).test(userId);
     }
 
-    public getNickFromUserId(userId: string) {
+    public getNickFromUserId(userId: string): string | null {
         // extract the nick from the given user ID
         const regex = IrcServer.templateToRegex(
             this.config.matrixClients.userTemplate,
@@ -591,20 +582,20 @@ export class IrcServer {
         return match[1];
     }
 
-    public getUserIdFromNick(nick: string) {
+    public getUserIdFromNick(nick: string): string {
         const template = this.config.matrixClients.userTemplate;
         return template.replace(/\$NICK/g, nick).replace(/\$SERVER/g, this.domain) +
             ":" + this.homeserverDomain;
     }
 
-    public getDisplayNameFromNick(nick: string) {
+    public getDisplayNameFromNick(nick: string): string {
         const template = this.config.matrixClients.displayName;
         let displayName = template.replace(/\$NICK/g, nick);
         displayName = displayName.replace(/\$SERVER/g, this.domain);
         return displayName;
     }
 
-    public claimsAlias(alias: string) {
+    public claimsAlias(alias: string): boolean {
         // the server claims the given alias if the alias matches the alias template
         const regex = IrcServer.templateToRegex(
             this.config.dynamicChannels.aliasTemplate,
@@ -619,7 +610,7 @@ export class IrcServer {
         return new RegExp(regex).test(alias);
     }
 
-    public getChannelFromAlias(alias: string) {
+    public getChannelFromAlias(alias: string): string | null {
         // extract the channel from the given alias
         const regex = IrcServer.templateToRegex(
             this.config.dynamicChannels.aliasTemplate,
@@ -639,7 +630,7 @@ export class IrcServer {
         return match[1];
     }
 
-    public getAliasFromChannel(channel: string) {
+    public getAliasFromChannel(channel: string): string {
         if (!channel.startsWith("#") && !this.aliasTemplateHasHashPrefix) {
             throw Error('Cannot get an alias for a channel not starting with a hash');
         }
@@ -650,7 +641,7 @@ export class IrcServer {
         return alias + ":" + this.homeserverDomain;
     }
 
-    public getNick(userId: string, displayName?: string) {
+    public getNick(userId: string, displayName?: string): string {
         let localpart = userId.substring(1).split(":")[0];
         localpart = localpart.replace(illegalCharactersRegex, "");
         displayName = displayName ? displayName.replace(illegalCharactersRegex, "") : undefined;
@@ -663,7 +654,7 @@ export class IrcServer {
         });
     }
 
-    public getAliasRegex() {
+    public getAliasRegex(): string {
         return IrcServer.templateToRegex(
             this.config.dynamicChannels.aliasTemplate,
             {
@@ -677,7 +668,7 @@ export class IrcServer {
         );
     }
 
-    public getUserRegex() {
+    public getUserRegex(): string {
         return IrcServer.templateToRegex(
             this.config.matrixClients.userTemplate,
             {
@@ -735,7 +726,7 @@ export class IrcServer {
             excludedUsers: [],
             matrixClients: {
                 userTemplate: "@$SERVER_$NICK",
-                displayName: "$NICK (IRC)",
+                displayName: "$NICK",
                 joinAttempts: -1,
             },
             ircClients: {
@@ -777,7 +768,7 @@ export class IrcServer {
         }
     }
 
-    public reconfigure(config: IrcServerConfig, expiryTimeSeconds = 0) {
+    public reconfigure(config: IrcServerConfig, expiryTimeSeconds = 0): void {
         log.info(`Reconfiguring ${this.domain}`);
 
         if (config.ca) {
@@ -861,25 +852,25 @@ export class IrcServer {
         // The 'template' is a literal string with some special variables which need
         // to be find/replaced.
         let regex = template;
-        Object.keys(literalVars).forEach(function(varPlaceholder) {
+        for (const [varPlaceholder, replacement] of Object.entries(literalVars)) {
             regex = regex.replace(
                 new RegExp(IrcServer.escapeRegExp(varPlaceholder), 'g'),
-                literalVars[varPlaceholder]
+                replacement
             );
-        });
+        }
 
         // at this point the template is still a literal string, so escape it before
         // applying the regex vars.
         regex = IrcServer.escapeRegExp(regex);
         // apply regex vars
-        Object.keys(regexVars).forEach(function(varPlaceholder) {
+        for (const [varPlaceholder, replacement] of Object.entries(regexVars)) {
             regex = regex.replace(
                 // double escape, because we bluntly escaped the entire string before
                 // so our match is now escaped.
                 new RegExp(IrcServer.escapeRegExp(IrcServer.escapeRegExp(varPlaceholder)), 'g'),
-                regexVars[varPlaceholder]
+                replacement
             );
-        });
+        }
 
         suffix = suffix || "";
         return regex + suffix;

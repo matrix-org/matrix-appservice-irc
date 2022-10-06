@@ -59,10 +59,10 @@ describe("Provisioning API", function() {
 
         // Allow receiving of names by bot
         env.ircMock._whenClient(config._server, config._botnick, "names",
-            function(client, chan, cb) {
-                let names = {};
-                names[receivingOp.nick] = '@'; // is op
-                names[notOp.nick] = ''; // is not op
+            function(_client, chan, cb) {
+                const names = new Map();
+                names.set(receivingOp.nick, '@'); // is op
+                names.set(notOp.nick, ''); // is not op
                 cb(chan, names);
             }
         );
@@ -432,10 +432,10 @@ describe("Provisioning API", function() {
 
             // Allow receiving of names by bot
             env.ircMock._whenClient(config._server, config._botnick, "names",
-                function(client, chan, cb) {
-                    let names = {};
-                    names[receivingOp.nick] = '@'; // is op
-                    names[notOp.nick] = ''; // is not op
+                function(_client, chan, cb) {
+                    const names = new Map();
+                    names.set(receivingOp.nick, '@'); // is op
+                    names.set(notOp.nick, ''); // is not op
                     cb(chan, names);
                 }
             );
@@ -508,10 +508,10 @@ describe("Provisioning API", function() {
 
             // Allow receiving of names by bot
             env.ircMock._whenClient(config._server, config._botnick, "names",
-                function(client, chan, cb) {
-                    let names = {};
-                    names[receivingOp.nick] = '@'; // is op
-                    names[notOp.nick] = ''; // is not op
+                function(_client, chan, cb) {
+                    const names = new Map();
+                    names.set(receivingOp.nick, '@'); // is op
+                    names.set(notOp.nick, ''); // is not op
                     cb(chan, names);
                 }
             );
@@ -796,10 +796,10 @@ describe("Provisioning API", function() {
 
             // Allow receiving of names by bot
             env.ircMock._whenClient(config._server, config._botnick, "names",
-                function(client, chan, cb) {
-                    let names = {};
-                    names[receivingOp.nick] = '@'; // is op
-                    names[notOp.nick] = ''; // is not op
+                function(_client, chan, cb) {
+                    const names = new Map();
+                    names.set(receivingOp.nick, '@'); // is op
+                    names.set(notOp.nick, ''); // is not op
                     cb(chan, names);
                 }
             );

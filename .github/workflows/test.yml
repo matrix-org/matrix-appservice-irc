@@ -22,7 +22,7 @@ jobs:
           PULL_REQUEST_NUMBER: ${{ github.event.number }}
 
   lint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container: node:16
     steps:
       - uses: actions/checkout@v2
@@ -33,20 +33,8 @@ jobs:
       - run: npm ci
       - run: npm run-script lint
 
-  test-14:
-    runs-on: ubuntu-20.04
-    container: node:14
-    steps:
-      - uses: actions/checkout@v2
-      - name: Use Node.js
-        uses: actions/setup-node@v1
-        with:
-          node-version: 14
-      - run: npm ci
-      - run: npm run-script test
-
   test-16:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container: node:16
     steps:
       - uses: actions/checkout@v2
@@ -57,9 +45,21 @@ jobs:
       - run: npm ci
       - run: npm run-script test
 
-  test-16-postgres:
-    runs-on: ubuntu-20.04
-    container: node:16
+  test-18:
+    runs-on: ubuntu-22.04
+    container: node:18
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm run-script test
+
+  test-18-postgres:
+    runs-on: ubuntu-22.04
+    container: node:18
     services:
       postgres:
         image: postgres:latest
@@ -80,7 +80,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: 16
+          node-version: 18
       - run: npm ci
       - run: npm run-script test
         env:

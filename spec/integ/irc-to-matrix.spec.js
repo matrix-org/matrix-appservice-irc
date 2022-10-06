@@ -381,11 +381,9 @@ describe("IRC-to-Matrix operator modes bridging", () => {
         // Set IRC user prefix, which in reality is assumed to have happened
         const client = await env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
 
-        client.chans[roomMapping.channel] = {
-            users: {
-                [tRealMatrixUserNick]: "@"
-            }
-        };
+        client.chans.set(roomMapping.channel, {
+            users: new Map([[tRealMatrixUserNick, "@"]])
+        });
 
         const promise = new Promise((resolve) => {
             botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, key, content) => {
@@ -417,19 +415,20 @@ describe("IRC-to-Matrix operator modes bridging", () => {
         });
 
         const client = await env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick);
-        client.chans[roomMapping.channel] = {
-            users: {
-                [tRealMatrixUserNick]: "@",
-                [tRealMatrixUserNick2]: "@"
-            }
-        };
+
+        client.chans.set(roomMapping.channel, {
+            users: new Map([
+                [tRealMatrixUserNick, "@"],
+                [tRealMatrixUserNick2, "@"]
+            ])
+        });
 
         const client2 = await env.ircMock._findClientAsync(roomMapping.server, tRealMatrixUserNick2);
-        client2.chans[roomMapping.channel] = {
-            users: {
-                [tRealMatrixUserNick2]: "@"
-            }
-        };
+        client2.chans.set(roomMapping.channel, {
+            users: new Map([
+                [tRealMatrixUserNick2, "@"]
+            ])
+        });
 
         const promise = new Promise((resolve) => {
             botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, key, content) => {
@@ -461,11 +460,10 @@ describe("IRC-to-Matrix operator modes bridging", () => {
         // This test simulates MODE +o being received, when the user had previously already had
         // a prefix of "+". So their prefix is updated to "+@", as per node-irc. The expected
         // result is that they should be given power of 50 (= +o).
-        client.chans[roomMapping.channel] = {
-            users: {
-                [tRealMatrixUserNick]: "+@"
-            }
-        };
+
+        client.chans.set(roomMapping.channel, {
+            users: new Map([[tRealMatrixUserNick, "+@"]])
+        });
 
         const promise = new Promise((resolve) => {
             botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, key, content) => {
@@ -491,11 +489,10 @@ describe("IRC-to-Matrix operator modes bridging", () => {
         // This test simulates MODE -o being received, when the user had previously already had
         // a prefix of "+@". So their prefix is updated to "+", as per node-irc. The expected
         // result is that they should be given power of 25 (= +v).
-        client.chans[roomMapping.channel] = {
-            users: {
-                [tRealMatrixUserNick]: "+"
-            }
-        };
+
+        client.chans.set(roomMapping.channel, {
+            users: new Map([[tRealMatrixUserNick, "+"]])
+        });
 
         const promise = new Promise((resolve) => {
             botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, key, content) => {
@@ -525,11 +522,9 @@ describe("IRC-to-Matrix operator modes bridging", () => {
         // This test simulates MODE -v being received, when the user had previously already had
         // a prefix of "+@". So their prefix is updated to "@", as per node-irc. The expected
         // result is that they should be given power of 50 (= +o).
-        client.chans[roomMapping.channel] = {
-            users: {
-                [tRealMatrixUserNick]: "@"
-            }
-        };
+        client.chans.set(roomMapping.channel, {
+            users: new Map([[tRealMatrixUserNick, "@"]])
+        });
 
         const promise = new Promise((resolve) => {
             botMatrixClient.sendStateEvent.and.callFake(async (roomId, eventType, key, content) => {
@@ -639,11 +634,9 @@ describe("IRC-to-Matrix name bridging", () => {
         });
 
         env.ircMock._findClientAsync(roomMapping.server, roomMapping.botNick).then((client) => {
-            const names = {
-                Alicia: {},
-                Bertha: {},
-                Clarissa: {}
-            };
+            const names = new Map(
+                Object.keys(nicks).map(k => [k, {}])
+            );
             client.emit("names", roomMapping.channel, names);
         });
     });

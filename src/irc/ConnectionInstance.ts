@@ -14,23 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Client } from "matrix-org-irc";
+import { Client, ClientEvents, Message } from "matrix-org-irc";
 import * as promiseutil from "../promiseutil";
 import Scheduler from "./Scheduler";
 import * as logging from "../logging";
-import Bluebird from "bluebird";
 import { Defer } from "../promiseutil";
 import { IrcServer } from "./IrcServer";
 import { getBridgeVersion } from "matrix-appservice-bridge";
 
 const log = logging.get("client-connection");
-
-export interface IrcMessage {
-    command?: string;
-    args: string[];
-    rawCommand: string;
-    prefix: string;
-}
 
 // The time we're willing to wait for a connect callback when connecting to IRC.
 const CONNECT_TIMEOUT_MS = 30 * 1000; // 30s
@@ -140,9 +132,9 @@ export class ConnectionInstance {
      * @param {string} reason - Reason to reject with. One of:
      * throttled|irc_error|net_error|timeout|raw_error|toomanyconns|banned
      */
-    public disconnect(reason: InstanceDisconnectReason, ircReason?: string) {
+    public disconnect(reason: InstanceDisconnectReason, ircReason?: string): Promise<void> {
         if (this.dead) {
-            return Bluebird.resolve();
+            return Promise.resolve();
         }
         ircReason = ircReason || reason;
         log.info(
@@ -150,7 +142,7 @@ export class ConnectionInstance {
         );
         this.dead = true;
 
-        return new Bluebird((resolve) => {
+        return new Promise((resolve) => {
             // close the connection
             this.client.disconnect(ircReason, () => { /* This is needed for tests */ });
             // remove timers
@@ -179,9 +171,9 @@ export class ConnectionInstance {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public addListener(eventName: string, fn: (...args: Array<any>) => void) {
+    public addListener<T extends keyof ClientEvents>(eventName: T, fn: ClientEvents[T]) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.client.addListener(eventName, (...args: unknown[]) => {
+        this.client.addListener(eventName, (...args: any[]) => {
             if (this.dead) {
                 log.error(
                     "%s@%s RECV a %s event for a dead connection",
@@ -189,14 +181,19 @@ export class ConnectionInstance {
                 );
                 return;
             }
+            // This is fine, we're checking the types above and passing them through
+            // TypeScript doesn't handle us passing in typed arguments to an apply
+            // function all that well.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const typelessFn = fn as (...params: any[]) => void;
             // do the callback
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            fn.apply(fn, args as any);
+            typelessFn.apply(fn, args as any);
         });
     }
 
     private listenForErrors() {
-        this.client.addListener("error", (err?: IrcMessage) => {
+        this.client.addListener("error", (err?: Message) => {
             log.error("Server: %s (%s) Error: %s", this.domain, this.nick, JSON.stringify(err));
             // We should disconnect the client for some but not all error codes. This
             // list is a list of codes which we will NOT disconnect the client for.
@@ -224,10 +221,10 @@ export class ConnectionInstance {
             }
             this.disconnect("irc_error").catch(logError);
         });
-        this.client.addListener("netError", (err: unknown) => {
+        this.client.addListener("netError", (err) => {
             log.error(
                 "Server: %s (%s) Network Error: %s", this.domain, this.nick,
-                JSON.stringify(err, undefined, 2)
+                err instanceof Error ? err.message : JSON.stringify(err, undefined, 2)
             );
             this.disconnect("net_error").catch(logError);
         });
@@ -237,7 +234,7 @@ export class ConnectionInstance {
             );
             this.disconnect("net_error").catch(logError);
         });
-        this.client.addListener("raw", (msg?: {command?: string; rawCommand: string; args?: string[]}) => {
+        this.client.addListener("raw", (msg?: Message) => {
             if (logging.isVerbose()) {
                 log.debug(
                     "%s@%s: %s", this.nick, this.domain, JSON.stringify(msg)
@@ -311,9 +308,7 @@ export class ConnectionInstance {
                     this.domain, this.nick,
                 );
                 // Just emit an netError which clients need to handle anyway.
-                this.client.emit("netError", {
-                    msg: "Client-side ping timeout"
-                });
+                this.client.emit("netError", new Error(`Client-side ping timeout`));
             }, this.pingOpts.pingTimeoutMs);
         }
         this.client.on("ping", (svr: string) => {
@@ -458,7 +453,7 @@ export class ConnectionInstance {
                         Math.round((connAttempts * 1000) * Math.random());
                 log.info(`Retrying connection for ${opts.nick} on ${server.domain} `+
                         `in ${delay}ms (attempts ${connAttempts})`);
-                await Bluebird.delay(delay);
+                await promiseutil.delay(delay);
             }
         }
     }

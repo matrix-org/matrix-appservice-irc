@@ -1,0 +1,2 @@
+Breaking change: Raises the required NodeJS version to 16.
+Fixes Room visibility setting being broken for appservice directories.

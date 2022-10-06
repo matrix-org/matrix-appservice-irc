@@ -329,8 +329,8 @@ ircService:
         # The display name to use for created matrix clients. This should have
         # $NICK somewhere in it if it is specified. Can also use $SERVER to
         # insert the IRC domain.
-        # Optional. Default: "$NICK (IRC)". Example: "Alice (IRC)"
-        displayName: "$NICK (IRC)"
+        # Optional. Default: "$NICK". Example: "Alice"
+        displayName: "$NICK"
         # Number of tries a client can attempt to join a room before the request
         # is discarded. You can also use -1 to never retry or 0 to never give up.
         # Optional. Default: -1
@@ -485,7 +485,7 @@ ircService:
   # This key CANNOT be hot-reloaded
   metrics:
     # Whether to actually enable the metric endpoint. Default: false
-    enabled: true
+    enabled: false
     # Which port to listen on (omit to listen on the bindPort)
     port: 7001
     # Which hostname to listen on (omit to listen on 127.0.0.1), requires port to be set
