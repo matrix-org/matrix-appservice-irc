@@ -1,0 +1,1 @@
+docker: prune dev dependencies from node_modules.
