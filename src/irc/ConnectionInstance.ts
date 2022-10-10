@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Client, ClientEvents, Message } from "matrix-org-irc";
+import { Client, ClientEvents, IrcClientOpts, Message } from "matrix-org-irc";
 import * as promiseutil from "../promiseutil";
 import Scheduler from "./Scheduler";
 import * as logging from "../logging";
@@ -61,12 +61,25 @@ export interface ConnectionOpts {
     secure?: {
         ca?: string;
     };
-    encodingFallback: string;
+    encodingFallback?: string;
 }
 
 export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|
                                        "toomanyconns"|"banned"|"killed"|"idle"|"limit_reached"|
                                        "iwanttoreconnect";
+
+
+export enum IRCConnectionErrorCode {
+    Unknown = 0,
+    Banned = 1,
+    ILine = 2,
+}
+
+export class IRCConnectionError extends Error {
+    constructor(public readonly code: IRCConnectionErrorCode, message: string) {
+        super(message);
+    }
+}
 
 export class ConnectionInstance {
     public dead = false;
@@ -369,7 +382,7 @@ export class ConnectionInstance {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
         }
-        const connectionOpts = {
+        const connectionOpts: IrcClientOpts = {
             userName: opts.username,
             realName: opts.realname,
             password: opts.password,
@@ -386,7 +399,7 @@ export class ConnectionInstance {
             bustRfc3484: true,
             sasl: opts.password ? server.useSasl() : false,
             secure: server.useSsl() ? server.getSecureOptions() : undefined,
-            encodingFallback: opts.encodingFallback
+            encodingFallback: opts.encodingFallback,
         };
 
         // Returns: A promise which resolves to a ConnectionInstance
@@ -433,10 +446,9 @@ export class ConnectionInstance {
 
                 if (err.message === "banned") {
                     log.error(
-                        `${opts.nick} is banned from ${server.domain}, ` +
-                        `throwing`
+                        `${opts.nick} is banned from ${server.domain}, throwing`
                     );
-                    throw new Error("User is banned from the network.");
+                    throw new IRCConnectionError(IRCConnectionErrorCode.Banned, "User is banned from the network.");
                     // If the user is banned, we should part them from any rooms.
                 }
 
@@ -444,7 +456,10 @@ export class ConnectionInstance {
                     log.error(
                         `User ${opts.nick} was ILINED. This may be the network limiting us!`
                     );
-                    throw new Error("Connection was ILINED. We cannot retry this.");
+                    throw new IRCConnectionError(
+                        IRCConnectionErrorCode.ILine,
+                        "Connection was ILINED. We cannot retry this."
+                    );
                 }
 
                 // always set a staggered delay here to avoid thundering herd

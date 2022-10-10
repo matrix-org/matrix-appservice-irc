@@ -43,13 +43,13 @@ export interface IrcServerConfig {
     dynamicChannels: {
         enabled: boolean;
         published: boolean;
-        useHomeserverDirectory: boolean;
+        useHomeserverDirectory?: boolean;
         createAlias: boolean;
         joinRule: "public"|"invite";
-        federate: boolean;
+        federate?: boolean;
         aliasTemplate: string;
-        whitelist: string[];
-        exclude: string[];
+        whitelist?: string[];
+        exclude?: string[];
         roomVersion?: string;
         groupId?: string;
     };
@@ -124,7 +124,7 @@ export interface IrcServerConfig {
             idleForHours: number;
             exclude: string;
         };
-        global: {
+        global?: {
             ircToMatrix: {
                 initial: boolean;
                 incremental: boolean;
@@ -135,7 +135,7 @@ export interface IrcServerConfig {
                 incremental: boolean;
             };
         };
-        channels: {
+        channels?: {
             channel: string;
             ircToMatrix: {
                 initial: boolean;
@@ -143,7 +143,7 @@ export interface IrcServerConfig {
                 requireMatrixJoined: boolean;
             };
         }[];
-        rooms: {
+        rooms?: {
             room: string;
             matrixToIrc: {
                 initial: boolean;
@@ -325,7 +325,7 @@ export class IrcServer {
     }
 
     public isInWhitelist(userId: string) {
-        return this.config.dynamicChannels.whitelist.includes(userId);
+        return this.config.dynamicChannels.whitelist?.includes(userId) ?? true;
     }
 
     public getSecureOptions() {
@@ -409,7 +409,7 @@ export class IrcServer {
     }
 
     public isExcludedChannel(channel: string): boolean {
-        return this.config.dynamicChannels.exclude.includes(channel);
+        return this.config.dynamicChannels.exclude?.includes(channel) ?? false;
     }
 
     public isExcludedUser(userId: string) {
@@ -429,7 +429,7 @@ export class IrcServer {
     }
 
     public get aliasTemplateHasHashPrefix(): boolean {
-        return this.config.dynamicChannels.aliasTemplate.startsWith("#");
+        return this.config.dynamicChannels.aliasTemplate.startsWith("#") ?? false;
     }
 
     /**
@@ -491,9 +491,9 @@ export class IrcServer {
         if (!this.config.membershipLists.enabled) {
             return false;
         }
-        let shouldSync = this.config.membershipLists.global[
+        let shouldSync = this.config.membershipLists.global?.[
             toIrc ? "matrixToIrc" : "ircToMatrix"
-        ][kind];
+        ][kind] ?? false;
 
         if (!identifier) {
             return shouldSync;
@@ -502,14 +502,14 @@ export class IrcServer {
         // check for specific rules for the room id / channel
         if (toIrc) {
             // room rules clobber global rules
-            const room = this.config.membershipLists.rooms.find(r => r.room === identifier);
+            const room = this.config.membershipLists.rooms?.find(r => r.room === identifier);
             if (room?.matrixToIrc) {
                 shouldSync = room.matrixToIrc[kind];
             }
         }
         else {
             // channel rules clobber global rules
-            const chan = this.config.membershipLists.channels.find(c => c.channel === identifier);
+            const chan = this.config.membershipLists.channels?.find(c => c.channel === identifier);
             if (chan?.ircToMatrix) {
                 shouldSync = chan.ircToMatrix[kind];
             }
@@ -524,11 +524,11 @@ export class IrcServer {
      * @returns True if the server requires all Matrix users to be joined.
      */
     public shouldRequireMatrixUserJoined(channel: string): boolean {
-        const chan = this.config.membershipLists.channels.find(c => c.channel === channel);
+        const chan = this.config.membershipLists.channels?.find(c => c.channel === channel);
         if (typeof chan?.ircToMatrix?.requireMatrixJoined === "boolean") {
             return chan.ircToMatrix.requireMatrixJoined;
         }
-        return this.config.membershipLists.global.ircToMatrix.requireMatrixJoined;
+        return this.config.membershipLists.global?.ircToMatrix.requireMatrixJoined ?? false;
     }
 
     public shouldJoinChannelsIfNoUsers(): boolean {

@@ -14,7 +14,7 @@ import { NeDBDataStore } from "../datastore/NedbDataStore";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
 import { getLogger } from "../logging";
 import { DebugApi } from "../DebugApi";
-import { Provisioner } from "../provisioning/Provisioner.js";
+import { Provisioner } from "../provisioning/Provisioner";
 import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
 
@@ -89,7 +89,7 @@ export class IrcBridge {
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
     private dataStore!: DataStore;
-    private bridgeState: "not-started"|"running"|"killed" = "not-started";
+    private bridgeState: "not-started"|'starting'|"running"|"killed" = "not-started";
     private debugApi: DebugApi|null = null;
     private provisioner: Provisioner|null = null;
     private bridge: Bridge;
@@ -107,7 +107,7 @@ export class IrcBridge {
     constructor(
         public readonly config: BridgeConfig,
         private registration: AppServiceRegistration,
-        private readonly testOpts: TestingOptions,
+        private readonly testOpts: TestingOptions = {isDBInMemory: false},
     ) {
         // TODO: Don't log this to stdout
         Logging.configure({console: config.ircService.logging.level});
@@ -574,6 +574,7 @@ export class IrcBridge {
     }
 
     public async run(port: number|null) {
+        this.bridgeState = 'starting';
         const dbConfig = this.config.database;
         // cli port, then config port, then default port
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
@@ -876,12 +877,15 @@ export class IrcBridge {
     //
     //  See (BridgedClient.prototype.kill)
     public async kill(reason?: string) {
-        log.info("Killing all clients");
+        log.info("Killing bridge");
         this.bridgeState = "killed";
+        log.info("Killing all clients");
         await this.clientPool.killAllClients(reason);
         if (this.dataStore) {
             await this.dataStore.destroy();
         }
+        log.info("Closing bridge");
+        await this.bridge.close();
         await this.appservice.close();
     }
 
@@ -1337,8 +1341,8 @@ export class IrcBridge {
     }
 
     public async connectToIrcNetworks(): Promise<void> {
-        await promiseutil.allSettled(this.ircServers.map((server) =>
-            Bluebird.cast(this.clientPool.loginToServer(server))
+        await Promise.all(this.ircServers.map((server) =>
+            this.clientPool.loginToServer(server)
         ));
     }
 
@@ -1404,7 +1408,7 @@ export class IrcBridge {
             throw Error('Bridge is not ready');
         }
         let gotRooms = false;
-        while (!gotRooms) {
+        while (!gotRooms && this.bridgeState === 'starting') {
             try {
                 const roomIds = await this.bridge.getIntent().matrixClient.getJoinedRooms();
                 gotRooms = true;
