@@ -64,8 +64,8 @@ jobs:
         with:
           path: matrix-appservice-irc
       
-      # Setup the IRCD
-      - name: Setup inspircd
+      # Set up the IRCD
+      - name: Set up inspircd
         run: |
           sudo apt update
           sudo apt install inspircd
