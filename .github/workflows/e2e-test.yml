@@ -20,12 +20,12 @@ jobs:
         id: gitsha
         run: echo '::set-output name=sha::'`git rev-parse --short HEAD`
       - name: Cache complement-synapse image
-        id: cache-npm
+        id: cached-image
         uses: actions/cache@v3
         with:
           path: /tmp/img-synapse.tar
           key: ${{ runner.os }}-complement-synapse-${{ steps.gitsha.outputs.sha }}
-      - if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+      - if: ${{ steps.cached-image.outputs.cache-hit != 'true' }}
         name: Build images
         run: |
           # enable buildkit for the docker builds
@@ -42,13 +42,13 @@ jobs:
     services:
       postgres:
         image: postgres:latest
+        ports:
+          - 5432:5432
         env:
           POSTGRES_DB: postgres
           POSTGRES_PASSWORD: postgres_password
           POSTGRES_PORT: 5432
           POSTGRES_USER: postgres_user
-        ports:
-          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -86,7 +86,6 @@ jobs:
           echo '::set-output name=sha::'`git rev-parse --short HEAD`
           cd ..
       - name: Load cached complement-synapse image
-        id: cache-npm
         uses: actions/cache@v3
         with:
           path: /tmp/img-synapse.tar
@@ -119,7 +118,7 @@ jobs:
         timeout-minutes: 10
         env:
           IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
-          IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@postgres"
+          IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
           IRCBRIDGE_TEST_ENABLEPG: "yes"
         run: |
           cd matrix-appservice-irc
