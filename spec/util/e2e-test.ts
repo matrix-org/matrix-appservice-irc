@@ -11,7 +11,7 @@ import { Client as PgClient } from "pg";
 // Needed to make tests work on GitHub actions. Node 17+ defaults
 // to IPv6, and the homerunner domain resolves to IPv6, but the
 // runtime doesn't actually support IPv6 🤦
-dns.setDefaultResultOrder('verbatim');
+dns.setDefaultResultOrder('ipv4first');
 
 
 const DEFAULT_E2E_TIMEOUT = parseInt(process.env.IRC_TEST_TIMEOUT ?? '90000', 10);
