@@ -8,6 +8,7 @@ import {
     StateLookup,
     StateLookupEvent,
     Intent,
+    MediaProxy,
 } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { ActionType, MatrixAction, MatrixMessageEvent } from "../models/MatrixAction";
@@ -21,6 +22,11 @@ import { trackChannelAndCreateRoom } from "./RoomCreation";
 import { renderTemplate } from "../util/Template";
 import { trimString } from "../util/TrimString";
 import { messageDiff } from "../util/MessageDiff";
+import { webcrypto } from 'node:crypto';
+
+const subtleCrypto = webcrypto.subtle;
+
+subtleCrypto.generateKey('HMAC', true, ['sign', 'verify']);
 
 async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>|void) {
     try {
@@ -133,6 +139,7 @@ export class MatrixHandler {
     private memberTracker?: StateLookup;
     private adminHandler: AdminRoomHandler;
     private config: MatrixHandlerConfig = DEFAULTS;
+    private readonly mediaProxy: MediaProxy;
 
     constructor(
         private readonly ircBridge: IrcBridge,
@@ -140,6 +147,11 @@ export class MatrixHandler {
         private readonly membershipQueue: MembershipQueue
     ) {
         this.onConfigChanged(config);
+
+        this.mediaProxy = new MediaProxy({
+            publicUrl: new URL("http://localhost:7775/"),
+            signingKey: ,
+        }, ircBridge.getAppServiceBridge().getIntent().matrixClient);
 
         // The media URL to use to transform mxc:// URLs when handling m.room.[file|image]s
         this.mediaUrl = ircBridge.config.homeserver.media_url || ircBridge.config.homeserver.url;
