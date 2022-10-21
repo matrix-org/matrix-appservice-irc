@@ -1,10 +1,11 @@
-import { PoolClient } from "pg";
+import { SchemaUpdateFunction } from 'matrix-appservice-bridge';
 
-export async function runSchema(connection: PoolClient) {
-    await connection.query(`
+const updateFn: SchemaUpdateFunction = async (sql) => {
+    await sql`
     CREATE TABLE user_activity (
         user_id TEXT UNIQUE,
         data JSON
-    );
-    `);
-}
+    );`
+};
+
+export default updateFn;

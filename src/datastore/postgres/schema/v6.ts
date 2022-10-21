@@ -1,7 +1,7 @@
-import { PoolClient } from "pg";
+import { SchemaUpdateFunction } from 'matrix-appservice-bridge';
 
-export async function runSchema(connection: PoolClient) {
-    await connection.query(`
-    DROP INDEX client_config_domain_username_idx;
-    `);
-}
+const updateFn: SchemaUpdateFunction = async (sql) => {
+    await sql`DROP INDEX client_config_domain_username_idx;`
+};
+
+export default updateFn;
