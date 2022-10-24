@@ -670,23 +670,30 @@ export class IrcBridge {
             throw Error("No IRC servers specified.");
         }
 
-        const uatConfig = {
-            ...UserActivityTrackerConfig.DEFAULT,
-        };
-        if (this.config.ircService.userActivity?.minUserActiveDays !== undefined) {
-            uatConfig.minUserActiveDays = this.config.ircService.userActivity.minUserActiveDays;
+        if (this.config.ircService.userActivity) {
+            const uatConfig = {
+                ...UserActivityTrackerConfig.DEFAULT,
+            };
+            if (this.config.ircService.userActivity.minUserActiveDays !== undefined) {
+                uatConfig.minUserActiveDays = this.config.ircService.userActivity.minUserActiveDays;
+            }
+            if (this.config.ircService.userActivity.inactiveAfterDays !== undefined) {
+                uatConfig.inactiveAfterDays = this.config.ircService.userActivity.inactiveAfterDays;
+            }
+            this.bridge.opts.controller.userActivityTracker = new UserActivityTracker(
+                uatConfig,
+                await this.getStore().getUserActivity(),
+                (changes) => this.onUserActivityChanged(changes).catch(
+                    (ex) => log.warn("onUserActivityChanged encountered an error", ex),
+                ),
+            );
+            this.bridgeBlocker?.checkLimits(
+                this.bridge.opts.controller.userActivityTracker.countActiveUsers().allUsers
+            ).catch(ex => {
+                log.warn(`Failed to run initial checkLimits for user activity tracker`, ex);
+            });
         }
-        if (this.config.ircService.userActivity?.inactiveAfterDays !== undefined) {
-            uatConfig.inactiveAfterDays = this.config.ircService.userActivity.inactiveAfterDays;
-        }
-        this.bridge.opts.controller.userActivityTracker = new UserActivityTracker(
-            uatConfig,
-            await this.getStore().getUserActivity(),
-            (changes) => this.onUserActivityChanged(changes).catch(
-                (ex) => log.warn("onUserActivityChanged encountered an error", ex),
-            ),
-        );
-        this.bridgeBlocker?.checkLimits(this.bridge.opts.controller.userActivityTracker.countActiveUsers().allUsers);
+
 
         // run the bridge (needs to be done prior to configure IRC side)
         await this.bridge.listen(port, this.config.homeserver.bindHostname, undefined, this.appservice);
