@@ -1,3 +1,41 @@
+0.36.0 (2022-10-25)
+===================
+
+Bugfixes
+--------
+
+- Disable metrics by default. ([\#1596](https://github.com/matrix-org/matrix-appservice-irc/issues/1596))
+- Fix distribution of IrcServer.randomDomain() which tended to pick domains with a lower index when there are a lot of addresses for a server. ([\#1612](https://github.com/matrix-org/matrix-appservice-irc/issues/1612))
+- Prevent runtime errors by provisisioning a room with a specific roomID. ([\#1614](https://github.com/matrix-org/matrix-appservice-irc/issues/1614))
+
+
+Improved Documentation
+----------------------
+
+- Fix typos in the documentation. ([\#1599](https://github.com/matrix-org/matrix-appservice-irc/issues/1599))
+- Update bridged networks doc to point towards GitHub issue [#1483](https://github.com/matrix-org/matrix-appservice-irc/issues/1483). ([\#1626](https://github.com/matrix-org/matrix-appservice-irc/issues/1626))
+
+
+Deprecations and Removals
+-------------------------
+
+- Breaking change: Raises the required NodeJS version to 16.
+  Fixes Room visibility setting being broken for appservice directories. ([\#1616](https://github.com/matrix-org/matrix-appservice-irc/issues/1616))
+- User activity tracking is now disabled by default, unless `userActivity` is enabled in the config. ([\#1638](https://github.com/matrix-org/matrix-appservice-irc/issues/1638))
+
+
+Internal Changes
+----------------
+
+- docker: prune dev dependencies from node_modules. ([\#1541](https://github.com/matrix-org/matrix-appservice-irc/issues/1541))
+- Logging: Use Map instead of object. ([\#1608](https://github.com/matrix-org/matrix-appservice-irc/issues/1608))
+- Refactor Logging: Increase explicit TypeScript types and safer loops. ([\#1609](https://github.com/matrix-org/matrix-appservice-irc/issues/1609))
+- Refactors: Reduce use of Bluebird, increase explicit types, use safer loops. ([\#1611](https://github.com/matrix-org/matrix-appservice-irc/issues/1611))
+- Replace uses of the deprecated String.prototype.substr(). ([\#1615](https://github.com/matrix-org/matrix-appservice-irc/issues/1615))
+- Add support for running tests against a real IRCd and Matrix homeserver in CI. ([\#1622](https://github.com/matrix-org/matrix-appservice-irc/issues/1622))
+- Update to matrix-appservice-bridge 6.0.0. ([\#1631](https://github.com/matrix-org/matrix-appservice-irc/issues/1631))
+
+
 0.35.1 (2022-09-26)
 ===================
 

@@ -1,1 +1,0 @@
-User activity tracking is now disabled by default, unless `userActivity` is enabled in the config.
