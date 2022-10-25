@@ -22,7 +22,7 @@ import {
     Bridge,
     MatrixUser,
     MatrixRoom,
-    Logging,
+    Logger,
     Request,
     PrometheusMetrics,
     MembershipCache,
@@ -110,7 +110,7 @@ export class IrcBridge {
         private readonly testOpts: TestingOptions = {isDBInMemory: false},
     ) {
         // TODO: Don't log this to stdout
-        Logging.configure({console: config.ircService.logging.level});
+        Logger.configure({console: config.ircService.logging.level});
         if (!this.config.database && this.config.ircService.databaseUri) {
             log.warn("ircService.databaseUri is a deprecated config option." +
                      "Please use the database configuration block");
@@ -272,7 +272,7 @@ export class IrcBridge {
         const hasLoggingChanged = JSON.stringify(oldConfig.ircService.logging)
             !== JSON.stringify(newConfig.ircService.logging);
         if (hasLoggingChanged) {
-            Logging.configure(newConfig.ircService.logging);
+            Logger.configure({ console: newConfig.ircService.logging.level });
         }
 
         const banSyncPromise = this.matrixBanSyncer?.syncRules(this.bridge.getIntent());
