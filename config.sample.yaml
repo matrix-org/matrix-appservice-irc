@@ -580,6 +580,7 @@ ircService:
   # Maximum number of montly active users, beyond which the bridge gets blocked (both ways)
   # RMAUlimit: 100
   
+  # Optional.
   # userActivity:
     # The "grace period" before we start counting users as active
     # minUserActiveDays: 1
