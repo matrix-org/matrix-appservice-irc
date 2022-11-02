@@ -714,6 +714,15 @@ export class PgDataStore implements DataStore {
         return res.rows[0];
     }
 
+    //TODO
+    public async getAccountFirstSeen(userId: string): Promise<Date|null> {
+        return null;
+    }
+
+    //TODO
+    public async setAccountFirstSeen(userId: string, when: Date): Promise<void> {
+    }
+
     public async destroy() {
         log.info("Destroy called");
         if (this.hasEnded) {

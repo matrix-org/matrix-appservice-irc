@@ -538,6 +538,35 @@ export class MatrixHandler {
             }
             // get the virtual IRC user for this user
             promises.push((async () => {
+                const entry = await this.ircBridge.getStore().getRoom(event.room_id, room.server.domain, room.channel);
+                // is this a portal room?
+                const delayTime = ["alias", "join"].includes(
+                    (entry?.data?.origin as string|null) ?? "unknown"
+                //TODO: pull these two numbers from the config file
+                ) ? 3600 : 0;
+
+                if (delayTime > 0) {
+                    let remaining = delayTime;
+                    const firstSeen = await this.ircBridge.getStore().getAccountFirstSeen(user.getId());
+                    if (firstSeen === null) {
+                        await this.ircBridge.getStore().setAccountFirstSeen(user.getId(), new Date());
+                    } else {
+                        remaining = Math.max(0, ((firstSeen.getTime() / 1000) + delayTime) - (new Date().getTime() / 1000));
+                    }
+
+                    if (remaining > 0) {
+                        await this.membershipQueue.leave(
+                            event.room_id,
+                            user.getId(),
+                            req,
+                            true,
+                            `Please wait ${remaining} seconds`,
+                            this.ircBridge.appServiceUserId,
+                        );
+                        return;
+                    }
+                }
+
                 let bridgedClient: BridgedClient|null = null;
                 try {
                     bridgedClient = await this.ircBridge.getBridgedClient(

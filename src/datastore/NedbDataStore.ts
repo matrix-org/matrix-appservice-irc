@@ -771,6 +771,15 @@ export class NeDBDataStore implements DataStore {
         log.debug("Finished migrating rooms in database");
     }
 
+    //TODO
+    public async getAccountFirstSeen(userId: string): Promise<Date|null> {
+        return null;
+    }
+
+    //TODO
+    public async setAccountFirstSeen(userId: string, when: Date): Promise<void> {
+    }
+
     public async destroy() {
         // This will no-op
     }
