@@ -771,13 +771,29 @@ export class NeDBDataStore implements DataStore {
         log.debug("Finished migrating rooms in database");
     }
 
-    //TODO
-    public async getAccountFirstSeen(userId: string): Promise<Date|null> {
-        return null;
+    public async getFirstSeenTimeForUser(userId: string): Promise<number|null> {
+        const doc = await this.userStore.selectOne<unknown, {data: { first_seen_ts: number }}>({
+            type: "matrix",
+            "id": userId,
+            "data.first_seen_ts": {$exists: true},
+        });
+
+        if (doc !== null) {
+            return doc.data.first_seen_ts;
+        } else {
+            return null;
+        }
     }
 
-    //TODO
-    public async setAccountFirstSeen(userId: string, when: Date): Promise<void> {
+    public async setFirstSeenTimeForUser(userId: string): Promise<void> {
+        let user = await this.userStore.getMatrixUser(userId);
+        if (!user) {
+            user = new MatrixUser(userId);
+        }
+        const now = Date.now();
+        user.set("first_seen_ts", now);
+        user.set("last_seen_ts", now);
+        await this.userStore.setMatrixUser(user);
     }
 
     public async destroy() {

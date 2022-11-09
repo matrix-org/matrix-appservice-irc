@@ -1072,8 +1072,13 @@ export class IrcBridge {
         if (userIds) {
             for (const userId of userIds) {
                 this.activityTracker.setLastActiveTime(userId);
-                this.dataStore.updateLastSeenTimeForUser(userId).catch((ex) => {
-                    log.warn(`Failed to bump last active time for ${userId} in database`, ex);
+                this.dataStore.getFirstSeenTimeForUser(userId).then((when) => {
+                    (when === null
+                        ? this.dataStore.setFirstSeenTimeForUser
+                        : this.dataStore.updateLastSeenTimeForUser
+                    )(userId).catch((ex) => {
+                        log.warn(`Failed to bump first/last active time for ${userId} in database`, ex);
+                    });
                 });
             }
         }

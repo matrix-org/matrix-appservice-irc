@@ -192,9 +192,9 @@ export interface DataStore {
 
     getRoomCount(): Promise<number>;
 
-    getAccountFirstSeen(userId: string): Promise<Date|null>;
+    getFirstSeenTimeForUser(userId: string): Promise<number|null>;
 
-    setAccountFirstSeen(userId: string, when: Date): Promise<void>;
+    setFirstSeenTimeForUser(userId: string): Promise<void>;
 
     destroy(): Promise<void>;
 }

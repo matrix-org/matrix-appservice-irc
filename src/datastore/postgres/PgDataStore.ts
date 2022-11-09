@@ -643,15 +643,11 @@ export class PgDataStore implements DataStore {
     }
 
     public async updateLastSeenTimeForUser(userId: string) {
-        const statement = PgDataStore.BuildUpsertStatement("last_seen", "(user_id)", [
-            "user_id",
-            "ts",
-        ]);
-        await this.pgPool.query(statement, [userId, Date.now()]);
+        await this.pgPool.query("UPDATE last_seen SET last = $2 WHERE user_id = $1", [userId, Date.now()]);
     }
 
     public async getLastSeenTimeForUsers(): Promise<{ user_id: string; ts: number }[]> {
-        const res = await this.pgPool.query(`SELECT * FROM last_seen`);
+        const res = await this.pgPool.query(`SELECT user_id, last FROM last_seen`);
         return res.rows;
     }
 
@@ -714,13 +710,22 @@ export class PgDataStore implements DataStore {
         return res.rows[0];
     }
 
-    //TODO
-    public async getAccountFirstSeen(userId: string): Promise<Date|null> {
-        return null;
+    public async getFirstSeenTimeForUser(userId: string): Promise<number|null> {
+        const res = await this.pgPool.query(
+            "SELECT first FROM last_seen WHERE user_id = $1;", [userId]
+        );
+        if (res.rows) {
+            return res.rows[0].first;
+        } else {
+            return null;
+        }
     }
 
-    //TODO
-    public async setAccountFirstSeen(userId: string, when: Date): Promise<void> {
+    public async setFirstSeenTimeForUser(userId: string): Promise<void> {
+        const now = Date.now();
+        await this.pgPool.query("INSERT INTO last_seen (user_id, first, last) VALUES ($1, $2, $3)", [
+            userId, now, now
+        ]);
     }
 
     public async destroy() {

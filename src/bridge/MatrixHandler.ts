@@ -547,11 +547,11 @@ export class MatrixHandler {
 
                 if (delayTime > 0) {
                     let remaining = delayTime;
-                    const firstSeen = await this.ircBridge.getStore().getAccountFirstSeen(user.getId());
+                    const firstSeen = await this.ircBridge.getStore().getFirstSeenTimeForUser(user.getId());
                     if (firstSeen === null) {
-                        await this.ircBridge.getStore().setAccountFirstSeen(user.getId(), new Date());
+                        // jeepers. this shouldn't happen!
                     } else {
-                        remaining = Math.max(0, ((firstSeen.getTime() / 1000) + delayTime) - (new Date().getTime() / 1000));
+                        remaining = Math.max(0, (firstSeen + (delayTime * 1000)) - Date.now());
                     }
 
                     if (remaining > 0) {
