@@ -55,7 +55,7 @@ interface RoomRecord {
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 8;
+    public static readonly LATEST_SCHEMA = 9;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
