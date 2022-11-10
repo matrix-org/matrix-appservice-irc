@@ -66,6 +66,10 @@ export interface BridgeConfig {
             inactiveAfterDays?: number;
         };
         banLists?: MatrixBanSyncConfig;
+        delayBridging?: {
+            plumbed: number,
+            portaled: number,
+        };
     };
     sentry?: {
         enabled: boolean;

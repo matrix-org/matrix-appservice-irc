@@ -543,7 +543,9 @@ export class MatrixHandler {
                 const delayTime = ["alias", "join"].includes(
                     (entry?.data?.origin as string|null) ?? "unknown"
                 //TODO: pull these two numbers from the config file
-                ) ? 3600 : 0;
+                )
+                    ? this.ircBridge.config.ircService.delayBridging?.portaled ?? 0
+                    : this.ircBridge.config.ircService.delayBridging?.plumbed ?? 0;
 
                 if (delayTime > 0) {
                     let remaining = delayTime;
