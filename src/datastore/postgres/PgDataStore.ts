@@ -717,9 +717,8 @@ export class PgDataStore implements DataStore {
         if (res.rows) {
             return res.rows[0].first;
         }
-        else {
-            return null;
-        }
+
+        return null;
     }
 
     public async setFirstSeenTimeForUser(userId: string): Promise<void> {

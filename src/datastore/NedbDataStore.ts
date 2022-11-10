@@ -781,9 +781,8 @@ export class NeDBDataStore implements DataStore {
         if (doc !== null) {
             return doc.data.first_seen_ts;
         }
-        else {
-            return null;
-        }
+
+        return null;
     }
 
     public async setFirstSeenTimeForUser(userId: string): Promise<void> {
