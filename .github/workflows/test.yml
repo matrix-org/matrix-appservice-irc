@@ -43,14 +43,6 @@ jobs:
       - run: npm ci
       - run: npm run-script test
 
-  test-18:
-    runs-on: ubuntu-22.04
-    container: node:18
-    steps:
-      - uses: actions/checkout@v2
-      - run: npm ci
-      - run: npm run-script test
-
   test-18-postgres:
     runs-on: ubuntu-22.04
     container: node:18
