@@ -46,6 +46,13 @@
     "winston": "^3.8.2",
     "winston-daily-rotate-file": "^4.7.1"
   },
+  "overrides": {
+    "matrix-appservice-bridge": {
+      "matrix-bot-sdk": {
+        "@matrix-org/matrix-sdk-crypto-nodejs": "^0.1.0-beta.3"
+      }
+    }
+  },
   "devDependencies": {
     "@tsconfig/node14": "^1.0.3",
     "@types/bluebird": "^3.5.36",
