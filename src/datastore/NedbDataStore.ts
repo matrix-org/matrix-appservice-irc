@@ -780,7 +780,8 @@ export class NeDBDataStore implements DataStore {
 
         if (doc !== null) {
             return doc.data.first_seen_ts;
-        } else {
+        }
+        else {
             return null;
         }
     }

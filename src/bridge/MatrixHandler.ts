@@ -550,7 +550,8 @@ export class MatrixHandler {
                     const firstSeen = await this.ircBridge.getStore().getFirstSeenTimeForUser(user.getId());
                     if (firstSeen === null) {
                         // jeepers. this shouldn't happen!
-                    } else {
+                    }
+                    else {
                         remaining = Math.max(0, (firstSeen + (delayTime * 1000)) - Date.now());
                     }
 

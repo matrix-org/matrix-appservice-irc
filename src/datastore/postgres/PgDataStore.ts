@@ -716,7 +716,8 @@ export class PgDataStore implements DataStore {
         );
         if (res.rows) {
             return res.rows[0].first;
-        } else {
+        }
+        else {
             return null;
         }
     }
