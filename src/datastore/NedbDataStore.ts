@@ -786,10 +786,16 @@ export class NeDBDataStore implements DataStore {
     }
 
     public async setFirstSeenTimeForUser(userId: string): Promise<void> {
+        if (await this.getFirstSeenTimeForUser(userId) !== null) {
+            // we already have a first seen time, don't overwrite it
+            return;
+        }
+
         let user = await this.userStore.getMatrixUser(userId);
         if (!user) {
             user = new MatrixUser(userId);
         }
+
         const now = Date.now();
         user.set("first_seen_ts", now);
         user.set("last_seen_ts", now);

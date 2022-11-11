@@ -722,6 +722,11 @@ export class PgDataStore implements DataStore {
     }
 
     public async setFirstSeenTimeForUser(userId: string): Promise<void> {
+        if (await this.getFirstSeenTimeForUser(userId) !== null) {
+            // we already have a first seen time, don't overwrite it
+            return;
+        }
+
         const now = Date.now();
         await this.pgPool.query("INSERT INTO last_seen (user_id, first, last) VALUES ($1, $2, $3)", [
             userId, now, now
