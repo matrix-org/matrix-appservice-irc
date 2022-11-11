@@ -67,8 +67,8 @@ export interface BridgeConfig {
         };
         banLists?: MatrixBanSyncConfig;
         delayBridging?: {
-            plumbed: number,
-            portaled: number,
+            secondsPlumbed: number,
+            secondsPortaled: number,
         };
     };
     sentry?: {

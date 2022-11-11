@@ -496,8 +496,8 @@ export class MatrixHandler {
             (entry?.data?.origin as string|null) ?? "unknown"
         //TODO: pull these two numbers from the config file
         )
-            ? this.ircBridge.config.ircService.delayBridging?.portaled ?? 0
-            : this.ircBridge.config.ircService.delayBridging?.plumbed ?? 0;
+            ? this.ircBridge.config.ircService.delayBridging?.secondsPortaled ?? 0
+            : this.ircBridge.config.ircService.delayBridging?.secondsPlumbed ?? 0;
 
         if (delayTime > 0) {
             let remaining = delayTime;
