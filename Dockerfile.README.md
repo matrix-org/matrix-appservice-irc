@@ -24,7 +24,7 @@ namespaces:
   aliases:
     - exclusive: true
       regex: '#irc_.*:localhost' # localhost should be your homeserver's server_name
-url: 'http://localhost:9999'
+url: 'http://localhost:8090'
 sender_localpart: irc_bot
 rate_limited: false
 protocols:
@@ -39,4 +39,4 @@ If you are storing passwords for users, you should also run:
 openssl genpkey -out ./dockerdata/passkey.pem -outform PEM -algorithm RSA -pkeyopt rsa_keygen_bits:2048
 ```
 
-You can now run your shiny new image using `docker run --publish 9999:9999 --volume $PWD/dockerdata:/app/data`.
+You can now run your shiny new image using `docker run --publish 8090:8090 --volume $PWD/dockerdata:/app/data`.
