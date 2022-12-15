@@ -579,9 +579,9 @@ export class IrcBridge {
         // cli port, then config port, then default port
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
-        await this.bridge.initalise();
+        await this.bridge.initialise();
         await this.matrixBanSyncer?.syncRules(this.bridge.getIntent());
-        this.matrixHandler.initalise();
+        this.matrixHandler.initialise();
 
         this.activityTracker = new ActivityTracker(this.bridge.getIntent().matrixClient, {
             usePresence: this.config.homeserver.enablePresence,
@@ -1644,7 +1644,10 @@ export class IrcBridge {
             return;
         }
         for (const userId of userActivity.changed) {
-            await this.getStore().storeUserActivity(userId, userActivity.dataSet.users[userId]);
+            const activity = userActivity.dataSet.get(userId);
+            if (activity) {
+                await this.getStore().storeUserActivity(userId, activity);
+            }
         }
         await this.bridgeBlocker?.checkLimits(userActivity.activeUsers);
     }

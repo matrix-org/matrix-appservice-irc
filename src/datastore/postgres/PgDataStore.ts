@@ -575,11 +575,11 @@ export class PgDataStore implements DataStore {
 
     public async getUserActivity(): Promise<UserActivitySet> {
         const res = await this.pgPool.query('SELECT * FROM user_activity');
-        const users: {[mxid: string]: UserActivity} = {};
+        const activity = new Map<string, UserActivity>();
         for (const row of res.rows) {
-            users[row['user_id']] = row['data'];
+            activity.set(row['user_id'], row['data']);
         }
-        return { users };
+        return activity;
     }
 
     public async storeUserActivity(userId: string, activity: UserActivity) {
