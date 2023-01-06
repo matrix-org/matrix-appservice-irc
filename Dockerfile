@@ -1,6 +1,5 @@
 # Freebind build
-# node:16-slim uses debian:stretch-slim as a base, so it's safe to build on here.
-FROM debian:stretch-slim as freebind
+FROM debian:buster-slim as freebind
 
 RUN apt-get update \
  && apt-get install -y git build-essential
