@@ -1,18 +1,28 @@
-import { Request } from "express";
-import { IrcBridge } from "../bridge/IrcBridge";
-import { Defer } from "../promiseutil";
-import { ConfigValidator, MatrixRoom, MatrixUser, PowerLevelContent, UserMembership } from "matrix-appservice-bridge";
-import Bluebird from "bluebird";
-import { IrcRoom } from "../models/IrcRoom";
-import { IrcAction } from "../models/IrcAction";
-import { BridgeRequest, BridgeRequestData } from "../models/BridgeRequest";
-import { ProvisionRequest } from "./ProvisionRequest";
-import logging, { RequestLogger } from "../logging";
-import * as promiseutil from "../promiseutil";
 import * as express from "express";
-import { IrcServer } from "../irc/IrcServer";
-import { IrcUser } from "../models/IrcUser";
-import { GetNicksResponseOperators } from "../irc/BridgedClient";
+import {
+    ApiError,
+    ErrCode,
+    MatrixRoom,
+    MatrixUser,
+    MembershipQueue,
+    PowerLevelContent,
+    ProvisioningApi,
+    ProvisioningRequest,
+    Rules,
+    UserMembership
+} from "matrix-appservice-bridge";
+import * as promiseutil from "../promiseutil";
+import { Defer } from "../promiseutil";
+import {IrcRoom} from "../models/IrcRoom";
+import {IrcAction} from "../models/IrcAction";
+import {BridgeRequest, BridgeRequestData} from "../models/BridgeRequest";
+import logging, {RequestLogger} from "../logging";
+import {IrcServer} from "../irc/IrcServer";
+import {IrcUser} from "../models/IrcUser";
+import {GetNicksResponseOperators} from "../irc/BridgedClient";
+import {NeDBDataStore} from "../datastore/NedbDataStore";
+import {IrcErrCode, IrcProvisioningError, QueryLinkBody, QueryLinkBodyValidator, RequestValidator} from "./Schema";
+import {IrcBridge} from "../bridge/IrcBridge";
 
 const log = logging("Provisioner");
 
@@ -22,180 +32,94 @@ interface MRoomBridgingContent extends Record<string, unknown> {
     status: BridgingStatus;
 }
 
-const matrixRoomIdValidation = {
-    "type": "string",
-    "pattern": "^!.*:.*$"
-};
-
-const validationProperties = {
-    "matrix_room_id" : matrixRoomIdValidation,
-    "remote_room_channel" : {
-        "type": "string",
-        "pattern": "^([#+&]|(![A-Z0-9]{5}))[^\\s:,]+$"
-    },
-    "remote_room_server" : {
-        "type": "string",
-        "pattern": "^[a-z\\.0-9:-]+$"
-    },
-    "op_nick" : {
-        "type": "string"
-    },
-    "key" : {
-        "type": "string"
-    },
-    "user_id" : {
-        "type": "string"
-    }
-};
-
 interface PendingRequest {
     userId: string;
     defer: Defer<unknown>;
     log: RequestLogger;
 }
 
-export class Provisioner {
+export interface ProvisionerConfig {
+    enabled: boolean;
+    requestTimeoutSeconds: number;
+    rules?: Rules;
+    roomLimit?: number;
+    http?: {
+        port: number;
+        host?: string;
+    };
+    // We allow this to be unspecified, so it will fall back to the homeserver token
+    secret?: string;
+    apiPrefix?: string;
+    openIdDisallowedIpRanges?: string[];
+}
+
+interface StrictProvisionerConfig extends ProvisionerConfig {
+    secret: string;
+}
+
+export class Provisioner extends ProvisioningApi {
     private pendingRequests: {
         [domain: string]: Map<string, PendingRequest>; // nick -> request
     } = {};
-    private linkValidator: ConfigValidator;
-    private queryLinkValidator: ConfigValidator;
-    private unlinkValidator: ConfigValidator;
-    private roomIdValidator: ConfigValidator;
-    constructor(private ircBridge: IrcBridge, private enabled: boolean, private requestTimeoutSeconds: number) {
-        this.linkValidator = new ConfigValidator({
-            "type": "object",
-            "properties": validationProperties,
-            "required": [
-                "matrix_room_id",
-                "remote_room_channel",
-                "remote_room_server",
-                "op_nick",
-                "user_id"
-            ]
-        });
-        this.queryLinkValidator = new ConfigValidator({
-            "type": "object",
-            "properties": validationProperties,
-            "required": [
-                "remote_room_channel",
-                "remote_room_server"
-            ]
-        });
-        this.unlinkValidator = new ConfigValidator({
-            "type": "object",
-            "properties": validationProperties,
-            "required": [
-                "matrix_room_id",
-                "remote_room_channel",
-                "remote_room_server",
-                "user_id"
-            ]
-        });
-        this.roomIdValidator = new ConfigValidator({
-            "type": "object",
-            "properties": {
-                "matrix_room_id" : matrixRoomIdValidation
-            }
-        });
 
-        if (enabled) {
-            log.info("Starting provisioning...");
-        }
-        else {
-            log.info("Provisioning disabled.");
-        }
+    constructor(
+        readonly ircBridge: IrcBridge,
+        readonly membershipQueue: MembershipQueue,
+        readonly config: StrictProvisionerConfig,
+    ) {
+        super(
+            ircBridge.getStore(),
+            {
+                provisioningToken: config.secret,
+                widgetTokenPrefix: "ircbr-wdt-",
+                apiPrefix: "/_matrix/provision",
+                disallowedIpRanges: config.openIdDisallowedIpRanges,
+                ratelimit: true,
+                // Use the bridge express application unless a config was specified for provisioning
+                expressApp: config.http ? undefined : ircBridge.getAppServiceBridge().appService.expressApp,
+            },
+        );
 
-        const appservice = this.ircBridge.getAppServiceBridge().appService;
-        const app = appservice?.expressApp;
-
-        // Disable all provision endpoints by not calling 'next' and returning an error instead
-        if (!enabled) {
-            if (app) {
-                app.use((req, res, next) => {
-                    if (this.isProvisionRequest(req)) {
-                        res.header("Access-Control-Allow-Origin", "*");
-                        res.header("Access-Control-Allow-Headers",
-                            "Origin, X-Requested-With, Content-Type, Accept");
-                        res.status(500);
-                        res.json({error : 'Provisioning is not enabled.'});
-                    }
-                    else {
-                        next();
-                    }
-                });
-            }
+        if (!config.enabled) {
+            log.info("Provisioning disabled, endpoints will respond with an error code");
+            // Disable all provision endpoints, responding with an error instead
+            this.baseRoute.use((req, res, next) => {
+                return next(new ApiError("Provisioning not enabled", ErrCode.DisabledFeature));
+            });
             return;
         }
 
-        if (!app) {
-            throw new Error('Could not start provisioning API');
+        if (this.store instanceof NeDBDataStore) {
+            // Note: we don't really want to encourage NeDB for new deployments, and setting up
+            // support for this in NeDB would require us to create a new store. The bridge should
+            // fail appropriately with an error if the user attempts to use widgets while the
+            // bridge is using NeDB.
+            log.warn(
+                "Provisioner is incompatible with NeDB store. Widget requests will not be handled."
+            );
         }
 
-        app.use((req, res, next) => {
-            // Deal with CORS (temporarily for s-web)
-            if (this.isProvisionRequest(req)) {
-                res.header("Access-Control-Allow-Origin", "*");
-                res.header("Access-Control-Allow-Headers",
-                    "Origin, X-Requested-With, Content-Type, Accept");
-            }
-            if (!this.ircBridge.getAppServiceBridge().requestCheckToken(req)) {
-                res.status(403).send({
-                    errcode: "M_FORBIDDEN",
-                    error: "Bad token supplied"
-                });
-                return;
-            }
-            next();
-        });
-
-        app.post("/_matrix/provision/link",
-            this.createProvisionEndpoint(this.requestLink, 'requestLink')
-        );
-
-        app.post("/_matrix/provision/unlink",
-            this.createProvisionEndpoint(this.unlink, 'unlink')
-        );
-
-        app.get("/_matrix/provision/listlinks/:roomId",
-            this.createProvisionEndpoint(this.listings, 'listings')
-        );
-
-        app.post("/_matrix/provision/querylink",
-            this.createProvisionEndpoint(this.queryLink, 'queryLink')
-        );
-
-        app.get("/_matrix/provision/querynetworks",
-            this.createProvisionEndpoint(this.queryNetworks, 'queryNetworks')
-        );
-
-        app.get("/_matrix/provision/limits",
-            this.createProvisionEndpoint(this.getLimits, 'limits')
-        );
-
-        log.info("Provisioning started");
+        this.addRoute("post", "/link", this.createHandler(this.requestLink), "requestLink");
+        this.addRoute("post", "/unlink", this.createHandler(this.unlink), "unlink");
+        this.addRoute("get", "/listlinks/:roomId", this.createHandler(this.listings), "listings");
+        this.addRoute("post", "/querylink", this.createHandler(this.queryLink), "queryLink");
+        this.addRoute("get", "/querynetworks", this.createHandler(this.queryNetworks), "queryNetworks");
+        this.addRoute("get", "/limits", this.createHandler(this.getLimits), "limits");
     }
 
-    private createProvisionEndpoint(fn: (req: ProvisionRequest) => unknown, fnName: string) {
-        return async (req: express.Request, res: express.Response) => {
-            const pReq = new ProvisionRequest(req, fnName);
-            pReq.log.info(
-                'New provisioning request: ' + JSON.stringify(req.body) +
-                ' params: ' + JSON.stringify(req.params)
-            );
-            try {
-                let result = await fn.call(this, pReq);
-                if (!result) {
-                    result = {};
-                }
-                pReq.log.info(`Sending result: ${JSON.stringify(result)}`);
-                res.json(result);
-            }
-            catch (err) {
-                res.status(500).json({error: err.message});
-                pReq.log.error(err.stack);
-                throw err;
-            }
+    public async start(): Promise<void> {
+        if (this.config.http) {
+            await super.start(this.config.http.port, this.config.http.host);
+        }
+        log.info("Provisioning API ready")
+    }
+
+    private createHandler(fn: (req: ProvisioningRequest) => Promise<unknown>) {
+        return async(req: ProvisioningRequest, res: express.Response) => {
+            // Errors will be caught by the Provisioner class
+            const result = (await fn.call(this, req)) || {};
+            req.log.debug(`Sending result: ${JSON.stringify(result)}`);
+            res.json(result);
         }
     }
 

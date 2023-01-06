@@ -780,9 +780,22 @@ export class IrcBridge {
             );
         });
 
-        const provisioningEnabled = this.config.ircService.provisioning.enabled;
-        const requestTimeoutSeconds = this.config.ircService.provisioning.requestTimeoutSeconds;
-        this.provisioner = new Provisioner(this, provisioningEnabled, requestTimeoutSeconds);
+        log.info("Starting provisioning API...");
+        const homeserverToken = this.registration.getHomeserverToken();
+        if (!homeserverToken) {
+            throw Error("No HS token defined");
+        }
+
+        this.provisioner = new Provisioner(
+            this,
+            this.membershipQueue,
+            {
+                // Default to HS token if no secret is configured
+                secret: homeserverToken,
+                ...this.config.ircService.provisioning,
+            },
+        );
+        await this.provisioner.start();
 
         log.info("Connecting to IRC networks...");
         await this.connectToIrcNetworks();
