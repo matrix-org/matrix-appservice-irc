@@ -1047,7 +1047,10 @@ export class Provisioner extends ProvisioningApi {
      *  Cause the bot to leave the matrix room if there are no other channels being mapped to
      * this room
      */
-    private async leaveMatrixRoomIfUnprovisioned(req: ProvisionRequest, roomId: string): Promise<void> {
+    private async leaveMatrixRoomIfUnprovisioned(
+        req: ProvisioningRequest,
+        roomId: string,
+    ): Promise<void> {
         const ircChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(roomId);
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         if (ircChannels.length === 0) {
