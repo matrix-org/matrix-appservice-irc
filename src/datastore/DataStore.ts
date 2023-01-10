@@ -15,9 +15,12 @@ limitations under the License.
 */
 
 import {
-    MatrixRoom, MatrixUser,
+    MatrixRoom,
+    MatrixUser,
+    ProvisioningStore,
     RoomBridgeStoreEntry as Entry,
-    UserActivity, UserActivitySet
+    UserActivity,
+    UserActivitySet,
 } from "matrix-appservice-bridge";
 import { MatrixDirectoryVisibility } from "../bridge/IrcHandler";
 import { IrcRoom } from "../models/IrcRoom";
@@ -35,7 +38,7 @@ export interface UserFeatures {
     [name: string]: boolean|undefined;
 }
 
-export interface DataStore {
+export interface DataStore extends ProvisioningStore {
     setServerFromConfig(server: IrcServer, serverConfig: IrcServerConfig): Promise<void>;
 
     /**

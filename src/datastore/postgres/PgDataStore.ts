@@ -22,6 +22,8 @@ import {
     RemoteRoom,
     RoomBridgeStoreEntry as Entry,
     MatrixRoomData,
+    ProvisionSession,
+    ProvisioningStore,
     UserActivitySet,
     UserActivity,
 } from "matrix-appservice-bridge";
@@ -52,10 +54,10 @@ interface RoomRecord {
     origin: RoomOrigin;
 }
 
-export class PgDataStore implements DataStore {
+export class PgDataStore implements DataStore, ProvisioningStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 8;
+    public static readonly LATEST_SCHEMA = 9;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -710,8 +712,38 @@ export class PgDataStore implements DataStore {
     }
 
     public async getRoomCount(): Promise<number> {
-        const res = await this.pgPool.query(`SELECT COUNT(*) FROM rooms`);
-        return res.rows[0];
+        const res = await this.pgPool.query<{count: string}>(`SELECT COUNT(*) FROM rooms`);
+        return parseInt(res.rows[0]?.count || "0", 10);
+    }
+
+    public async getSessionForToken(token: string): Promise<ProvisionSession | null> {
+        const result = await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "SELECT user_id, expires_ts FROM provisioner_sessions WHERE token = $1", [token]
+        );
+        const row = result.rows[0];
+        return row ? {
+            userId: row.user_id,
+            token,
+            expiresTs: row.expires_ts,
+        } : null;
+    }
+
+    public async createSession(session: ProvisionSession) {
+        await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "INSERT INTO provisioner_sessions VALUES ($1, $2, $3)", [session.userId, session.token, session.expiresTs]
+        );
+    }
+
+    public async deleteSession(token: string) {
+        await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "DELETE FROM provisioner_sessions WHERE token = $1", [token]
+        );
+    }
+
+    public async deleteAllSessions(userId: string) {
+        await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "DELETE FROM provisioner_sessions WHERE user_id = $1", [userId]
+        );
     }
 
     public async destroy() {
