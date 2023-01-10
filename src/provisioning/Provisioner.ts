@@ -1013,7 +1013,11 @@ export class Provisioner extends ProvisioningApi {
         );
     }
 
-    private async leaveMatrixVirtuals(req: ProvisionRequest, roomId: string, server: IrcServer): Promise<void> {
+    private async leaveMatrixVirtuals(
+        req: ProvisioningRequest,
+        roomId: string,
+        server: IrcServer,
+    ): Promise<void> {
         const asBot = this.ircBridge.getAppServiceBridge().getBot();
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         const roomChannels = await this.ircBridge.getStore().getIrcChannelsForRoomId(
