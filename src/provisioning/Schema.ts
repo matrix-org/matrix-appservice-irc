@@ -44,6 +44,7 @@ export class RequestValidator<T> extends ConfigValidator {
         }
         catch (e) {
             this.errors = e._validationErrors;
+            return false;
         }
         return true;
     }

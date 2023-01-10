@@ -122,12 +122,32 @@ export class Provisioner extends ProvisioningApi {
             );
         }
 
-        this.addRoute("post", "/link", this.createHandler(this.requestLink), "requestLink");
-        this.addRoute("post", "/unlink", this.createHandler(this.unlink), "unlink");
-        this.addRoute("get", "/listlinks/:roomId", this.createHandler(this.listings), "listings");
-        this.addRoute("post", "/querylink", this.createHandler(this.queryLink), "queryLink");
-        this.addRoute("get", "/querynetworks", this.createHandler(this.queryNetworks), "queryNetworks");
-        this.addRoute("get", "/limits", this.createHandler(this.getLimits), "limits");
+        const wrapHandler = (handler: (req: ProvisioningRequest) => Promise<unknown>) => {
+            return async(req: ProvisioningRequest, res: express.Response) => {
+                try {
+                    const result = await handler.call(this, req) ?? {};
+                    req.log.debug(`Sending result: ${JSON.stringify(result)}`);
+                    res.json(result);
+                }
+                catch (e) {
+                    if (res.headersSent) {
+                        return;
+                    }
+                    if (e instanceof ApiError) {
+                        e.apply(res);
+                    }
+                    else {
+                        new ApiError("An internal error occurred").apply(res);
+                    }
+                }
+            }
+        }
+        this.addRoute("post", "/link", wrapHandler(this.requestLink), "requestLink");
+        this.addRoute("post", "/unlink", wrapHandler(this.unlink), "unlink");
+        this.addRoute("get", "/listlinks/:roomId", wrapHandler(this.listings), "listings");
+        this.addRoute("post", "/querylink", wrapHandler(this.queryLink), "queryLink");
+        this.addRoute("get", "/querynetworks", wrapHandler(this.queryNetworks), "queryNetworks");
+        this.addRoute("get", "/limits", wrapHandler(this.getLimits), "limits");
     }
 
     public async start(): Promise<void> {
@@ -135,15 +155,6 @@ export class Provisioner extends ProvisioningApi {
             await super.start(this.config.http.port, this.config.http.host);
         }
         log.info("Provisioning API ready")
-    }
-
-    private createHandler(fn: (req: ProvisioningRequest) => Promise<unknown>) {
-        return async(req: ProvisioningRequest, res: express.Response) => {
-            // Errors will be caught by the Provisioner class
-            const result = (await fn.call(this, req)) || {};
-            req.log.debug(`Sending result: ${JSON.stringify(result)}`);
-            res.json(result);
-        }
     }
 
     /**
