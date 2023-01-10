@@ -1,61 +1,41 @@
 import { Response } from "express";
-import { IApiError, ConfigValidator } from "matrix-appservice-bridge";
+import Ajv, { JSONSchemaType } from "ajv";
+import { IApiError } from "matrix-appservice-bridge";
 
-const matrixRoomIdSchema = {
+export const ajv = new Ajv({
+    allErrors: true,
+});
+
+const matrixRoomIdSchema: JSONSchemaType<string> = {
     type: "string",
     pattern: "^!.*:.*$",
 };
 
-const remoteRoomChannelSchema = {
+const remoteRoomChannelSchema: JSONSchemaType<string> = {
     type: "string",
     pattern: "^([#+&]|(![A-Z0-9]{5}))[^\\s:,]+$",
 };
 
-const remoteRoomServerSchema = {
+const remoteRoomServerSchema: JSONSchemaType<string> = {
     type: "string",
     pattern: "^[a-z\\.0-9:-]+$",
 };
 
-const opNickSchema = {
+const opNickSchema: JSONSchemaType<string> = {
     type: "string",
 };
 
-const keySchema = {
+const keySchema: JSONSchemaType<string> = {
     type: "string",
+    nullable: true,
 };
-
-const roomIdSchema = {
-    type: "object",
-    properties: {
-        "matrix_room_id" : matrixRoomIdSchema,
-    },
-    required: [
-        "matrix_room_id",
-    ],
-};
-
-// TODO: This is abusing ConfigValidator for request validation
-export class RequestValidator<T> extends ConfigValidator {
-    public errors: {field: string, message: string}[] = [];
-
-    validate(payload: unknown): payload is T {
-        try {
-            super.validate(payload);
-        }
-        catch (e) {
-            this.errors = e._validationErrors;
-            return false;
-        }
-        return true;
-    }
-}
 
 export interface QueryLinkBody {
     remote_room_channel: string;
     remote_room_server: string;
-    key?: string;
+    key: string|null;
 }
-const queryLinkBodySchema = {
+const queryLinkBodySchema: JSONSchemaType<QueryLinkBody> = {
     type: "object",
     properties: {
         remote_room_channel: remoteRoomChannelSchema,
@@ -67,21 +47,21 @@ const queryLinkBodySchema = {
         "remote_room_server",
     ],
 };
-export const QueryLinkBodyValidator = new RequestValidator<QueryLinkBody>(queryLinkBodySchema);
+export const isValidQueryLinkBody = ajv.compile(queryLinkBodySchema);
 
 export interface RequestLinkBody {
     remote_room_channel: string;
     remote_room_server: string;
     matrix_room_id: string;
     op_nick: string;
-    key?: string;
+    key: string|null;
 }
-const requestLinkBodySchema = {
+const requestLinkBodySchema: JSONSchemaType<RequestLinkBody> = {
     type: "object",
     properties: {
         remote_room_channel: remoteRoomChannelSchema,
         remote_room_server: remoteRoomServerSchema,
-        matrix_room_id: roomIdSchema,
+        matrix_room_id: matrixRoomIdSchema,
         op_nick: opNickSchema,
         key: keySchema,
     },
@@ -92,14 +72,14 @@ const requestLinkBodySchema = {
         "op_nick",
     ],
 };
-export const RequestLinkBodyValidator = new RequestValidator<RequestLinkBody>(requestLinkBodySchema);
+export const isValidRequestLinkBody = ajv.compile(requestLinkBodySchema);
 
 export interface UnlinkBody {
     remote_room_channel: string;
     remote_room_server: string;
     matrix_room_id: string;
 }
-const unlinkBodySchema = {
+const unlinkBodySchema: JSONSchemaType<UnlinkBody> = {
     type: "object",
     properties: {
         remote_room_channel: remoteRoomChannelSchema,
@@ -112,12 +92,12 @@ const unlinkBodySchema = {
         "matrix_room_id",
     ],
 };
-export const UnlinkBodyValidator = new RequestValidator<UnlinkBody>(unlinkBodySchema);
+export const isValidUnlinkBody = ajv.compile(unlinkBodySchema);
 
 export interface ListingsParams {
-    matrix_room_id: string;
+    roomId: string;
 }
-const listingsParamsSchema = {
+const listingsParamsSchema: JSONSchemaType<ListingsParams> = {
     type: "object",
     properties: {
         roomId: matrixRoomIdSchema,
@@ -126,7 +106,7 @@ const listingsParamsSchema = {
         "roomId",
     ],
 };
-export const ListingsParamsValidator = new RequestValidator<ListingsParams>(listingsParamsSchema);
+export const isValidListingsParams = ajv.compile(listingsParamsSchema);
 
 export enum IrcErrCode {
     UnknownNetwork = "IRC_UNKNOWN_NETWORK",

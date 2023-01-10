@@ -1,4 +1,5 @@
 import * as express from "express";
+import {ValidateFunction} from "ajv";
 import {
     ApiError,
     ErrCode,
@@ -22,12 +23,13 @@ import {IrcUser} from "../models/IrcUser";
 import {GetNicksResponseOperators} from "../irc/BridgedClient";
 import {NeDBDataStore} from "../datastore/NedbDataStore";
 import {
+    ajv,
     IrcErrCode,
     IrcProvisioningError,
-    QueryLinkBodyValidator,
-    RequestLinkBodyValidator,
-    UnlinkBodyValidator,
-    ListingsParamsValidator,
+    isValidListingsParams,
+    isValidQueryLinkBody,
+    isValidRequestLinkBody,
+    isValidUnlinkBody,
 } from "./Schema";
 import {IrcBridge} from "../bridge/IrcBridge";
 
@@ -67,14 +69,13 @@ interface StrictProvisionerConfig extends ProvisionerConfig {
 const LINK_REQUIRED_POWER_DEFAULT = 50;
 
 class ValidationError extends ApiError {
-    constructor(errors: {field: string, message: string}[]) {
-        const message = errors.map(e => ({field: e.field?.replace('data.', ''), message: e.message}));
+    constructor(validator: ValidateFunction) {
         super(
             "Malformed request",
             ErrCode.BadValue,
             undefined,
             {
-                errors: message,
+                errors: ajv.errorsText(validator.errors),
             },
         );
     }
@@ -625,17 +626,14 @@ export class Provisioner extends ProvisioningApi {
      * @returns An array of IRC chan op nicks
      */
     public async queryLink(req: ProvisioningRequest): Promise<{operators: string[]}> {
-        let body;
-        if (QueryLinkBodyValidator.validate(req.body)) {
-            body = req.body;
-        }
-        else {
-            throw new ValidationError(QueryLinkBodyValidator.errors);
+        const body = req.body as unknown;
+        if (!isValidQueryLinkBody(body)) {
+            throw new ValidationError(isValidQueryLinkBody);
         }
 
         const ircDomain = body.remote_room_server;
         let ircChannel = body.remote_room_channel;
-        const key = body.key; // Optional key
+        const key = body.key ?? undefined; // Optional key
 
         const queryInfo: {operators: string[]} = {
             // Array of operator nicks
@@ -700,12 +698,9 @@ export class Provisioner extends ProvisioningApi {
      * Link an IRC channel to a matrix room ID.
      */
     public async requestLink(req: ProvisioningRequest): Promise<void> {
-        let body;
-        if (RequestLinkBodyValidator.validate(req.body)) {
-            body = req.body;
-        }
-        else {
-            throw new ValidationError(RequestLinkBodyValidator.errors);
+        const body = req.body as unknown;
+        if (!isValidRequestLinkBody(body)) {
+            throw new ValidationError(isValidRequestLinkBody);
         }
 
         if (await this.ircBridge.atBridgedRoomLimit()) {
@@ -724,7 +719,7 @@ export class Provisioner extends ProvisioningApi {
         let ircChannel = body.remote_room_channel;
         const roomId = body.matrix_room_id;
         const opNick = body.op_nick;
-        const key = body.key;
+        const key = body.key ?? undefined;
 
         // Try to find the domain requested for linking
         //TODO: ircDomain might include protocol, i.e. irc://irc.freenode.net
@@ -837,12 +832,9 @@ export class Provisioner extends ProvisioningApi {
         req: ProvisioningRequest,
         ignorePermissions = false,
     ): Promise<void> {
-        let body;
-        if (UnlinkBodyValidator.validate(req.body)) {
-            body = req.body;
-        }
-        else {
-            throw new ValidationError(UnlinkBodyValidator.errors);
+        const body = req.body as unknown;
+        if (!isValidUnlinkBody(body)) {
+            throw new ValidationError(isValidUnlinkBody);
         }
 
         const userId = req.userId;
@@ -1093,12 +1085,9 @@ export class Provisioner extends ProvisioningApi {
      * List all mappings currently provisioned with the given matrix_room_id
      */
     public async listings(req: ProvisioningRequest) {
-        let params;
-        if (ListingsParamsValidator.validate(req.params)) {
-            params = req.params;
-        }
-        else {
-            throw new ValidationError(UnlinkBodyValidator.errors);
+        const params = req.params as unknown;
+        if (!isValidListingsParams(params)) {
+            throw new ValidationError(isValidListingsParams);
         }
 
         const mappings = await this.ircBridge.getStore().getProvisionedMappings(params.roomId);
