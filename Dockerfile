@@ -8,7 +8,7 @@ RUN git clone https://github.com/matrix-org/freebindfree.git
 RUN cd freebindfree && make
 
 # Typescript build
-FROM node:16-slim as builder
+FROM node:16 as builder
 
 WORKDIR /build
 
