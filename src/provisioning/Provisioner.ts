@@ -940,20 +940,17 @@ export class Provisioner extends ProvisioningApi {
      * unlinked.
      */
     private async partUnlinkedIrcClients(
-        req: ProvisionRequest, roomId: string, server: IrcServer, ircChannel: string
+        req: ProvisioningRequest,
+        roomId: string,
+        server: IrcServer,
+        ircChannel: string,
     ): Promise<void> {
         // Get the full set of room IDs linked to this #channel
         const matrixRooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(
             server, ircChannel
         );
         // make sure the unlinked room exists as we may have just removed it
-        let exists = false;
-        for (let i = 0; i < matrixRooms.length; i++) {
-            if (matrixRooms[i].getId() === roomId) {
-                exists = true;
-                break;
-            }
-        }
+        const exists = matrixRooms.find(r => r.getId() === roomId);
         if (!exists) {
             matrixRooms.push(new MatrixRoom(roomId));
         }
