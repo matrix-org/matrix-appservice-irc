@@ -907,7 +907,10 @@ export class Provisioner extends ProvisioningApi {
      * map either the channel or room. Force IRC clients to part the channel.
      */
     public async leaveIfUnprovisioned(
-        req: ProvisionRequest, roomId: string, server: IrcServer, ircChannel: string
+        req: ProvisioningRequest,
+        roomId: string,
+        server: IrcServer,
+        ircChannel: string,
     ): Promise<void> {
         try {
             await Promise.all([
