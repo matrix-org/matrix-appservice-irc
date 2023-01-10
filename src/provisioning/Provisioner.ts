@@ -25,6 +25,7 @@ import {
     IrcErrCode,
     IrcProvisioningError,
     QueryLinkBodyValidator,
+    RequestLinkBodyValidator,
 } from "./Schema";
 import {IrcBridge} from "../bridge/IrcBridge";
 
@@ -667,43 +668,42 @@ export class Provisioner extends ProvisioningApi {
     /**
      * Link an IRC channel to a matrix room ID.
      */
-    public async requestLink(req: ProvisionRequest): Promise<void> {
-        const options = req.body;
-        try {
-            this.linkValidator.validate(options);
+    public async requestLink(req: ProvisioningRequest): Promise<void> {
+        let body;
+        if (RequestLinkBodyValidator.validate(req.body)) {
+            body = req.body;
         }
-        catch (err) {
-            if (err._validationErrors) {
-                const s = err._validationErrors.map((e: {field: string})=>{
-                    return `${e.field} is malformed`;
-                }).join(', ');
-                throw new Error(s);
-            }
-            else {
-                log.error(err);
-                // change the message and throw
-                throw new Error('Malformed parameters');
-            }
+        else {
+            throw new ValidationError(RequestLinkBodyValidator.errors);
         }
 
         if (await this.ircBridge.atBridgedRoomLimit()) {
-            throw new Error('At maximum number of bridged rooms');
+            throw new IrcProvisioningError(
+                `At maximum number of bridged rooms`,
+                IrcErrCode.BridgeAtLimit,
+            );
         }
 
-        const ircDomain = options.remote_room_server;
-        let ircChannel = options.remote_room_channel;
-        const roomId = options.matrix_room_id;
-        const opNick = options.op_nick;
-        const key = options.key || undefined; // Optional key
-        const userId = options.user_id;
-        const mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
+        const userId = req.userId;
+        if (!userId) {
+            throw new ApiError('Missing `user_id` in body', ErrCode.BadValue);
+        }
+
+        const ircDomain = body.remote_room_server;
+        let ircChannel = body.remote_room_channel;
+        const roomId = body.matrix_room_id;
+        const opNick = body.op_nick;
+        const key = body.key;
 
         // Try to find the domain requested for linking
         //TODO: ircDomain might include protocol, i.e. irc://irc.freenode.net
         const server = this.ircBridge.getServer(ircDomain);
 
         if (!server) {
-            throw new Error(`Server requested for linking not found ('${ircDomain}')`);
+            throw new IrcProvisioningError(
+                `Server not found`,
+                IrcErrCode.UnknownNetwork,
+            );
         }
 
         const botClient = await this.ircBridge.getBotClient(server);
@@ -711,7 +711,10 @@ export class Provisioner extends ProvisioningApi {
         ircChannel = botClient.caseFold(ircChannel);
 
         if (server.isExcludedChannel(ircChannel)) {
-            throw new Error(`Server is configured to exclude given channel ('${ircChannel}')`);
+            throw new IrcProvisioningError(
+                `Server is configured to exclude channel`,
+                IrcErrCode.UnknownChannel,
+            );
         }
 
         const entry = await this.ircBridge.getStore().getRoom(roomId, ircDomain, ircChannel);
@@ -720,8 +723,14 @@ export class Provisioner extends ProvisioningApi {
             await this.authoriseProvisioning(req, server, userId, ircChannel, roomId, opNick, key);
         }
         else {
-            throw new Error(`Room mapping already exists (${mappingLogId},` +
-                            `origin = ${entry.data.origin})`);
+            throw new IrcProvisioningError(
+                'Room mapping already exists',
+                IrcErrCode.ExistingMapping,
+                undefined,
+                {
+                    origin: entry.data.origin,
+                }
+            );
         }
     }
 

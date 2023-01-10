@@ -68,6 +68,31 @@ const queryLinkBodySchema = {
 };
 export const QueryLinkBodyValidator = new RequestValidator<QueryLinkBody>(queryLinkBodySchema);
 
+export interface RequestLinkBody {
+    remote_room_channel: string;
+    remote_room_server: string;
+    matrix_room_id: string;
+    op_nick: string;
+    key?: string;
+}
+const requestLinkBodySchema = {
+    type: "object",
+    properties: {
+        remote_room_channel: remoteRoomChannelSchema,
+        remote_room_server: remoteRoomServerSchema,
+        matrix_room_id: roomIdSchema,
+        op_nick: opNickSchema,
+        key: keySchema,
+    },
+    required: [
+        "remote_room_channel",
+        "remote_room_server",
+        "matrix_room_id",
+        "op_nick",
+    ],
+};
+export const RequestLinkBodyValidator = new RequestValidator<RequestLinkBody>(requestLinkBodySchema);
+
 export enum IrcErrCode {
     UnknownNetwork = "IRC_UNKNOWN_NETWORK",
     UnknownChannel = "IRC_UNKNOWN_CHANNEL",
