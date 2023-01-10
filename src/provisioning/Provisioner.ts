@@ -1086,8 +1086,8 @@ export class Provisioner extends ProvisioningApi {
         }).filter((e) => e !== false);
     }
 
-    private getLimits() {
-        const count = this.ircBridge.getStore().getRoomCount();
+    private async getLimits() {
+        const count = await this.ircBridge.getStore().getRoomCount();
         const limit = this.ircBridge.config.ircService.provisioning?.roomLimit || false;
         return {
             count,
