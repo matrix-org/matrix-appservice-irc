@@ -119,10 +119,10 @@ export interface ListingsParams {
 const listingsParamsSchema = {
     type: "object",
     properties: {
-        matrix_room_id: matrixRoomIdSchema,
+        roomId: matrixRoomIdSchema,
     },
     required: [
-        "matrix_room_id",
+        "roomId",
     ],
 };
 export const ListingsParamsValidator = new RequestValidator<ListingsParams>(listingsParamsSchema);
