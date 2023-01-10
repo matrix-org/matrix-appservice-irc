@@ -12,7 +12,7 @@ import {
     UserMembership
 } from "matrix-appservice-bridge";
 import * as promiseutil from "../promiseutil";
-import { Defer } from "../promiseutil";
+import {Defer} from "../promiseutil";
 import {IrcRoom} from "../models/IrcRoom";
 import {IrcAction} from "../models/IrcAction";
 import {BridgeRequest, BridgeRequestData} from "../models/BridgeRequest";
@@ -229,22 +229,32 @@ export class Provisioner extends ProvisioningApi {
      *  - (Matrix) update room state m.room.brdiging
      */
     private async authoriseProvisioning(
-        req: ProvisionRequest, server: IrcServer, userId: string,
-        ircChannel: string, roomId: string, opNick: string, key?: string
+        req: ProvisioningRequest,
+        server: IrcServer,
+        userId: string,
+        ircChannel: string,
+        roomId: string,
+        opNick: string,
+        key?: string,
     ): Promise<void> {
         const ircDomain = server.domain;
 
         const existing = this.getRequest(server, opNick);
         if (existing) {
             const from = existing.userId;
-            throw new Error(`Bridging request already sent to `+
-                            `${opNick} on ${server.domain} from ${from}`);
+            throw new IrcProvisioningError(
+                `Bridging request already sent to ${opNick} on ${server.domain} from ${from}`,
+                IrcErrCode.ExistingRequest,
+            );
         }
 
         // (Matrix) Check power level of user
         const hasPower = await this.userHasProvisioningPower(req, userId, roomId);
         if (!hasPower) {
-            throw new Error('User does not possess high enough power level');
+            throw new IrcProvisioningError(
+                `User does not possess high enough power level`,
+                IrcErrCode.NotEnoughPower,
+            );
         }
 
         // (IRC) Check that op's nick is actually op
@@ -255,11 +265,17 @@ export class Provisioner extends ProvisioningApi {
         const info = await botClient.getOperators(ircChannel, {key : key});
 
         if (!info.names.has(opNick)) {
-            throw new Error(`Provided user is not in channel ${ircChannel}.`);
+            throw new IrcProvisioningError(
+                `Provided user is not in channel ${ircChannel}.`,
+                IrcErrCode.BadOpTarget,
+            );
         }
 
         if (!info.operatorNicks.includes(opNick)) {
-            throw new Error(`Provided user is not an op of ${ircChannel}.`);
+            throw new IrcProvisioningError(
+                `Provided user is not an op of ${ircChannel}.`,
+                IrcErrCode.BadOpTarget,
+            );
         }
 
         // State key for m.room.bridging
@@ -304,10 +320,14 @@ export class Provisioner extends ProvisioningApi {
                 // If bridging state sender is this bot
                 if (wholeBridgingState.sender !== intent.userId) {
                     // If it is from a different sender, fail
-                    throw new Error(
-                        `A request to create this mapping has already been sent ` +
-                        `(status = ${bridgingState.status},` +
-                        ` bridger = ${bridgingState.user_id}. Ignoring request.`
+                    throw new IrcProvisioningError(
+                        "A request to create this mapping has already been sent",
+                        IrcErrCode.ExistingRequest,
+                        undefined,
+                        {
+                            status: bridgingState.status,
+                            bridger: bridgingState.user_id,
+                        },
                     );
                 }
                 // Success, already pending/success
@@ -377,7 +397,7 @@ export class Provisioner extends ProvisioningApi {
 
         // (IRC) Ask operator for authorisation
         // Time that operator has to respond before giving up
-        const timeoutSeconds = this.requestTimeoutSeconds;
+        const timeoutSeconds = this.config.requestTimeoutSeconds;
 
         // Deliberately not awaiting on this so that 200 OK is returned
         req.log.info(`Contacting operator`);
@@ -400,8 +420,15 @@ export class Provisioner extends ProvisioningApi {
      * 'yes' or 'y', create the mapping.
      */
     private async createAuthorisedLink(
-        req: ProvisionRequest, server: IrcServer, opNick: string, ircChannel: string, key: string|undefined,
-        roomId: string, userId: string, skey: string, timeoutSeconds: number
+        req: ProvisioningRequest,
+        server: IrcServer,
+        opNick: string,
+        ircChannel: string,
+        key: string|undefined,
+        roomId: string,
+        userId: string,
+        skey: string,
+        timeoutSeconds: number,
     ): Promise<void> {
         const d = promiseutil.defer();
 
@@ -486,10 +513,10 @@ export class Provisioner extends ProvisioningApi {
         }
         catch (err) {
             req.log.error(err.stack);
-            req.log.info(`Failed to create link following authorisation (${err.message})`);
+            req.log.error(`Failed to create link following authorisation (${err.message})`);
             await this.updateBridgingState(roomId, userId, 'failure', skey);
             this.removeRequest(server, opNick);
-            return;
+            throw err;
         }
         await this.updateBridgingState(roomId, userId, 'success', skey);
         // Send bridge info state event
@@ -707,8 +734,14 @@ export class Provisioner extends ProvisioningApi {
         }
     }
 
-    public async doLink(req: ProvisionRequest, server: IrcServer, ircChannel: string,
-                        key: string|undefined, roomId: string, userId: string): Promise<void> {
+    public async doLink(
+        req: ProvisioningRequest,
+        server: IrcServer,
+        ircChannel: string,
+        key: string|undefined,
+        roomId: string,
+        userId: string,
+    ): Promise<void> {
         const ircDomain = server.domain;
         const mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
         req.log.info(`Provisioning link for room ${mappingLogId}`);
@@ -719,8 +752,14 @@ export class Provisioner extends ProvisioningApi {
 
         const entry = await this.ircBridge.getStore().getRoom(roomId, ircDomain, ircChannel);
         if (entry) {
-            throw new Error(`Room mapping already exists (${mappingLogId},` +
-                            `origin = ${entry.data.origin})`);
+            throw new IrcProvisioningError(
+                'Room mapping already exists',
+                IrcErrCode.ExistingMapping,
+                undefined,
+                {
+                    origin: entry.data.origin,
+                }
+            );
         }
 
         // Cause the bot to join the new plumbed channel if it is enabled
