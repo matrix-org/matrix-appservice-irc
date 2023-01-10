@@ -27,6 +27,7 @@ import {
     QueryLinkBodyValidator,
     RequestLinkBodyValidator,
     UnlinkBodyValidator,
+    ListingsParamsValidator,
 } from "./Schema";
 import {IrcBridge} from "../bridge/IrcBridge";
 
@@ -1062,26 +1063,16 @@ export class Provisioner extends ProvisioningApi {
     /**
      * List all mappings currently provisioned with the given matrix_room_id
      */
-    public async listings(req: ProvisionRequest) {
-        const roomId = req.params.roomId;
-        try {
-            this.roomIdValidator.validate({"matrix_room_id": roomId});
+    public async listings(req: ProvisioningRequest) {
+        let params;
+        if (ListingsParamsValidator.validate(req.params)) {
+            params = req.params;
         }
-        catch (err) {
-            if (err._validationErrors) {
-                const s = err._validationErrors.map((e: {instanceContext: string})=>{
-                    return `${e.instanceContext} is malformed`;
-                }).join(', ');
-                throw new Error(s);
-            }
-            else {
-                log.error(err);
-                // change the message and throw
-                throw new Error('Malformed parameters');
-            }
+        else {
+            throw new ValidationError(UnlinkBodyValidator.errors);
         }
 
-        const mappings = await this.ircBridge.getStore().getProvisionedMappings(roomId);
+        const mappings = await this.ircBridge.getStore().getProvisionedMappings(params.roomId);
 
         return mappings.map((entry) => {
             if (!entry.matrix || !entry.remote) {

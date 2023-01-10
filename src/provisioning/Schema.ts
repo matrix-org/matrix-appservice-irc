@@ -113,6 +113,20 @@ const unlinkBodySchema = {
 };
 export const UnlinkBodyValidator = new RequestValidator<UnlinkBody>(unlinkBodySchema);
 
+export interface ListingsParams {
+    matrix_room_id: string;
+}
+const listingsParamsSchema = {
+    type: "object",
+    properties: {
+        matrix_room_id: matrixRoomIdSchema,
+    },
+    required: [
+        "matrix_room_id",
+    ],
+};
+export const ListingsParamsValidator = new RequestValidator<ListingsParams>(listingsParamsSchema);
+
 export enum IrcErrCode {
     UnknownNetwork = "IRC_UNKNOWN_NETWORK",
     UnknownChannel = "IRC_UNKNOWN_CHANNEL",
