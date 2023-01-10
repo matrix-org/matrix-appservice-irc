@@ -24,6 +24,7 @@ import {NeDBDataStore} from "../datastore/NedbDataStore";
 import {
     IrcErrCode,
     IrcProvisioningError,
+    QueryLinkBodyValidator,
 } from "./Schema";
 import {IrcBridge} from "../bridge/IrcBridge";
 
@@ -591,33 +592,23 @@ export class Provisioner extends ProvisioningApi {
      * Get information that might be useful prior to calling requestLink
      * @returns An array of IRC chan op nicks
      */
-    public async queryLink(req: ProvisionRequest): Promise<{operators: string[]}> {
-        const options = req.body;
-        const ircDomain = options.remote_room_server;
-        let ircChannel = options.remote_room_channel;
-        const key = options.key || undefined; // Optional key
+    public async queryLink(req: ProvisioningRequest): Promise<{operators: string[]}> {
+        let body;
+        if (QueryLinkBodyValidator.validate(req.body)) {
+            body = req.body;
+        }
+        else {
+            throw new ValidationError(QueryLinkBodyValidator.errors);
+        }
+
+        const ircDomain = body.remote_room_server;
+        let ircChannel = body.remote_room_channel;
+        const key = body.key; // Optional key
 
         const queryInfo: {operators: string[]} = {
             // Array of operator nicks
             operators: []
         };
-
-        try {
-            this.queryLinkValidator.validate(options);
-        }
-        catch (err) {
-            if (err._validationErrors) {
-                const s = err._validationErrors.map((e: {field: string})=>{
-                    return `${e.field} is malformed`;
-                }).join(', ');
-                throw new Error(s);
-            }
-            else {
-                log.error(err);
-                // change the message and throw
-                throw new Error('Malformed parameters');
-            }
-        }
 
         // Try to find the domain requested for linking
         //TODO: ircDomain might include protocol, i.e. irc://irc.freenode.net

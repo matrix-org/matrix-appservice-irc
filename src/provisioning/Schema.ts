@@ -1,5 +1,72 @@
 import { Response } from "express";
-import { IApiError } from "matrix-appservice-bridge";
+import { IApiError, ConfigValidator } from "matrix-appservice-bridge";
+
+const matrixRoomIdSchema = {
+    type: "string",
+    pattern: "^!.*:.*$",
+};
+
+const remoteRoomChannelSchema = {
+    type: "string",
+    pattern: "^([#+&]|(![A-Z0-9]{5}))[^\\s:,]+$",
+};
+
+const remoteRoomServerSchema = {
+    type: "string",
+    pattern: "^[a-z\\.0-9:-]+$",
+};
+
+const opNickSchema = {
+    type: "string",
+};
+
+const keySchema = {
+    type: "string",
+};
+
+const roomIdSchema = {
+    type: "object",
+    properties: {
+        "matrix_room_id" : matrixRoomIdSchema,
+    },
+    required: [
+        "matrix_room_id",
+    ],
+};
+
+// TODO: This is abusing ConfigValidator for request validation
+export class RequestValidator<T> extends ConfigValidator {
+    public errors: {field: string, message: string}[] = [];
+
+    validate(payload: unknown): payload is T {
+        try {
+            super.validate(payload);
+        }
+        catch (e) {
+            this.errors = e._validationErrors;
+        }
+        return true;
+    }
+}
+
+export interface QueryLinkBody {
+    remote_room_channel: string;
+    remote_room_server: string;
+    key?: string;
+}
+const queryLinkBodySchema = {
+    type: "object",
+    properties: {
+        remote_room_channel: remoteRoomChannelSchema,
+        remote_room_server: remoteRoomServerSchema,
+        key: keySchema,
+    },
+    required: [
+        "remote_room_channel",
+        "remote_room_server",
+    ],
+};
+export const QueryLinkBodyValidator = new RequestValidator<QueryLinkBody>(queryLinkBodySchema);
 
 export enum IrcErrCode {
     UnknownNetwork = "IRC_UNKNOWN_NETWORK",
