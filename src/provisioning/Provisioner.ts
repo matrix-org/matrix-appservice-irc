@@ -146,12 +146,30 @@ export class Provisioner extends ProvisioningApi {
         }
     }
 
-    private isProvisionRequest(req: Request) {
-        return req.url === '/_matrix/provision/unlink' ||
-                req.url === '/_matrix/provision/link'||
-                req.url === '/_matrix/provision/querynetworks' ||
-                req.url === "/_matrix/provision/querylink" ||
-                req.url.match(/^\/_matrix\/provision\/listlinks/)
+    /**
+     * Create a request to be passed internally to the provisioner.
+     * @param fnName The function name to be called.
+     * @param userId The userId, if specific to a user.
+     * @param body The body of the request.
+     * @param params The url parameters of the request.
+     * @returns A ProvisioningRequest object.
+     */
+    static createFakeRequest(
+        fnName: string,
+        userId = "-internal-",
+        params?: { [key: string]: string },
+        body?: unknown,
+    ): ProvisioningRequest {
+        return new ProvisioningRequest(
+            {
+                body: body || {},
+                query: {},
+                params,
+            } as never,
+            userId,
+            "provisioner",
+            fnName,
+        );
     }
 
     private async updateBridgingState (roomId: string, userId: string, status: BridgingStatus, skey: string) {
