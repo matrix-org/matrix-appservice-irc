@@ -93,6 +93,26 @@ const requestLinkBodySchema = {
 };
 export const RequestLinkBodyValidator = new RequestValidator<RequestLinkBody>(requestLinkBodySchema);
 
+export interface UnlinkBody {
+    remote_room_channel: string;
+    remote_room_server: string;
+    matrix_room_id: string;
+}
+const unlinkBodySchema = {
+    type: "object",
+    properties: {
+        remote_room_channel: remoteRoomChannelSchema,
+        remote_room_server: remoteRoomServerSchema,
+        matrix_room_id: matrixRoomIdSchema,
+    },
+    required: [
+        "remote_room_channel",
+        "remote_room_server",
+        "matrix_room_id",
+    ],
+};
+export const UnlinkBodyValidator = new RequestValidator<UnlinkBody>(unlinkBodySchema);
+
 export enum IrcErrCode {
     UnknownNetwork = "IRC_UNKNOWN_NETWORK",
     UnknownChannel = "IRC_UNKNOWN_CHANNEL",

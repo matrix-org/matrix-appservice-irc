@@ -26,6 +26,7 @@ import {
     IrcProvisioningError,
     QueryLinkBodyValidator,
     RequestLinkBodyValidator,
+    UnlinkBodyValidator,
 } from "./Schema";
 import {IrcBridge} from "../bridge/IrcBridge";
 
@@ -799,33 +800,29 @@ export class Provisioner extends ProvisioningApi {
 
     /**
      * Unlink an IRC channel from a matrix room ID
-     * @param req An ExpressJS-Request-like object which triggered the action. Its body should contain
-     * the parameters for this unlink action.
      * @param ignorePermissions If true, permissions are ignored (e.g. for bridge admins).
      * Otherwise, the user needs to be a Moderator in the Matrix room.
      */
-    public async unlink(req: ProvisionRequest, ignorePermissions = false): Promise<void> {
-        const options = req.body;
-        try {
-            this.unlinkValidator.validate(options);
+    public async unlink(
+        req: ProvisioningRequest,
+        ignorePermissions = false,
+    ): Promise<void> {
+        let body;
+        if (UnlinkBodyValidator.validate(req.body)) {
+            body = req.body;
         }
-        catch (err) {
-            if (err._validationErrors) {
-                const s = err._validationErrors.map((e: {instanceContext: string})=>{
-                    return `${e.instanceContext} is malformed`;
-                }).join(', ');
-                throw new Error(s);
-            }
-            else {
-                log.error(err);
-                // change the message and throw
-                throw new Error('Malformed parameters');
-            }
+        else {
+            throw new ValidationError(UnlinkBodyValidator.errors);
         }
 
-        const ircDomain = options.remote_room_server;
-        const ircChannel = options.remote_room_channel;
-        const roomId = options.matrix_room_id;
+        const userId = req.userId;
+        if (!userId) {
+            throw new ApiError('Missing `user_id` in body', ErrCode.BadValue);
+        }
+
+        const ircDomain = body.remote_room_server;
+        const ircChannel = body.remote_room_channel;
+        const roomId = body.matrix_room_id;
         const mappingLogId = `${roomId} <-/-> ${ircDomain}/${ircChannel}`;
 
         req.log.info(`Provisioning unlink for room ${mappingLogId}`);
@@ -834,7 +831,10 @@ export class Provisioner extends ProvisioningApi {
         const server = this.ircBridge.getServer(ircDomain);
 
         if (!server) {
-            throw new Error("Server requested for linking not found");
+            throw new IrcProvisioningError(
+                `Server not found`,
+                IrcErrCode.UnknownNetwork,
+            );
         }
 
         if (!ignorePermissions) {
@@ -845,7 +845,7 @@ export class Provisioner extends ProvisioningApi {
             let isJoined = false;
             let hasPower = false;
             stateEvents.forEach(e => {
-                if (e.type === "m.room.member" && e.state_key === options.user_id) {
+                if (e.type === "m.room.member" && e.state_key === userId) {
                     const content = e.content as {membership: UserMembership};
                     isJoined = content.membership === "join";
                 }
@@ -857,22 +857,29 @@ export class Provisioner extends ProvisioningApi {
                         powerRequired = content.events["m.room.power_levels"];
                     }
                     let power: unknown|number = content.users_default;
-                    if (content.users && content.users[options.user_id]) {
-                        power = content.users[options.user_id];
+                    if (content.users && content.users[userId]) {
+                        power = content.users[userId];
                     }
                     // Can be empty. Assume 0 as per spec.
-                    // Can be empty. Assume 50 as per spec.
+                    // Can be empty. Assume LINK_REQUIRED_POWER_DEFAULT as per spec.
                     hasPower = (
                         typeof power === "number" ? power : 0)
                         >=
-                        (typeof powerRequired === "number" ? powerRequired : 50);
+                        (typeof powerRequired === "number" ? powerRequired : LINK_REQUIRED_POWER_DEFAULT);
                 }
             });
             if (!isJoined) {
-                throw new Error(`${options.user_id} is not in the room`);
+                throw new IrcProvisioningError(`${userId} is not in the room`, IrcErrCode.NotEnoughPower)
             }
             if (!hasPower) {
-                throw new Error(`${options.user_id} is not a moderator in the room.`);
+                throw new IrcProvisioningError(
+                    `${userId} does not have enough power in the room`,
+                    IrcErrCode.NotEnoughPower,
+                    undefined,
+                    {
+                        requiredPower: LINK_REQUIRED_POWER_DEFAULT,
+                    }
+                );
             }
         }
 
@@ -882,7 +889,7 @@ export class Provisioner extends ProvisioningApi {
             .getRoom(roomId, ircDomain, ircChannel, 'provision');
 
         if (!entry) {
-            throw new Error(`Provisioned room mapping does not exist (${mappingLogId})`);
+            throw new IrcProvisioningError('Provisioned room mapping does not exist', IrcErrCode.UnknownRoom);
         }
         await this.ircBridge.getStore().removeRoom(roomId, ircDomain, ircChannel, 'provision');
 
