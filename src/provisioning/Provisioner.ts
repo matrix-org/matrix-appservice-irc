@@ -21,7 +21,10 @@ import {IrcServer} from "../irc/IrcServer";
 import {IrcUser} from "../models/IrcUser";
 import {GetNicksResponseOperators} from "../irc/BridgedClient";
 import {NeDBDataStore} from "../datastore/NedbDataStore";
-import {IrcErrCode, IrcProvisioningError, QueryLinkBody, QueryLinkBodyValidator, RequestValidator} from "./Schema";
+import {
+    IrcErrCode,
+    IrcProvisioningError,
+} from "./Schema";
 import {IrcBridge} from "../bridge/IrcBridge";
 
 const log = logging("Provisioner");
@@ -55,6 +58,22 @@ export interface ProvisionerConfig {
 
 interface StrictProvisionerConfig extends ProvisionerConfig {
     secret: string;
+}
+
+const LINK_REQUIRED_POWER_DEFAULT = 50;
+
+class ValidationError extends ApiError {
+    constructor(errors: {field: string, message: string}[]) {
+        const message = errors.map(e => ({field: e.field?.replace('data.', ''), message: e.message}));
+        super(
+            "Malformed request",
+            ErrCode.BadValue,
+            undefined,
+            {
+                errors: message,
+            },
+        );
+    }
 }
 
 export class Provisioner extends ProvisioningApi {
@@ -144,62 +163,25 @@ export class Provisioner extends ProvisioningApi {
         }
     }
 
-    /**
-     *  Utility function for attempting to send a request to a matrix endpoint
-     *  that might be rate-limited.
-     *
-     *  This function will try `attempts` times to apply function `fn` to `obj` by
-     *  calling fn.apply(obj, args), with args being any arguments passed to retry
-     *  after `fn`. If an error occurs, the same will be tried again after
-     *  `retryDelayMs`. If an error err is thrown by `fn` and err.data.retry_after_ms
-     *  is set, it will be added to that delay.
-     *
-     *  If the number of attempts is reached, an error is thrown.
-     */
-    private async _retry<V>(req: ProvisionRequest, attempts: number, retryDelayMS: number, obj: unknown,
-                            fn: (args: string) => V, args: string) {
-        for (;attempts > 0; attempts--) {
-            try {
-                const val = await fn.apply(obj, [args]);
-                return val;
-            }
-            catch (err) {
-                const msg = err.data && err.data.error ? err.data.error : err.message;
-                req.log.error(`Error doing rate limited action (${msg})`);
-
-                let waitTimeMs = retryDelayMS;
-
-                if (err.data && err.data.retry_after_ms && attempts > 0) {
-                    waitTimeMs += err.data.retry_after_ms;
-                }
-                await promiseutil.delay(waitTimeMs);
-            }
-        }
-
-        throw new Error(`Too many attempts to do rate limited action`);
-    }
-
-    private retry<V>(req: ProvisionRequest, attempts: number, retryDelayMS: number, obj: unknown,
-                     fn: (args: string) => V, args: string) {
-        return Bluebird.cast(this._retry(req, attempts, retryDelayMS, obj, fn, args));
-    }
-
-    private async userHasProvisioningPower(req: ProvisionRequest, userId: string, roomId: string) {
+    private async userHasProvisioningPower(
+        req: ProvisioningRequest,
+        userId: string,
+        roomId: string,
+    ): Promise<boolean> {
         req.log.info(`Check power level of ${userId} in room ${roomId}`);
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
 
         let powerState = null;
 
-        // Try 100 times to join a room, or timeout after 10 min
-        await this.retry(req, 100, 5000, intent, intent.join, roomId).timeout(600000);
+        await this.membershipQueue.join(roomId, undefined, req);
         try {
             await this.ircBridge.getAppServiceBridge().canProvisionRoom(roomId);
         }
         catch (err) {
-            req.log.error(`Room failed room validator check: (${err})`);
-            throw new Error(
+            throw new IrcProvisioningError(
                 'Room failed validation. You may be attempting to "double bridge" this room.' +
-                ' Error: ' + err
+                ' Error: ' + err,
+                IrcErrCode.DoubleBridge
             );
         }
 
@@ -208,7 +190,7 @@ export class Provisioner extends ProvisioningApi {
         }
         catch (err) {
             req.log.error(`Error retrieving power levels (${err.data.error})`);
-            throw new Error('Could not retrieve your power levels for the room');
+            throw new ApiError(`Could not retrieve power levels for ${roomId}`);
         }
 
         // In 10 minutes
@@ -224,7 +206,7 @@ export class Provisioner extends ProvisioningApi {
             actualPower = powerState.users_default;
         }
 
-        let requiredPower = 50;
+        let requiredPower = LINK_REQUIRED_POWER_DEFAULT;
         if (powerState.events["m.room.power_levels"] !== undefined) {
             requiredPower = powerState.events["m.room.power_levels"]
         }
