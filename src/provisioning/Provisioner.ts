@@ -95,10 +95,11 @@ export class Provisioner extends ProvisioningApi {
             ircBridge.getStore(),
             {
                 provisioningToken: config.secret,
-                widgetTokenPrefix: "ircbr-wdt-",
-                apiPrefix: "/_matrix/provision",
+                apiPrefix: config.apiPrefix,
                 disallowedIpRanges: config.openIdDisallowedIpRanges,
                 ratelimit: true,
+                widgetTokenPrefix: "ircbr-wdt-",
+                widgetFrontendLocation: "public",
                 // Use the bridge express application unless a config was specified for provisioning
                 expressApp: config.http ? undefined : ircBridge.getAppServiceBridge().appService.expressApp,
             },
