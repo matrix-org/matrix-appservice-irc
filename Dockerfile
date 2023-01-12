@@ -13,7 +13,8 @@ FROM node:16 as builder
 WORKDIR /build
 
 COPY src/ /build/src/
-COPY .eslintrc *json /build/
+COPY widget/ /build/widget/
+COPY package.json package-lock.json tsconfig.json .eslintrc vite.config.ts /build/
 
 RUN npm ci
 RUN npm run build
@@ -33,6 +34,7 @@ COPY --from=freebind /freebindfree/libfreebindfree.so /app/libfreebindfree.so
 COPY --from=builder /build/node_modules /app/node_modules
 COPY --from=builder /build/package.json /app/package.json
 COPY --from=builder /build/lib /app/lib
+COPY --from=builder /build/public /app/public
 
 COPY app.js config.schema.yml /app/
 COPY docker /app/docker

@@ -1,0 +1,85 @@
+/* Inter unexpectedly contains various codepoints which collide with emoji, even
+   when variation-16 is applied to request the emoji variant.  From eyeballing
+   the emoji picker, these are: 20e3, 23cf, 24c2, 25a0-25c1, 2665, 2764, 2b06, 2b1c.
+   Therefore we define a unicode-range to load which excludes the glyphs
+   (to avoid having to maintain a fork of Inter). */
+
+// Borrowed from https://github.com/matrix-org/matrix-react-sdk/blob/020cdc99a2db1b6c7ac2b1be28a5ccd336011f6a/res/themes/light/css/_fonts.scss
+
+$inter-unicode-range: U+0000-20e2,U+20e4-23ce,U+23d0-24c1,U+24c3-259f,U+25c2-2664,U+2666-2763,U+2765-2b05,U+2b07-2b1b,U+2b1d-10FFFF;
+
+@font-face {
+    font-family: 'Inter';
+    font-style:  normal;
+    font-weight: 400;
+    font-display: swap;
+    unicode-range: $inter-unicode-range;
+    src: url("./Inter/Inter-Regular.woff2?v=3.18") format("woff2"),
+        url("./Inter/Inter-Regular.woff?v=3.18") format("woff");
+}
+@font-face {
+    font-family: 'Inter';
+    font-style:  italic;
+    font-weight: 400;
+    font-display: swap;
+    unicode-range: $inter-unicode-range;
+    src: url("./Inter/Inter-Italic.woff2?v=3.18") format("woff2"),
+        url("./Inter/Inter-Italic.woff?v=3.18") format("woff");
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-style:  normal;
+    font-weight: 500;
+    font-display: swap;
+    unicode-range: $inter-unicode-range;
+    src: url("./Inter/Inter-Medium.woff2?v=3.18") format("woff2"),
+        url("./Inter/Inter-Medium.woff?v=3.18") format("woff");
+}
+@font-face {
+    font-family: 'Inter';
+    font-style:  italic;
+    font-weight: 500;
+    font-display: swap;
+    unicode-range: $inter-unicode-range;
+    src: url("./Inter/Inter-MediumItalic.woff2?v=3.18") format("woff2"),
+        url("./Inter/Inter-MediumItalic.woff?v=3.18") format("woff");
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-style:  normal;
+    font-weight: 600;
+    font-display: swap;
+    unicode-range: $inter-unicode-range;
+    src: url("./Inter/Inter-SemiBold.woff2?v=3.18") format("woff2"),
+        url("./Inter/Inter-SemiBold.woff?v=3.18") format("woff");
+}
+@font-face {
+    font-family: 'Inter';
+    font-style:  italic;
+    font-weight: 600;
+    font-display: swap;
+    unicode-range: $inter-unicode-range;
+    src: url("./Inter/Inter-SemiBoldItalic.woff2?v=3.18") format("woff2"),
+        url("./Inter/Inter-SemiBoldItalic.woff?v=3.18") format("woff");
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-style:  normal;
+    font-weight: 700;
+    font-display: swap;
+    unicode-range: $inter-unicode-range;
+    src: url("./Inter/Inter-Bold.woff2?v=3.18") format("woff2"),
+        url("./Inter/Inter-Bold.woff?v=3.18") format("woff");
+}
+@font-face {
+    font-family: 'Inter';
+    font-style:  italic;
+    font-weight: 700;
+    font-display: swap;
+    unicode-range: $inter-unicode-range;
+    src: url("./Inter/Inter-BoldItalic.woff2?v=3.18") format("woff2"),
+        url("./Inter/Inter-BoldItalic.woff?v=3.18") format("woff");
+}
