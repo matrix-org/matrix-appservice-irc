@@ -1,5 +1,5 @@
 import * as express from "express";
-import {ValidateFunction} from "ajv";
+import { ValidateFunction } from "ajv";
 import {
     ApiError,
     ErrCode,
@@ -13,15 +13,15 @@ import {
     UserMembership
 } from "matrix-appservice-bridge";
 import * as promiseutil from "../promiseutil";
-import {Defer} from "../promiseutil";
-import {IrcRoom} from "../models/IrcRoom";
-import {IrcAction} from "../models/IrcAction";
-import {BridgeRequest, BridgeRequestData} from "../models/BridgeRequest";
-import logging, {RequestLogger} from "../logging";
-import {IrcServer} from "../irc/IrcServer";
-import {IrcUser} from "../models/IrcUser";
-import {GetNicksResponseOperators} from "../irc/BridgedClient";
-import {NeDBDataStore} from "../datastore/NedbDataStore";
+import { Defer } from "../promiseutil";
+import { IrcRoom } from "../models/IrcRoom";
+import { IrcAction } from "../models/IrcAction";
+import { BridgeRequest, BridgeRequestData } from "../models/BridgeRequest";
+import logging, { RequestLogger } from "../logging";
+import { IrcServer } from "../irc/IrcServer";
+import { IrcUser } from "../models/IrcUser";
+import { GetNicksResponseOperators } from "../irc/BridgedClient";
+import { NeDBDataStore } from "../datastore/NedbDataStore";
 import {
     ajv,
     IrcErrCode,
@@ -31,7 +31,7 @@ import {
     isValidRequestLinkBody,
     isValidUnlinkBody,
 } from "./Schema";
-import {IrcBridge} from "../bridge/IrcBridge";
+import { IrcBridge } from "../bridge/IrcBridge";
 
 const log = logging("Provisioner");
 
