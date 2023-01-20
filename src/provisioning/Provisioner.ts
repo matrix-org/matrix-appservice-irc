@@ -135,11 +135,15 @@ export class Provisioner extends ProvisioningApi {
                     if (res.headersSent) {
                         return;
                     }
-                    if (e instanceof ApiError) {
-                        e.apply(res);
+                    if (e instanceof IrcProvisioningError || e instanceof ApiError) {
+                        // FIXME: Should do ApiError.apply but it breaks tests due to using .send instead of .json
+                        res.status(e.statusCode).json(e.jsonBody);
                     }
                     else {
-                        new ApiError("An internal error occurred").apply(res);
+                        req.log.error('Unknown error', e);
+                        // Send a generic error
+                        const err = new ApiError("An internal error occurred");
+                        res.status(err.statusCode).json(err.jsonBody);
                     }
                 }
             }
