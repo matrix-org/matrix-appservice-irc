@@ -3,77 +3,120 @@ import React, {useCallback, useEffect, useState} from 'preact/compat';
 import { useProvisioningContext } from './ProvisioningApp';
 import { ProvisioningError } from './ProvisioningClient';
 import { IrcProvisioningClient, ListLinksResponse, QueryNetworksResponse } from './IrcProvisioningClient';
+import * as Text from './components/text';
+import * as Buttons from './components/buttons';
+import * as Forms from './components/forms';
+import * as Alerts from './components/alerts';
+
+const LinkedChannelItem = ({
+    channel,
+    server,
+    unlinkChannel,
+    disabled,
+}: {
+    server: string,
+    channel: string,
+    unlinkChannel: (channel: string, server: string) => Promise<void>,
+    disabled: boolean,
+}) => {
+    const unlink = useCallback(async() => {
+        await unlinkChannel(channel, server);
+    }, [unlinkChannel, channel, server]);
+
+    return <div
+        className="flex justify-between items-center border border-grey-50 rounded-lg p-2"
+        key={`${server}/${channel}`}
+    >
+        <p>{ `${server}/${channel}` }</p>
+        <Buttons.Danger
+            className="bg-grey-50 text-black-900"
+            onClick={unlink}
+            disabled={disabled}
+        >
+            Unlink
+        </Buttons.Danger>
+    </div>
+};
 
 const LinkedChannels = ({
-    ircProvisioningClient,
+    client,
     roomId,
 }: {
-    ircProvisioningClient: IrcProvisioningClient
+    client: IrcProvisioningClient
     roomId: string,
 }) => {
     const [error, setError] = useState('');
-
     const [links, setLinks] = useState<ListLinksResponse>();
 
     const getLinks = useCallback(async () => {
         try {
-            const _links = await ircProvisioningClient.listLinks(roomId);
+            const _links = await client.listLinks(roomId);
             setLinks(_links);
         }
         catch (e) {
             console.error(e);
-            let message;
-            if (e instanceof ProvisioningError) {
-                message = e.message;
-            }
-            setError(`Could not get linked channels${message ? ': ' + message : ''}`);
+            setError(
+                'Could not get linked channels.'
+                + ` ${e instanceof ProvisioningError ? e.message : ''}`
+            );
         }
-    }, [ircProvisioningClient, roomId]);
+    }, [client, roomId]);
 
     useEffect(() => {
         getLinks();
     }, []);
 
+    const [unlinkError, setUnlinkError] = useState('');
+    const [isBusy, setIsBusy] = useState(false);
+
     const unlinkChannel = useCallback(async(channel: string, server: string) => {
-        console.debug(`Unlinking ${server}/${channel}`);
+        setIsBusy(true);
+        setUnlinkError('');
+
         try {
-            await ircProvisioningClient.unlink(roomId, channel, server);
+            await client.unlink(roomId, channel, server);
         }
         catch (e) {
             console.error(e);
-            // TODO Display unlink error
+            setUnlinkError(
+                'Could not unlink channel.'
+                + ` ${e instanceof ProvisioningError ? e.message : ''}`
+            );
+        }
+        finally {
+            setIsBusy(false);
         }
         await getLinks();
-    }, [ircProvisioningClient, roomId]);
+    }, [client, roomId]);
 
     let content;
     if (links) {
         if (links.length > 0) {
-            content = links.map(l =>
-                <div key={`${l.remote_room_server}/${l.remote_room_channel}`}>
-                    <p>{l.remote_room_server}/{l.remote_room_channel}</p>
-                    <button onClick={() => unlinkChannel(l.remote_room_channel, l.remote_room_server)}>
-                        Unlink
-                    </button>
+            content = <>
+                <div className="grid grid-cols-1 gap-2 my-2">
+                    { links.map(l => <LinkedChannelItem
+                        server={l.remote_room_server}
+                        channel={l.remote_room_channel}
+                        unlinkChannel={unlinkChannel}
+                        disabled={isBusy}
+                    />) }
                 </div>
-            );
+                { unlinkError && <Alerts.Danger>{ unlinkError }</Alerts.Danger> }
+            </>;
         }
         else {
-            content = <p>No channels linked</p>
+            content = <Text.Caption>No channels linked</Text.Caption>
         }
     }
     else if (error) {
-        content = <>
-            <h3>Something went wrong</h3>
-            <p>{ error }</p>
-        </>;
+        content = <Alerts.Danger>{ error }</Alerts.Danger>;
     }
     else {
-        content = <p>Loading...</p>;
+        content = <Text.Caption>Loading...</Text.Caption>;
     }
 
-    return <>
-        <h2>Linked channels</h2>
+    return <div className="mb-6">
+        <Text.Title>Linked channels</Text.Title>
         { content }
     </>;
 }
