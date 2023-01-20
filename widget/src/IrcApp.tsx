@@ -8,6 +8,8 @@ import * as Buttons from './components/buttons';
 import * as Forms from './components/forms';
 import * as Alerts from './components/alerts';
 
+const pollLinkIntervalMs = 2000;
+
 const LinkedChannelItem = ({
     channel,
     server,
@@ -49,6 +51,7 @@ const LinkedChannels = ({
     const [links, setLinks] = useState<ListLinksResponse>();
 
     const getLinks = useCallback(async () => {
+        setError('');
         try {
             const _links = await client.listLinks(roomId);
             setLinks(_links);
@@ -64,7 +67,13 @@ const LinkedChannels = ({
 
     useEffect(() => {
         getLinks();
-    }, []);
+
+        // Continue to poll linked channels
+        const interval = setInterval(async() => {
+            await getLinks();
+        }, pollLinkIntervalMs)
+        return () => clearInterval(interval);
+    }, [getLinks]);
 
     const [unlinkError, setUnlinkError] = useState('');
     const [isBusy, setIsBusy] = useState(false);
@@ -100,8 +109,9 @@ const LinkedChannels = ({
                         unlinkChannel={unlinkChannel}
                         disabled={isBusy}
                     />) }
+                    { unlinkError && <Alerts.Danger>{ unlinkError }</Alerts.Danger> }
+                    { error && <Alerts.Danger>{ error }</Alerts.Danger> }
                 </div>
-                { unlinkError && <Alerts.Danger>{ unlinkError }</Alerts.Danger> }
             </>;
         }
         else {
