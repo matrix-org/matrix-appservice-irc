@@ -118,14 +118,93 @@ const LinkedChannels = ({
     return <div className="mb-6">
         <Text.Title>Linked channels</Text.Title>
         { content }
-    </>;
+    </div>;
+}
+
+const LinkChannelForm = ({
+    client,
+    server,
+    roomId,
+}: {
+    client: IrcProvisioningClient
+    server: string,
+    roomId: string,
+}) => {
+    const [error, setError] = useState('');
+    const [info, setInfo] = useState('');
+
+    const [channel, setChannel] = useState('');
+    const [operatorNick, setOperatorNick] = useState('');
+    const [channelKey, setChannelKey] = useState('');
+
+    const [isBusy, setIsBusy] = useState(false);
+
+    const linkChannel = useCallback(async() => {
+        setIsBusy(true);
+        setError('');
+        setInfo('');
+        try {
+            const _channel = channel.startsWith('#') ? channel : `#${channel}`;
+            await client.requestLink(
+                server,
+                _channel,
+                roomId,
+                operatorNick,
+                channelKey,
+            );
+            setInfo(`Request to link ${server}/${_channel} was sent`);
+        }
+        catch (e) {
+            console.error(e);
+            setError(
+                'Could not request link.'
+                + ` ${e instanceof ProvisioningError ? e.message : ''}`
+            );
+        }
+        finally {
+            setIsBusy(false);
+        }
+    }, [client, server, channel, operatorNick, channelKey]);
+
+    const isFormValid = channel.length > 0 && operatorNick.length > 0;
+
+    return <div className="grid grid-cols-1 gap-4 my-2">
+        <Forms.Input
+            label="Channel"
+            comment="Entering a channel will cause the bot to join it"
+            placeholder="#"
+            type="text"
+            value={channel}
+            onChange={e => setChannel(e.target.value)}
+            disabled={isBusy}
+        />
+        <Forms.Input
+            label="Channel operator nick"
+            type="text"
+            value={operatorNick}
+            onChange={e => setOperatorNick(e.target.value)}
+            disabled={isBusy}
+        />
+        <Forms.Input
+            label="Channel key (optional)"
+            type="text"
+            value={channelKey}
+            onChange={e => setChannelKey(e.target.value)}
+            disabled={isBusy}
+        />
+        <Buttons.Primary onClick={linkChannel} disabled={!isFormValid || isBusy}>
+            Request link
+        </Buttons.Primary>
+        { error && <Alerts.Danger>{ error }</Alerts.Danger> }
+        { info && <Alerts.Success>{ info }</Alerts.Success> }
+    </div>;
 }
 
 const AvailableChannels = ({
-    ircProvisioningClient,
+    client,
     roomId,
 }: {
-    ircProvisioningClient: IrcProvisioningClient
+    client: IrcProvisioningClient
     roomId: string,
 }) => {
     const [error, setError] = useState('');
@@ -135,20 +214,19 @@ const AvailableChannels = ({
     useEffect(() => {
         const getNetworks = async() => {
             try {
-                const _networks = await ircProvisioningClient.queryNetworks();
+                const _networks = await client.queryNetworks();
                 setNetworks(_networks);
             }
             catch (e) {
                 console.error(e);
-                let message;
-                if (e instanceof ProvisioningError) {
-                    message = e.message;
-                }
-                setError(`Could not get networks${message ? ': ' + message : ''}`);
+                setError(
+                    'Could not get networks.'
+                    + ` ${e instanceof ProvisioningError ? e.message : ''}`
+                );
             }
         };
         getNetworks();
-    }, [ircProvisioningClient]);
+    }, [client]);
 
     const [selectedServer, setSelectedServer] = useState('');
 
@@ -156,20 +234,21 @@ const AvailableChannels = ({
     if (networks) {
         if (networks.servers.length > 0) {
             content = <>
-                <label>
-                   Server:
-                    <select value={selectedServer} onChange={e => setSelectedServer(e.target.value)}>
-                        <option value="" key="blank">Select a server</option>
-                        { networks.servers.map(server =>
-                            <option value={server.network_id}>
-                                { server.desc }
-                            </option>
-                        ) }
-                    </select>
-                </label>
+                <Forms.Select
+                    label="Server"
+                    value={selectedServer}
+                    onChange={e => setSelectedServer(e.target.value)}
+                >
+                    <option value="" key="blank">Select a server</option>
+                    { networks.servers.map(server =>
+                        <option value={server.network_id}>
+                            { server.desc }
+                        </option>
+                    ) }
+                </Forms.Select>
                 { selectedServer &&
                     <LinkChannelForm
-                        ircProvisioningClient={ircProvisioningClient}
+                        client={client}
                         server={selectedServer}
                         roomId={roomId}
                     />
@@ -177,81 +256,19 @@ const AvailableChannels = ({
             </>;
         }
         else {
-            content = <p>No networks available</p>
+            content = <Text.Caption>No networks available</Text.Caption>
         }
     }
     else if (error) {
-        content = <>
-            <h3>Something went wrong</h3>
-            <p>{ error }</p>
-        </>;
+        content = <Alerts.Danger>{ error }</Alerts.Danger>;
     }
     else {
-        content = <p>Loading...</p>;
+        content = <Text.Caption>Loading...</Text.Caption>;
     }
 
-    return <>
-        <h2>Link a new channel</h2>
+    return <div className="mb-6">
+        <Text.Title>Link a new channel</Text.Title>
         { content }
-    </>;
-}
-
-const LinkChannelForm = ({
-    ircProvisioningClient,
-    server,
-    roomId,
-}: {
-    ircProvisioningClient: IrcProvisioningClient
-    server: string,
-    roomId: string,
-}) => {
-    const [error, setError] = useState('');
-
-    const [channel, setChannel] = useState('');
-    const [operatorNick, setOperatorNick] = useState('');
-    const [channelKey, setChannelKey] = useState('');
-
-    const linkChannel = useCallback(async() => {
-        try {
-            await ircProvisioningClient.requestLink(
-                server,
-                channel,
-                roomId,
-                operatorNick,
-                channelKey,
-            );
-        }
-        catch (e) {
-            console.error(e);
-            let message;
-            if (e instanceof ProvisioningError) {
-                message = e.message;
-            }
-            setError(`Could not request link${message ? ': ' + message : ''}`);
-        }
-    }, [ircProvisioningClient, server, channel, operatorNick, channelKey]);
-
-    return <div>
-        { error && <>
-            <h3>Something went wrong</h3>
-            <p>{ error }</p>
-        </> }
-        <label>
-            Channel:
-            <input type="text" value={channel} onChange={e => setChannel(e.target.value)} />
-            Entering a channel will cause the bot to join it.
-        </label>
-        <label>
-            Channel Operator Nick:
-            <input type="text" value={operatorNick} onChange={e => setOperatorNick(e.target.value)} />
-        </label>
-        <label>
-            Channel Key (optional)
-            <input type="text" value={channelKey} onChange={e => setChannelKey(e.target.value)} />
-        </label>
-        <button onClick={linkChannel}>
-            Request link
-        </button>
     </div>;
 }
 
@@ -260,11 +277,8 @@ export const IrcApp = () => {
 
     const client = new IrcProvisioningClient(provisioningContext.client);
 
-    return <>
-        <h1>IRC Bridge</h1>
-        <p>Room ID: {provisioningContext.roomId}</p>
-        <p>Widget ID: {provisioningContext.widgetId}</p>
-        <LinkedChannels ircProvisioningClient={client} roomId={provisioningContext.roomId}/>
-        <AvailableChannels ircProvisioningClient={client} roomId={provisioningContext.roomId}/>
-    </>;
+    return <div className="p-4">
+        <LinkedChannels client={client} roomId={provisioningContext.roomId}/>
+        <AvailableChannels client={client} roomId={provisioningContext.roomId}/>
+    </div>;
 }
