@@ -1,10 +1,24 @@
-import React, { useEffect, useState } from 'preact/compat';
+import React, {createContext, useEffect, useMemo, useState} from 'preact/compat';
 import { WidgetApi, WidgetApiToWidgetAction } from 'matrix-widget-api';
 import urlJoin from 'url-join';
 
 import { ProvisioningClient, ProvisioningError } from './ProvisioningClient';
 
-export const ProvisioningApp = () => {
+const ProvisioningContext = createContext<{
+    client: ProvisioningClient,
+    roomId: string,
+    widgetId: string,
+}>(undefined);
+
+export const useProvisioningContext = () => {
+    const context = React.useContext(ProvisioningContext);
+    if (context === undefined) {
+        throw new Error('ProvisioningContext must be used within the ProvisioningApp');
+    }
+    return context;
+};
+
+export const ProvisioningApp: React.FC<React.PropsWithChildren> = ({ children }) => {
     const [error, setError] = useState<string>();
 
     // Assuming the widget is hosted on the same origin as the API
@@ -79,8 +93,16 @@ export const ProvisioningApp = () => {
         initClient();
     }, [apiBaseUrl, widgetApi]);
 
+    const provisioningContext = useMemo(() => ({
+        widgetId,
+        roomId,
+        client,
+    }), [widgetId, roomId, client]);
+
     if (client) {
-        return <h1>Ready!</h1>;
+        return <ProvisioningContext.Provider value={provisioningContext}>
+            { children }
+        </ProvisioningContext.Provider>;
     }
     else if (error) {
         return <>
