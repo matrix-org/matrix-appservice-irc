@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'preact/compat';
+import React, { useCallback, useEffect, useState } from 'preact/compat';
 
 import { useProvisioningContext } from './ProvisioningApp';
 import { ProvisioningError } from './ProvisioningClient';
