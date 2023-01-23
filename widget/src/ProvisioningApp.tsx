@@ -18,12 +18,16 @@ export const useProvisioningContext = () => {
     return context;
 };
 
-export const ProvisioningApp: React.FC<React.PropsWithChildren> = ({ children }) => {
+export const ProvisioningApp: React.FC<React.PropsWithChildren<{
+    apiPrefix: string,
+}>> = ({
+    apiPrefix,
+    children,
+}) => {
     const [error, setError] = useState<string>();
 
     // Assuming the widget is hosted on the same origin as the API
-    // TODO Use apiPrefix from bridge config
-    const apiBaseUrl = urlJoin(window.location.origin, '/_matrix/provision');
+    const apiBaseUrl = urlJoin(window.location.origin, apiPrefix);
 
     // Parse parameters from query string
     const [widgetId, setWidgetId] = useState<string>();
