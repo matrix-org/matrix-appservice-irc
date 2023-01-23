@@ -169,7 +169,7 @@ export class AdminRoomHandler {
             case "!active":
                 // The bridge treats ANY message appearing over the network as an idleness reset,
                 // so the act of running this commmand resets that timer.
-                return new MatrixAction(ActionType.Notice, "Your have been marked as active by the bridge");
+                return new MatrixAction(ActionType.Notice, "You have been marked as active by the bridge");
             case "!join":
                 return await this.handleJoin(req, args, event.sender);
             case "!cmd":
