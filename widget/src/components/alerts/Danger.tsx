@@ -6,8 +6,8 @@ const Danger = (props: React.ComponentProps<'div'>) =>
         {...props}
         className={classNames(
             'px-4', 'py-2', 'rounded-lg',
-            'bg-red', 'bg-opacity-40',
-            'text-black-900', 'text-opacity-80',
+            'bg-red', 'bg-opacity-30',
+            'text-black-900', 'text-opacity-70',
             props.className as string
         )}
     />;
