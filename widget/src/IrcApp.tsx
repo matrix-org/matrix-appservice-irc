@@ -140,6 +140,7 @@ const LinkChannelForm = ({
     server: string,
     roomId: string,
 }) => {
+    const [isBusy, setIsBusy] = useState(false);
     const [error, setError] = useState('');
     const [info, setInfo] = useState('');
 
@@ -147,7 +148,37 @@ const LinkChannelForm = ({
     const [operatorNick, setOperatorNick] = useState('');
     const [channelKey, setChannelKey] = useState('');
 
-    const [isBusy, setIsBusy] = useState(false);
+    const [isBusyOperatorNicks, setIsBusyOperatorNicks] = useState(false);
+    const [operatorNicksInfo, setOperatorNicksInfo] = useState('');
+    const [operatorNicks, setOperatorNicks] = useState<string[]>();
+
+    const getOperatorNicks = useCallback(async() => {
+        if (!channel) {
+            return;
+        }
+
+        setIsBusyOperatorNicks(true);
+        try {
+            const ops = await client.queryLink(server, channel, channelKey)
+            if (ops.operators.length > 0) {
+                setOperatorNicksInfo(`Found ${ops.operators.length} operator(s) in this channel`);
+            }
+            else {
+                setOperatorNicksInfo('No operators found in this channel');
+            }
+            setOperatorNicks(ops.operators);
+        }
+        catch (e) {
+            console.error(e);
+            setOperatorNicksInfo(
+                'Could not get operator nicks.'
+                + ` ${e instanceof ProvisioningError ? e.message : ''}`
+            );
+        }
+        finally {
+            setIsBusyOperatorNicks(false);
+        }
+    }, [client, server, channel, channelKey]);
 
     const linkChannel = useCallback(async() => {
         setIsBusy(true);
@@ -186,20 +217,29 @@ const LinkChannelForm = ({
             type="text"
             value={channel}
             onChange={e => setChannel(e.target.value)}
+            onBlur={getOperatorNicks}
             disabled={isBusy}
         />
         <Forms.Input
             label="Channel operator nick"
+            comment={isBusyOperatorNicks ? 'Loading operator nicks...' : operatorNicksInfo}
             type="text"
             value={operatorNick}
+            list="operatorNicks"
             onChange={e => setOperatorNick(e.target.value)}
             disabled={isBusy}
         />
+        { operatorNicks &&
+            <datalist id="operatorNicks">
+                { operatorNicks.map(nick => <option value={nick} key={nick}></option>) }
+            </datalist>
+        }
         <Forms.Input
             label="Channel key (optional)"
             type="text"
             value={channelKey}
             onChange={e => setChannelKey(e.target.value)}
+            onBlur={getOperatorNicks}
             disabled={isBusy}
         />
         <Buttons.Primary onClick={linkChannel} disabled={!isFormValid || isBusy}>

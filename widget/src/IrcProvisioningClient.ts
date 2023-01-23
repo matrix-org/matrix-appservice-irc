@@ -11,6 +11,10 @@ export interface QueryNetworksResponse {
     }[]
 }
 
+export interface QueryLinkResponse {
+    operators: string[],
+}
+
 export type ListLinksResponse = {
     matrix_room_id: string,
     remote_room_channel: string,
@@ -27,6 +31,22 @@ export class IrcProvisioningClient {
             'GET',
             '/querynetworks',
         ) as QueryNetworksResponse;
+    }
+
+    async queryLink(
+        server: string,
+        channel: string,
+        key?: string,
+    ): Promise<QueryLinkResponse> {
+        return await this.client.request(
+            'POST',
+            '/querylink',
+            {
+                'remote_room_server': server,
+                'remote_room_channel': channel,
+                key,
+            },
+        ) as QueryLinkResponse;
     }
 
     async listLinks(roomId: string): Promise<ListLinksResponse> {
