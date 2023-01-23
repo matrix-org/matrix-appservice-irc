@@ -152,6 +152,15 @@ const LinkChannelForm = ({
     const [operatorNicksInfo, setOperatorNicksInfo] = useState('');
     const [operatorNicks, setOperatorNicks] = useState<string[]>();
 
+    const resetState = useCallback(async() => {
+        // Reset form state
+        setChannel('');
+        setOperatorNick('');
+        setChannelKey('');
+        setOperatorNicksInfo('');
+        setOperatorNicks(undefined);
+    }, []);
+
     const getOperatorNicks = useCallback(async() => {
         if (!channel) {
             return;
@@ -194,6 +203,7 @@ const LinkChannelForm = ({
                 channelKey,
             );
             setInfo(`Request to link ${server}/${_channel} was sent`);
+            await resetState();
         }
         catch (e) {
             console.error(e);
@@ -205,7 +215,7 @@ const LinkChannelForm = ({
         finally {
             setIsBusy(false);
         }
-    }, [client, server, channel, operatorNick, channelKey]);
+    }, [client, server, channel, operatorNick, channelKey, resetState]);
 
     const isFormValid = channel.length > 0 && operatorNick.length > 0;
 
