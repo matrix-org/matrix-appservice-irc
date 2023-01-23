@@ -3,6 +3,7 @@ import { WidgetApi, WidgetApiToWidgetAction } from 'matrix-widget-api';
 import urlJoin from 'url-join';
 
 import { ProvisioningClient, ProvisioningError } from './ProvisioningClient';
+import * as Text from './components/text';
 
 const ProvisioningContext = createContext<{
     client: ProvisioningClient,
@@ -103,18 +104,24 @@ export const ProvisioningApp: React.FC<React.PropsWithChildren<{
         client,
     }), [widgetId, roomId, client]);
 
+    let content;
     if (client) {
-        return <ProvisioningContext.Provider value={provisioningContext}>
-            { children }
-        </ProvisioningContext.Provider>;
+        content =
+            <ProvisioningContext.Provider value={provisioningContext}>
+                { children }
+            </ProvisioningContext.Provider>;
     }
     else if (error) {
-        return <>
-            <h3>Something went wrong</h3>
-            <p>{ error }</p>
+        content = <>
+            <Text.Title>Something went wrong</Text.Title>
+            <Text.Caption>{ error }</Text.Caption>
         </>;
     }
-    return <>
-        <h3>Loading...</h3>
-    </>;
+    else {
+        content = <Text.Caption>Loading...</Text.Caption>;
+    }
+
+    return <div className="p-4">
+        { content }
+    </div>;
 }

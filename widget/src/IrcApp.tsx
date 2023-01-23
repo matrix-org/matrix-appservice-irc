@@ -337,8 +337,8 @@ export const IrcApp = () => {
 
     const client = new IrcProvisioningClient(provisioningContext.client);
 
-    return <div className="p-4">
+    return <>
         <LinkedChannels client={client} roomId={provisioningContext.roomId}/>
         <AvailableChannels client={client} roomId={provisioningContext.roomId}/>
-    </div>;
+    </>;
 }
