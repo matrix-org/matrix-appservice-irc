@@ -8,7 +8,7 @@ export const ajv = new Ajv({
 
 const matrixRoomIdSchema: JSONSchemaType<string> = {
     type: "string",
-    pattern: "^!.*:.*$",
+    pattern: "^![^!]+$",
 };
 
 const remoteRoomChannelSchema: JSONSchemaType<string> = {
