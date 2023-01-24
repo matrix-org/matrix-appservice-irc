@@ -127,7 +127,7 @@ export class Provisioner extends ProvisioningApi {
         const wrapHandler = (handler: (req: ProvisioningRequest) => Promise<unknown>) => {
             return async(req: ProvisioningRequest, res: express.Response) => {
                 try {
-                    const result = await handler.call(this, req) ?? {};
+                    const result = (await handler.call(this, req)) || {};
                     req.log.debug(`Sending result: ${JSON.stringify(result)}`);
                     res.json(result);
                 }
