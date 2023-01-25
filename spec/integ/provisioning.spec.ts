@@ -236,10 +236,15 @@ describe("Provisioning API", function() {
             });
 
             it("should not create a M<--->I link with the same id as one existing", async () => {
+                await link(
+                    {
+                        ...defaultLinkBody,
+                    },
+                    "success",
+                );
                 const res = await link(
                     {
                         ...defaultLinkBody,
-                        remote_room_channel: "#coffee",
                     },
                 );
                 expect(res.statusCode).toEqual(409);
