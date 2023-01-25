@@ -246,7 +246,7 @@ describe("Provisioning API", function() {
                 expect(res._getJSONData().errcode).toEqual(IrcErrCode.ExistingMapping);
             });
 
-            it("should not create a M<--->I link when room_id is malformed", async () => {
+            it("should not create a M<--->I link when matrix_room_id is malformed", async () => {
                 const res = await link(
                     {
                         ...defaultLinkBody,
@@ -407,7 +407,7 @@ describe("Provisioning API", function() {
                 expect(res._getJSONData().errcode).toEqual(IrcErrCode.UnknownRoom);
             });
 
-            it("should not remove a M<--->I link when room_id is malformed", async () => {
+            it("should not remove a M<--->I link when matrix_room_id is malformed", async () => {
                 const res = await unlink(
                     {
                         ...defaultUnlinkBody,
@@ -422,7 +422,7 @@ describe("Provisioning API", function() {
                 const res = await unlink(
                     {
                         ...defaultUnlinkBody,
-                        matrix_room_id: "irc./example",
+                        remote_room_server: "irc./example",
                     },
                 );
                 expect(res.statusCode).toEqual(400);
@@ -433,7 +433,7 @@ describe("Provisioning API", function() {
                 const res = await unlink(
                     {
                         ...defaultUnlinkBody,
-                        matrix_room_id: "coffe####e",
+                        remote_room_channel: "coffe####e",
                     },
                 );
                 expect(res.statusCode).toEqual(400);
