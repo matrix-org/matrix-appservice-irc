@@ -25,6 +25,14 @@ describe("Room upgrades", function() {
             roomMapping.server, roomMapping.botNick, roomMapping.channel
         );
 
+        // Allow receiving of names
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "names",
+            function(_client, chan, cb) {
+                const names = new Map();
+                cb(chan, names);
+            }
+        );
+
         await test.initEnv(env);
     });
 
