@@ -555,6 +555,8 @@ ircService:
     # Endpoint prefix for provisoning requests.
     apiPrefix: "/_matrix/provision"
 
+    ratelimit: true
+
     # Run a separate HTTP listener for provisioning requests.
     http:
       # The port to listen on.

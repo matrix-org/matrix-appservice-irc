@@ -59,6 +59,7 @@ export interface ProvisionerConfig {
     // We allow this to be unspecified, so it will fall back to the homeserver token
     secret?: string;
     apiPrefix?: string;
+    ratelimit?: boolean;
     openIdDisallowedIpRanges?: string[];
 }
 
@@ -96,8 +97,8 @@ export class Provisioner extends ProvisioningApi {
             {
                 provisioningToken: config.secret,
                 apiPrefix: config.apiPrefix,
+                ratelimit: config.ratelimit,
                 disallowedIpRanges: config.openIdDisallowedIpRanges,
-                ratelimit: true,
                 widgetTokenPrefix: "ircbr-wdt-",
                 widgetFrontendLocation: "public",
                 // Use the bridge express application unless a config was specified for provisioning
