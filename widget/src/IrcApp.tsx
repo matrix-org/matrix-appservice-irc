@@ -194,15 +194,14 @@ const LinkChannelForm = ({
         setError('');
         setInfo('');
         try {
-            const _channel = channel.startsWith('#') ? channel : `#${channel}`;
             await client.requestLink(
                 server,
-                _channel,
+                channel,
                 roomId,
                 operatorNick,
                 channelKey,
             );
-            setInfo(`Request to link ${server}/${_channel} was sent`);
+            setInfo(`Request to link ${server}/${channel} was sent`);
             await resetState();
         }
         catch (e) {
@@ -219,6 +218,20 @@ const LinkChannelForm = ({
 
     const isFormValid = channel.length > 0 && operatorNick.length > 0;
 
+    const onChannelChange: React.JSX.GenericEventHandler<HTMLInputElement> = useCallback((e) => {
+        let _channel = e.target.value;
+        _channel = _channel.startsWith('#') ? _channel : `#${_channel}`;
+        setChannel(_channel);
+    }, []);
+
+    const onOperatorNickChange: React.JSX.GenericEventHandler<HTMLInputElement> = useCallback((e) => {
+        setOperatorNick(e.target.value);
+    }, []);
+
+    const onChannelKeyChange: React.JSX.GenericEventHandler<HTMLInputElement> = useCallback((e) => {
+        setChannelKey(e.target.value);
+    }, []);
+
     return <div className="grid grid-cols-1 gap-4 my-2">
         <Forms.Input
             label="Channel"
@@ -226,7 +239,7 @@ const LinkChannelForm = ({
             placeholder="#"
             type="text"
             value={channel}
-            onChange={e => setChannel(e.target.value)}
+            onChange={onChannelChange}
             onBlur={getOperatorNicks}
             disabled={isBusy}
         />
@@ -236,7 +249,7 @@ const LinkChannelForm = ({
             type="text"
             value={operatorNick}
             list="operatorNicks"
-            onChange={e => setOperatorNick(e.target.value)}
+            onChange={onOperatorNickChange}
             disabled={isBusy}
         />
         { operatorNicks &&
@@ -248,7 +261,7 @@ const LinkChannelForm = ({
             label="Channel key (optional)"
             type="text"
             value={channelKey}
-            onChange={e => setChannelKey(e.target.value)}
+            onChange={onChannelKeyChange}
             onBlur={getOperatorNicks}
             disabled={isBusy}
         />
