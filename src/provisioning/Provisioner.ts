@@ -61,6 +61,7 @@ export interface ProvisionerConfig {
     apiPrefix?: string;
     ratelimit?: boolean;
     openIdDisallowedIpRanges?: string[];
+    openIdOverrides?: Record<string, string>;
 }
 
 interface StrictProvisionerConfig extends ProvisionerConfig {
@@ -99,6 +100,11 @@ export class Provisioner extends ProvisioningApi {
                 apiPrefix: config.apiPrefix,
                 ratelimit: config.ratelimit,
                 disallowedIpRanges: config.openIdDisallowedIpRanges,
+                openIdOverride: config.openIdOverrides
+                    ? Object.fromEntries(Object.entries(config.openIdOverrides)
+                        .map(([id, url]) => [id, new URL(url)])
+                    )
+                    : undefined,
                 widgetTokenPrefix: "ircbr-wdt-",
                 widgetFrontendLocation: "public",
                 // Use the bridge express application unless a config was specified for provisioning
