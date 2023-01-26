@@ -14,7 +14,7 @@ WORKDIR /build
 
 COPY src/ /build/src/
 COPY widget/ /build/widget/
-COPY package.json package-lock.json tsconfig.json .eslintrc vite.config.ts /build/
+COPY package.json package-lock.json tsconfig.json .eslintrc /build/
 
 RUN npm ci
 RUN npm run build
