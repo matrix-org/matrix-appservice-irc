@@ -1,4 +1,4 @@
-import React, { createContext, useEffect, useMemo, useState } from 'preact/compat';
+import React, { createContext, useEffect, useMemo, useState } from 'react';
 import { WidgetApi, WidgetApiToWidgetAction } from 'matrix-widget-api';
 import urlJoin from 'url-join';
 

@@ -1,7 +1,7 @@
-import React from 'preact';
+import React from 'react';
 import classNames from 'classnames';
 
-const Primary = (props: React.ComponentProps<'button'>) =>
+const Primary = (props: React.ComponentPropsWithoutRef<'button'>) =>
     <button
         {...props}
         className={classNames(
@@ -9,7 +9,7 @@ const Primary = (props: React.ComponentProps<'button'>) =>
             'bg-green', 'hover:bg-green-alt', 'disabled:bg-green', 'disabled:opacity-30', 'text-white',
             'transition',
             'cursor-pointer', 'disabled:cursor-not-allowed',
-            props.className as string,
+            props.className,
         )}
     />;
 

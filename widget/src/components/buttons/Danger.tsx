@@ -1,7 +1,7 @@
-import React from 'preact';
+import React from 'react';
 import classNames from 'classnames';
 
-const Danger = (props: React.ComponentProps<'button'>) =>
+const Danger = (props: React.ComponentPropsWithoutRef<'button'>) =>
     <button
         {...props}
         className={classNames(
@@ -10,7 +10,7 @@ const Danger = (props: React.ComponentProps<'button'>) =>
             'border-none', 'focus:border-grey-100', 'focus:ring-0',
             'transition',
             'cursor-pointer', 'disabled:cursor-not-allowed',
-            props.className as string,
+            props.className,
         )}
     />;
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'preact/compat';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { useProvisioningContext } from './ProvisioningApp';
 import { ProvisioningError } from './ProvisioningClient';
@@ -218,18 +218,18 @@ const LinkChannelForm = ({
 
     const isFormValid = channel.length > 0 && operatorNick.length > 0;
 
-    const onChannelChange: React.JSX.GenericEventHandler<HTMLInputElement> = useCallback((e) => {
-        let _channel = e.target.value;
+    const onChannelChange: React.ChangeEventHandler<HTMLInputElement> = useCallback((e) => {
+        let _channel = e.currentTarget.value;
         _channel = _channel.startsWith('#') ? _channel : `#${_channel}`;
         setChannel(_channel);
     }, []);
 
-    const onOperatorNickChange: React.JSX.GenericEventHandler<HTMLInputElement> = useCallback((e) => {
-        setOperatorNick(e.target.value);
+    const onOperatorNickChange: React.ChangeEventHandler<HTMLInputElement> = useCallback((e) => {
+        setOperatorNick(e.currentTarget.value);
     }, []);
 
-    const onChannelKeyChange: React.JSX.GenericEventHandler<HTMLInputElement> = useCallback((e) => {
-        setChannelKey(e.target.value);
+    const onChannelKeyChange: React.ChangeEventHandler<HTMLInputElement> = useCallback((e) => {
+        setChannelKey(e.currentTarget.value);
     }, []);
 
     return <div className="grid grid-cols-1 gap-4 my-2">

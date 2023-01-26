@@ -1,9 +1,11 @@
-import React from 'preact/compat';
+import React from 'react';
 import { ProvisioningApp } from './ProvisioningApp';
-import { IrcApp } from "./IrcApp";
+import { IrcApp } from './IrcApp';
 
-export const App = () => {
+const App = () => {
     return <ProvisioningApp apiPrefix="/_matrix/provision">
         <IrcApp/>
     </ProvisioningApp>;
 }
+
+export default App;
