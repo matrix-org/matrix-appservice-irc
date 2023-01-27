@@ -26,6 +26,11 @@ export class IrcProvisioningClient {
         readonly client: ProvisioningClient,
     ) {}
 
+    /**
+     * List IRC servers configured on the bridge.
+     *
+     * @returns Promise resolving to the list of servers.
+     */
     async queryNetworks(): Promise<QueryNetworksResponse> {
         return await this.client.request(
             'GET',
@@ -33,6 +38,15 @@ export class IrcProvisioningClient {
         ) as QueryNetworksResponse;
     }
 
+    /**
+     * List the operators in an IRC channel.
+     * This will cause the bot to join the channel.
+     *
+     * @param server IRC server
+     * @param channel IRC channel
+     * @param key Channel key (if any)
+     * @returns Promise resolving to the list of operators.
+     */
     async queryLink(
         server: string,
         channel: string,
@@ -49,6 +63,12 @@ export class IrcProvisioningClient {
         ) as QueryLinkResponse;
     }
 
+    /**
+     * List the IRC channels currently bridged to a Matrix room.
+     *
+     * @param roomId Matrix room ID
+     * @returns Promise resolving to the list of IRC channels.
+     */
     async listLinks(roomId: string): Promise<ListLinksResponse> {
         return await this.client.request(
             'GET',
@@ -56,6 +76,17 @@ export class IrcProvisioningClient {
         ) as ListLinksResponse;
     }
 
+    /**
+     * Create a request to link an IRC Channel to a Matrix room.
+     * This will cause the bot to message the specified operator to ask for approval.
+     *
+     * @param server IRC server
+     * @param channel IRC channel
+     * @param roomId Matrix room ID
+     * @param opNick Operator nick the bot should ask for approval.
+     * @param key Channel key (if any)
+     * @returns Promise resolving when the request has been made.
+     */
     async requestLink(
         server: string,
         channel: string,
@@ -76,6 +107,14 @@ export class IrcProvisioningClient {
         );
     }
 
+    /**
+     * Remove a linked IRC channel and Matrix room.
+     *
+     * @param roomId Matrix room ID
+     * @param channel IRC channel
+     * @param server IRC server
+     * @returns Promise resolving when the channel has been unlinked.
+     */
     async unlink(roomId: string, channel: string, server: string): Promise<void> {
         await this.client.request(
             'POST',
