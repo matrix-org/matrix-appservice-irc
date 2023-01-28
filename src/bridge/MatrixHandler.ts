@@ -489,6 +489,34 @@ export class MatrixHandler {
         return null;
     }
 
+    private async _checkForBlock(event: OnMemberEventData, room: IrcRoom, user: MatrixUser): Promise<string|null> {
+        const entry = await this.ircBridge.getStore().getRoom(event.room_id, room.server.domain, room.channel);
+        // is this a portal room?
+        const delayTime = ["alias", "join"].includes(
+            (entry?.data?.origin as string|null) ?? "unknown"
+        //TODO: pull these two numbers from the config file
+        )
+            ? this.ircBridge.config.ircService.delayBridging?.secondsPortaled ?? 0
+            : this.ircBridge.config.ircService.delayBridging?.secondsPlumbed ?? 0;
+
+        if (delayTime > 0) {
+            let remaining = delayTime;
+            const firstSeen = await this.ircBridge.getStore().getFirstSeenTimeForUser(user.getId());
+            if (firstSeen === null) {
+                // jeepers. this shouldn't happen!
+            }
+            else {
+                remaining = Math.max(0, (firstSeen + (delayTime * 1000)) - Date.now());
+            }
+
+            if (remaining > 0) {
+                return `You must wait ${remaining} seconds before attempting to join a bridged channel`;
+            }
+        }
+
+        return null;
+    }
+
     private async _onJoin(req: BridgeRequest, event: OnMemberEventData, user: MatrixUser):
     Promise<BridgeRequestErr|null> {
         req.log.info("onJoin: usr=%s rm=%s id=%s", event.state_key, event.room_id, event.event_id);
@@ -538,6 +566,19 @@ export class MatrixHandler {
             }
             // get the virtual IRC user for this user
             promises.push((async () => {
+                const blockReason = await this._checkForBlock(event, room, user);
+                if (blockReason !== null) {
+                    await this.membershipQueue.leave(
+                        event.room_id,
+                        user.getId(),
+                        req,
+                        true,
+                        blockReason,
+                        this.ircBridge.appServiceUserId,
+                    );
+                    return;
+                }
+
                 let bridgedClient: BridgedClient|null = null;
                 try {
                     bridgedClient = await this.ircBridge.getBridgedClient(

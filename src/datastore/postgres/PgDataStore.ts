@@ -55,7 +55,7 @@ interface RoomRecord {
 export class PgDataStore implements DataStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 8;
+    public static readonly LATEST_SCHEMA = 9;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -643,15 +643,11 @@ export class PgDataStore implements DataStore {
     }
 
     public async updateLastSeenTimeForUser(userId: string) {
-        const statement = PgDataStore.BuildUpsertStatement("last_seen", "(user_id)", [
-            "user_id",
-            "ts",
-        ]);
-        await this.pgPool.query(statement, [userId, Date.now()]);
+        await this.pgPool.query("UPDATE last_seen SET last = $2 WHERE user_id = $1", [userId, Date.now()]);
     }
 
     public async getLastSeenTimeForUsers(): Promise<{ user_id: string; ts: number }[]> {
-        const res = await this.pgPool.query(`SELECT * FROM last_seen`);
+        const res = await this.pgPool.query(`SELECT user_id, last FROM last_seen`);
         return res.rows;
     }
 
@@ -712,6 +708,29 @@ export class PgDataStore implements DataStore {
     public async getRoomCount(): Promise<number> {
         const res = await this.pgPool.query(`SELECT COUNT(*) FROM rooms`);
         return res.rows[0];
+    }
+
+    public async getFirstSeenTimeForUser(userId: string): Promise<number|null> {
+        const res = await this.pgPool.query(
+            "SELECT first FROM last_seen WHERE user_id = $1;", [userId]
+        );
+        if (res.rows) {
+            return res.rows[0].first;
+        }
+
+        return null;
+    }
+
+    public async setFirstSeenTimeForUser(userId: string): Promise<void> {
+        if (await this.getFirstSeenTimeForUser(userId) !== null) {
+            // we already have a first seen time, don't overwrite it
+            return;
+        }
+
+        const now = Date.now();
+        await this.pgPool.query("INSERT INTO last_seen (user_id, first, last) VALUES ($1, $2, $3)", [
+            userId, now, now
+        ]);
     }
 
     public async destroy() {
