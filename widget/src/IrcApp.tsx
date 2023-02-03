@@ -164,7 +164,7 @@ const LinkChannelForm = ({
     const [operatorNicksInfo, setOperatorNicksInfo] = useState('');
     const [operatorNicks, setOperatorNicks] = useState<string[]>();
 
-    const resetState = useCallback(async() => {
+    const resetState = useCallback(() => {
         // Reset form state
         setChannel('');
         setOperatorNick('');
@@ -214,7 +214,7 @@ const LinkChannelForm = ({
                 channelKey,
             );
             setInfo(`Request to link ${server}/${channel} was sent`);
-            await resetState();
+            resetState();
         }
         catch (e) {
             console.error(e);
