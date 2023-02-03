@@ -226,7 +226,7 @@ const LinkChannelForm = ({
         finally {
             setIsBusy(false);
         }
-    }, [client, server, channel, operatorNick, channelKey, resetState]);
+    }, [client, server, channel, roomId, operatorNick, channelKey, resetState]);
 
     const isFormValid = channel.length > 0 && operatorNick.length > 0;
 
