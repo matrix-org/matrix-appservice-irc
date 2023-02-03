@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useProvisioningContext } from './ProvisioningApp';
 import { ProvisioningError } from './ProvisioningClient';
@@ -65,15 +65,27 @@ const LinkedChannels = ({
         }
     }, [client, roomId]);
 
+    const pollTimerId = useRef<number>();
     useEffect(() => {
-        getLinks();
+        const poll = async () => {
+            try {
+                await getLinks();
+            }
+            finally {
+                // Recursively call poll
+                pollTimerId.current = window.setTimeout(
+                    poll,
+                    pollLinkIntervalMs
+                );
+            }
+        };
+        void poll();
 
-        // Continue to poll linked channels
-        const interval = setInterval(async() => {
-            await getLinks();
-        }, pollLinkIntervalMs)
-        return () => clearInterval(interval);
-    }, [getLinks]);
+        // Cleanup
+        return () => {
+            window.clearTimeout(pollTimerId.current);
+        };
+    }, [getLinks, pollLinkIntervalMs]);
 
     const [unlinkError, setUnlinkError] = useState('');
     const [isBusy, setIsBusy] = useState(false);
