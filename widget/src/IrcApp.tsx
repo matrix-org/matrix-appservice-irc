@@ -286,12 +286,17 @@ const AvailableChannels = ({
     const [error, setError] = useState('');
 
     const [networks, setNetworks] = useState<QueryNetworksResponse>();
+    const [selectedServer, setSelectedServer] = useState('');
 
     useEffect(() => {
         const getNetworks = async() => {
             try {
                 const networks = await client.queryNetworks();
                 setNetworks(networks);
+
+                if (networks.servers.length === 1) {
+                    setSelectedServer(networks.servers[0].network_id);
+                }
             } catch (e) {
                 console.error(e);
                 setError(
@@ -300,27 +305,32 @@ const AvailableChannels = ({
                 );
             }
         };
-        getNetworks();
+        void getNetworks();
     }, [client]);
-
-    const [selectedServer, setSelectedServer] = useState('');
 
     let content;
     if (networks) {
         if (networks.servers.length > 0) {
             content = <>
-                <Forms.Select
-                    label="Server"
-                    value={selectedServer}
-                    onChange={e => setSelectedServer(e.target.value)}
-                >
-                    <option value="" key="blank">Select a server</option>
-                    { networks.servers.map(server =>
-                        <option value={server.network_id} key={server.network_id}>
-                            { server.desc }
-                        </option>
-                    ) }
-                </Forms.Select>
+                { networks.servers.length === 1
+                    ? <Forms.Input
+                        label="Server"
+                        value={selectedServer}
+                        disabled
+                    />
+                    : <Forms.Select
+                        label="Server"
+                        value={selectedServer}
+                        onChange={e => setSelectedServer(e.target.value)}
+                    >
+                        <option value="" key="blank">Select a server</option>
+                        { networks.servers.map(server =>
+                            <option value={server.network_id} key={server.network_id}>
+                                { server.desc }
+                            </option>
+                        ) }
+                    </Forms.Select>
+                }
                 { selectedServer &&
                     <LinkChannelForm
                         client={client}
