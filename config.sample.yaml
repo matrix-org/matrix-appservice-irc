@@ -545,8 +545,6 @@ ircService:
           # These users will deny a room from being bridged.
           - "@.*:badguys.com"
 
-    # Watch the file for changes, and apply the rules. Default: false
-    enableReload: true
     # Number of channels allowed to be bridged
     roomLimit: 50
 
