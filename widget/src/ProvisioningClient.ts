@@ -11,7 +11,7 @@ export class ProvisioningError extends Error {
     }
 }
 
-async function parseError(req: Response) {
+const parseError = async(req: Response) => {
     let errBody;
     try {
         errBody = await req.json();
@@ -34,12 +34,16 @@ async function parseError(req: Response) {
         );
     }
     return new Error('Request failed');
-}
+};
 
 export class ProvisioningClient {
-    static async create(baseUrl: string, widgetApi: WidgetApi): Promise<ProvisioningClient> {
+    static async create(
+        baseUrl: string,
+        tokenName: string,
+        widgetApi: WidgetApi,
+    ): Promise<ProvisioningClient> {
         // Check if there is already a session token
-        const sessionToken = localStorage.getItem('irc-sessionToken');
+        const sessionToken = localStorage.getItem(tokenName);
         if (sessionToken) {
             const client = new ProvisioningClient(baseUrl, sessionToken);
             try {
@@ -86,7 +90,7 @@ export class ProvisioningClient {
             throw await parseError(res);
         }
         const resBody = await res.json() as ExchangeOpenAPIResponseBody;
-        localStorage.setItem('irc-sessionToken', resBody.token);
+        localStorage.setItem(tokenName, resBody.token);
         console.info('Stored new session token');
         return new ProvisioningClient(baseUrl, resBody.token);
     }
@@ -123,7 +127,7 @@ export class ProvisioningClient {
     }
 
     async verify(): Promise<{ userId: string, type: string }> {
-        const res = await this.request('GET', `/v1/session`);
+        const res = await this.request('GET', '/v1/session');
         return res as { userId: string, type: string };
     }
 }
