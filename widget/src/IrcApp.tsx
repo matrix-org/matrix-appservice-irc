@@ -53,8 +53,8 @@ const LinkedChannels = ({
     const getLinks = useCallback(async () => {
         setError('');
         try {
-            const _links = await client.listLinks(roomId);
-            setLinks(_links);
+            const links = await client.listLinks(roomId);
+            setLinks(links);
         }
         catch (e) {
             console.error(e);
@@ -85,7 +85,7 @@ const LinkedChannels = ({
         return () => {
             window.clearTimeout(pollTimerId.current);
         };
-    }, [getLinks, pollLinkIntervalMs]);
+    }, [getLinks]);
 
     const [unlinkError, setUnlinkError] = useState('');
     const [isBusy, setIsBusy] = useState(false);
@@ -96,19 +96,17 @@ const LinkedChannels = ({
 
         try {
             await client.unlink(roomId, channel, server);
-        }
-        catch (e) {
+        } catch (e) {
             console.error(e);
             setUnlinkError(
                 'Could not unlink channel.'
                 + ` ${e instanceof ProvisioningError ? e.message : ''}`
             );
-        }
-        finally {
+        } finally {
             setIsBusy(false);
         }
         await getLinks();
-    }, [client, roomId]);
+    }, [client, roomId, getLinks]);
 
     let content;
     if (links) {
@@ -118,6 +116,7 @@ const LinkedChannels = ({
                     { links.map(l => <LinkedChannelItem
                         server={l.remote_room_server}
                         channel={l.remote_room_channel}
+                        key={`${l.remote_room_server}/${l.remote_room_channel}`}
                         unlinkChannel={unlinkChannel}
                         disabled={isBusy}
                     />) }
@@ -125,15 +124,12 @@ const LinkedChannels = ({
                     { error && <Alerts.Danger>{ error }</Alerts.Danger> }
                 </div>
             </>;
-        }
-        else {
+        } else {
             content = <Text.Caption>No channels linked</Text.Caption>
         }
-    }
-    else if (error) {
+    } else if (error) {
         content = <Alerts.Danger>{ error }</Alerts.Danger>;
-    }
-    else {
+    } else {
         content = <Text.Caption>Loading...</Text.Caption>;
     }
 
@@ -188,15 +184,13 @@ const LinkChannelForm = ({
                 setOperatorNicksInfo('No operators found in this channel');
             }
             setOperatorNicks(ops.operators);
-        }
-        catch (e) {
+        } catch (e) {
             console.error(e);
             setOperatorNicksInfo(
                 'Could not get operator nicks.'
                 + ` ${e instanceof ProvisioningError ? e.message : ''}`
             );
-        }
-        finally {
+        } finally {
             setIsBusyOperatorNicks(false);
         }
     }, [client, server, channel, channelKey]);
@@ -215,15 +209,13 @@ const LinkChannelForm = ({
             );
             setInfo(`Request to link ${server}/${channel} was sent`);
             resetState();
-        }
-        catch (e) {
+        } catch (e) {
             console.error(e);
             setError(
                 'Could not request link.'
                 + ` ${e instanceof ProvisioningError ? e.message : ''}`
             );
-        }
-        finally {
+        } finally {
             setIsBusy(false);
         }
     }, [client, server, channel, roomId, operatorNick, channelKey, resetState]);
@@ -231,9 +223,9 @@ const LinkChannelForm = ({
     const isFormValid = channel.length > 0 && operatorNick.length > 0;
 
     const onChannelChange: React.ChangeEventHandler<HTMLInputElement> = useCallback((e) => {
-        let _channel = e.currentTarget.value;
-        _channel = _channel.startsWith('#') ? _channel : `#${_channel}`;
-        setChannel(_channel);
+        let channel = e.currentTarget.value;
+        channel = channel.startsWith('#') ? channel : `#${channel}`;
+        setChannel(channel);
     }, []);
 
     const onOperatorNickChange: React.ChangeEventHandler<HTMLInputElement> = useCallback((e) => {
@@ -299,10 +291,9 @@ const AvailableChannels = ({
     useEffect(() => {
         const getNetworks = async() => {
             try {
-                const _networks = await client.queryNetworks();
-                setNetworks(_networks);
-            }
-            catch (e) {
+                const networks = await client.queryNetworks();
+                setNetworks(networks);
+            } catch (e) {
                 console.error(e);
                 setError(
                     'Could not get networks.'
@@ -326,7 +317,7 @@ const AvailableChannels = ({
                 >
                     <option value="" key="blank">Select a server</option>
                     { networks.servers.map(server =>
-                        <option value={server.network_id}>
+                        <option value={server.network_id} key={server.network_id}>
                             { server.desc }
                         </option>
                     ) }
@@ -339,15 +330,12 @@ const AvailableChannels = ({
                     />
                 }
             </>;
-        }
-        else {
+        } else {
             content = <Text.Caption>No networks available</Text.Caption>
         }
-    }
-    else if (error) {
+    } else if (error) {
         content = <Alerts.Danger>{ error }</Alerts.Danger>;
-    }
-    else {
+    } else {
         content = <Text.Caption>Loading...</Text.Caption>;
     }
 

@@ -1,4 +1,4 @@
-import { ProvisioningClient } from "./ProvisioningClient";
+import { ProvisioningClient } from './ProvisioningClient';
 
 export interface QueryNetworksResponse {
     servers: {
