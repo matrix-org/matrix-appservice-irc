@@ -517,17 +517,15 @@ ircService:
     port: 11100
 
   # Configuration for the provisioning API.
-  #
-  # GET /_matrix/provision/link
-  # GET /_matrix/provision/unlink
-  # GET /_matrix/provision/listlinks
-  #
   # This key CANNOT be hot-reloaded
   provisioning:
     # True to enable the provisioning HTTP endpoint. Default: false.
-    enabled: false
-    # This should be a secure secret token used when making provisioner requests.
+    enabled: true
+    # Whether to enable hosting the setup widget page. Default: false.
+    widget: true
+    # A secure secret token for making provisioner requests. Default: the appservice hs_token.
     secret: $generateMe
+
     # The number of seconds to wait before giving up on getting a response from
     # an IRC channel operator. If the channel operator does not respond within the
     # allotted time period, the provisioning request will fail.
@@ -552,10 +550,10 @@ ircService:
     # Number of channels allowed to be bridged
     roomLimit: 50
 
-    # Endpoint prefix for provisoning requests.
-    apiPrefix: "/_matrix/provision"
-
-    ratelimit: true
+    # Endpoint prefix for provisoning requests. Default: "/_matrix/provision"
+    # apiPrefix: "/_matrix/provision"
+    # Whether to apply rate limiting to the provisioning API. Default: true.
+    # ratelimit: true
 
     # Run a separate HTTP listener for provisioning requests.
     http:
@@ -568,7 +566,7 @@ ircService:
     # requests, disallow any requests that resolve a Matrix server_name included in these ranges.
     # This list should include any internal IPs that the bridge should never lookup.
     # By default, the below list is used.
-    openIdDisallowedIpRanges:
+    # openIdDisallowedIpRanges:
     #  - '127.0.0.0/8'
     #  - '10.0.0.0/8'
     #  - '172.16.0.0/12'

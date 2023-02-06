@@ -111,7 +111,7 @@
             "enabled": true,
             "secret": "test-secret",
             "requestTimeoutSeconds": 1,
-            "apiPrefix": "/_matrix/provision"
+            "ratelimit": false
         },
         "passwordEncryptionKeyPath": "./spec/support/passkey.pem"
     }

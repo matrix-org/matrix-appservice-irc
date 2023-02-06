@@ -49,6 +49,7 @@ interface PendingRequest {
 
 export interface ProvisionerConfig {
     enabled: boolean;
+    widget?: boolean;
     requestTimeoutSeconds: number;
     rules?: Rules;
     roomLimit?: number;
@@ -97,8 +98,8 @@ export class Provisioner extends ProvisioningApi {
             ircBridge.getStore(),
             {
                 provisioningToken: config.secret,
-                apiPrefix: config.apiPrefix,
-                ratelimit: config.ratelimit,
+                apiPrefix: config.apiPrefix ?? "/_matrix/provision",
+                ratelimit: config.ratelimit ?? true,
                 disallowedIpRanges: config.openIdDisallowedIpRanges,
                 openIdOverride: config.openIdOverrides
                     ? Object.fromEntries(Object.entries(config.openIdOverrides)
@@ -106,7 +107,7 @@ export class Provisioner extends ProvisioningApi {
                     )
                     : undefined,
                 widgetTokenPrefix: "ircbr-wdt-",
-                widgetFrontendLocation: "public",
+                widgetFrontendLocation: config.widget ? "public" : undefined,
                 // Use the bridge express application unless a config was specified for provisioning
                 expressApp: config.http ? undefined : ircBridge.getAppServiceBridge().appService.expressApp,
             },
