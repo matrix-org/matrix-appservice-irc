@@ -170,7 +170,7 @@ const LinkChannelForm = ({
     }, []);
 
     const getOperatorNicks = useCallback(async() => {
-        if (!channel) {
+        if (!channel || channel === '#') {
             return;
         }
 
@@ -223,9 +223,8 @@ const LinkChannelForm = ({
     const isFormValid = channel.length > 0 && operatorNick.length > 0;
 
     const onChannelChange: React.ChangeEventHandler<HTMLInputElement> = useCallback((e) => {
-        let channel = e.currentTarget.value;
-        channel = channel.startsWith('#') ? channel : `#${channel}`;
-        setChannel(channel);
+        const channel = e.currentTarget.value;
+        setChannel(channel.startsWith('#') ? channel : `#${channel}`);
     }, []);
 
     const onOperatorNickChange: React.ChangeEventHandler<HTMLInputElement> = useCallback((e) => {
