@@ -9,7 +9,7 @@ import * as Forms from './components/forms';
 import * as Alerts from './components/alerts';
 import { Card, Rule } from './components/layout';
 
-const pollLinkIntervalMs = 2000;
+const pollLinkIntervalMs = 1000;
 
 const LinkedChannelItem = ({
     channel,
