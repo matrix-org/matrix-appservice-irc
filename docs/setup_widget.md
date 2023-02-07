@@ -13,11 +13,11 @@ In order to use the setup widget, it must be enabled along with the provisioning
     # Whether to enable hosting the setup widget page. Default: false.
     widget: true
 ```
-It will be hosted on the same port as the appservice by default, but a different port can be specified.
+It will be hosted on the same port as the appservice by default, at the path `/_matrix/provision/v1/static`.
 
 ### Usage
 
-When enabled, the widget will be available at `/_matrix/provision/v1/static` by default and can be added to a Matrix room like this:
+Invite the bridge user to the Matrix room, then add the widget like this (where `example.com` is a public route to your bridge's provisioning API):
 ```
 /addwidget https://example.com/_matrix/provision/v1/static/?roomId=$matrix_room_id&widgetId=$matrix_widget_id
 ```
