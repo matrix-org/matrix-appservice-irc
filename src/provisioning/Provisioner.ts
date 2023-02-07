@@ -99,7 +99,9 @@ export class Provisioner extends ProvisioningApi {
             {
                 provisioningToken: config.secret,
                 apiPrefix: config.apiPrefix ?? "/_matrix/provision",
-                ratelimit: config.ratelimit ?? true,
+                ratelimit: (config.ratelimit ?? true) && {
+                    max: 80, // Higher rate limit to allow polling
+                },
                 disallowedIpRanges: config.openIdDisallowedIpRanges,
                 openIdOverride: config.openIdOverrides
                     ? Object.fromEntries(Object.entries(config.openIdOverrides)
