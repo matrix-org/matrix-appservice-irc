@@ -6,6 +6,7 @@
   - [Room Commands](./room_commands.md)
   - [Room Configuration](./room_configuration.md)
   - [IRC Modes](./irc_modes.md)
+  - [Setup Widget](./setup_widget.md)
 - [Bridged Networks](./bridged_networks.md)
 - [Bridge Administrators](./administrators_guide.md)
   - [Setting up the bridge](./bridge_setup.md)
