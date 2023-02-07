@@ -1,2 +1,2 @@
-export * from './Danger';
-export * from './Primary';
+export * from './Outline';
+export * from './Solid';

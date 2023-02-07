@@ -1,2 +1,2 @@
-export * from './Danger';
+export * from './Warning';
 export * from './Success';

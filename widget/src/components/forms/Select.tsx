@@ -5,7 +5,7 @@ import * as Text from '../text';
 
 const Select = (props: React.ComponentPropsWithoutRef<'select'> & { label?: string }) =>
     <label>
-        { props.label && <Text.Caption className="text-grey-200">{ props.label }</Text.Caption>}
+        { props.label && <Text.Micro className="text-grey-200">{ props.label }</Text.Micro>}
         <select
             {...props}
             className={classNames(

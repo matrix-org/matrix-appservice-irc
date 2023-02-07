@@ -7,6 +7,7 @@ import * as Text from './components/text';
 import * as Buttons from './components/buttons';
 import * as Forms from './components/forms';
 import * as Alerts from './components/alerts';
+import { Card, Rule } from './components/layout';
 
 const pollLinkIntervalMs = 2000;
 
@@ -26,17 +27,18 @@ const LinkedChannelItem = ({
     }, [unlinkChannel, channel, server]);
 
     return <div
-        className="flex justify-between items-center border border-grey-50 rounded-lg p-2"
+        className="flex justify-between items-center border border-grey-50 rounded-lg p-4"
         key={`${server}/${channel}`}
     >
-        <p>{ `${server}/${channel}` }</p>
-        <Buttons.Danger
-            className="bg-grey-50 text-black-900"
+        <Text.BodySemiBold>{ `${server}/${channel}` }</Text.BodySemiBold>
+        <Buttons.Outline
+            color="danger"
+            size="small"
             onClick={unlink}
             disabled={disabled}
         >
             Unlink
-        </Buttons.Danger>
+        </Buttons.Outline>
     </div>
 };
 
@@ -120,21 +122,29 @@ const LinkedChannels = ({
                         unlinkChannel={unlinkChannel}
                         disabled={isBusy}
                     />) }
-                    { unlinkError && <Alerts.Danger>{ unlinkError }</Alerts.Danger> }
-                    { error && <Alerts.Danger>{ error }</Alerts.Danger> }
+                    { unlinkError && <Alerts.Warning>{ unlinkError }</Alerts.Warning> }
+                    { error && <Alerts.Warning>{ error }</Alerts.Warning> }
                 </div>
             </>;
         } else {
-            content = <Text.Caption>No channels linked</Text.Caption>
+            content = <>
+                <Text.Caption className="text-grey-200">
+                    No channels are linked to this room.
+                </Text.Caption>
+                { error && <Alerts.Warning>{ error }</Alerts.Warning> }
+            </>;
         }
     } else if (error) {
-        content = <Alerts.Danger>{ error }</Alerts.Danger>;
+        content = <Alerts.Warning>{ error }</Alerts.Warning>;
     } else {
-        content = <Text.Caption>Loading...</Text.Caption>;
+        content = <Text.Caption className="text-grey-200">
+            Loading...
+        </Text.Caption>;
     }
 
     return <div className="mb-6">
-        <Text.Title>Linked channels</Text.Title>
+        <Text.SubtitleSemiBold>Linked channels</Text.SubtitleSemiBold>
+        <Rule/>
         { content }
     </div>;
 }
@@ -235,7 +245,7 @@ const LinkChannelForm = ({
         setChannelKey(e.currentTarget.value);
     }, []);
 
-    return <div className="grid grid-cols-1 gap-4 my-2">
+    return <>
         <Forms.Input
             label="Channel"
             comment="Entering a channel will cause the bot to join it"
@@ -268,12 +278,23 @@ const LinkChannelForm = ({
             onBlur={getOperatorNicks}
             disabled={isBusy}
         />
-        <Buttons.Primary onClick={linkChannel} disabled={!isFormValid || isBusy}>
-            Request link
-        </Buttons.Primary>
-        { error && <Alerts.Danger>{ error }</Alerts.Danger> }
-        { info && <Alerts.Success>{ info }</Alerts.Success> }
-    </div>;
+        <div className="col-span-full grid md:grid-cols-2 gap-4">
+            <Text.Caption className="text-grey-200">
+                Requesting a link will send a message to the operator for approval.
+            </Text.Caption>
+            <div className="flex justify-end">
+                <Buttons.Solid onClick={linkChannel} disabled={!isFormValid || isBusy}>
+                    Request link
+                </Buttons.Solid>
+            </div>
+        </div>
+        <div className="col-span-full">
+            { error && <Alerts.Warning>{ error }</Alerts.Warning> }
+        </div>
+        <div className="col-span-full">
+            { info && <Alerts.Success>{ info }</Alerts.Success> }
+        </div>
+    </>;
 }
 
 const AvailableChannels = ({
@@ -311,7 +332,7 @@ const AvailableChannels = ({
     let content;
     if (networks) {
         if (networks.servers.length > 0) {
-            content = <>
+            content = <div className="grid md:grid-cols-2 gap-4 my-2">
                 { networks.servers.length === 1
                     ? <Forms.Input
                         label="Server"
@@ -338,18 +359,23 @@ const AvailableChannels = ({
                         roomId={roomId}
                     />
                 }
-            </>;
+            </div>;
         } else {
-            content = <Text.Caption>No networks available</Text.Caption>
+            content = <Text.Caption className="text-grey-200">
+                No networks available
+            </Text.Caption>
         }
     } else if (error) {
-        content = <Alerts.Danger>{ error }</Alerts.Danger>;
+        content = <Alerts.Warning>{ error }</Alerts.Warning>;
     } else {
-        content = <Text.Caption>Loading...</Text.Caption>;
+        content = <Text.Caption className="text-grey-200">
+            Loading...
+        </Text.Caption>;
     }
 
     return <div className="mb-6">
-        <Text.Title>Link a new channel</Text.Title>
+        <Text.SubtitleSemiBold>Link a new channel</Text.SubtitleSemiBold>
+        <Rule/>
         { content }
     </div>;
 }
@@ -359,8 +385,12 @@ export const IrcApp = () => {
 
     const client = new IrcProvisioningClient(provisioningContext.client);
 
-    return <div className="w-full md:w-1/2">
-        <LinkedChannels client={client} roomId={provisioningContext.roomId}/>
-        <AvailableChannels client={client} roomId={provisioningContext.roomId}/>
+    return <div className="flex flex-col gap-4">
+        <Card>
+            <LinkedChannels client={client} roomId={provisioningContext.roomId}/>
+        </Card>
+        <Card>
+            <AvailableChannels client={client} roomId={provisioningContext.roomId}/>
+        </Card>
     </div>;
 }
