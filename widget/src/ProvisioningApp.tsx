@@ -5,10 +5,13 @@ import urlJoin from 'url-join';
 import { ProvisioningClient, ProvisioningError } from './ProvisioningClient';
 import * as Text from './components/text';
 
+type EmbedTypes = 'integration-manager' | 'default';
+
 interface ProvisioningContext {
     client: ProvisioningClient,
     roomId: string,
     widgetId: string,
+    embedType: EmbedTypes,
 }
 
 const Context = createContext<ProvisioningContext | undefined>(undefined);
@@ -40,6 +43,7 @@ export const ProvisioningApp: React.FC<React.PropsWithChildren<{
     // Parse parameters from query string
     const [widgetId, setWidgetId] = useState<string>();
     const [roomId, setRoomId] = useState<string>();
+    const [embedType, setEmbedType] = useState<EmbedTypes>('default');
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
 
@@ -58,6 +62,11 @@ export const ProvisioningApp: React.FC<React.PropsWithChildren<{
             return;
         }
         setRoomId(roomId);
+
+        const embedType = params.get('io_element_embed_type');
+        if (embedType === 'integration-manager') {
+            setEmbedType(embedType);
+        }
     }, []);
 
     // Set up widget API
@@ -112,15 +121,16 @@ export const ProvisioningApp: React.FC<React.PropsWithChildren<{
     }, [apiPrefix, tokenName, widgetApi]);
 
     const provisioningContext: ProvisioningContext | undefined = useMemo(() => {
-        if (!widgetId || !roomId || !client) {
+        if (!client || !roomId || !widgetId) {
             return undefined;
         }
         return {
-            widgetId,
-            roomId,
             client,
+            roomId,
+            widgetId,
+            embedType,
         };
-    }, [widgetId, roomId, client]);
+    }, [client, roomId, widgetId, embedType]);
 
     let content;
     if (provisioningContext) {
@@ -137,7 +147,7 @@ export const ProvisioningApp: React.FC<React.PropsWithChildren<{
         content = <Text.Caption>Loading...</Text.Caption>;
     }
 
-    return <div className="p-4">
+    return <div className={embedType === 'integration-manager' ? '' : 'p-4'}>
         { content }
     </div>;
 };
