@@ -146,7 +146,7 @@ export class MatrixHandler {
         this.adminHandler = new AdminRoomHandler(ircBridge, this);
     }
 
-    public initalise() {
+    public initialise() {
         this.memberTracker = new StateLookup({
             intent: this.ircBridge.getAppServiceBridge().getIntent(),
             eventTypes: ['m.room.member']

@@ -25,8 +25,8 @@ import { MatrixHandler, MatrixSimpleMessage } from "./MatrixHandler";
 import logging from "../logging";
 import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "matrix-appservice-bridge";
-import { ProvisionRequest } from "../provisioning/ProvisionRequest";
 import { IdentGenerator } from "../irc/IdentGenerator";
+import { Provisioner } from "../provisioning/Provisioner";
 
 const log = logging("AdminRoomHandler");
 
@@ -229,7 +229,7 @@ export class AdminRoomHandler {
         }
         try {
             await this.ircBridge.getProvisioner().doLink(
-                ProvisionRequest.createFake("adminCommand", log),
+                Provisioner.createFakeRequest("plumb", sender),
                 server,
                 ircChannel,
                 undefined,
@@ -256,7 +256,9 @@ export class AdminRoomHandler {
         }
         try {
             await this.ircBridge.getProvisioner().unlink(
-                ProvisionRequest.createFake("adminCommand", log,
+                Provisioner.createFakeRequest(
+                    "unplumb",
+                    sender,
                     {
                         remote_room_server: serverDomain,
                         remote_room_channel: ircChannel,
