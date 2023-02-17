@@ -166,7 +166,7 @@ export class IrcHandler {
         fromUserNick: string,
         server: IrcServer
     ): Promise<MatrixRoom> {
-        let remainingReties = PM_ROOM_CREATION_RETRIES;
+        let remainingRetries = PM_ROOM_CREATION_RETRIES;
         let response;
         do {
             try {
@@ -207,10 +207,10 @@ export class IrcHandler {
             }
             catch (error) {
                 req.log.error(error);
-                req.log.warn(`Failed creating a PM room with ${toUserId}. Remaining retries: ${remainingReties}`);
+                req.log.warn(`Failed creating a PM room with ${toUserId}. Remaining retries: ${remainingRetries}`);
             }
-            remainingReties--;
-        } while (!response && remainingReties > 0);
+            remainingRetries--;
+        } while (!response && remainingRetries > 0);
         if (!response) {
             throw Error(`Failed creating a PM room with ${toUserId}. Giving up.`);
         }
