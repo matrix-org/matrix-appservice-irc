@@ -284,7 +284,12 @@ describe("IRC-to-Matrix PMing", () => {
                             "m.room.canonical_alias": 100,
                             "m.room.history_visibility": 100,
                             "m.room.power_levels": 100,
-                            "m.room.encryption": 100
+                            "m.room.encryption": 100,
+                            "m.call.invite": 100,
+                            "m.call.candidate": 100,
+                            "m.reaction": 100,
+                            "m.room.redaction": 100,
+                            "m.sticker": 100,
                         },
                         invite: 100
                     },
