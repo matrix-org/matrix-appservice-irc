@@ -658,6 +658,7 @@ export class IrcBridge {
         }
 
         this.clientPool = new ClientPool(this, this.dataStore);
+        void this.clientPool.run();
 
         if (this.config.ircService.debugApi.enabled) {
             this.debugApi = new DebugApi(
@@ -921,6 +922,7 @@ export class IrcBridge {
         log.info("Closing bridge");
         await this.bridge.close();
         await this.appservice.close();
+        await this.clientPool.close();
     }
 
     public get isStartedUp() {

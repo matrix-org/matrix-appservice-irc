@@ -21,6 +21,7 @@ import * as logging from "../logging";
 import { Defer } from "../promiseutil";
 import { IrcServer } from "./IrcServer";
 import { getBridgeVersion } from "matrix-appservice-bridge";
+import { IrcPoolClient } from "../pool-service/IrcPoolClient";
 
 const log = logging.get("client-connection");
 
@@ -89,6 +90,7 @@ export class ConnectionInstance {
     // eslint-disable-next-line no-use-before-define
     private connectDefer: Defer<ConnectionInstance>;
     public onDisconnect?: (reason: string) => void;
+
     /**
      * Create an IRC connection instance. Wraps the matrix-org-irc library to handle
      * connections correctly.
@@ -378,6 +380,8 @@ export class ConnectionInstance {
     public static async create (server: IrcServer,
                                 opts: ConnectionOpts,
                                 homeserverDomain: string,
+                                redisPool: IrcPoolClient,
+                                ident: string,
                                 onCreatedCallback?: (inst: ConnectionInstance) => void): Promise<ConnectionInstance> {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
@@ -402,10 +406,19 @@ export class ConnectionInstance {
             encodingFallback: opts.encodingFallback,
         };
 
+        const connection = await redisPool.createOrGetIrcSocket(ident, {
+            ...connectionOpts,
+            clientId: ident,
+            port: connectionOpts.port ?? 6667,
+            localAddress: connectionOpts.localAddress ?? undefined,
+            localPort: connectionOpts.localPort ?? undefined,
+            family: connectionOpts.family ?? undefined,
+        });
+
         // Returns: A promise which resolves to a ConnectionInstance
         const retryConnection = () => {
             const nodeClient = new Client(
-                server.randomDomain(), opts.nick, connectionOpts
+                server.randomDomain(), opts.nick, connectionOpts, connection.state, connection,
             );
             const inst = new ConnectionInstance(
                 nodeClient, server.domain, opts.nick, {

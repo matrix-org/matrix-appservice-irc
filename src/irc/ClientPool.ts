@@ -29,6 +29,7 @@ import { DataStore } from "../datastore/DataStore";
 import { Gauge } from "prom-client";
 import QuickLRU from "quick-lru";
 import { IRCConnectionError, IRCConnectionErrorCode } from "./ConnectionInstance";
+import { IrcPoolClient } from "../pool-service/IrcPoolClient";
 const log = getLogger("ClientPool");
 
 const NICK_CACHE_SIZE = 256;
@@ -54,6 +55,7 @@ export class ClientPool {
     private identGenerator: IdentGenerator;
     private ipv6Generator: Ipv6Generator;
     private ircEventBroker: IrcEventBroker;
+    redisPool: IrcPoolClient;
     constructor(private ircBridge: IrcBridge, private store: DataStore) {
         // The list of bot clients on servers (not specific users)
         this.botClients = new Map();
@@ -71,6 +73,7 @@ export class ClientPool {
             this.ircBridge.ircHandler,
             this.ircBridge.getServers(),
         );
+        this.redisPool = new IrcPoolClient();
     }
 
     public nickIsVirtual(server: IrcServer, nick: string): boolean {
@@ -279,7 +282,7 @@ export class ClientPool {
         return new BridgedClient(
             server, ircClientConfig, matrixUser || undefined, isBot,
             this.ircEventBroker, this.identGenerator, this.ipv6Generator,
-            this.ircBridge.config.ircService.encodingFallback
+            this.redisPool, this.ircBridge.config.ircService.encodingFallback,
         );
     }
 
@@ -571,6 +574,14 @@ export class ClientPool {
                 }
             }
         }
+    }
+
+    public async run() {
+        return this.redisPool.listen();
+    }
+
+    public close() {
+        this.redisPool.close();
     }
 
     private getNumberOfConnections(server?: IrcServer): number {
