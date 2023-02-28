@@ -42,12 +42,9 @@ export class IrcPoolClient {
         log.info(`Requesting new client ${clientId}`);
         // Check to see if one exists.
         const state = await this.redis.hget(REDIS_IRC_POOL_CONNECTIONS, clientId);
-        log.info(`Requesting new client ${clientId}`, state);
         const clientState = new IrcClientRedisState(this.redis, clientId);
-        log.info(`Requesting new client ${clientId}`);
         await clientState.hydrate();
         const client = new RedisIrcConnection(this.redis, clientId, clientState);
-        log.info(`Requesting new client ${clientId}`);
         this.connections.set(clientId, client);
 
         log.info(`Requesting new client ${clientId}`);
@@ -86,7 +83,7 @@ export class IrcPoolClient {
             default:
                 // eslint-disable-next-line no-case-declarations
                 const buffer = commandData as Buffer;
-                log.debug(`Got data for ${connection?.clientId}: ${buffer.byteLength}`)
+                log.debug(`Got data for ${connection?.clientId} (${buffer.byteLength} bytes)`)
                 connection?.emit('data', buffer);
                 break;
         }

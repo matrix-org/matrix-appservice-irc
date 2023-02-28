@@ -12,7 +12,8 @@ import { REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ, OutCommandType,
     ClientId,
     WriteArgs,
     OutCommandPayload,
-    IrcConnectionPoolCommandOut} from './types';
+    IrcConnectionPoolCommandOut,
+    REDIS_IRC_CLIENT_STATE_KEY} from './types';
 
 // TODO: Cap streams.
 
@@ -52,7 +53,7 @@ export class IrcConnectionPool {
         } as IrcConnectionPoolCommandOut)).catch((ex) => {
             log.warn(`Unable to send command out`, ex);
         });
-        log.debug(`Sent command out ${type}: ${payload}`);
+        log.debug(`Sent command out ${type}`, payload);
     }
 
     private async handleConnectCommand(payload: IrcConnectionPoolCommandIn<ConnectionCreateArgs>) {
@@ -171,6 +172,21 @@ export class IrcConnectionPool {
 
         // Warn of any existing connections. TODO: This assumes one service process.
         await this.redis.del(REDIS_IRC_POOL_CONNECTIONS);
+        await this.redis.del(REDIS_IRC_CLIENT_STATE_KEY);
+
+        setTimeout(() => {
+            this.redis.xtrim(REDIS_IRC_POOL_COMMAND_IN_STREAM, "MAXLEN", "~", 50).then(trimCount => {
+                log.debug(`Trimmed ${trimCount} commands from the IN stream`);
+            }).catch((ex) => {
+                log.warn(`Failed to trim commands from the IN stream`, ex);
+            });
+            this.redis.xtrim(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MAXLEN", "~", 50).then(trimCount => {
+                log.debug(`Trimmed ${trimCount} commands from the OUT stream`);
+            }).catch((ex) => {
+                log.warn(`Failed to trim commands from the OUT stream`, ex);
+            });
+        }, 10000);
+
 
         log.info(`Listening for new commands`);
         while (true) {
@@ -192,7 +208,6 @@ export class IrcConnectionPool {
                     .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
                     ),
             );
-            console.log("Got new cmd:", cmdType, commandData);
         }
     }
 }

@@ -6,8 +6,7 @@ export const REDIS_IRC_POOL_COMMAND_IN_STREAM = "ircbridge.stream.command.in";
 export const REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ = "ircbridge.stream.command.last-read." // .pool-name;
 
 export const REDIS_IRC_POOL_CONNECTIONS = "ircbridge.connections";
-export const REDIS_IRC_POOL_CONNECTIONS_STATE = "ircbridge.connectionstate";
-
+export const REDIS_IRC_CLIENT_STATE_KEY = `ircbridge.clientstate`; //client-id
 export type ClientId = string;
 
 export interface ConnectionCreateArgs extends TcpNetConnectOpts {

@@ -1,11 +1,13 @@
 
 import { Redis } from 'ioredis';
-import { ChanData, IrcClientState, WhoisResponse, IrcCapabilities, IrcSupported } from 'matrix-org-irc';
+import { ChanData, IrcClientState, WhoisResponse,
+    IrcCapabilities, IrcSupported, DefaultIrcSupported } from 'matrix-org-irc';
+import { REDIS_IRC_CLIENT_STATE_KEY } from './types';
 
-const REDIS_CLIENT_STATE_KEY = `ircbridge.clientstate.`; //client-id
 
 interface IrcClientStateDehydrated {
     loggedIn: boolean;
+    registered: boolean;
     /**
     * This will either be the requested nick or the actual nickname.
     */
@@ -26,8 +28,24 @@ interface IrcClientStateDehydrated {
     lastSendTime: number;
 }
 
-export class IrcClientRedisState implements IrcClientState {
+class StateBackedMap<K, V> extends Map<K, V> {
+    constructor(private readonly onChange: () => void, entries?: readonly (readonly [K, V])[] | null, ) {
+        super(entries);
+    }
 
+    set(key: K, value: V) {
+        super.set(key, value);
+        //this.onChange();
+        return this;
+    }
+
+    clear() {
+        super.clear();
+        //this.onChange();
+    }
+}
+
+export class IrcClientRedisState implements IrcClientState {
     private putStatePromise: Promise<void> = Promise.resolve();
     private innerState?: IrcClientState;
 
@@ -47,7 +65,22 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.loggedIn = value;
-        this.putState();
+        this.flush();
+    }
+
+    public get registered() {
+        if (!this.innerState) {
+            throw Error('You must call .hydrate() before using this state');
+        }
+        return this.innerState.registered;
+    }
+
+    public set registered(value) {
+        if (!this.innerState) {
+            throw Error('You must call .hydrate() before using this state');
+        }
+        this.innerState.registered = value;
+        this.flush();
     }
 
     public get currentNick() {
@@ -62,7 +95,7 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.currentNick = value;
-        this.putState();
+        this.flush();
     }
 
     public get whoisData() {
@@ -77,7 +110,7 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.whoisData = value;
-        this.putState();
+        this.flush();
     }
 
     public get nickMod() {
@@ -92,7 +125,7 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.nickMod = value;
-        this.putState();
+        this.flush();
     }
 
     public get modeForPrefix() {
@@ -107,7 +140,7 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.modeForPrefix = value;
-        this.putState();
+        this.flush();
     }
 
     public get capabilities() {
@@ -122,7 +155,7 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.capabilities = value;
-        this.putState();
+        this.flush();
     }
 
     public get supportedState() {
@@ -137,7 +170,7 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.supportedState = value;
-        this.putState();
+        this.flush();
     }
 
     public get hostMask() {
@@ -152,7 +185,7 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.hostMask = value;
-        this.putState();
+        this.flush();
     }
 
     public get chans() {
@@ -167,7 +200,7 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.chans = value;
-        this.putState();
+        this.flush();
     }
 
     public get prefixForMode() {
@@ -182,7 +215,7 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.prefixForMode = value;
-        this.putState();
+        this.flush();
     }
 
     public get maxLineLength() {
@@ -197,7 +230,7 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.maxLineLength = value;
-        this.putState();
+        this.flush();
     }
 
     public get lastSendTime() {
@@ -212,33 +245,35 @@ export class IrcClientRedisState implements IrcClientState {
             throw Error('You must call .hydrate() before using this state');
         }
         this.innerState.lastSendTime = value;
-        this.putState();
+        this.flush();
     }
 
 
     public async hydrate() {
-        const data = await this.redis.get(`${REDIS_CLIENT_STATE_KEY}.${this.clientId}`);
+        const data = await this.redis.hget(REDIS_IRC_CLIENT_STATE_KEY, this.clientId);
         const deseralisedData = data ? JSON.parse(data) as IrcClientStateDehydrated : {} as Record<string, never>;
         // Deserialise
 
         // TODO: Validate that some of these exist.
         this.innerState = {
             loggedIn: deseralisedData.loggedIn ?? false,
+            registered: deseralisedData.registered ?? false,
             currentNick: deseralisedData.currentNick ?? '',
             nickMod: deseralisedData.nickMod ?? 0,
-            whoisData: new Map(deseralisedData.whoisData),
+            whoisData: new StateBackedMap(this.flush.bind(this), deseralisedData.whoisData),
             modeForPrefix: deseralisedData.modeForPrefix,
             hostMask: deseralisedData.hostMask ?? '',
-            chans: new Map(deseralisedData.chans),
+            // TODO: It's still possible for data to go missing here.
+            chans: new StateBackedMap(this.flush.bind(this), deseralisedData.chans),
             maxLineLength: deseralisedData.maxLineLength ?? -1,
             lastSendTime: deseralisedData.lastSendTime ?? 0,
-            prefixForMode: deseralisedData.prefixForMode,
-            supportedState: deseralisedData.supportedState,
+            prefixForMode: deseralisedData.prefixForMode ?? {},
+            supportedState: deseralisedData.supportedState ?? DefaultIrcSupported,
             capabilities: new IrcCapabilities(deseralisedData.capabilities),
         };
     }
 
-    private putState() {
+    public flush() {
         if (!this.innerState) {
             throw Error('You must call .hydrate() before using this state');
         }
@@ -256,6 +291,6 @@ export class IrcClientRedisState implements IrcClientState {
     }
 
     private async innerPutState(data: string) {
-        return this.redis.set(`${REDIS_CLIENT_STATE_KEY}.${this.clientId}`, data);
+        return this.redis.hset(REDIS_IRC_CLIENT_STATE_KEY, this.clientId, data);
     }
 }

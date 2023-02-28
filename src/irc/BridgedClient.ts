@@ -804,6 +804,7 @@ export class BridgedClient extends EventEmitter {
 
     private onConnectionCreated(connInst: ConnectionInstance, nameInfo: {username?: string},
                                 identResolver: () => void) {
+        [...connInst.client.chans.keys()].forEach(k => this.chanList.add(k));
         // listen for a connect event which is done when the TCP connection is
         // established and set ident info (this is different to the connect() callback
         // in node-irc which actually fires on a registered event..)
@@ -953,6 +954,7 @@ export class BridgedClient extends EventEmitter {
             }
             return Promise.reject(new Error("No client"));
         }
+        console.log("Channels:", this.state.client.chans);
         if (this.state.client.chans.has(channel)) {
             return Promise.resolve(new IrcRoom(this.server, channel));
         }
@@ -966,6 +968,7 @@ export class BridgedClient extends EventEmitter {
         const defer = promiseutil.defer() as promiseutil.Defer<IrcRoom>;
         this.log.debug("Joining channel %s", channel);
         const client = this.state.client;
+
         // listen for failures to join a channel (e.g. +i, +k)
 
         // add a timeout to try joining again
