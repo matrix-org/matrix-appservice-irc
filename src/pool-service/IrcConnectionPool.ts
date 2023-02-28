@@ -84,7 +84,7 @@ export class IrcConnectionPool {
                 // *Just* in case.
                 data = Buffer.from(data);
             }
-            console.log("DATA:", data.toString('utf-8'));
+
             this.redis.xaddBuffer(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "*", clientId, data).catch((ex) => {
                 log.warn(`Unable to send raw read out`, ex);
             })
