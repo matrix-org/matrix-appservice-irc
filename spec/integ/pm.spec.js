@@ -285,13 +285,18 @@ describe("IRC-to-Matrix PMing", () => {
                             "m.room.history_visibility": 100,
                             "m.room.power_levels": 100,
                             "m.room.encryption": 100,
+                            "org.matrix.msc3401.call": 100,
+                            "org.matrix.msc3401.call.member": 100,
+                            "im.vector.modular.widgets": 100,
+                            "io.element.voice_broadcast_info": 100,
                             "m.call.invite": 100,
                             "m.call.candidate": 100,
                             "m.reaction": 100,
                             "m.room.redaction": 100,
                             "m.sticker": 100,
                         },
-                        invite: 100
+                        invite: 100,
+                        redact: 100,
                     },
                 }]);
                 resolve();
