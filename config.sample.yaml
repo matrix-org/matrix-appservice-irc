@@ -438,8 +438,12 @@ ircService:
   # Set information about the bridged channel in the room state, so that client's may
   # present relevant UI to the user. MSC2346
   bridgeInfoState:
+    # Send bridge info to rooms when their bridge is being configure
     enabled: false
+    # Send bridge info to all bridged rooms when the bridge is starting up.
+    # (Does nothing if `enabled` is `false`)
     initial: false
+
   # Configuration for an ident server. If you are running a public bridge it is
   # advised you setup an ident server so IRC mods can ban specific matrix users
   # rather than the application service itself.
