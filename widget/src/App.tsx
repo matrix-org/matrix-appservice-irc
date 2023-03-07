@@ -4,7 +4,6 @@ import { IrcApp } from './IrcApp';
 
 const App = () => {
     return <ProvisioningApp
-        apiPrefix="/_matrix/provision"
         tokenName="irc-sessionToken"
     >
         <IrcApp/>
