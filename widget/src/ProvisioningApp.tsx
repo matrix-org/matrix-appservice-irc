@@ -25,16 +25,13 @@ export const useProvisioningContext = (): ProvisioningContext => {
 };
 
 /**
- * @param apiPrefix Base path for API requests.
  * @param tokenName Name to use for the session token in localstorage.
  * @param children
  * @constructor
  */
 export const ProvisioningApp: React.FC<React.PropsWithChildren<{
-    apiPrefix: string,
     tokenName: string,
 }>> = ({
-   apiPrefix,
    tokenName,
    children,
 }) => {
@@ -97,8 +94,9 @@ export const ProvisioningApp: React.FC<React.PropsWithChildren<{
             return;
         }
 
-        // Assuming the widget is hosted on the same origin as the API
-        const apiBaseUrl = urlJoin(window.location.origin, apiPrefix);
+        // Remove the widget path to get the provisioning API base URL
+        // https://example.com/irc/_matrix/provision/v1/static -> https://example.com/irc/_matrix/provision
+        const apiBaseUrl = window.location.origin + window.location.pathname.replace('/v1/static', '');
 
         const initClient = async() => {
             try {
@@ -118,7 +116,7 @@ export const ProvisioningApp: React.FC<React.PropsWithChildren<{
             }
         };
         void initClient();
-    }, [apiPrefix, tokenName, widgetApi]);
+    }, [tokenName, widgetApi]);
 
     const provisioningContext: ProvisioningContext | undefined = useMemo(() => {
         if (!client || !roomId || !widgetId) {
