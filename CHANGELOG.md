@@ -1,3 +1,40 @@
+ 0.37.1 (2023-03-07)
+====================
+
+Bugfixes
+--------
+
+- Fix provisioning API base URL in setup widgets. ([\#1677](https://github.com/matrix-org/matrix-appservice-irc/issues/1677))
+
+
+Internal Changes
+----------------
+
+- Update matrix-appservice-bridge to `8.1.1`. ([\#1676](https://github.com/matrix-org/matrix-appservice-irc/issues/1676))
+
+0.37.0 (2023-02-08)
+===================
+
+Features
+--------
+
+- Add support for Node.JS 19. ([\#1646](https://github.com/matrix-org/matrix-appservice-irc/issues/1646))
+- Refactor provisioning API to use `matrix-appservice-bridge`, adding support for OpenID token auth among other improvements. ([\#1655](https://github.com/matrix-org/matrix-appservice-irc/issues/1655))
+- Add a UI in the form of a Matrix widget for linking and unlinking channels from a Matrix room. ([\#1656](https://github.com/matrix-org/matrix-appservice-irc/issues/1656))
+
+
+Bugfixes
+--------
+
+- Document 8090 to be the default port, to match the code's behaviour. ([\#1427](https://github.com/matrix-org/matrix-appservice-irc/issues/1427))
+- Fix the configured bind port being overridden in Docker. ([\#1654](https://github.com/matrix-org/matrix-appservice-irc/issues/1654))
+
+
+Internal Changes
+----------------
+
+- Update builder image for Freebind from Stretch (EOL) to Buster. ([\#1653](https://github.com/matrix-org/matrix-appservice-irc/issues/1653))
+
 0.36.0 (2022-10-25)
 ===================
 
