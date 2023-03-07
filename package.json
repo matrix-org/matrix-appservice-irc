@@ -40,7 +40,7 @@
     "extend": "^3.0.2",
     "he": "^1.2.0",
     "logform": "^2.4.2",
-    "matrix-appservice-bridge": "^8.1.0",
+    "matrix-appservice-bridge": "^8.1.1",
     "matrix-bot-sdk": "^0.6.2",
     "matrix-org-irc": "^1.5.0",
     "matrix-widget-api": "^1.1.1",
