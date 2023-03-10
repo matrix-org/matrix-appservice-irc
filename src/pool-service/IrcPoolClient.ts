@@ -1,10 +1,13 @@
 import Redis from "ioredis";
 import { IrcClientRedisState } from "./IrcClientRedisState";
 import { RedisIrcConnection } from "./RedisIrcConnection";
-import { ClientId, ConnectionCreateArgs, InCommandPayload, InCommandType, IrcConnectionPoolCommandIn,
+import { ClientId, ConnectionCreateArgs, HEARTBEAT_EVERY_MS,
+    InCommandPayload, InCommandType, IrcConnectionPoolCommandIn,
     IrcConnectionPoolCommandOut,
     OutCommandType,
-    REDIS_IRC_POOL_COMMAND_IN_STREAM, REDIS_IRC_POOL_COMMAND_OUT_STREAM, REDIS_IRC_POOL_CONNECTIONS } from "./types";
+    PROTOCOL_VERSION,
+    REDIS_IRC_POOL_COMMAND_IN_STREAM, REDIS_IRC_POOL_COMMAND_OUT_STREAM,
+    REDIS_IRC_POOL_CONNECTIONS, REDIS_IRC_POOL_HEARTBEAT_KEY, REDIS_IRC_POOL_VERSION_KEY } from "./types";
 
 import { Logger } from 'matrix-appservice-bridge';
 const log = new Logger('IrcPoolClient');
@@ -127,6 +130,8 @@ export class IrcPoolClient {
 
     public close() {
         this.shouldRun = false;
+        this.redis.disconnect();
+        this.cmdReader.disconnect();
     }
 
     public async handleIncomingCommand() {
@@ -155,15 +160,26 @@ export class IrcPoolClient {
         );
     }
 
-    private async pingPool() {
-        await this.sendCommand(InCommandType.Ping, {});
-
-    }
-
-    public listen() {
+    public async listen() {
         log.info(`Listening for new commands`);
         let loopCommandCheck: () => void;
 
+        // First, check if the pool is up.
+        const lastHeartbeat = parseInt(await this.redis.get(REDIS_IRC_POOL_HEARTBEAT_KEY) ?? '0');
+        console.log(lastHeartbeat);
+        if (lastHeartbeat + HEARTBEAT_EVERY_MS + 1000 < Date.now()) {
+            // Heartbeat is stale or missing, might not be running!
+            throw Error('IRC pool is not running!');
+        }
+
+        const version = parseInt(await this.redis.get(REDIS_IRC_POOL_VERSION_KEY) ?? '-1');
+        if (version < PROTOCOL_VERSION) {
+            // Heartbeat is stale or missing, might not be running!
+            throw Error(
+                `IRC pool is running an older version (${version})` +
+                `of the protocol than the bridge (${PROTOCOL_VERSION}). Restart the pool.`
+            );
+        }
 
         // eslint-disable-next-line prefer-const
         loopCommandCheck = () => {

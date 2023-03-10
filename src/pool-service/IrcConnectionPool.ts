@@ -4,13 +4,17 @@ import { createConnection, Socket } from 'net';
 import tls from 'tls';
 import { REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ, OutCommandType,
     REDIS_IRC_POOL_COMMAND_OUT_STREAM, IrcConnectionPoolCommandIn,
-    ConnectionCreateArgs, InCommandType, CommandError, REDIS_IRC_POOL_KEY,
+    ConnectionCreateArgs, InCommandType, CommandError,
+    REDIS_IRC_POOL_HEARTBEAT_KEY,
+    REDIS_IRC_POOL_VERSION_KEY,
     REDIS_IRC_POOL_COMMAND_IN_STREAM,
     REDIS_IRC_POOL_CONNECTIONS,
     ClientId,
     OutCommandPayload,
     IrcConnectionPoolCommandOut,
-    REDIS_IRC_CLIENT_STATE_KEY
+    REDIS_IRC_CLIENT_STATE_KEY,
+    HEARTBEAT_EVERY_MS,
+    PROTOCOL_VERSION
 } from './types';
 import { parseMessage } from 'matrix-org-irc';
 import { collectDefaultMetrics, register, Gauge } from 'prom-client';
@@ -33,7 +37,6 @@ const connectionsGauge = new Gauge({
 
 export class IrcConnectionPool {
     private readonly redis: Redis;
-    private readonly serviceName: string;
     /**
      * Track all the connections expecting a pong response.
      */
@@ -47,13 +50,11 @@ export class IrcConnectionPool {
     constructor(private readonly config: typeof Config) {
         this.redis = new Redis(config.redisUri);
         this.cmdReader = new Redis(config.redisUri);
-        // TODO: Need something unique across restarts.
-        this.serviceName = `pool.${process.pid}`;
     }
 
     private updateLastRead(lastRead: string) {
         this.commandStreamId = lastRead;
-        this.redis.set(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ + this.serviceName, lastRead).catch((ex) => {
+        this.redis.set(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ, lastRead).catch((ex) => {
             log.warn(`Unable to update last-read for command.in`, ex);
         })
     }
@@ -293,6 +294,11 @@ export class IrcConnectionPool {
         return this.sendCommandOut(OutCommandType.Connected, { clientId });
     }
 
+    public sendHeartbeat() {
+        log.debug(`Sending heartbeat`);
+        return this.redis.set(REDIS_IRC_POOL_HEARTBEAT_KEY, Date.now());
+    }
+
     public async main() {
         Logger.configure({ console: this.config.loggingLevel });
         collectDefaultMetrics();
@@ -329,18 +335,21 @@ export class IrcConnectionPool {
             log.info(`Listening for metrics on ${this.config.metricsHost}:${this.config.metricsPort}`);
         }
 
-        // Register yourself with redis
-        await this.redis.hset(REDIS_IRC_POOL_KEY, this.serviceName, Date.now());
+        // Register yourself with redis and set the current protocol version
+        await this.redis.set(REDIS_IRC_POOL_VERSION_KEY, PROTOCOL_VERSION);
+        await this.sendHeartbeat();
 
         // Fetch the last read index.
-        this.commandStreamId =
-            await this.redis.get(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ + this.serviceName) || "$";
+        this.commandStreamId = await this.redis.get(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ) || "$";
 
         // Warn of any existing connections. TODO: This assumes one service process.
         await this.redis.del(REDIS_IRC_POOL_CONNECTIONS);
         await this.redis.del(REDIS_IRC_CLIENT_STATE_KEY);
 
-        setTimeout(() => {
+        setInterval(() => {
+            this.sendHeartbeat().catch((ex) => {
+                log.warn(`Failed to send heartbeat`, ex);
+            });
             this.redis.xtrim(REDIS_IRC_POOL_COMMAND_IN_STREAM, "MAXLEN", "~", 50).then(trimCount => {
                 log.debug(`Trimmed ${trimCount} commands from the IN stream`);
             }).catch((ex) => {
@@ -351,7 +360,7 @@ export class IrcConnectionPool {
             }).catch((ex) => {
                 log.warn(`Failed to trim commands from the OUT stream`, ex);
             });
-        }, 10000);
+        }, HEARTBEAT_EVERY_MS);
 
 
         log.info(`Listening for new commands`);
@@ -378,8 +387,10 @@ export class IrcConnectionPool {
     }
 }
 
-new IrcConnectionPool(Config).main().then(() => {
-    log.info('Pool started');
-}).catch(ex => {
-    log.error('Pool ended', ex);
-});
+if (require.main === module) {
+    new IrcConnectionPool(Config).main().then(() => {
+        log.info('Pool started');
+    }).catch(ex => {
+        log.error('Pool process encountered an error', ex);
+    });
+}
