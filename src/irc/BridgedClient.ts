@@ -954,7 +954,6 @@ export class BridgedClient extends EventEmitter {
             }
             return Promise.reject(new Error("No client"));
         }
-        console.log("Channels:", this.state.client.chans);
         if (this.state.client.chans.has(channel)) {
             return Promise.resolve(new IrcRoom(this.server, channel));
         }
