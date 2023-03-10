@@ -53,6 +53,7 @@
     "react-dom": "^18.2.0",
     "sanitize-html": "^2.7.2",
     "typescript": "^5.0.4",
+    "typed-emitter": "^2.1.0",
     "url-join": "^5.0.0",
     "winston": "^3.8.2",
     "winston-daily-rotate-file": "^4.7.1"

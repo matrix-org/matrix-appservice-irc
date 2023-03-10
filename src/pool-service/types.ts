@@ -1,4 +1,5 @@
-import { TcpNetConnectOpts } from "net";
+import { TcpNetConnectOpts } from "node:net";
+import { ConnectionOptions as TlsConnectionOptions } from "node:tls";
 
 export const REDIS_IRC_POOL_KEY = "ircbridge.connectionpools";
 export const REDIS_IRC_POOL_COMMAND_OUT_STREAM = "ircbridge.stream.command.out";
@@ -11,15 +12,10 @@ export type ClientId = string;
 
 export interface ConnectionCreateArgs extends TcpNetConnectOpts {
     clientId: ClientId;
+    selfSigned?: boolean;
+    certExpired?: boolean;
+    secure?: boolean|TlsConnectionOptions;
 }
-
-
-export type DestoryArgs = { clientId: ClientId };
-export type EndArgs = { clientId: ClientId };
-export type SetTimeoutArgs = { clientId: ClientId, timeout: number };
-export type WriteArgs = { clientId: ClientId, data: string };
-
-export type InCommandPayload = ConnectionCreateArgs|DestoryArgs|EndArgs|SetTimeoutArgs|WriteArgs;
 
 export enum InCommandType {
     Connect = "connect",
@@ -27,10 +23,24 @@ export enum InCommandType {
     End = "end",
     SetTimeout = "set-timeout",
     Write = "write",
+    ConnectionPing = "connection-ping",
+    Ping = "ping",
 }
 
-export interface IrcConnectionPoolCommandIn<T = InCommandPayload> {
-    info: T;
+export type InCommandPayload = {
+    [key in InCommandType]: unknown;
+} & {
+    [InCommandType.Connect]: ConnectionCreateArgs;
+    [InCommandType.Destroy]: { clientId: ClientId };
+    [InCommandType.ConnectionPing]: { clientId: ClientId };
+    [InCommandType.End]: { clientId: ClientId };
+    [InCommandType.Write]: { clientId: ClientId, data: string };
+    [InCommandType.SetTimeout]: { clientId: ClientId, timeout: number };
+    [InCommandType.Ping]: Record<string, never>;
+};
+
+export interface IrcConnectionPoolCommandIn<T extends InCommandType = InCommandType> {
+    info: InCommandPayload[T];
     origin_ts: number;
 }
 
@@ -38,7 +48,10 @@ export enum OutCommandType {
     Connected = "connected",
     Error = "error",
     Disconnected = "disconnected",
-    // Read = "read", -> This is actually sent as ClientId:Buffer to prevent having to send a descriptive JSON packet
+    NotConnected = "not-connected",
+    Pong = "pong",
+    // Read = "read", -> This is actually sent as
+    // ClientId:Buffer to prevent having to parse the buffer into JSON and back again.
 }
 
 
@@ -48,8 +61,8 @@ export interface DisconnectedStatus {
 
 export interface ConnectedStatus {
     clientId: ClientId,
-    localIp: string;
-    localPort: number;
+    localIp?: string;
+    localPort?: number;
 }
 
 export interface ErrorStatus {
@@ -57,10 +70,18 @@ export interface ErrorStatus {
     error: string;
 }
 
-export type OutCommandPayload = ConnectedStatus|ErrorStatus|DisconnectedStatus;
+export type OutCommandPayload = {
+    [key in OutCommandType]: unknown;
+} & {
+    [OutCommandType.Connected]: ConnectedStatus;
+    [OutCommandType.Error]: ErrorStatus;
+    [OutCommandType.Disconnected]: DisconnectedStatus;
+    [OutCommandType.NotConnected]: { clientId: ClientId };
+    [OutCommandType.Pong]: Record<string, never>;
+};
 
-export interface IrcConnectionPoolCommandOut<T = OutCommandPayload> {
-    info: T;
+export interface IrcConnectionPoolCommandOut<T extends OutCommandType = OutCommandType> {
+    info: OutCommandPayload[T];
     origin_ts: number;
 }
 

@@ -55,8 +55,11 @@ export class ClientPool {
     private identGenerator: IdentGenerator;
     private ipv6Generator: Ipv6Generator;
     private ircEventBroker: IrcEventBroker;
-    redisPool: IrcPoolClient;
-    constructor(private ircBridge: IrcBridge, private store: DataStore) {
+    constructor(
+        private readonly ircBridge: IrcBridge,
+        private readonly store: DataStore,
+        private readonly redisPool?: IrcPoolClient
+    ) {
         // The list of bot clients on servers (not specific users)
         this.botClients = new Map();
 
@@ -73,7 +76,6 @@ export class ClientPool {
             this.ircBridge.ircHandler,
             this.ircBridge.getServers(),
         );
-        this.redisPool = new IrcPoolClient();
     }
 
     public nickIsVirtual(server: IrcServer, nick: string): boolean {
@@ -574,14 +576,6 @@ export class ClientPool {
                 }
             }
         }
-    }
-
-    public async run() {
-        return this.redisPool.listen();
-    }
-
-    public close() {
-        this.redisPool.close();
     }
 
     private getNumberOfConnections(server?: IrcServer): number {

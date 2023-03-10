@@ -117,7 +117,7 @@ export class BridgedClient extends EventEmitter {
         private readonly eventBroker: IrcEventBroker,
         private readonly identGenerator: IdentGenerator,
         private readonly ipv6Generator: Ipv6Generator,
-        private readonly redisPool: IrcPoolClient,
+        private readonly redisPool?: IrcPoolClient,
         private readonly encodingFallback?: string,) {
         super();
         this.userId = matrixUser ? matrixUser.getId() : null;
@@ -250,10 +250,10 @@ export class BridgedClient extends EventEmitter {
                 localAddress: (
                     this.server.getIpv6Prefix() ? this.clientConfig.getIpv6Address() : undefined
                 ),
+                useRedisPool: this.redisPool,
                 encodingFallback: this.encodingFallback,
             },
             this.server.homeserverDomain,
-            this.redisPool,
             this.userId ?? 'bot',
             (inst: ConnectionInstance) => {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

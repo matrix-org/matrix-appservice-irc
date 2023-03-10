@@ -63,6 +63,7 @@ export interface ConnectionOpts {
         ca?: string;
     };
     encodingFallback?: string;
+    useRedisPool?: IrcPoolClient,
 }
 
 export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|
@@ -209,7 +210,6 @@ export class ConnectionInstance {
 
     private listenForErrors() {
         this.client.addListener("error", (err?: Message) => {
-            log.error("Server: %s (%s) Error: %s", this.domain, this.nick, JSON.stringify(err));
             // We should disconnect the client for some but not all error codes. This
             // list is a list of codes which we will NOT disconnect the client for.
             const failCodes = [
@@ -227,9 +227,12 @@ export class ConnectionInstance {
             ];
             if (err && err.command) {
                 if (failCodes.includes(err.command)) {
+                    // Don't log these so loudly
+                    log.info("Server: %s (%s) %s", this.domain, this.nick, JSON.stringify(err));
                     return; // don't disconnect for these error codes.
                 }
             }
+            log.error("Server: %s (%s) Error: %s", this.domain, this.nick, JSON.stringify(err));
             if (err && err.command === "err_yourebannedcreep") {
                 this.disconnect("banned").catch(logError);
                 return;
@@ -380,7 +383,6 @@ export class ConnectionInstance {
     public static async create (server: IrcServer,
                                 opts: ConnectionOpts,
                                 homeserverDomain: string,
-                                redisPool: IrcPoolClient,
                                 ident: string,
                                 onCreatedCallback?: (inst: ConnectionInstance) => void): Promise<ConnectionInstance> {
         if (!opts.nick || !server) {
@@ -406,19 +408,21 @@ export class ConnectionInstance {
             encodingFallback: opts.encodingFallback,
         };
 
-        const connection = await redisPool.createOrGetIrcSocket(ident, {
-            ...connectionOpts,
-            clientId: ident,
-            port: connectionOpts.port ?? 6667,
-            localAddress: connectionOpts.localAddress ?? undefined,
-            localPort: connectionOpts.localPort ?? undefined,
-            family: connectionOpts.family ?? undefined,
-        });
 
         // Returns: A promise which resolves to a ConnectionInstance
-        const retryConnection = () => {
+        const retryConnection = async () => {
+
+            const redisConn = opts.useRedisPool && await opts.useRedisPool.createOrGetIrcSocket(ident, {
+                ...connectionOpts,
+                clientId: ident,
+                port: connectionOpts.port ?? 6667,
+                localAddress: connectionOpts.localAddress ?? undefined,
+                localPort: connectionOpts.localPort ?? undefined,
+                family: connectionOpts.family ?? undefined,
+            });
+
             const nodeClient = new Client(
-                server.randomDomain(), opts.nick, connectionOpts, connection.state, connection,
+                server.randomDomain(), opts.nick, connectionOpts, redisConn?.state, redisConn,
             );
             const inst = new ConnectionInstance(
                 nodeClient, server.domain, opts.nick, {
@@ -430,6 +434,7 @@ export class ConnectionInstance {
             if (onCreatedCallback) {
                 onCreatedCallback(inst);
             }
+            log.debug(`Calling connect for ${redisConn?.clientId}`)
             return inst.connect();
         };
 

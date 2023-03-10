@@ -35,6 +35,7 @@ class StateBackedMap<K, V> extends Map<K, V> {
 
     set(key: K, value: V) {
         super.set(key, value);
+        // `this.onChange` isn't defined
         //this.onChange();
         return this;
     }
@@ -261,7 +262,7 @@ export class IrcClientRedisState implements IrcClientState {
             currentNick: deseralisedData.currentNick ?? '',
             nickMod: deseralisedData.nickMod ?? 0,
             whoisData: new StateBackedMap(this.flush.bind(this), deseralisedData.whoisData),
-            modeForPrefix: deseralisedData.modeForPrefix,
+            modeForPrefix: deseralisedData.modeForPrefix ?? { },
             hostMask: deseralisedData.hostMask ?? '',
             // TODO: It's still possible for data to go missing here.
             chans: new StateBackedMap(this.flush.bind(this), deseralisedData.chans),

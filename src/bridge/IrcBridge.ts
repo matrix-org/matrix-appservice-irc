@@ -54,6 +54,7 @@ import { RoomConfig } from "./RoomConfig";
 import { PrivacyProtection } from "../irc/PrivacyProtection";
 import { TestingOptions } from "../config/TestOpts";
 import { MatrixBanSync } from "./MatrixBanSync";
+import { IrcPoolClient } from "../pool-service/IrcPoolClient";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -105,6 +106,7 @@ export class IrcBridge {
     }>;
     private privacyProtection: PrivacyProtection;
     private bridgeBlocker?: BridgeBlocker;
+    private ircPoolClient?: IrcPoolClient;
 
     constructor(
         public readonly config: BridgeConfig,
@@ -657,8 +659,14 @@ export class IrcBridge {
             this.ircServers.push(server);
         }
 
-        this.clientPool = new ClientPool(this, this.dataStore);
-        void this.clientPool.run();
+        if (this.config.connectionPool) {
+            this.ircPoolClient = new IrcPoolClient(
+                this.config.connectionPool.redisUrl,
+            );
+            await this.ircPoolClient.listen();
+        }
+
+        this.clientPool = new ClientPool(this, this.dataStore, this.ircPoolClient);
 
         if (this.config.ircService.debugApi.enabled) {
             this.debugApi = new DebugApi(
@@ -922,7 +930,7 @@ export class IrcBridge {
         log.info("Closing bridge");
         await this.bridge.close();
         await this.appservice.close();
-        await this.clientPool.close();
+        await this.ircPoolClient?.close();
     }
 
     public get isStartedUp() {
