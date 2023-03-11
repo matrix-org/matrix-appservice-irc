@@ -19,6 +19,10 @@ import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
 
 import {
+    AppServiceRegistration,
+    AppService,
+} from "matrix-appservice";
+import {
     Bridge,
     MatrixUser,
     MatrixRoom,
@@ -30,8 +34,6 @@ import {
     EphemeralEvent,
     MembershipQueue,
     BridgeInfoStateSyncer,
-    AppServiceRegistration,
-    AppService,
     Rules,
     ActivityTracker,
     BridgeBlocker,
