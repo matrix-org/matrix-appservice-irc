@@ -20,6 +20,7 @@ import { Histogram } from "prom-client";
 
 import {
     Bridge,
+    Intent,
     MatrixUser,
     MatrixRoom,
     Logger,
@@ -818,6 +819,26 @@ export class IrcBridge {
         log.info("Startup complete.");
 
         this.bridgeState = "running";
+    }
+
+    /*
+     * Send state events providing information about the state.
+     * @param intent if given, sends state events from this client instead of the AS bot
+     */
+    public async syncState(ircChannel: string, server: IrcServer, roomId: string, intent?: Intent) {
+        if (this.stateSyncer) {
+            intent = intent || this.getAppServiceBridge().getIntent();
+            const event = await this.stateSyncer.createInitialState(roomId, {
+                channel: ircChannel,
+                networkId: server.getNetworkId(),
+            })
+            const res = await intent.sendStateEvent(
+                roomId,
+                event.type,
+                event.state_key,
+                event.content as unknown as Record<string, unknown>,
+            );
+        }
     }
 
     private logMetric(req: Request<BridgeRequestData>, outcome: string) {

@@ -24,7 +24,7 @@ describe("Matrix-to-IRC PMing", () => {
 
     afterEach(async () => test.afterEach(env));
 
-    it("should join 1:1 rooms invited from matrix", async () => {
+    async function testJoinPmRoom(enableBrigeInfoState) {
         // get the ball rolling
         const requestPromise = env.mockAppService._trigger("type:m.room.member", {
             content: {
@@ -64,6 +64,33 @@ describe("Matrix-to-IRC PMing", () => {
 
         await joinRoomPromise;
         await requestPromise;
+
+        if (enableBrigeInfoState) {
+            expect(intent.underlyingClient.sendStateEvent).toHaveBeenCalledWith(
+                jasmine.any(String),
+                "uk.half-shot.bridge",
+                "org.matrix.appservice-irc:/irc.example/someone",
+                {
+                    bridgebot: '@monkeybot:some.home.server',
+                    protocol: { id: 'irc', displayname: 'IRC' },
+                    channel: { id: 'someone' },
+                    network: { id: 'irc.example', displayname: '', avatar_url: undefined }}
+            );
+        }
+        else {
+            expect(intent.underlyingClient.sendStateEvent).not.toHaveBeenCalled();
+        }
+    }
+
+    it("should join 1:1 rooms invited from matrix (without bridge info)", async () => {
+        await testJoinPmRoom(false);
+    });
+
+    it("should join 1:1 rooms invited from matrix (with bridge info)", async () => {
+        config.ircService.bridgeInfoState = {enabled: true, initial: false};
+        await env.ircBridge.onConfigChanged(config);
+
+        await testJoinPmRoom(true);
     });
 
     it("should join group chat rooms invited from matrix then leave them", async () => {

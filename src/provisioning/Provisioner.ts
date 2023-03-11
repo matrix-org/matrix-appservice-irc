@@ -569,19 +569,7 @@ export class Provisioner extends ProvisioningApi {
         }
         await this.updateBridgingState(roomId, userId, 'success', skey);
         // Send bridge info state event
-        if (this.ircBridge.stateSyncer) {
-            const intent = this.ircBridge.getAppServiceBridge().getIntent();
-            const infoMapping = await this.ircBridge.stateSyncer.createInitialState(roomId, {
-                channel: ircChannel,
-                networkId: server.getNetworkId(),
-            })
-            await intent.sendStateEvent(
-                roomId,
-                infoMapping.type,
-                infoMapping.state_key,
-                infoMapping.content as unknown as Record<string, unknown>,
-            );
-        }
+        await this.ircBridge.syncState(ircChannel, server, roomId);
     }
 
     private removeRequest (server: IrcServer, opNick: string) {
