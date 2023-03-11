@@ -262,33 +262,49 @@ describe("IRC-to-Matrix PMing", () => {
 
     afterEach(async () => test.afterEach(env));
 
-    it("should create a 1:1 matrix room and invite the real matrix user when " +
-    "it receives a PM directed at a virtual user from a real IRC user", async () => {
+    async function testPmRoomCreation(enableBrigeInfoState) {
         // mock create room impl
+        const expectedInitialState = [{
+            type: "m.room.power_levels",
+            state_key: "",
+            content: {
+                users: {
+                    "@alice:anotherhomeserver": 10,
+                    "@irc.example_bob:some.home.server": 100
+                },
+                events: {
+                    "m.room.avatar": 10,
+                    "m.room.name": 10,
+                    "m.room.canonical_alias": 100,
+                    "m.room.history_visibility": 100,
+                    "m.room.power_levels": 100,
+                    "m.room.encryption": 100
+                },
+                invite: 100
+            },
+        }];
+        if (enableBrigeInfoState) {
+            expectedInitialState.push({
+                type: "uk.half-shot.bridge",
+                state_key: "org.matrix.appservice-irc:/irc.example/bob",
+                content: {
+                    bridgebot: '@monkeybot:some.home.server',
+                    protocol: { id: 'irc', displayname: 'IRC' },
+                    channel: { id: 'bob' },
+                    network: {
+                        id: 'irc.example',
+                        displayname: '',
+                        avatar_url: undefined,
+                    }
+                }
+            });
+        }
         const createRoomPromise = new Promise((resolve) => {
             sdk.createRoom.and.callFake((opts) => {
                 expect(opts.visibility).toEqual("private");
                 expect(opts.creation_content["m.federate"]).toEqual(true);
                 expect(opts.preset).not.toBeDefined();
-                expect(opts.initial_state).toEqual([{
-                    type: "m.room.power_levels",
-                    state_key: "",
-                    content: {
-                        users: {
-                            "@alice:anotherhomeserver": 10,
-                            "@irc.example_bob:some.home.server": 100
-                        },
-                        events: {
-                            "m.room.avatar": 10,
-                            "m.room.name": 10,
-                            "m.room.canonical_alias": 100,
-                            "m.room.history_visibility": 100,
-                            "m.room.power_levels": 100,
-                            "m.room.encryption": 100
-                        },
-                        invite: 100
-                    },
-                }]);
+                expect(opts.initial_state).toEqual(expectedInitialState);
                 resolve();
                 return tCreatedRoomId;
             });
@@ -318,6 +334,19 @@ describe("IRC-to-Matrix PMing", () => {
 
         await createRoomPromise;
         await sentMessagePromise;
+    }
+
+    it("should create a 1:1 matrix room and invite the real matrix user when " +
+    "it receives a PM directed at a virtual user from a real IRC user (without bridge info)", async () => {
+        await testPmRoomCreation(false)
+    });
+
+    it("should create a 1:1 matrix room and invite the real matrix user when " +
+    "it receives a PM directed at a virtual user from a real IRC user (with bridge info)", async () => {
+        config.ircService.bridgeInfoState = {enabled: true, initial: false};
+        await env.ircBridge.onConfigChanged(config);
+
+        await testPmRoomCreation(true)
     });
 
     it("should not create multiple matrix rooms when several PMs are received in quick succession", async () => {
