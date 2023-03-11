@@ -38,6 +38,12 @@ Internal Changes
 0.36.0 (2022-10-25)
 ===================
 
+Features
+--------
+
+* Support monospace formatting. ([\#1555](https://github.com/matrix-org/matrix-appservice-irc/issues/1555))
+
+
 Bugfixes
 --------
 
