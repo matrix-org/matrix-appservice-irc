@@ -4,7 +4,7 @@ import { RoomAccessSyncer } from "./RoomAccessSyncer";
 import { IrcServer, MembershipSyncKind } from "../irc/IrcServer";
 import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
 import { BridgedClient } from "../irc/BridgedClient";
-import { MatrixRoom, MatrixUser, MembershipQueue } from "matrix-appservice-bridge";
+import { MatrixRoom, MatrixUser, MembershipQueue, InitialEvent } from "matrix-appservice-bridge";
 import { IrcUser } from "../models/IrcUser";
 import { IrcAction } from "../models/IrcAction";
 import { IrcRoom } from "../models/IrcRoom";
@@ -169,6 +169,35 @@ export class IrcHandler {
     ): Promise<MatrixRoom> {
         let remainingReties = PM_ROOM_CREATION_RETRIES;
         let response;
+        const initialState: InitialEvent[] = [{
+            content: {
+                users: {
+                    [toUserId]: PM_POWERLEVEL_MATRIXUSER,
+                    [fromUserId]: PM_POWERLEVEL_IRCUSER,
+                },
+                events: {
+                    "m.room.avatar": 10,
+                    "m.room.name": 10,
+                    "m.room.canonical_alias": 100,
+                    "m.room.history_visibility": 100,
+                    "m.room.power_levels": 100,
+                    "m.room.encryption": 100
+                },
+                invite: 100,
+            },
+            type: "m.room.power_levels",
+            state_key: "",
+        }]
+
+        if (this.ircBridge.stateSyncer) {
+            initialState.push(
+                await this.ircBridge.stateSyncer.createInitialState("", {
+                    channel: fromUserNick, // TODO: spec this in MSC2346Content
+                    networkId: server.getNetworkId(),
+                })
+            );
+        }
+
         do {
             try {
                 response = await this.ircBridge.getAppServiceBridge().getIntent(
@@ -184,25 +213,7 @@ export class IrcHandler {
                             "m.federate": server.shouldFederatePMs()
                         },
                         is_direct: true,
-                        initial_state: [{
-                            content: {
-                                users: {
-                                    [toUserId]: PM_POWERLEVEL_MATRIXUSER,
-                                    [fromUserId]: PM_POWERLEVEL_IRCUSER,
-                                },
-                                events: {
-                                    "m.room.avatar": 10,
-                                    "m.room.name": 10,
-                                    "m.room.canonical_alias": 100,
-                                    "m.room.history_visibility": 100,
-                                    "m.room.power_levels": 100,
-                                    "m.room.encryption": 100
-                                },
-                                invite: 100,
-                            },
-                            type: "m.room.power_levels",
-                            state_key: "",
-                        }],
+                        initial_state: initialState,
                     }
                 });
             }

@@ -247,6 +247,12 @@ export class MatrixHandler {
             await this.ircBridge.getStore().setPmRoom(
                 ircRoom, mxRoom, event.sender, event.state_key
             );
+
+            // note: it is possible (though unlikely) that the user does not have
+            // the required power_level to send state events.
+            // TODO: try with the appservice client if it doesn't?
+            await this.ircBridge.syncState(invited.nick, invited.server, event.room_id, intent);
+
             return;
         }
         req.log.warn(`Room ${event.room_id} is not a 1:1 chat`);
