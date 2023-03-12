@@ -67,7 +67,7 @@ describe("Matrix-to-IRC PMing", () => {
 
         if (enableBrigeInfoState) {
             expect(intent.underlyingClient.sendStateEvent).toHaveBeenCalledWith(
-                jasmine.any(String),
+                roomMapping.roomId,
                 "uk.half-shot.bridge",
                 "org.matrix.appservice-irc:/irc.example/someone",
                 {
