@@ -191,7 +191,7 @@ export class IrcHandler {
 
         if (this.ircBridge.stateSyncer) {
             initialState.push(
-                await this.ircBridge.stateSyncer.createInitialState("", {
+                ...await this.ircBridge.stateSyncer.createInitialState("", {
                     channel: fromUserNick, // TODO: spec this in MSC2346Content
                     networkId: server.getNetworkId(),
                 })

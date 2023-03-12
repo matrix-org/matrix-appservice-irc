@@ -14,6 +14,7 @@ import { NeDBDataStore } from "../datastore/NedbDataStore";
 import { PgDataStore } from "../datastore/postgres/PgDataStore";
 import { getLogger } from "../logging";
 import { DebugApi } from "../DebugApi";
+import { defaultEventFeatures } from "../EventFeatures";
 import { Provisioner } from "../provisioning/Provisioner";
 import { PublicitySyncer } from "./PublicitySyncer";
 import { Histogram } from "prom-client";
@@ -30,6 +31,7 @@ import {
     AgeCounters,
     EphemeralEvent,
     MembershipQueue,
+    MappingInfo,
     BridgeInfoStateSyncer,
     AppServiceRegistration,
     AppService,
@@ -556,7 +558,7 @@ export class IrcBridge {
         }
     }
 
-    public createInfoMapping(channel: string, networkId: string) {
+    public createInfoMapping(channel: string, networkId: string): MappingInfo {
         const network = this.getServer(networkId);
         return {
             protocol: {
@@ -570,7 +572,8 @@ export class IrcBridge {
             },
             channel: {
                 id: channel,
-            }
+            },
+            eventFeatures: defaultEventFeatures,
         }
     }
 
@@ -828,16 +831,19 @@ export class IrcBridge {
     public async syncState(ircChannel: string, server: IrcServer, roomId: string, intent?: Intent) {
         if (this.stateSyncer) {
             intent = intent || this.getAppServiceBridge().getIntent();
-            const event = await this.stateSyncer.createInitialState(roomId, {
+            const events = await this.stateSyncer.createInitialState(roomId, {
                 channel: ircChannel,
                 networkId: server.getNetworkId(),
             })
-            const res = await intent.sendStateEvent(
-                roomId,
-                event.type,
-                event.state_key,
-                event.content as unknown as Record<string, unknown>,
-            );
+            for (const event of events) {
+                // await after each event so they are sent in the right order
+                await intent.sendStateEvent(
+                    roomId,
+                    event.type,
+                    event.state_key,
+                    event.content as unknown as Record<string, unknown>,
+                );
+            }
         }
     }
 

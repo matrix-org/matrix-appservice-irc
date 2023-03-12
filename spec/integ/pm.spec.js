@@ -1,6 +1,8 @@
 /*
  * Contains integration tests for private messages.
  */
+import { defaultEventFeatures } from "../../src/EventFeatures";
+
 const envBundle = require("../util/env-bundle");
 
 describe("Matrix-to-IRC PMing", () => {
@@ -66,16 +68,26 @@ describe("Matrix-to-IRC PMing", () => {
         await requestPromise;
 
         if (enableBrigeInfoState) {
-            expect(intent.underlyingClient.sendStateEvent).toHaveBeenCalledWith(
-                roomMapping.roomId,
-                "uk.half-shot.bridge",
-                "org.matrix.appservice-irc:/irc.example/someone",
-                {
-                    bridgebot: '@monkeybot:some.home.server',
-                    protocol: { id: 'irc', displayname: 'IRC' },
-                    channel: { id: 'someone' },
-                    network: { id: 'irc.example', displayname: '', avatar_url: undefined }}
-            );
+            console.log(intent.underlyingClient.sendStateEvent.calls.all());
+            expect(intent.underlyingClient.sendStateEvent.calls.all().map((call) => call.args)).toEqual([
+                [
+                    roomMapping.roomId,
+                    "uk.half-shot.bridge",
+                    "org.matrix.appservice-irc:/irc.example/someone",
+                    {
+                        bridgebot: '@monkeybot:some.home.server',
+                        protocol: { id: 'irc', displayname: 'IRC' },
+                        channel: { id: 'someone' },
+                        network: { id: 'irc.example', displayname: '', avatar_url: undefined },
+                    }
+                ],
+                [
+                    roomMapping.roomId,
+                    "org.matrix.msc3968.room.event_features",
+                    "org.matrix.appservice-irc:/irc.example/someone",
+                    defaultEventFeatures,
+                ]
+            ]);
         }
         else {
             expect(intent.underlyingClient.sendStateEvent).not.toHaveBeenCalled();
@@ -324,6 +336,11 @@ describe("IRC-to-Matrix PMing", () => {
                         avatar_url: undefined,
                     }
                 }
+            });
+            expectedInitialState.push({
+                type: "org.matrix.msc3968.room.event_features",
+                state_key: "org.matrix.appservice-irc:/irc.example/bob",
+                content: defaultEventFeatures,
             });
         }
         const createRoomPromise = new Promise((resolve) => {
