@@ -68,13 +68,17 @@ export class IrcPoolClient {
                     log.warn(`Connection ${clientId} timed out`);
                     reject(new Error('Connection timed out'))
                 }, 20000);
-                client.on('connect', () => {
+                client.once('connect', () => {
                     clearTimeout(timeout);
                     resolve();
                 });
-                client.on('not-connected', () => {
+                client.once('not-connected', () => {
                     clearTimeout(timeout);
                     reject(new Error('Client was not connected'));
+                });
+                client.once('error', (err) => {
+                    clearTimeout(timeout);
+                    reject(err);
                 });
             });
             log.info(`Resolved connection for ${clientId}`);
@@ -85,7 +89,7 @@ export class IrcPoolClient {
             // Clean up after so we can have another attempt
             this.connections.delete(clientId);
             log.warn(`Failed to create client ${clientId}`, ex);
-            throw Error(`Failed to create client ${clientId}`);
+            throw Error(`Failed to create client ${clientId}: ${ex.message}`);
         }
     }
 

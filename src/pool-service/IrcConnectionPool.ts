@@ -22,6 +22,7 @@ import { createServer, Server } from 'http';
 
 const log = new Logger('IrcConnectionPool');
 const TIME_TO_WAIT_BEFORE_PONG = 10000;
+const STREAM_HISTORY_MAXLEN = 50;
 
 const Config = {
     redisUri: process.env.REDIS_URL ?? 'redis://localhost:6379',
@@ -85,7 +86,7 @@ export class IrcConnectionPool {
                 };
             }
 
-            socket = await new Promise((resolve) => {
+            socket = await new Promise((resolve, reject) => {
                 // Taken from https://github.com/matrix-org/node-irc/blob/0764733af7c324ee24f8c2a3c26fe9d1614be344/src/irc.ts#L1231
                 const sock = tls.connect(secureOpts, () => {
                     if (sock.authorized) {
@@ -115,10 +116,16 @@ export class IrcConnectionPool {
                     }
                     resolve(sock);
                 });
+                sock.once('error', (error) => {
+                    reject(error);
+                })
             });
         }
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             socket = createConnection(opts, () => resolve(socket)) as Socket;
+            socket.once('error', (error) => {
+                reject(error);
+            });
         });
     }
 
@@ -132,11 +139,10 @@ export class IrcConnectionPool {
         }
         catch (ex) {
             log.error(`Failed to connect to ${opts.host}:${opts.port}`, ex);
-            this.sendCommandOut(OutCommandType.Error, {
+            return this.sendCommandOut(OutCommandType.Error, {
                 clientId,
                 error: ex.message,
             });
-            return;
         }
 
         log.info(
@@ -146,12 +152,6 @@ export class IrcConnectionPool {
         this.redis.hset(REDIS_IRC_POOL_CONNECTIONS, clientId, `${connection.localAddress}:${connection.localPort}`);
         this.connections.set(clientId, connection);
         connectionsGauge.set(this.connections.size);
-        this.sendCommandOut(OutCommandType.Connected, {
-            localIp: connection.localAddress ?? "unknown",
-            localPort: connection.localPort ?? -1,
-            clientId,
-        });
-
 
         connection.on('error', (ex) => {
             log.error(`Failed to connect to ${opts.host}:${opts.port}`, ex);
@@ -194,6 +194,12 @@ export class IrcConnectionPool {
             this.sendCommandOut(OutCommandType.Disconnected, {
                 clientId,
             });
+        });
+
+        return this.sendCommandOut(OutCommandType.Connected, {
+            localIp: connection.localAddress ?? "unknown",
+            localPort: connection.localPort ?? -1,
+            clientId,
         });
     }
 
@@ -345,17 +351,20 @@ export class IrcConnectionPool {
         // Warn of any existing connections. TODO: This assumes one service process.
         await this.redis.del(REDIS_IRC_POOL_CONNECTIONS);
         await this.redis.del(REDIS_IRC_CLIENT_STATE_KEY);
+        await this.redis.del(REDIS_IRC_POOL_COMMAND_IN_STREAM);
+        await this.redis.del(REDIS_IRC_POOL_COMMAND_OUT_STREAM);
 
         setInterval(() => {
             this.sendHeartbeat().catch((ex) => {
                 log.warn(`Failed to send heartbeat`, ex);
             });
-            this.redis.xtrim(REDIS_IRC_POOL_COMMAND_IN_STREAM, "MAXLEN", "~", 50).then(trimCount => {
+            this.redis.xtrim(REDIS_IRC_POOL_COMMAND_IN_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN).then(trimCount => {
                 log.debug(`Trimmed ${trimCount} commands from the IN stream`);
             }).catch((ex) => {
                 log.warn(`Failed to trim commands from the IN stream`, ex);
             });
-            this.redis.xtrim(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MAXLEN", "~", 50).then(trimCount => {
+            this.redis.xtrim(
+                REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN).then(trimCount => {
                 log.debug(`Trimmed ${trimCount} commands from the OUT stream`);
             }).catch((ex) => {
                 log.warn(`Failed to trim commands from the OUT stream`, ex);

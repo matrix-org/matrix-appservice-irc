@@ -585,6 +585,17 @@ export class IrcBridge {
         // cli port, then config port, then default port
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
+
+        if (this.config.connectionPool) {
+            if (Object.values(this.config.ircService.servers).length > 1) {
+                throw Error('Currently the connectionPool option only supports single IRC server configurations');
+            }
+            this.ircPoolClient = new IrcPoolClient(
+                this.config.connectionPool.redisUrl,
+            );
+            await this.ircPoolClient.listen();
+        }
+
         await this.bridge.initialise();
         await this.matrixBanSyncer?.syncRules(this.bridge.getIntent());
         this.matrixHandler.initialise();
@@ -657,13 +668,6 @@ export class IrcBridge {
             // store the config mappings in the DB to keep everything in one place.
             await this.dataStore.setServerFromConfig(server, completeConfig);
             this.ircServers.push(server);
-        }
-
-        if (this.config.connectionPool) {
-            this.ircPoolClient = new IrcPoolClient(
-                this.config.connectionPool.redisUrl,
-            );
-            await this.ircPoolClient.listen();
         }
 
         this.clientPool = new ClientPool(this, this.dataStore, this.ircPoolClient);
