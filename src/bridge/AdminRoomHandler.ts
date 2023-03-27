@@ -259,6 +259,7 @@ export class AdminRoomHandler {
                 Provisioner.createFakeRequest(
                     "unplumb",
                     sender,
+                    { },
                     {
                         remote_room_server: serverDomain,
                         remote_room_channel: ircChannel,
