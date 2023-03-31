@@ -3,8 +3,9 @@ import { Redis } from 'ioredis';
 import { ChanData, IrcClientState, WhoisResponse,
     IrcCapabilities, IrcSupported, DefaultIrcSupported } from 'matrix-org-irc';
 import { REDIS_IRC_CLIENT_STATE_KEY } from './types';
+import * as Logger from "../logging";
 
-
+const log = Logger.get('IrcClientRedisState');
 interface IrcClientStateDehydrated {
     loggedIn: boolean;
     registered: boolean;
@@ -48,9 +49,39 @@ class StateBackedMap<K, V> extends Map<K, V> {
 
 export class IrcClientRedisState implements IrcClientState {
     private putStatePromise: Promise<void> = Promise.resolve();
-    private innerState?: IrcClientState;
 
-    constructor(private readonly redis: Redis, private readonly clientId: string) {
+    static async create(redis: Redis, clientId: string) {
+        const data = await redis.hget(REDIS_IRC_CLIENT_STATE_KEY, clientId);
+        const deseralisedData = data ? JSON.parse(data) as IrcClientStateDehydrated : {} as Record<string, never>;
+        // eslint-disable-next-line prefer-const
+        let redisState: IrcClientRedisState;
+        const flushFn = () => {
+            redisState.flush();
+        }
+        // TODO: Validate that some of these exist.
+        const innerState = {
+            loggedIn: deseralisedData.loggedIn ?? false,
+            registered: deseralisedData.registered ?? false,
+            currentNick: deseralisedData.currentNick ?? '',
+            nickMod: deseralisedData.nickMod ?? 0,
+            whoisData: new StateBackedMap(flushFn, deseralisedData.whoisData),
+            modeForPrefix: deseralisedData.modeForPrefix ?? { },
+            hostMask: deseralisedData.hostMask ?? '',
+            // TODO: It's still possible for data to go missing here.
+            chans: new StateBackedMap(flushFn, deseralisedData.chans),
+            maxLineLength: deseralisedData.maxLineLength ?? -1,
+            lastSendTime: deseralisedData.lastSendTime ?? 0,
+            prefixForMode: deseralisedData.prefixForMode ?? {},
+            supportedState: deseralisedData.supportedState ?? DefaultIrcSupported,
+            capabilities: new IrcCapabilities(deseralisedData.capabilities),
+        };
+        redisState = new IrcClientRedisState(redis, clientId, innerState);
+        return redisState;
+    }
+
+    private constructor(
+        private readonly redis: Redis, private readonly clientId: string, private innerState?: IrcClientState
+    ) {
 
     }
 
@@ -286,7 +317,9 @@ export class IrcClientRedisState implements IrcClientState {
             supportedState: this.supportedState,
         } as IrcClientStateDehydrated);
 
-        this.putStatePromise = this.putStatePromise.finally(() => {
+        this.putStatePromise = this.putStatePromise.catch((ex) => {
+            log.warn(`Failed to store state for ${this.clientId}`, ex);
+        }).finally(() => {
             return this.innerPutState(serialState);
         });
     }

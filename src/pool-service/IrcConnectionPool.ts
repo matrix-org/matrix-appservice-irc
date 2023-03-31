@@ -189,6 +189,7 @@ export class IrcConnectionPool {
         connection.on('close', () => {
             log.debug(`Closing connection for ${clientId}`);
             this.redis.hdel(REDIS_IRC_POOL_CONNECTIONS, clientId);
+            this.redis.hdel(REDIS_IRC_CLIENT_STATE_KEY, payload.info.clientId);
             this.connections.delete(clientId);
             connectionsGauge.set(this.connections.size);
             this.sendCommandOut(OutCommandType.Disconnected, {
@@ -380,6 +381,7 @@ export class IrcConnectionPool {
                 // Unexpected, this is blocking.
                 continue;
             }
+            // This is a list of keys, containing a list of commands, hence needing to deeply extract the values.
             const [msgId, [cmdType, payload]] = newCmd[0][1][0];
 
             const commandType = cmdType as InCommandType;

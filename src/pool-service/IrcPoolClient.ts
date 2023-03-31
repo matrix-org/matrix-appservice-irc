@@ -12,16 +12,16 @@ import { ClientId, ConnectionCreateArgs, HEARTBEAT_EVERY_MS,
 import { Logger } from 'matrix-appservice-bridge';
 const log = new Logger('IrcPoolClient');
 
-const DEFAULT_REDIS_URL = "redis://localhost:6379";
+const CONNECTION_TIMEOUT = 20000;
 
 export class IrcPoolClient {
     private readonly redis: Redis;
-    private readonly connections = new Map<ClientId, RedisIrcConnection>();
+    private readonly connections = new Map<ClientId, Promise<RedisIrcConnection>>();
     public shouldRun = true;
     private commandStreamId = "$";
     cmdReader: Redis;
 
-    constructor(url: string = DEFAULT_REDIS_URL) {
+    constructor(url: string) {
         this.redis = new Redis(url, {
             lazyConnect: true,
         });
@@ -47,10 +47,11 @@ export class IrcPoolClient {
         log.info(`Requesting new client ${clientId}`);
         // Check to see if one exists.
         const state = await this.redis.hget(REDIS_IRC_POOL_CONNECTIONS, clientId);
-        const clientState = new IrcClientRedisState(this.redis, clientId);
-        const client = new RedisIrcConnection(this, clientId, clientState);
-        this.connections.set(clientId, client);
-        await clientState.hydrate();
+        const clientPromise = IrcClientRedisState.create(this.redis, clientId).then((clientState) => {
+            return new RedisIrcConnection(this, clientId, clientState);
+        });
+        this.connections.set(clientId, clientPromise);
+        const client = await clientPromise;
 
         try {
             if (!state) {
@@ -67,7 +68,7 @@ export class IrcPoolClient {
                 const timeout = setTimeout(() => {
                     log.warn(`Connection ${clientId} timed out`);
                     reject(new Error('Connection timed out'))
-                }, 20000);
+                }, CONNECTION_TIMEOUT);
                 client.once('connect', () => {
                     clearTimeout(timeout);
                     resolve();
@@ -96,8 +97,8 @@ export class IrcPoolClient {
     // eslint-disable-next-line max-len
     private async handleCommand<T extends OutCommandType>(commandTypeOrClientId: T|ClientId, commandData: IrcConnectionPoolCommandOut<T>|Buffer) {
         // I apologise about this insanity.
-        const connection = Buffer.isBuffer(commandData) ?
-            this.connections.get(commandTypeOrClientId) : this.connections.get(commandData.info.clientId);
+        const connection = await (Buffer.isBuffer(commandData) ?
+            this.connections.get(commandTypeOrClientId) : this.connections.get(commandData.info.clientId));
         if (Buffer.isBuffer(commandData)) {
             log.debug(`Got incoming write ${commandTypeOrClientId}  (${commandData.byteLength} bytes)`);
         }
@@ -143,7 +144,7 @@ export class IrcPoolClient {
             "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_OUT_STREAM, this.commandStreamId
         );
         if (newCmd === null) {
-            // Unexpected, this is blocking.
+            // Unexpected, this is blocking.pp
             return;
         }
         const [msgId, [cmdType, payload]] = newCmd[0][1][0];
@@ -170,7 +171,6 @@ export class IrcPoolClient {
 
         // First, check if the pool is up.
         const lastHeartbeat = parseInt(await this.redis.get(REDIS_IRC_POOL_HEARTBEAT_KEY) ?? '0');
-        console.log(lastHeartbeat);
         if (lastHeartbeat + HEARTBEAT_EVERY_MS + 1000 < Date.now()) {
             // Heartbeat is stale or missing, might not be running!
             throw Error('IRC pool is not running!');
