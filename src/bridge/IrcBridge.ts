@@ -927,7 +927,12 @@ export class IrcBridge {
         log.info("Killing bridge");
         this.bridgeState = "killed";
         log.info("Killing all clients");
-        await this.clientPool.killAllClients(reason);
+        if (!this.config.connectionPool?.persistConnectionsOnShutdown) {
+            await this.clientPool.killAllClients(reason);
+        }
+        else {
+            log.info(`Persisting connections on shutdown`);
+        }
         if (this.dataStore) {
             await this.dataStore.destroy();
         }
