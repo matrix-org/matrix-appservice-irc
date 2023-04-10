@@ -115,7 +115,7 @@ export class ConnectionInstance {
      * connect.
      * @return {Promise} Resolves if connected; rejects if failed to connect.
      */
-    public connect(): Promise<ConnectionInstance> {
+    public connect(onConnect: () => void): Promise<ConnectionInstance> {
         if (this.dead) {
             throw new Error("connect() called on dead client: " + this.nick);
         }
@@ -136,6 +136,7 @@ export class ConnectionInstance {
             this.state = "connected";
             this.resetPingSendTimer();
             this.connectDefer.resolve(this);
+            onConnect()
         });
         return this.connectDefer.promise;
     }
@@ -417,7 +418,13 @@ export class ConnectionInstance {
             if (onCreatedCallback) {
                 onCreatedCallback(inst);
             }
-            return inst.connect();
+            const onConnect = () => {
+              if (opts.password && !server.useSasl()) {
+                nodeClient.say("NickServ", "IDENTIFY " + opts.password);
+              }
+            }
+            const conn = inst.connect(onConnect);
+            return conn;
         };
 
         let connAttempts = 0;
