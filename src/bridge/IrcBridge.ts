@@ -820,7 +820,8 @@ export class IrcBridge {
             bridgeName: 'org.matrix.appservice-irc',
             getMapping: async (roomId, { channel, networkId }) => this.createInfoMapping(channel, networkId),
         });
-        if (config.ircService.bridgeInfoState.initial) {
+        if (config.ircService.bridgeInfoState.initial && !this.config.ircService.bridgeInfoState?.initial) {
+            /* Only run it on startup, or when a reload switches it from false to true */
             const mappings = await this.dataStore.getAllChannelMappings();
             this.bridgeStateSyncer.initialSync(mappings).then(() => {
                 log.info("Bridge state syncing completed");
