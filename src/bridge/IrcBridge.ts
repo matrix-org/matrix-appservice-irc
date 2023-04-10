@@ -810,26 +810,24 @@ export class IrcBridge {
     }
 
     private async setupStateSyncer(config: BridgeConfig) {
-        if (config.ircService.bridgeInfoState?.enabled) {
-            log.info("Syncing bridge state");
-            this.bridgeStateSyncer = new BridgeInfoStateSyncer(this.bridge, {
-                bridgeName: 'org.matrix.appservice-irc',
-                getMapping: async (roomId, { channel, networkId }) => this.createInfoMapping(channel, networkId),
-            });
-            if (config.ircService.bridgeInfoState.initial) {
-                const mappings = await this.dataStore.getAllChannelMappings();
-                this.bridgeStateSyncer.initialSync(mappings).then(() => {
-                    log.info("Bridge state syncing completed");
-                }).catch((err) => {
-                    log.error("Bridge state syncing resulted in an error:", err);
-                });
-            }
-        }
-        else {
+        if (!config.ircService.bridgeInfoState?.enabled) {
             this.bridgeStateSyncer = undefined;
+            this.config.ircService.bridgeInfoState = undefined;
+            return;
         }
-
-        this.config.ircService.bridgeInfoState = config.ircService.bridgeInfoState;
+        log.info("Syncing bridge state");
+        this.bridgeStateSyncer = new BridgeInfoStateSyncer(this.bridge, {
+            bridgeName: 'org.matrix.appservice-irc',
+            getMapping: async (roomId, { channel, networkId }) => this.createInfoMapping(channel, networkId),
+        });
+        if (config.ircService.bridgeInfoState.initial) {
+            const mappings = await this.dataStore.getAllChannelMappings();
+            this.bridgeStateSyncer.initialSync(mappings).then(() => {
+                log.info("Bridge state syncing completed");
+            }).catch((err) => {
+                log.error("Bridge state syncing resulted in an error:", err);
+            });
+        }
     }
 
     private logMetric(req: Request<BridgeRequestData>, outcome: string) {
