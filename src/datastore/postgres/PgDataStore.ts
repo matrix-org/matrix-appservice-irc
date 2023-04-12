@@ -663,7 +663,9 @@ export class PgDataStore implements DataStore, ProvisioningStore {
     }
 
     public async getRoomsVisibility(roomIds: string[]): Promise<Map<string, MatrixDirectoryVisibility>> {
-        const map: Map<string, MatrixDirectoryVisibility> = new Map();
+        const map: Map<string, MatrixDirectoryVisibility> = new Map(
+            roomIds.map(r => [r, 'private'])
+        );
         const res = await this.pgPool.query(
             "SELECT room_id, visibility FROM room_visibility WHERE room_id = ANY($1)",
             [roomIds]
