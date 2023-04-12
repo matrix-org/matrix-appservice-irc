@@ -1,7 +1,7 @@
 import { IrcClientState, IrcConnection, IrcConnectionEventsMap } from "matrix-org-irc";
 import { ClientId, InCommandType } from "./types";
 import { Logger } from 'matrix-appservice-bridge';
-import { EventEmitter } from "stream";
+import { EventEmitter } from "node:stream";
 import TypedEmitter from "typed-emitter";
 import { IrcPoolClient } from "./IrcPoolClient";
 

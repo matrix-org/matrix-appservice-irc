@@ -10,18 +10,29 @@ import { ClientId, ConnectionCreateArgs, HEARTBEAT_EVERY_MS,
     REDIS_IRC_POOL_CONNECTIONS, REDIS_IRC_POOL_HEARTBEAT_KEY, REDIS_IRC_POOL_VERSION_KEY } from "./types";
 
 import { Logger } from 'matrix-appservice-bridge';
+import { EventEmitter } from "stream";
+import TypedEmitter from "typed-emitter";
+
 const log = new Logger('IrcPoolClient');
 
 const CONNECTION_TIMEOUT = 20000;
+const MAX_MISSED_HEARTBEATS = 5;
 
-export class IrcPoolClient {
+type Events = {
+    lostConnection: () => void,
+};
+
+export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEmitter<Events>) {
     private readonly redis: Redis;
     private readonly connections = new Map<ClientId, Promise<RedisIrcConnection>>();
     public shouldRun = true;
     private commandStreamId = "$";
+    private missedHeartbeats = 0;
+    private heartbeatInterval?: NodeJS.Timer;
     cmdReader: Redis;
 
     constructor(url: string) {
+        super();
         this.redis = new Redis(url, {
             lazyConnect: true,
         });
@@ -127,6 +138,10 @@ export class IrcPoolClient {
                     new Error((commandData as IrcConnectionPoolCommandOut<OutCommandType.Error>).info.error)
                 );
                 break;
+            case OutCommandType.PoolClosing:
+                log.warn("Pool has closed, killing the bridge");
+                this.emit('lostConnection');
+                break;
             default:
                 // eslint-disable-next-line no-case-declarations
                 const buffer = commandData as Buffer;
@@ -136,6 +151,7 @@ export class IrcPoolClient {
     }
 
     public close() {
+        clearInterval(this.heartbeatInterval);
         this.shouldRun = false;
         this.redis.disconnect();
         this.cmdReader.disconnect();
@@ -167,6 +183,23 @@ export class IrcPoolClient {
         );
     }
 
+    private async checkHeartbeat() {
+        const lastHeartbeat = parseInt(await this.redis.get(REDIS_IRC_POOL_HEARTBEAT_KEY) ?? '0');
+        if (lastHeartbeat + HEARTBEAT_EVERY_MS + 1000 > Date.now()) {
+            this.missedHeartbeats = 0;
+            return;
+        }
+
+        // Server may be down!
+        this.missedHeartbeats++;
+        log.warn(`Missed heartbeat from pool (current: ${this.missedHeartbeats}, max: ${MAX_MISSED_HEARTBEATS})`);
+        if (this.missedHeartbeats >= MAX_MISSED_HEARTBEATS) {
+            // Catastrophic failure, we need to kill the bridge.
+            this.emit('lostConnection');
+        }
+    }
+
+
     public async listen() {
         log.info(`Listening for new commands`);
         let loopCommandCheck: () => void;
@@ -187,11 +220,12 @@ export class IrcPoolClient {
             );
         }
 
+        this.heartbeatInterval = setInterval(this.checkHeartbeat.bind(this), HEARTBEAT_EVERY_MS);
+
         // eslint-disable-next-line prefer-const
         loopCommandCheck = () => {
             if (!this.shouldRun) {
                 log.info(`Finished`);
-                // TODO: Shutdown any connections gracefully.
                 return;
             }
             this.handleIncomingCommand().finally(() => {

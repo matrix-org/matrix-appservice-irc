@@ -2,7 +2,7 @@ import { TcpNetConnectOpts } from "node:net";
 import { ConnectionOptions as TlsConnectionOptions } from "node:tls";
 
 export const REDIS_IRC_POOL_VERSION_KEY = "ircbridge.poolversion";
-export const REDIS_IRC_POOL_HEARTBEAT_KEY = "ircbridge.heartbeat";
+export const REDIS_IRC_POOL_HEARTBEAT_KEY = "ircbridge.pool.💓";
 export const REDIS_IRC_POOL_COMMAND_OUT_STREAM = "ircbridge.stream.command.out";
 export const REDIS_IRC_POOL_COMMAND_IN_STREAM = "ircbridge.stream.command.in";
 export const REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ = "ircbridge.stream.command.last-read";
@@ -11,7 +11,7 @@ export const REDIS_IRC_POOL_CONNECTIONS = "ircbridge.connections";
 export const REDIS_IRC_CLIENT_STATE_KEY = `ircbridge.clientstate`; //client-id
 export type ClientId = string;
 
-export const HEARTBEAT_EVERY_MS = 15000;
+export const HEARTBEAT_EVERY_MS = 2000;
 
 export interface ConnectionCreateArgs extends TcpNetConnectOpts {
     clientId: ClientId;
@@ -53,6 +53,7 @@ export enum OutCommandType {
     Disconnected = "disconnected",
     NotConnected = "not-connected",
     Pong = "pong",
+    PoolClosing = "poolclosing",
     // Read = "read", -> This is actually sent as
     // ClientId:Buffer to prevent having to parse the buffer into JSON and back again.
 }
@@ -81,6 +82,7 @@ export type OutCommandPayload = {
     [OutCommandType.Disconnected]: DisconnectedStatus;
     [OutCommandType.NotConnected]: { clientId: ClientId };
     [OutCommandType.Pong]: Record<string, never>;
+    [OutCommandType.PoolClosing]: Record<string, never>;
 };
 
 export interface IrcConnectionPoolCommandOut<T extends OutCommandType = OutCommandType> {

@@ -171,7 +171,8 @@ export class ConnectionInstance {
             // Forcibly ignore the DC if it takes any longer.
             const timeout = setTimeout(() => {
                 log.warn(`Waited for 'end' that never came`);
-            }, 15000);
+                resolveDc();
+            }, 50000);
             this.client.disconnect(ircReason, () => {
                 clearTimeout(timeout);
                 resolveDc();

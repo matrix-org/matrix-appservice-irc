@@ -47,6 +47,7 @@ export class IrcConnectionPool {
 
     private commandStreamId = "$";
     private metricsServer?: Server;
+    private shouldRun = true;
 
     constructor(private readonly config: typeof Config) {
         this.redis = new Redis(config.redisUri);
@@ -374,7 +375,7 @@ export class IrcConnectionPool {
 
 
         log.info(`Listening for new commands`);
-        while (true) {
+        while (this.shouldRun) {
             const newCmd = await this.cmdReader.xread(
                 "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_IN_STREAM, this.commandStreamId);
             if (newCmd === null) {
@@ -395,13 +396,35 @@ export class IrcConnectionPool {
                     ),
             );
         }
+        log.info(`Finished loop`);
     }
+
+    public close() {
+        this.shouldRun = false;
+        this.sendCommandOut(OutCommandType.PoolClosing, { }).finally(() => {
+            this.redis.disconnect();
+            this.cmdReader.disconnect();
+            this.connections.forEach((socket) => {
+                socket.write('QUIT :Process terminating\r\n');
+                socket.end();
+            });
+        })
+    }
+
 }
 
 if (require.main === module) {
-    new IrcConnectionPool(Config).main().then(() => {
-        log.info('Pool started');
-    }).catch(ex => {
+    const pool = new IrcConnectionPool(Config);
+
+    // TODO: This doesn't work yet.
+    process.stdin.resume();
+    process.on("SIGTERM", () => {
+        log.info("SIGTERM recieved, killing pool");
+        pool.close();
+        process.exit(0);
+    });
+
+    pool.main().catch(ex => {
         log.error('Pool process encountered an error', ex);
     });
 }

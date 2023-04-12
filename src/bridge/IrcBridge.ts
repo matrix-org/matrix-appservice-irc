@@ -593,6 +593,9 @@ export class IrcBridge {
             this.ircPoolClient = new IrcPoolClient(
                 this.config.connectionPool.redisUrl,
             );
+            this.ircPoolClient.on('lostConnection', () => {
+                this.kill();
+            });
             await this.ircPoolClient.listen();
         }
 
@@ -928,18 +931,16 @@ export class IrcBridge {
         this.bridgeState = "killed";
         log.info("Killing all clients");
         if (!this.config.connectionPool?.persistConnectionsOnShutdown) {
-            await this.clientPool.killAllClients(reason);
+            this.clientPool.killAllClients(reason);
         }
         else {
             log.info(`Persisting connections on shutdown`);
         }
-        if (this.dataStore) {
-            await this.dataStore.destroy();
-        }
-        log.info("Closing bridge");
-        await this.bridge.close();
-        await this.appservice.close();
-        await this.ircPoolClient?.close();
+        await Promise.allSettled([
+            this.ircPoolClient?.close(),
+            this.dataStore?.destroy(),
+            this.bridge.close(),
+        ])
     }
 
     public get isStartedUp() {
