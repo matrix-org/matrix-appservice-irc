@@ -305,8 +305,8 @@ export class NeDBDataStore implements DataStore {
      */
     public async getMatrixRoomsForChannel(server: IrcServer, channel: string): Promise<MatrixRoom[]> {
         const ircRoom = new IrcRoom(server, channel);
-        return await this.roomStore.getLinkedMatrixRooms(
-            IrcRoom.createId(ircRoom.getServer(), ircRoom.getChannel())
+        return this.roomStore.getLinkedMatrixRooms(
+            ircRoom.getId()
         );
     }
 
