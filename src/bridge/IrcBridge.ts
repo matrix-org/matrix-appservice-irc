@@ -802,7 +802,7 @@ export class IrcBridge {
         log.info("Connecting to IRC networks...");
         await this.connectToIrcNetworks();
 
-        promiseutil.allSettled(this.ircServers.map((server) => {
+        await promiseutil.allSettled(this.ircServers.map((server) => {
             // Call MODE on all known channels to get modes of all channels
             return Bluebird.cast(this.publicitySyncer.initModes(server));
         })).catch((err) => {

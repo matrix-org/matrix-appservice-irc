@@ -255,7 +255,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
 
     public async getIrcChannelsForRoomIds(roomIds: string[]): Promise<{ [roomId: string]: IrcRoom[] }> {
         const entries = await this.pgPool.query(
-            "SELECT room_id, irc_domain, irc_channel FROM rooms WHERE room_id IN $1",
+            "SELECT room_id, irc_domain, irc_channel FROM rooms WHERE room_id = ANY($1)",
             [roomIds]
         );
         const mapping: { [roomId: string]: IrcRoom[] } = {};
@@ -292,14 +292,14 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         if (!Array.isArray(origin)) {
             origin = [origin];
         }
-        const inStatement = origin.map((_, i) => `\$${i + 3}`).join(", ");
         const entries = await this.pgPool.query<RoomRecord>(
-            `SELECT * FROM rooms WHERE irc_domain = $1 AND irc_channel = $2 AND origin IN (${inStatement})`,
+            "SELECT * FROM rooms WHERE irc_domain = $1 AND irc_channel = $2 AND origin = ANY($3)",
             [
                 server.domain,
                 // Channels must be lowercase
                 toIrcLowerCase(channel),
-            ].concat(origin));
+                origin,
+            ]);
         return entries.rows.map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
@@ -663,10 +663,13 @@ export class PgDataStore implements DataStore, ProvisioningStore {
     }
 
     public async getRoomsVisibility(roomIds: string[]): Promise<Map<string, MatrixDirectoryVisibility>> {
-        const map: Map<string, MatrixDirectoryVisibility> = new Map();
-        const res = await this.pgPool.query("SELECT room_id, visibility FROM room_visibility WHERE room_id IN $1", [
-            roomIds,
-        ]);
+        const map: Map<string, MatrixDirectoryVisibility> = new Map(
+            roomIds.map(r => [r, 'private'])
+        );
+        const res = await this.pgPool.query(
+            "SELECT room_id, visibility FROM room_visibility WHERE room_id = ANY($1)",
+            [roomIds]
+        );
         for (const row of res.rows) {
             map.set(row.room_id, row.visibility ? "public" : "private");
         }
