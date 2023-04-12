@@ -344,10 +344,11 @@ export class RoomAccessSyncer {
         Object.values(roomModeMap).forEach((roomMode) => {
             roomMode.forEach((m) => {oldModes.add(m)});
         });
-        req.log.debug(`Got cached mode for ${channel} ${[...oldModes]}`);
+        const oldModesArray = [...oldModes];
+        req.log.debug(`Got cached mode for ${channel} ${oldModesArray}`);
 
         // For each cached mode we have for the room, that is no longer set: emit a disabled mode.
-        promises.concat([...oldModes].map((oldModeChar) => {
+        promises.push(...oldModesArray.map((oldModeChar) => {
             if (!MODES_TO_WATCH.includes(oldModeChar)) {
                 return Promise.resolve();
             }
