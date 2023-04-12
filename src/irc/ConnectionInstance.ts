@@ -22,6 +22,7 @@ import { Defer } from "../promiseutil";
 import { IrcServer } from "./IrcServer";
 import { getBridgeVersion } from "matrix-appservice-bridge";
 import { IrcPoolClient } from "../pool-service/IrcPoolClient";
+import { RedisIrcConnection } from "../pool-service/RedisIrcConnection";
 
 const log = logging.get("client-connection");
 
@@ -106,7 +107,7 @@ export class ConnectionInstance {
         private pingOpts: {
         pingRateMs: number;
         pingTimeoutMs: number;
-    }, private readonly homeserverDomain: string) {
+    }, private readonly homeserverDomain: string, private readonly redisConn?: RedisIrcConnection) {
         this.listenForErrors();
         this.listenForPings();
         this.listenForCTCPVersions();
@@ -161,6 +162,7 @@ export class ConnectionInstance {
         return new Promise((resolve) => {
             // close the connection
             this.client.disconnect(ircReason, () => { /* This is needed for tests */ });
+            this.redisConn?.destroy();
             // remove timers
             if (this.pingRateTimerId) {
                 clearTimeout(this.pingRateTimerId);
@@ -430,6 +432,7 @@ export class ConnectionInstance {
                     pingTimeoutMs: server.pingTimeout,
                 },
                 homeserverDomain,
+                redisConn,
             );
             if (onCreatedCallback) {
                 onCreatedCallback(inst);
