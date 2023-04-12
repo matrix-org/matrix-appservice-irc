@@ -149,9 +149,9 @@ export class ConnectionInstance {
      * @param {string} reason - Reason to reject with. One of:
      * throttled|irc_error|net_error|timeout|raw_error|toomanyconns|banned
      */
-    public disconnect(reason: InstanceDisconnectReason, ircReason?: string): Promise<void> {
+    public async disconnect(reason: InstanceDisconnectReason, ircReason?: string): Promise<void> {
         if (this.dead) {
-            return Promise.resolve();
+            return;
         }
         ircReason = ircReason || reason;
         log.info(
@@ -159,33 +159,46 @@ export class ConnectionInstance {
         );
         this.dead = true;
 
-        return new Promise((resolve) => {
-            // close the connection
-            this.client.disconnect(ircReason, () => { /* This is needed for tests */ });
-            this.redisConn?.destroy();
-            // remove timers
-            if (this.pingRateTimerId) {
-                clearTimeout(this.pingRateTimerId);
-                this.pingRateTimerId = null;
+        // It's imperative we wait for the disconnect, as the IrcConnectionPool
+        // doesn't allow us to create new connections for a given user
+        // while a previous one is active.
+        // close the connection
+        await new Promise<void>((resolveDc) => {
+            if (!this.client.conn) {
+                resolveDc();
+                return;
             }
-            if (this.clientSidePingTimeoutTimerId) {
-                clearTimeout(this.clientSidePingTimeoutTimerId);
-                this.clientSidePingTimeoutTimerId = null;
-            }
-            if (this.state !== "connected") {
-                // we never resolved this defer, so reject it.
-                this.connectDefer.reject(new Error(reason));
-            }
-            if (this.state === "connected" && this.onDisconnect) {
-                // we only invoke onDisconnect once we've had a successful connect.
-                // Connection *attempts* are managed by the create() function so if we
-                // call this now it would potentially invoke this 3 times (once per
-                // connection instance!). Each time would have dead=false as they are
-                // separate objects.
-                this.onDisconnect(reason);
-            }
-            resolve();
+            // Forcibly ignore the DC if it takes any longer.
+            const timeout = setTimeout(() => {
+                log.warn(`Waited for 'end' that never came`);
+            }, 15000);
+            this.client.disconnect(ircReason, () => {
+                clearTimeout(timeout);
+                resolveDc();
+            });
         });
+
+        // remove timers
+        if (this.pingRateTimerId) {
+            clearTimeout(this.pingRateTimerId);
+            this.pingRateTimerId = null;
+        }
+        if (this.clientSidePingTimeoutTimerId) {
+            clearTimeout(this.clientSidePingTimeoutTimerId);
+            this.clientSidePingTimeoutTimerId = null;
+        }
+        if (this.state !== "connected") {
+            // we never resolved this defer, so reject it.
+            this.connectDefer.reject(new Error(reason));
+        }
+        if (this.state === "connected" && this.onDisconnect) {
+            // we only invoke onDisconnect once we've had a successful connect.
+            // Connection *attempts* are managed by the create() function so if we
+            // call this now it would potentially invoke this 3 times (once per
+            // connection instance!). Each time would have dead=false as they are
+            // separate objects.
+            this.onDisconnect(reason);
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

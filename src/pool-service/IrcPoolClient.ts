@@ -36,6 +36,7 @@ export class IrcPoolClient {
             info: payload,
         } as IrcConnectionPoolCommandIn<T>));
         log.debug(`Sent command in ${type}: ${payload}`);
+        // Bit cheeky.
     }
 
     public async createOrGetIrcSocket(clientId: string, netOpts: ConnectionCreateArgs): Promise<RedisIrcConnection> {
@@ -97,8 +98,8 @@ export class IrcPoolClient {
     // eslint-disable-next-line max-len
     private async handleCommand<T extends OutCommandType>(commandTypeOrClientId: T|ClientId, commandData: IrcConnectionPoolCommandOut<T>|Buffer) {
         // I apologise about this insanity.
-        const connection = await (Buffer.isBuffer(commandData) ?
-            this.connections.get(commandTypeOrClientId) : this.connections.get(commandData.info.clientId));
+        const connectionId = Buffer.isBuffer(commandData) ? commandTypeOrClientId : commandData.info.clientId;
+        const connection = await this.connections.get(connectionId);
         if (Buffer.isBuffer(commandData)) {
             log.debug(`Got incoming write ${commandTypeOrClientId}  (${commandData.byteLength} bytes)`);
         }
@@ -115,6 +116,7 @@ export class IrcPoolClient {
                 connection.emit('connect');
                 break;
             case OutCommandType.Disconnected:
+                this.connections.delete(connectionId);
                 connection.emit('end');
                 break;
             case OutCommandType.NotConnected:

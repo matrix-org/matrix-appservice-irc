@@ -19,7 +19,6 @@ export class RedisIrcConnection extends (EventEmitter as unknown as
 
     private isConnecting = true;
 
-
     constructor (private readonly redis: IrcPoolClient,
                 public readonly clientId: ClientId,
                 public state: IrcClientState) {
@@ -34,7 +33,7 @@ export class RedisIrcConnection extends (EventEmitter as unknown as
     }
 
     destroy() {
-        this.log.warn(`Called destroy`);
+        this.log.debug(`Called destroy`);
         this.redis.sendCommand(InCommandType.Destroy, { clientId: this.clientId }).catch(ex => {
             this.log.warn(`Could not send destroy:`, ex);
         });
@@ -47,6 +46,7 @@ export class RedisIrcConnection extends (EventEmitter as unknown as
     }
 
     end(): void {
+        this.log.debug(`Called end`);
         this.redis.sendCommand(InCommandType.End, { clientId: this.clientId }).catch(ex => {
             this.log.warn(`Could not send end:`, ex);
         });
