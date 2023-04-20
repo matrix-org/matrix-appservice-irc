@@ -4,7 +4,7 @@
 Bugfixes
 --------
 
-- Fix SQL syntax errors in the PostgreSQL data store. ([\#1660](https://github.com/matrix-org/matrix-appservice-irc/issues/1660))
+- Fix leak of secret channels (name, topic, and member count) to the public room directory due to a regressive refactor in a previous release. ([\#1660](https://github.com/matrix-org/matrix-appservice-irc/issues/1660), [\#1698](https://github.com/matrix-org/matrix-appservice-irc/issues/1698))
 - Fix unlink command showing an error. ([\#1692](https://github.com/matrix-org/matrix-appservice-irc/issues/1692))
 
 
