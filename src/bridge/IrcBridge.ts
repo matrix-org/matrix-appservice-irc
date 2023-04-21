@@ -829,6 +829,7 @@ export class IrcBridge {
                 log.error("Bridge state syncing resulted in an error:", err);
             });
         }
+        this.config.ircService.bridgeInfoState = config.ircService.bridgeInfoState;
     }
 
     private logMetric(req: Request<BridgeRequestData>, outcome: string) {
