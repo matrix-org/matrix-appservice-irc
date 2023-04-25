@@ -34,7 +34,7 @@ jobs:
           docker build -f docker/complement/Dockerfile -t complement-synapse:latest docker/complement
           docker image save complement-synapse:latest > /tmp/img-synapse.tar
 
-  inspircd-test:
+  integration-test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs:
@@ -54,6 +54,10 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      ircd:
+        image: ghcr.io/ergochat/ergo:stable
+        ports:
+          - 6667:6667
     steps:
       - name: "Set Go Version"
         run: |
@@ -63,15 +67,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: matrix-appservice-irc
-      
-      # Set up the IRCD
-      - name: Set up inspircd
-        run: |
-          sudo apt update
-          sudo apt install inspircd
-          sudo cp matrix-appservice-irc/.github/support/inspircd.conf /etc/inspircd/inspircd.conf
-          sudo service inspircd start
-
+    
       # Pull the complement-synapse image from cache
       - name: Checkout synapse
         uses: actions/checkout@v3
