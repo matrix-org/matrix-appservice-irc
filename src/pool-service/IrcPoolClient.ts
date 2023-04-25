@@ -125,6 +125,9 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         switch (commandTypeOrClientId) {
             case OutCommandType.Connected:
                 connection.emit('connect');
+                connection.setConnectionInfo(
+                    (commandData as IrcConnectionPoolCommandOut<OutCommandType.Connected>).info
+                );
                 break;
             case OutCommandType.Disconnected:
                 this.connections.delete(connectionId);

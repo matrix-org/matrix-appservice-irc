@@ -1,5 +1,5 @@
 import { IrcClientState, IrcConnection, IrcConnectionEventsMap } from "matrix-org-irc";
-import { ClientId, InCommandType } from "./types";
+import { ClientId, InCommandType, IrcConnectionPoolCommandOut, OutCommandType } from "./types";
 import { Logger } from 'matrix-appservice-bridge';
 import { EventEmitter } from "node:stream";
 import TypedEmitter from "typed-emitter";
@@ -18,12 +18,21 @@ export class RedisIrcConnection extends (EventEmitter as unknown as
     }
 
     private isConnecting = true;
+    public localPort?: number;
+    public localIp?: string;
 
     constructor (private readonly redis: IrcPoolClient,
                 public readonly clientId: ClientId,
                 public state: IrcClientState) {
         super();
-        this.once('connect', () => { this.isConnecting = false });
+        this.once('connect', () => {
+            this.isConnecting = false;
+        });
+    }
+
+    setConnectionInfo(info: IrcConnectionPoolCommandOut<OutCommandType.Connected>["info"]) {
+        this.localPort = info.localPort;
+        this.localIp = info.localIp;
     }
 
     setTimeout(timeout: number) {

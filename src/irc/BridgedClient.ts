@@ -30,6 +30,8 @@ import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
 import { Client, WhoisResponse } from "matrix-org-irc";
 import { IrcPoolClient } from "../pool-service/IrcPoolClient";
+import { RedisIrcConnection } from "../pool-service/RedisIrcConnection";
+import { Socket } from "net";
 
 const log = getLogger("BridgedClient");
 
@@ -808,17 +810,18 @@ export class BridgedClient extends EventEmitter {
         // listen for a connect event which is done when the TCP connection is
         // established and set ident info (this is different to the connect() callback
         // in node-irc which actually fires on a registered event..)
-        connInst.client.once("connect", function() {
-            // let localPort = -1;
-            // // Fix horrible ident
-            // // if (connInst.client.conn && connInst.client.conn.localPort) {
-            // //     localPort = connInst.client.conn.localPort;
-            // // }
-            // // if (localPort > 0 && nameInfo.username) {
-            // //     Ident.setMapping(nameInfo.username, localPort);
-            // // }
-            // identResolver();
-        });
+        if (Ident.enabled) {
+            connInst.client.once("connect", function() {
+                const conn = connInst.client.conn as RedisIrcConnection|Socket;
+                const localPort = conn?.localPort ?? 0;
+                // Fix horrible ident
+                if (localPort > 0 && nameInfo.username) {
+                    Ident.setMapping(nameInfo.username, localPort);
+                }
+                identResolver();
+            });
+        }
+
         // Emitters for SASL
         connInst.client.on("sasl_loggedin", (...args: string[]) => {
             const msg = args.pop();
