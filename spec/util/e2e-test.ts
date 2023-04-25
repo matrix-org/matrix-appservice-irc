@@ -31,10 +31,10 @@ interface Opts {
 interface DescribeEnv {
     homeserver: ComplementHomeServer;
     ircBridge: IrcBridge;
-    clients: TestClient[];
+    clients: Record<string, TestClient>;
 }
 
-export class IrcBridgeE2ETest extends TestIrcServer {
+export class IrcBridgeE2ETest {
 
     /**
      * Test wrapper that automatically provisions an IRC server and Matrix server
@@ -60,7 +60,7 @@ export class IrcBridgeE2ETest extends TestIrcServer {
                 if (!env.ircBridge) {
                     throw Error('ircBridge not defined');
                 }
-                return { homeserver: env.homeserver, ircBridge: env.ircBridge, clients: env.clients }
+                return { homeserver: env.homeserver, ircBridge: env.ircBridge, clients: env.ircTest.clients }
             });
         });
     }
@@ -68,6 +68,10 @@ export class IrcBridgeE2ETest extends TestIrcServer {
     public homeserver?: ComplementHomeServer;
     public ircBridge?: IrcBridge;
     public postgresDb?: string;
+    public ircTest: TestIrcServer;
+    constructor() {
+        this.ircTest = new TestIrcServer();
+    }
 
     private async createDatabase() {
         const pgClient = new PgClient(`${process.env.IRCBRIDGE_TEST_PGURL}/postgres`);
@@ -100,7 +104,7 @@ export class IrcBridgeE2ETest extends TestIrcServer {
         const [postgresDb, homeserver] = await Promise.all([
             this.createDatabase(),
             createHS(["ircbridge_bot", ...matrixLocalparts || []]),
-            super.setUp(clients),
+            this.ircTest.setUp(clients),
         ]);
         this.homeserver = homeserver;
         this.postgresDb = postgresDb;
@@ -201,7 +205,7 @@ export class IrcBridgeE2ETest extends TestIrcServer {
     public async tearDown(): Promise<void> {
         await Promise.allSettled([
             this.ircBridge?.kill(),
-            super.tearDown(),
+            this.ircTest.tearDown(),
             this.homeserver?.users.map(c => c.client.stop()),
             this.homeserver && destroyHS(this.homeserver.id),
             this.dropDatabase(),

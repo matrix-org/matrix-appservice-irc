@@ -1,7 +1,24 @@
 import { IrcBridgeE2ETest } from "../util/e2e-test";
 import { it, expect } from '@jest/globals';
+import { IrcConnectionPool } from '../../src/pool-service/IrcConnectionPool';
+
+const redisUrl = process.env.IRCBRIDGE_TEST_REDIS_URL ?? 'redis://localhost:6379';
 
 IrcBridgeE2ETest.describeTest('Basic bridge usage', (env) => {
+    let pool: IrcConnectionPool;
+    beforeEach(() => {
+        pool = new IrcConnectionPool({
+            redisUri: redisUrl,
+            metricsHost: false,
+            metricsPort: 7002,
+            loggingLevel: 'debug',
+        });
+    });
+
+    afterEach(() => {
+        return pool.close();
+    })
+
     it('should be able to dynamically bridge a room via the !join command', async () => {
         const { homeserver, ircBridge, clients } = env();
         const alice = homeserver.users[0].client;
@@ -34,7 +51,7 @@ IrcBridgeE2ETest.describeTest('Basic bridge usage', (env) => {
     clients: ['bob'],
     config: {
         connectionPool: {
-            redisUrl: process.env.IRCBRIDGE_TEST_REDIS_URL ?? 'redis://localhost:6379',
+            redisUrl,
             persistConnectionsOnShutdown: false,
         }
     }
