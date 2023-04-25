@@ -417,7 +417,6 @@ if (require.main === module) {
     const pool = new IrcConnectionPool(Config);
 
     // TODO: This doesn't work yet.
-    process.stdin.resume();
     process.on("SIGTERM", () => {
         log.info("SIGTERM recieved, killing pool");
         pool.close();

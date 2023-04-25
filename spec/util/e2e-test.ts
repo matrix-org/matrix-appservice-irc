@@ -17,7 +17,6 @@ dns.setDefaultResultOrder('ipv4first');
 const DEFAULT_E2E_TIMEOUT = parseInt(process.env.IRC_TEST_TIMEOUT ?? '90000', 10);
 const WAIT_EVENT_TIMEOUT = 10000;
 
-// TODO: Expose these
 const DEFAULT_PORT = parseInt(process.env.IRC_TEST_PORT ?? '6667', 10);
 const DEFAULT_ADDRESS = process.env.IRC_TEST_ADDRESS ?? "127.0.0.1";
 

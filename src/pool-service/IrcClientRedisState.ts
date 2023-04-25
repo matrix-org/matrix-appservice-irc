@@ -29,269 +29,152 @@ interface IrcClientStateDehydrated {
     lastSendTime: number;
 }
 
-class StateBackedMap<K, V> extends Map<K, V> {
-    constructor(private readonly onChange: () => void, entries?: readonly (readonly [K, V])[] | null, ) {
-        super(entries);
-    }
-
-    set(key: K, value: V) {
-        super.set(key, value);
-        // `this.onChange` isn't defined
-        //this.onChange();
-        return this;
-    }
-
-    clear() {
-        super.clear();
-        //this.onChange();
-    }
-}
-
 export class IrcClientRedisState implements IrcClientState {
     private putStatePromise: Promise<void> = Promise.resolve();
 
     static async create(redis: Redis, clientId: string) {
         const data = await redis.hget(REDIS_IRC_CLIENT_STATE_KEY, clientId);
         const deseralisedData = data ? JSON.parse(data) as IrcClientStateDehydrated : {} as Record<string, never>;
-        // eslint-disable-next-line prefer-const
-        let redisState: IrcClientRedisState;
-        const flushFn = () => {
-            redisState.flush();
-        }
-        // TODO: Validate that some of these exist.
+
+        // The client library is currently responsible for flushing any new changes
+        // to the state so we do not need to detect changes in this class.
+        // In the future this may change.
         const innerState = {
             loggedIn: deseralisedData.loggedIn ?? false,
             registered: deseralisedData.registered ?? false,
             currentNick: deseralisedData.currentNick ?? '',
             nickMod: deseralisedData.nickMod ?? 0,
-            whoisData: new StateBackedMap(flushFn, deseralisedData.whoisData),
+            whoisData: new Map(deseralisedData.whoisData),
             modeForPrefix: deseralisedData.modeForPrefix ?? { },
             hostMask: deseralisedData.hostMask ?? '',
-            // TODO: It's still possible for data to go missing here.
-            chans: new StateBackedMap(flushFn, deseralisedData.chans),
+            chans: new Map(deseralisedData.chans),
             maxLineLength: deseralisedData.maxLineLength ?? -1,
             lastSendTime: deseralisedData.lastSendTime ?? 0,
             prefixForMode: deseralisedData.prefixForMode ?? {},
             supportedState: deseralisedData.supportedState ?? DefaultIrcSupported,
             capabilities: new IrcCapabilities(deseralisedData.capabilities),
         };
-        redisState = new IrcClientRedisState(redis, clientId, innerState);
-        return redisState;
+        return new IrcClientRedisState(redis, clientId, innerState);
     }
 
     private constructor(
-        private readonly redis: Redis, private readonly clientId: string, private innerState?: IrcClientState
+        private readonly redis: Redis,
+        private readonly clientId: string,
+        private readonly innerState: IrcClientState
     ) {
 
     }
 
     public get loggedIn() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.loggedIn;
     }
 
     public set loggedIn(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.loggedIn = value;
         this.flush();
     }
 
     public get registered() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.registered;
     }
 
     public set registered(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.registered = value;
         this.flush();
     }
 
     public get currentNick() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.currentNick;
     }
 
     public set currentNick(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.currentNick = value;
         this.flush();
     }
 
     public get whoisData() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.whoisData;
     }
 
     public set whoisData(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.whoisData = value;
         this.flush();
     }
 
     public get nickMod() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.nickMod;
     }
 
     public set nickMod(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.nickMod = value;
         this.flush();
     }
 
     public get modeForPrefix() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.modeForPrefix;
     }
 
     public set modeForPrefix(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.modeForPrefix = value;
         this.flush();
     }
 
     public get capabilities() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.capabilities;
     }
 
     public set capabilities(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.capabilities = value;
         this.flush();
     }
 
     public get supportedState() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.supportedState;
     }
 
     public set supportedState(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.supportedState = value;
         this.flush();
     }
 
     public get hostMask() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.hostMask;
     }
 
     public set hostMask(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.hostMask = value;
         this.flush();
     }
 
     public get chans() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.chans;
     }
 
     public set chans(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.chans = value;
         this.flush();
     }
 
     public get prefixForMode() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.prefixForMode;
     }
 
     public set prefixForMode(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.prefixForMode = value;
         this.flush();
     }
 
     public get lastSendTime() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         return this.innerState.lastSendTime;
     }
 
     public set lastSendTime(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         this.innerState.lastSendTime = value;
         this.flush();
     }
 
 
-    public async hydrate() {
-        const data = await this.redis.hget(REDIS_IRC_CLIENT_STATE_KEY, this.clientId);
-        const deseralisedData = data ? JSON.parse(data) as IrcClientStateDehydrated : {} as Record<string, never>;
-        // Deserialise
-
-        this.innerState = {
-            loggedIn: deseralisedData.loggedIn ?? false,
-            registered: deseralisedData.registered ?? false,
-            currentNick: deseralisedData.currentNick ?? '',
-            nickMod: deseralisedData.nickMod ?? 0,
-            whoisData: new StateBackedMap(this.flush.bind(this), deseralisedData.whoisData),
-            modeForPrefix: deseralisedData.modeForPrefix ?? { },
-            hostMask: deseralisedData.hostMask ?? '',
-            // TODO: It's still possible for data to go missing here.
-            chans: new StateBackedMap(this.flush.bind(this), deseralisedData.chans),
-            lastSendTime: deseralisedData.lastSendTime ?? 0,
-            prefixForMode: deseralisedData.prefixForMode ?? {},
-            supportedState: deseralisedData.supportedState ?? DefaultIrcSupported,
-            capabilities: new IrcCapabilities(deseralisedData.capabilities),
-        };
-    }
-
     public flush() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
         const serialState = JSON.stringify({
             ...this.innerState,
             whoisData: [...this.innerState.whoisData.entries()],
