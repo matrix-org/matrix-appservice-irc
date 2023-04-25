@@ -16,7 +16,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - uses: actions/setup-python@v2
-      - run: pip install towncrier==19.2.0
+      - run: pip install 'towncrier>=22,<23'
       - run: scripts/check-newsfragment
         env:
           PULL_REQUEST_NUMBER: ${{ github.event.number }}
