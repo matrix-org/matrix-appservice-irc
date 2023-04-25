@@ -7,6 +7,7 @@ import { IrcServer } from "../../src/irc/IrcServer";
 import dns from 'node:dns';
 import { MatrixClient } from "matrix-bot-sdk";
 import { Client as PgClient } from "pg";
+import { BridgeConfig } from "../../src/config/BridgeConfig";
 
 // Needed to make tests work on GitHub actions. Node 17+ defaults
 // to IPv6, and the homerunner domain resolves to IPv6, but the
@@ -24,6 +25,7 @@ interface Opts {
     matrixLocalparts?: string[];
     clients?: string[];
     timeout?: number;
+    config?: Partial<BridgeConfig>,
 }
 
 interface DescribeEnv {
@@ -46,7 +48,7 @@ export class IrcBridgeE2ETest extends IrcServerTest {
             let env: IrcBridgeE2ETest;
             beforeEach(async () => {
                 env = new IrcBridgeE2ETest();
-                await env.setUp(opts?.clients, opts?.matrixLocalparts);
+                await env.setUp(opts?.clients, opts);
             });
             afterEach(async () => {
                 await env.tearDown();
@@ -91,8 +93,9 @@ export class IrcBridgeE2ETest extends IrcServerTest {
         await pgClient.end();
     }
 
-    public async setUp(clients?: string[], matrixLocalparts?: string[]): Promise<void> {
+    public async setUp(clients?: string[], opts: Opts = {}): Promise<void> {
         // Setup PostgreSQL.
+        const { matrixLocalparts, config } = opts;
         this.postgresDb = await this.createDatabase();
         const [postgresDb, homeserver] = await Promise.all([
             this.createDatabase(),
@@ -170,7 +173,8 @@ export class IrcBridgeE2ETest extends IrcServerTest {
                     enabled: false,
                     port: 0,
                 }
-            }
+            },
+            ...config,
         }, AppServiceRegistration.fromObject({
             id: this.homeserver.id,
             as_token: this.homeserver.appserviceConfig.asToken,

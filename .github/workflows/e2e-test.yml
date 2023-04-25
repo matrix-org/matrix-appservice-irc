@@ -54,6 +54,10 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
       ircd:
         image: ghcr.io/ergochat/ergo:stable
         ports:
@@ -116,6 +120,8 @@ jobs:
           IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
           IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
           IRCBRIDGE_TEST_ENABLEPG: "yes"
+          IRCBRIDGE_TEST_REDIS_URL: "redis://localhost:6379"
+          REDIS_URL: 'redis://localhost:6379'
         run: |
           cd matrix-appservice-irc
           yarn --strict-semver --frozen-lockfile
