@@ -401,7 +401,7 @@ export class IrcConnectionPool {
 
     public close() {
         this.shouldRun = false;
-        this.sendCommandOut(OutCommandType.PoolClosing, { }).finally(() => {
+        return this.sendCommandOut(OutCommandType.PoolClosing, { }).finally(() => {
             this.redis.disconnect();
             this.cmdReader.disconnect();
             this.connections.forEach((socket) => {
@@ -415,12 +415,15 @@ export class IrcConnectionPool {
 
 if (require.main === module) {
     const pool = new IrcConnectionPool(Config);
-
-    // TODO: This doesn't work yet.
-    process.on("SIGTERM", () => {
+    process.on("SIGINT", () => {
         log.info("SIGTERM recieved, killing pool");
-        pool.close();
-        process.exit(0);
+        pool.close().then(() => {
+            log.info("Completed cleanup, exiting");
+            process.exit(0);
+        }).catch(err => {
+            log.warn("Error while closing pool, exiting anyway", err);
+            process.exit(1);
+        })
     });
 
     pool.main().catch(ex => {
