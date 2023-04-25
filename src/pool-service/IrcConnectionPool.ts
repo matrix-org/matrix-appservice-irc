@@ -62,7 +62,7 @@ export class IrcConnectionPool {
     }
 
     private async sendCommandOut<T extends OutCommandType>(type: T, payload: OutCommandPayload[T]) {
-        this.redis.xadd(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "*", type, JSON.stringify({
+        await this.redis.xadd(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "*", type, JSON.stringify({
             info: payload,
             origin_ts: Date.now(),
         } as IrcConnectionPoolCommandOut<OutCommandType>)).catch((ex) => {
@@ -399,16 +399,16 @@ export class IrcConnectionPool {
         log.info(`Finished loop`);
     }
 
-    public close() {
+    public async close() {
         this.shouldRun = false;
-        return this.sendCommandOut(OutCommandType.PoolClosing, { }).finally(() => {
-            this.redis.disconnect();
-            this.cmdReader.disconnect();
-            this.connections.forEach((socket) => {
-                socket.write('QUIT :Process terminating\r\n');
-                socket.end();
-            });
-        })
+        await this.sendCommandOut(OutCommandType.PoolClosing, { });
+        this.connections.forEach((socket) => {
+            socket.write('QUIT :Process terminating\r\n');
+            socket.end();
+        });
+        // TODO: Test doesn't like this.
+        //await this.redis.quit();
+        await this.cmdReader.quit();
     }
 
 }

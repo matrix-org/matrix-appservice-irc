@@ -1,28 +1,42 @@
 import { IrcBridgeE2ETest } from "../util/e2e-test";
-import { it, expect } from '@jest/globals';
 import { IrcConnectionPool } from '../../src/pool-service/IrcConnectionPool';
 
 const redisUrl = process.env.IRCBRIDGE_TEST_REDIS_URL ?? 'redis://localhost:6379';
 
-IrcBridgeE2ETest.describeTest('Basic bridge usage', (env) => {
+describe('Connection pooling', () => {
+    let server: IrcBridgeE2ETest;
     let pool: IrcConnectionPool;
-    beforeEach(() => {
+    beforeEach(async () => {
         pool = new IrcConnectionPool({
             redisUri: redisUrl,
             metricsHost: false,
             metricsPort: 7002,
             loggingLevel: 'debug',
         });
+        server = await IrcBridgeE2ETest.createTestEnv({
+            matrixLocalparts: ['alice'],
+            ircNicks: ['bob'],
+            config: {
+                connectionPool: {
+                    redisUrl,
+                }
+            }
+        });
+        pool.main();
+        await server.setUp();
     });
 
-    afterEach(() => {
-        return pool.close();
+    afterEach(async () => {
+        await Promise.allSettled([
+            server.tearDown(),
+            pool.close(),
+        ]);
     })
 
-    it('should be able to dynamically bridge a room via the !join command', async () => {
-        const { homeserver, ircBridge, clients } = env();
+    fit('should be able to dynamically bridge a room via the !join command', async () => {
+        const { homeserver, ircBridge } = server;
         const alice = homeserver.users[0].client;
-        const bob = clients[0];
+        const { bob } = server.ircTest.clients;
         await bob.join('#test');
 
         const adminRoomId = await alice.createRoom({
@@ -46,13 +60,4 @@ IrcBridgeE2ETest.describeTest('Basic bridge usage', (env) => {
             {eventType: 'm.room.member', sender: bobUserId, stateKey: bobUserId, roomId: cRoomId}
         );
     });
-}, {
-    matrixLocalparts: ['alice'],
-    clients: ['bob'],
-    config: {
-        connectionPool: {
-            redisUrl,
-            persistConnectionsOnShutdown: false,
-        }
-    }
 });

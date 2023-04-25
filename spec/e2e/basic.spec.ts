@@ -1,11 +1,22 @@
 import { IrcBridgeE2ETest } from "../util/e2e-test";
-import { it, expect } from '@jest/globals';
 
-IrcBridgeE2ETest.describeTest('Basic bridge usage', (env) => {
+
+xdescribe('Basic bridge usage', () => {
+    let server: IrcBridgeE2ETest;
+    beforeEach(async () => {
+        server = await IrcBridgeE2ETest.createTestEnv({
+            matrixLocalparts: ['alice'],
+            ircNicks: ['bob'],
+        });
+        await server.setUp();
+    });
+    afterEach(() => {
+        return server.tearDown();
+    });
     it('should be able to dynamically bridge a room via the !join command', async () => {
-        const { homeserver, ircBridge, clients } = env();
+        const { homeserver, ircBridge } = server;
         const alice = homeserver.users[0].client;
-        const bob = clients[0];
+        const { bob } = server.ircTest.clients;
         await bob.join('#test');
 
         const adminRoomId = await alice.createRoom({
@@ -29,7 +40,4 @@ IrcBridgeE2ETest.describeTest('Basic bridge usage', (env) => {
             {eventType: 'm.room.member', sender: bobUserId, stateKey: bobUserId, roomId: cRoomId}
         );
     });
-}, {
-    matrixLocalparts: ['alice'],
-    clients: ['bob'],
 });

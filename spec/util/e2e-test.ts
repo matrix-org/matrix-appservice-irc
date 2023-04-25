@@ -2,11 +2,10 @@ import { AppServiceRegistration } from "matrix-appservice-bridge";
 import { BridgeConfig } from "../../src/config/BridgeConfig";
 import { Client as PgClient } from "pg";
 import { ComplementHomeServer, createHS, destroyHS } from "./homerunner";
-import { describe, beforeEach, afterEach, jest } from '@jest/globals';
 import { IrcBridge } from '../../src/bridge/IrcBridge';
 import { IrcServer } from "../../src/irc/IrcServer";
 import { MatrixClient } from "matrix-bot-sdk";
-import { TestClient, TestIrcServer } from "matrix-org-irc";
+import { TestIrcServer } from "matrix-org-irc";
 import dns from 'node:dns';
 
 // Needed to make tests work on GitHub actions. Node 17+ defaults
@@ -14,8 +13,6 @@ import dns from 'node:dns';
 // runtime doesn't actually support IPv6 🤦
 dns.setDefaultResultOrder('ipv4first');
 
-
-const DEFAULT_E2E_TIMEOUT = parseInt(process.env.IRC_TEST_TIMEOUT ?? '90000', 10);
 const WAIT_EVENT_TIMEOUT = 10000;
 
 const DEFAULT_PORT = parseInt(process.env.IRC_TEST_PORT ?? '6667', 10);
@@ -23,57 +20,14 @@ const DEFAULT_ADDRESS = process.env.IRC_TEST_ADDRESS ?? "127.0.0.1";
 
 interface Opts {
     matrixLocalparts?: string[];
-    clients?: string[];
+    ircNicks?: string[];
     timeout?: number;
     config?: Partial<BridgeConfig>,
 }
 
-interface DescribeEnv {
-    homeserver: ComplementHomeServer;
-    ircBridge: IrcBridge;
-    clients: Record<string, TestClient>;
-}
-
 export class IrcBridgeE2ETest {
 
-    /**
-     * Test wrapper that automatically provisions an IRC server and Matrix server
-     * @param name The test name
-     * @param fn The inner function
-     * @returns A jest describe function.
-     */
-    static describeTest(name: string, fn: (env: () => DescribeEnv) => void, opts?: Opts) {
-        return describe(name, () => {
-            jest.setTimeout(opts?.timeout ?? DEFAULT_E2E_TIMEOUT);
-            let env: IrcBridgeE2ETest;
-            beforeEach(async () => {
-                env = new IrcBridgeE2ETest();
-                await env.setUp(opts?.clients, opts);
-            });
-            afterEach(async () => {
-                await env.tearDown();
-            });
-            fn(() => {
-                if (!env.homeserver) {
-                    throw Error('Homeserver not defined');
-                }
-                if (!env.ircBridge) {
-                    throw Error('ircBridge not defined');
-                }
-                return { homeserver: env.homeserver, ircBridge: env.ircBridge, clients: env.ircTest.clients }
-            });
-        });
-    }
-
-    public homeserver?: ComplementHomeServer;
-    public ircBridge?: IrcBridge;
-    public postgresDb?: string;
-    public ircTest: TestIrcServer;
-    constructor() {
-        this.ircTest = new TestIrcServer();
-    }
-
-    private async createDatabase() {
+    private static async createDatabase() {
         const pgClient = new PgClient(`${process.env.IRCBRIDGE_TEST_PGURL}/postgres`);
         try {
             await pgClient.connect();
@@ -85,40 +39,24 @@ export class IrcBridgeE2ETest {
             await pgClient.end();
         }
     }
-
-    private async dropDatabase() {
-        if (!this.postgresDb) {
-            // Database was never set up.
-            return;
-        }
-        const pgClient = new PgClient(`${process.env.IRCBRIDGE_TEST_PGURL}/postgres`);
-        await pgClient.connect();
-        await pgClient.query(`DROP DATABASE ${this.postgresDb}`);
-        await pgClient.end();
-    }
-
-    public async setUp(clients?: string[], opts: Opts = {}): Promise<void> {
-        // Setup PostgreSQL.
+    static async createTestEnv(opts: Opts = {}): Promise<IrcBridgeE2ETest> {
         const { matrixLocalparts, config } = opts;
-        this.postgresDb = await this.createDatabase();
+        const ircTest = new TestIrcServer();
         const [postgresDb, homeserver] = await Promise.all([
             this.createDatabase(),
             createHS(["ircbridge_bot", ...matrixLocalparts || []]),
-            this.ircTest.setUp(clients),
+            ircTest.setUp(opts.ircNicks),
         ]);
-        this.homeserver = homeserver;
-        this.postgresDb = postgresDb;
-
-        this.ircBridge = new IrcBridge({
+        const ircBridge = new IrcBridge({
             homeserver: {
-                domain: this.homeserver.domain,
-                url: this.homeserver.url,
+                domain: homeserver.domain,
+                url: homeserver.url,
                 bindHostname: "0.0.0.0",
-                bindPort: this.homeserver.appserviceConfig.port,
+                bindPort: homeserver.appserviceConfig.port,
             },
             database: {
                 engine: "postgres",
-                connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${this.postgresDb}`,
+                connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${postgresDb}`,
             },
             ircService: {
                 servers: {
@@ -180,24 +118,49 @@ export class IrcBridgeE2ETest {
             },
             ...config,
         }, AppServiceRegistration.fromObject({
-            id: this.homeserver.id,
-            as_token: this.homeserver.appserviceConfig.asToken,
-            hs_token: this.homeserver.appserviceConfig.hsToken,
-            sender_localpart: this.homeserver.appserviceConfig.senderLocalpart,
+            id: homeserver.id,
+            as_token: homeserver.appserviceConfig.asToken,
+            hs_token: homeserver.appserviceConfig.hsToken,
+            sender_localpart: homeserver.appserviceConfig.senderLocalpart,
             namespaces: {
                 users: [{
                     exclusive: true,
-                    regex: `@irc_.+:${this.homeserver.domain}`,
+                    regex: `@irc_.+:${homeserver.domain}`,
                 }],
                 // TODO: No support on complement yet:
                 // https://github.com/matrix-org/complement/blob/8e341d54bbb4dbbabcea25e6a13b29ead82978e3/internal/docker/builder.go#L413
                 aliases: [{
                     exclusive: true,
-                    regex: `#irc_.+:${this.homeserver.domain}`,
+                    regex: `#irc_.+:${homeserver.domain}`,
                 }]
             },
             url: "not-used",
-        }));
+        }), {
+            isDBInMemory: false,
+            skipPingCheck: true,
+        });
+        return new IrcBridgeE2ETest(homeserver, ircBridge, postgresDb, ircTest)
+    }
+
+    private constructor(
+        public readonly homeserver: ComplementHomeServer,
+        public readonly ircBridge: IrcBridge,
+        public readonly postgresDb: string,
+        public readonly ircTest: TestIrcServer) {
+    }
+
+    private async dropDatabase() {
+        if (!this.postgresDb) {
+            // Database was never set up.
+            return;
+        }
+        const pgClient = new PgClient(`${process.env.IRCBRIDGE_TEST_PGURL}/postgres`);
+        await pgClient.connect();
+        await pgClient.query(`DROP DATABASE ${this.postgresDb}`);
+        await pgClient.end();
+    }
+
+    public async setUp(): Promise<void> {
         console.log('Starting bridge');
         await this.ircBridge.run(null);
     }

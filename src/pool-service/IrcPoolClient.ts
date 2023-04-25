@@ -117,6 +117,13 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         else {
             log.debug(`Got incoming ${commandTypeOrClientId} for ${commandData.info.clientId}`);
         }
+
+        if (commandTypeOrClientId === OutCommandType.PoolClosing) {
+            log.warn("Pool has closed, killing the bridge");
+            this.emit('lostConnection');
+            return;
+        }
+
         if (!connection) {
             log.warn(`Got command ${commandTypeOrClientId} but no client was connected`);
             return;
@@ -141,10 +148,6 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
                     new Error((commandData as IrcConnectionPoolCommandOut<OutCommandType.Error>).info.error)
                 );
                 break;
-            case OutCommandType.PoolClosing:
-                log.warn("Pool has closed, killing the bridge");
-                this.emit('lostConnection');
-                break;
             default:
                 // eslint-disable-next-line no-case-declarations
                 const buffer = commandData as Buffer;
@@ -153,11 +156,11 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         }
     }
 
-    public close() {
+    public async close() {
         clearInterval(this.heartbeatInterval);
         this.shouldRun = false;
-        this.redis.disconnect();
-        this.cmdReader.disconnect();
+        await this.redis.quit();
+        await this.cmdReader.quit();
     }
 
     public async handleIncomingCommand() {
