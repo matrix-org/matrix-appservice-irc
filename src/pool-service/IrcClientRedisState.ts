@@ -250,21 +250,6 @@ export class IrcClientRedisState implements IrcClientState {
         this.flush();
     }
 
-    public get maxLineLength() {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
-        return this.innerState.maxLineLength;
-    }
-
-    public set maxLineLength(value) {
-        if (!this.innerState) {
-            throw Error('You must call .hydrate() before using this state');
-        }
-        this.innerState.maxLineLength = value;
-        this.flush();
-    }
-
     public get lastSendTime() {
         if (!this.innerState) {
             throw Error('You must call .hydrate() before using this state');
@@ -286,7 +271,6 @@ export class IrcClientRedisState implements IrcClientState {
         const deseralisedData = data ? JSON.parse(data) as IrcClientStateDehydrated : {} as Record<string, never>;
         // Deserialise
 
-        // TODO: Validate that some of these exist.
         this.innerState = {
             loggedIn: deseralisedData.loggedIn ?? false,
             registered: deseralisedData.registered ?? false,
@@ -297,7 +281,6 @@ export class IrcClientRedisState implements IrcClientState {
             hostMask: deseralisedData.hostMask ?? '',
             // TODO: It's still possible for data to go missing here.
             chans: new StateBackedMap(this.flush.bind(this), deseralisedData.chans),
-            maxLineLength: deseralisedData.maxLineLength ?? -1,
             lastSendTime: deseralisedData.lastSendTime ?? 0,
             prefixForMode: deseralisedData.prefixForMode ?? {},
             supportedState: deseralisedData.supportedState ?? DefaultIrcSupported,
