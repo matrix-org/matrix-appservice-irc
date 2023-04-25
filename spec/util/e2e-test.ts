@@ -1,13 +1,13 @@
-import { IrcServer as IrcServerTest, TestClient } from "matrix-org-irc/spec/util/irc-server";
+import { AppServiceRegistration } from "matrix-appservice-bridge";
+import { BridgeConfig } from "../../src/config/BridgeConfig";
+import { Client as PgClient } from "pg";
 import { ComplementHomeServer, createHS, destroyHS } from "./homerunner";
 import { describe, beforeEach, afterEach, jest } from '@jest/globals';
 import { IrcBridge } from '../../src/bridge/IrcBridge';
-import { AppServiceRegistration } from "matrix-appservice-bridge";
 import { IrcServer } from "../../src/irc/IrcServer";
-import dns from 'node:dns';
 import { MatrixClient } from "matrix-bot-sdk";
-import { Client as PgClient } from "pg";
-import { BridgeConfig } from "../../src/config/BridgeConfig";
+import { TestClient, TestIrcServer } from "matrix-org-irc";
+import dns from 'node:dns';
 
 // Needed to make tests work on GitHub actions. Node 17+ defaults
 // to IPv6, and the homerunner domain resolves to IPv6, but the
@@ -34,7 +34,7 @@ interface DescribeEnv {
     clients: TestClient[];
 }
 
-export class IrcBridgeE2ETest extends IrcServerTest {
+export class IrcBridgeE2ETest extends TestIrcServer {
 
     /**
      * Test wrapper that automatically provisions an IRC server and Matrix server
