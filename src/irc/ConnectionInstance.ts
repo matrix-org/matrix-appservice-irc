@@ -164,16 +164,13 @@ export class ConnectionInstance {
         // while a previous one is active.
         // close the connection
         await new Promise<void>((resolveDc) => {
-            if (!this.client.conn) {
-                resolveDc();
-                return;
-            }
             // Forcibly ignore the DC if it takes any longer.
             const timeout = setTimeout(() => {
                 log.warn(`Waited for 'end' that never came`);
                 resolveDc();
             }, 50000);
             this.client.disconnect(ircReason, () => {
+                log.debug("Server responded to our disconnect");
                 clearTimeout(timeout);
                 resolveDc();
             });
@@ -451,7 +448,9 @@ export class ConnectionInstance {
             if (onCreatedCallback) {
                 onCreatedCallback(inst);
             }
-            log.debug(`Calling connect for ${redisConn?.clientId}`)
+            if (redisConn) {
+                log.debug(`Calling connect for ${redisConn?.clientId}`);
+            }
             return inst.connect();
         };
 
