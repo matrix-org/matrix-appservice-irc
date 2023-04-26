@@ -26,7 +26,11 @@ import { RedisIrcConnection } from "../pool-service/RedisIrcConnection";
 
 const log = logging.get("client-connection");
 
-// The time we're willing to wait for a connect callback when connecting to IRC.
+/**
+ * The time we're willing to wait for a connect callback when connecting to IRC.
+ *
+ * This is also the time we will wait before assuming a disconnect has gone through.
+ */
 const CONNECT_TIMEOUT_MS = 30 * 1000; // 30s
 // The delay between messages when there are >1 messages to send.
 const FLOOD_PROTECTION_DELAY_MS = 700;
@@ -168,7 +172,7 @@ export class ConnectionInstance {
             const timeout = setTimeout(() => {
                 log.warn(`Waited for 'end' that never came`);
                 resolveDc();
-            }, 50000);
+            }, CONNECT_TIMEOUT_MS);
             this.client.disconnect(ircReason, () => {
                 log.debug("Server responded to our disconnect");
                 clearTimeout(timeout);

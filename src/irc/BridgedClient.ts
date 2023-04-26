@@ -806,6 +806,7 @@ export class BridgedClient extends EventEmitter {
 
     private onConnectionCreated(connInst: ConnectionInstance, nameInfo: {username?: string},
                                 identResolver: () => void) {
+        // If this state has carried over from a previous connection, pull in any channels.
         [...connInst.client.chans.keys()].forEach(k => this.chanList.add(k));
         // listen for a connect event which is done when the TCP connection is
         // established and set ident info (this is different to the connect() callback

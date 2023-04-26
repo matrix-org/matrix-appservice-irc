@@ -1,6 +1,13 @@
 import { TcpNetConnectOpts } from "node:net";
 import { ConnectionOptions as TlsConnectionOptions } from "node:tls";
 
+/**
+ * This number states the current protocol version of the pool. This
+ * should be incremented by developers when an incompatibile change is
+ * made to the pool and must be restarted for safe operation.
+ */
+export const PROTOCOL_VERSION = 0;
+
 export const REDIS_IRC_POOL_VERSION_KEY = "ircbridge.poolversion";
 export const REDIS_IRC_POOL_HEARTBEAT_KEY = "ircbridge.pool.💓";
 export const REDIS_IRC_POOL_COMMAND_OUT_STREAM = "ircbridge.stream.command.out";
@@ -47,6 +54,8 @@ export interface IrcConnectionPoolCommandIn<T extends InCommandType = InCommandT
     origin_ts: number;
 }
 
+export const READ_BUFFER_MAGIC_BYTES = Buffer.from('💾');
+
 export enum OutCommandType {
     Connected = "connected",
     Error = "error",
@@ -60,17 +69,17 @@ export enum OutCommandType {
 
 
 export interface DisconnectedStatus {
-    clientId: ClientId,
+    clientId: ClientId;
 }
 
 export interface ConnectedStatus {
-    clientId: ClientId,
+    clientId: ClientId;
     localIp?: string;
     localPort?: number;
 }
 
 export interface ErrorStatus {
-    clientId: ClientId,
+    clientId: ClientId;
     error: string;
 }
 
@@ -90,23 +99,8 @@ export interface IrcConnectionPoolCommandOut<T extends OutCommandType = OutComma
     origin_ts: number;
 }
 
-export interface IrcConnectionPoolRaw {
-    ip: string;
-    pool: string;
-    raw: Buffer;
-    origin_ts: number;
-}
-
 export class CommandError extends Error {
     constructor(message: string, commandType: OutCommandType|InCommandType) {
         super(`Failed to handle command ${commandType}: ${message}`);
     }
 }
-
-
-/**
- * This number states the current protocol version of the pool. This
- * should be incremented by developers when an incompatibile change is
- * made to the pool and must be restarted for safe operation.
- */
-export const PROTOCOL_VERSION = 0;

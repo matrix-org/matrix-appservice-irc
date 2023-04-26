@@ -90,7 +90,7 @@ export async function createHS(localparts: string[] = []): Promise<ComplementHom
     }));
 
     // Start syncing proactively.
-    users.map(u => u.client.start());
+    await Promise.all(users.map(u => u.client.start()));
     return {
         users,
         id: blueprint,

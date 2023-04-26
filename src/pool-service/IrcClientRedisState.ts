@@ -60,7 +60,8 @@ export class IrcClientRedisState implements IrcClientState {
     private constructor(
         private readonly redis: Redis,
         private readonly clientId: string,
-        private readonly innerState: IrcClientState
+        private readonly innerState: IrcClientState,
+        private isFresh = boolean,
     ) {
 
     }

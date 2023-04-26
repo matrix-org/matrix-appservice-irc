@@ -14,7 +14,8 @@ import { REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ, OutCommandType,
     IrcConnectionPoolCommandOut,
     REDIS_IRC_CLIENT_STATE_KEY,
     HEARTBEAT_EVERY_MS,
-    PROTOCOL_VERSION
+    PROTOCOL_VERSION,
+    READ_BUFFER_MAGIC_BYTES
 } from './types';
 import { parseMessage } from 'matrix-org-irc';
 import { collectDefaultMetrics, register, Gauge } from 'prom-client';
@@ -155,7 +156,7 @@ export class IrcConnectionPool {
         connectionsGauge.set(this.connections.size);
 
         connection.on('error', (ex) => {
-            log.error(`Failed to connect to ${opts.host}:${opts.port}`, ex);
+            log.error(`Error on ${opts.host}:${opts.port}`, ex);
             this.sendCommandOut(OutCommandType.Error, {
                 clientId,
                 error: ex.message,
@@ -183,7 +184,16 @@ export class IrcConnectionPool {
                 }
             }
 
-            this.cmdWriter.xaddBuffer(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "*", clientId, data).catch((ex) => {
+            // We write a magic string to prevent this being
+            // possibly read as JSON on the other side.
+            const toWrite = Buffer.concat(
+                [
+                    READ_BUFFER_MAGIC_BYTES,
+                    data
+                ]
+            );
+
+            this.cmdWriter.xaddBuffer(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "*", clientId, toWrite).catch((ex) => {
                 log.warn(`Unable to send raw read out`, ex);
             })
         });
@@ -350,7 +360,7 @@ export class IrcConnectionPool {
         // Fetch the last read index.
         this.commandStreamId = await this.cmdWriter.get(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ) || "$";
 
-        // Warn of any existing connections. TODO: This assumes one service process.
+        // Warn of any existing connections.
         await this.cmdWriter.del(REDIS_IRC_POOL_CONNECTIONS);
         await this.cmdWriter.del(REDIS_IRC_CLIENT_STATE_KEY);
         await this.cmdWriter.del(REDIS_IRC_POOL_COMMAND_IN_STREAM);
@@ -360,7 +370,9 @@ export class IrcConnectionPool {
             this.sendHeartbeat().catch((ex) => {
                 log.warn(`Failed to send heartbeat`, ex);
             });
-            this.cmdWriter.xtrim(REDIS_IRC_POOL_COMMAND_IN_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN).then(trimCount => {
+            this.cmdWriter.xtrim(
+                REDIS_IRC_POOL_COMMAND_IN_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN
+            ).then(trimCount => {
                 log.debug(`Trimmed ${trimCount} commands from the IN stream`);
             }).catch((ex) => {
                 log.warn(`Failed to trim commands from the IN stream`, ex);

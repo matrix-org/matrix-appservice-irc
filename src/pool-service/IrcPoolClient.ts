@@ -6,6 +6,7 @@ import { ClientId, ConnectionCreateArgs, HEARTBEAT_EVERY_MS,
     IrcConnectionPoolCommandOut,
     OutCommandType,
     PROTOCOL_VERSION,
+    READ_BUFFER_MAGIC_BYTES,
     REDIS_IRC_POOL_COMMAND_IN_STREAM, REDIS_IRC_POOL_COMMAND_OUT_STREAM,
     REDIS_IRC_POOL_CONNECTIONS, REDIS_IRC_POOL_HEARTBEAT_KEY, REDIS_IRC_POOL_VERSION_KEY } from "./types";
 
@@ -47,7 +48,6 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
             info: payload,
         } as IrcConnectionPoolCommandIn<T>));
         log.debug(`Sent command in ${type}: ${payload}`);
-        // Bit cheeky.
     }
 
     public async createOrGetIrcSocket(clientId: string, netOpts: ConnectionCreateArgs): Promise<RedisIrcConnection> {
@@ -57,16 +57,19 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
             return existingConnection;
         }
         log.info(`Requesting new client ${clientId}`);
-        // Check to see if one exists.
-        const state = await this.redis.hget(REDIS_IRC_POOL_CONNECTIONS, clientId);
-        const clientPromise = IrcClientRedisState.create(this.redis, clientId).then((clientState) => {
+        // Critical section: Do not await here, do any async logic in `clientPromise`.
+        // Check to see we are already connected.
+        let isConnected = false;
+        const clientPromise = (async () => {
+            isConnected = await this.cmdReader.hget(REDIS_IRC_POOL_CONNECTIONS, clientId) !== null;
+            const clientState = await IrcClientRedisState.create(this.redis, clientId);
             return new RedisIrcConnection(this, clientId, clientState);
-        });
+        })();
         this.connections.set(clientId, clientPromise);
         const client = await clientPromise;
 
         try {
-            if (!state) {
+            if (!isConnected) {
                 log.info(`Requesting new connection for ${clientId}`);
                 await this.sendCommand(InCommandType.Connect, netOpts);
                 // Wait to be told we connected.
@@ -106,11 +109,11 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         }
     }
 
-    // eslint-disable-next-line max-len
-    private async handleCommand<T extends OutCommandType>(commandTypeOrClientId: T|ClientId, commandData: IrcConnectionPoolCommandOut<T>|Buffer) {
+    private async handleCommand<T extends OutCommandType>(
+        commandTypeOrClientId: T|ClientId, commandData: IrcConnectionPoolCommandOut<T>|Buffer) {
         // I apologise about this insanity.
-        const connectionId = Buffer.isBuffer(commandData) ? commandTypeOrClientId : commandData.info.clientId;
-        const connection = await this.connections.get(connectionId);
+        const clientId = Buffer.isBuffer(commandData) ? commandTypeOrClientId : commandData.info.clientId;
+        const connection = await this.connections.get(clientId);
         if (Buffer.isBuffer(commandData)) {
             log.debug(`Got incoming write ${commandTypeOrClientId}  (${commandData.byteLength} bytes)`);
         }
@@ -137,7 +140,7 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
                 );
                 break;
             case OutCommandType.Disconnected:
-                this.connections.delete(connectionId);
+                this.connections.delete(connection.clientId);
                 connection.emit('end');
                 break;
             case OutCommandType.NotConnected:
@@ -168,7 +171,7 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
             "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_OUT_STREAM, this.commandStreamId
         );
         if (newCmd === null) {
-            // Unexpected, this is blocking.pp
+            // Unexpected, this is blocking.
             return;
         }
         const [msgId, [cmdType, payload]] = newCmd[0][1][0];
@@ -180,7 +183,7 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
             commandData = JSON.parse(payload) as IrcConnectionPoolCommandOut;
         }
         else {
-            commandData = Buffer.from(payload);
+            commandData = Buffer.from(payload).slice(READ_BUFFER_MAGIC_BYTES.length);
         }
         setImmediate(
             () => this.handleCommand(commandType, commandData)

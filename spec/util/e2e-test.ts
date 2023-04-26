@@ -153,7 +153,6 @@ export class IrcBridgeE2ETest {
             url: "not-used",
         }), {
             isDBInMemory: false,
-            skipPingCheck: true,
         });
         return new IrcBridgeE2ETest(homeserver, ircBridge, postgresDb, ircTest)
     }
