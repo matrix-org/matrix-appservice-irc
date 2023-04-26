@@ -8,17 +8,17 @@
     "node": ">=18"
   },
   "scripts": {
-    "prepare": "npm run build",
-    "build": "npm run build:app && npm run build:widget",
+    "prepare": "yarn build",
+    "build": "yarn build:app && yarn build:widget",
     "build:app": "tsc --project ./tsconfig.json",
     "build:widget": "vite build --config widget/vite.config.ts",
     "dev:widget": "vite dev --config widget/vite.config.ts",
     "test": "BLUEBIRD_DEBUG=1 ts-node --project spec/tsconfig.json node_modules/jasmine/bin/jasmine --stop-on-failure=true",
     "test:e2e": "jest --config spec/e2e/jest.config.js --forceExit",
     "lint": "eslint -c .eslintrc --max-warnings 0 'spec/**/*.js' 'src/**/*.ts' && eslint -c ./widget/.eslintrc.js 'widget/src/**/*.{ts,tsx}'",
-    "check": "npm test && npm run lint",
+    "check": "yarn test && yarn lint",
     "ci-test": "nyc --report text jasmine",
-    "ci": "npm run lint && npm run ci-test"
+    "ci": "yarn lint && yarn ci-test"
   },
   "repository": {
     "type": "git",

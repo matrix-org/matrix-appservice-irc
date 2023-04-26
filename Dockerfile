@@ -17,7 +17,6 @@ COPY widget/ /build/widget/
 COPY package.json yarn.lock tsconfig.json .eslintrc /build/
 
 RUN yarn --strict-semver --frozen-lockfile
-RUN yarn build
 
 # install production dependencies only
 RUN rm -rf node_modules && yarn cache clean && yarn install --production
