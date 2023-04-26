@@ -34,7 +34,7 @@ jobs:
           docker build -f docker/complement/Dockerfile -t complement-synapse:latest docker/complement
           docker image save complement-synapse:latest > /tmp/img-synapse.tar
 
-  integration-test: &integration-test
+  integration-test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs:
@@ -123,5 +123,98 @@ jobs:
         run: |
           cd matrix-appservice-irc
           yarn --strict-semver --frozen-lockfile
+          HOMERUNNER_SPAWN_HS_TIMEOUT_SECS=100 ../complement/homerunner &
+          bash -ic 'yarn test:e2e'
+
+  integration-test-pool: 
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - build-synapse
+    env:
+      IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
+      IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
+      IRCBRIDGE_TEST_ENABLEPG: "yes"
+      IRCBRIDGE_TEST_REDIS_URL: "redis://localhost:6379"
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres_password
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres_user
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+      ircd:
+        image: ghcr.io/ergochat/ergo:stable
+        ports:
+          - 6667:6667
+    steps:
+      - name: "Set Go Version"
+        run: |
+          echo "$GOROOT_1_17_X64/bin" >> $GITHUB_PATH
+          echo "~/go/bin" >> $GITHUB_PATH
+      - name: Checkout matrix-appservice-irc
+        uses: actions/checkout@v3
+        with:
+          path: matrix-appservice-irc
+    
+      # Pull the complement-synapse image from cache
+      - name: Checkout synapse
+        uses: actions/checkout@v3
+        with:
+          path: synapse
+          repository: matrix-org/synapse
+          ref: master
+      - name: Get synapse git sha
+        id: gitsha
+        run: |
+          cd synapse
+          echo '::set-output name=sha::'`git rev-parse --short HEAD`
+          cd ..
+      - name: Load cached complement-synapse image
+        uses: actions/cache@v3
+        with:
+          path: /tmp/img-synapse.tar
+          key: ${{ runner.os }}-complement-synapse-${{ steps.gitsha.outputs.sha }}
+      - name: Load images
+        run: |
+          docker load --input /tmp/img-synapse.tar
+
+      # Build and install homerunner
+      - name: Checkout matrix-org/complement
+        uses: actions/checkout@v3
+        with:
+          repository: matrix-org/complement
+          path: complement
+      - name: Install Complement Dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y libolm3 libolm-dev
+      - name: Build homerunner
+        run: |
+          cd complement
+          go build ./cmd/homerunner
+          cd ..
+      
+      # Setup node & run tests
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Run Homerunner tests
+        timeout-minutes: 10
+        run: |
+          cd matrix-appservice-irc
+          npm ci
           HOMERUNNER_SPAWN_HS_TIMEOUT_SECS=100 ../complement/homerunner &
           bash -ic 'yarn test:e2e'
