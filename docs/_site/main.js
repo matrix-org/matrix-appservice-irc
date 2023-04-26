@@ -11,7 +11,8 @@ window.addEventListener("load", () => {
         res.json()
     ).then(releases => {
         selectElement.innerHTML = "";
-        for (const version of ['latest', ...releases.map(r => r.tag_name).filter(s => s !== "0.1.0")]) {
+        // N.B. We prefix with v
+        for (const version of ['latest', ...releases.map(r => "v" + r.tag_name)]) {
             const option = document.createElement("option");
             option.innerHTML = version;
             selectElement.add(option);
