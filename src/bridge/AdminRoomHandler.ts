@@ -289,7 +289,7 @@ export class AdminRoomHandler {
         // check that the server exists and that the user_id is on the whitelist
         const ircChannel = args[0];
         const key = args[1]; // keys can't have spaces in them, so we can just do this.
-        let errText = null;
+        let errText: string|null = null;
         if (!ircChannel || !ircChannel.startsWith("#")) {
             errText = "Format: '!join irc.example.com #channel [key]'";
         }
