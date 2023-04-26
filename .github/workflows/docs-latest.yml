@@ -10,14 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Use Node.js
-        uses: actions/setup-node@v1
-        with:
-          node-version: 16
-      
-      # We want to install matrix-appservice-bridge, which we depend on.
-      - run: yarn --ignore-scripts
-
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v1
         with:
