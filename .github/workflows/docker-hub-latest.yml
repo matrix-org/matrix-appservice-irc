@@ -4,7 +4,8 @@ name: "Docker Hub - Latest"
 
 on:
   push:
-
+    branches: ["develop", "release-*"]
+  pull_request:
 env:
   DOCKER_NAMESPACE: matrixdotorg
   PLATFORMS: linux/amd64
