@@ -12,7 +12,7 @@ window.addEventListener("load", () => {
     ).then(releases => {
         selectElement.innerHTML = "";
         // N.B. We prefix with v
-        for (const version of ['latest', ...releases.map(r => "v" + r.tag_name)]) {
+        for (const version of ['latest', ...releases.map(r => r.tag_name)]) {
             const option = document.createElement("option");
             option.innerHTML = version;
             selectElement.add(option);

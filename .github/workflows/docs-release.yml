@@ -27,7 +27,7 @@ jobs:
           mdbook-version: '0.4.28'
 
       - name: Set version of docs
-        run: echo 'window.BRIDGE_VERSION = "v${{ env.RELEASE_VERSION }}";' > ./docs/_site/version.js
+        run: echo 'window.BRIDGE_VERSION = "${{ env.RELEASE_VERSION }}";' > ./docs/_site/version.js
 
       - run: mdbook build
 
@@ -37,4 +37,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           keep_files: true
           publish_dir: ./book
-          destination_dir: ./v${{ env.RELEASE_VERSION }}
+          destination_dir: ./${{ env.RELEASE_VERSION }}
