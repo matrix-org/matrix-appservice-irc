@@ -1,7 +1,7 @@
 import { IrcBridgeE2ETest } from "../util/e2e-test";
 
 
-xdescribe('Basic bridge usage', () => {
+describe('Basic bridge usage', () => {
     let server: IrcBridgeE2ETest;
     beforeEach(async () => {
         server = await IrcBridgeE2ETest.createTestEnv({

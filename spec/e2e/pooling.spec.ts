@@ -33,7 +33,7 @@ describe('Connection pooling', () => {
         ]);
     })
 
-    fit('should be able to dynamically bridge a room via the !join command', async () => {
+    it('should be able to dynamically bridge a room via the !join command', async () => {
         const { homeserver, ircBridge } = server;
         const alice = homeserver.users[0].client;
         const { bob } = server.ircTest.clients;
