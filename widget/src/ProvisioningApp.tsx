@@ -1,6 +1,5 @@
 import React, { createContext, useEffect, useMemo, useState } from 'react';
 import { WidgetApi, WidgetApiToWidgetAction } from 'matrix-widget-api';
-import urlJoin from 'url-join';
 
 import { ProvisioningClient, ProvisioningError } from './ProvisioningClient';
 import * as Text from './components/text';
