@@ -11,7 +11,7 @@ jobs:
     if: ${{ github.base_ref == 'develop'  || contains(github.base_ref, 'release-') }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-20.04
     container: node:18
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: npm ci
       - run: npm run-script lint
 
@@ -35,7 +35,7 @@ jobs:
         node-version: [18, 20]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
@@ -62,7 +62,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: npm ci
       - run: npm run-script test
         env:
