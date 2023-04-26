@@ -1,1 +1,1 @@
-Make bridgeInfoState configuration reloadable
+Make bridgeInfoState configuration reloadable.
