@@ -28,6 +28,8 @@ properties:
             redisUrl:
                 type: "string"
                 pattern: "^redis:\\/\\/(user:password@)?.+(:\\d+)?\/?\\d*$"
+            persistConnectionsOnShutdown:
+                type: "boolean"
     database:
         type: "object"
         required: ["engine", "connectionString"]
