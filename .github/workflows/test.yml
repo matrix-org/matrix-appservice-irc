@@ -22,8 +22,8 @@ jobs:
           PULL_REQUEST_NUMBER: ${{ github.event.number }}
 
   lint:
-    runs-on: ubuntu-22.04
-    container: node:16
+    runs-on: ubuntu-20.04
+    container: node:18
     steps:
       - uses: actions/checkout@v2
       - run: npm ci
@@ -32,8 +32,8 @@ jobs:
   test:
     strategy:
       matrix:
-        node-version: [16, 18, 19]
-    runs-on: ubuntu-22.04
+        node-version: [18, 20]
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js
@@ -44,7 +44,7 @@ jobs:
       - run: npm run-script test
 
   test-18-postgres:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     container: node:18
     services:
       postgres:
