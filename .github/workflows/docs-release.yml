@@ -24,7 +24,7 @@ jobs:
       - name: Set up mdBook
         uses: peaceiris/actions-mdbook@v1
         with:
-          mdbook-version: '0.4.11'
+          mdbook-version: '0.4.28'
 
       - name: Set version of docs
         run: echo 'window.BRIDGE_VERSION = "v${{ env.RELEASE_VERSION }}";' > ./docs/_site/version.js
