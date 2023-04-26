@@ -54,6 +54,7 @@ import { RoomConfig } from "./RoomConfig";
 import { PrivacyProtection } from "../irc/PrivacyProtection";
 import { TestingOptions } from "../config/TestOpts";
 import { MatrixBanSync } from "./MatrixBanSync";
+import { configure } from "../logging";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -275,6 +276,8 @@ export class IrcBridge {
             !== JSON.stringify(newConfig.ircService.logging);
         if (hasLoggingChanged) {
             Logger.configure({ console: newConfig.ircService.logging.level });
+            configure(newConfig.ircService.logging);
+            this.config.ircService.logging = newConfig.ircService.logging;
         }
 
         const banSyncPromise = this.matrixBanSyncer?.syncRules(this.bridge.getIntent());

@@ -466,7 +466,6 @@ ircService:
 
   # Configuration for logging. Optional. Default: console debug level logging
   # only.
-  # This key CANNOT be hot-reloaded
   logging:
     # Level to log on console/logfile. One of error|warn|info|debug
     level: "debug"
