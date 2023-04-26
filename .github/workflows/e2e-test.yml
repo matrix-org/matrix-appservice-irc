@@ -122,6 +122,6 @@ jobs:
           IRCBRIDGE_TEST_ENABLEPG: "yes"
         run: |
           cd matrix-appservice-irc
-          npm ci
+          yarn --strict-semver --frozen-lockfile
           HOMERUNNER_SPAWN_HS_TIMEOUT_SECS=100 ../complement/homerunner &
-          bash -ic 'npm run-script test:e2e'
+          bash -ic 'yarn test:e2e'
