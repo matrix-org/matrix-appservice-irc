@@ -14,11 +14,13 @@ WORKDIR /build
 
 COPY src/ /build/src/
 COPY widget/ /build/widget/
-COPY package.json package-lock.json tsconfig.json .eslintrc /build/
+COPY package.json yarn.lock tsconfig.json .eslintrc /build/
 
-RUN npm ci
-RUN npm run build
-RUN npm prune --omit dev
+RUN yarn --strict-semver --frozen-lockfile
+RUN yarn build
+
+# install production dependencies only
+RUN rm -rf node_modules && yarn cache clean && yarn install --production
 
 # Runtime container image
 FROM node:18-slim
