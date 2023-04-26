@@ -27,6 +27,7 @@ import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "matrix-appservice-bridge";
 import { IdentGenerator } from "../irc/IdentGenerator";
 import { Provisioner } from "../provisioning/Provisioner";
+import { IrcProvisioningError } from "../provisioning/Schema";
 
 const log = logging("AdminRoomHandler");
 
@@ -239,6 +240,9 @@ export class AdminRoomHandler {
         }
         catch (ex) {
             log.error(`Failed to handle !plumb command:`, ex);
+            if (ex instanceof IrcProvisioningError) {
+                return new MatrixAction(ActionType.Notice, `Failed to plumb room. ${ex.message}`);
+            }
             return new MatrixAction(ActionType.Notice, "Failed to plumb room. Check the logs for details.");
         }
         return new MatrixAction(ActionType.Notice, "Room plumbed.");
@@ -272,6 +276,9 @@ export class AdminRoomHandler {
         }
         catch (ex) {
             log.error(`Failed to handle !unlink command:`, ex);
+            if (ex instanceof IrcProvisioningError) {
+                return new MatrixAction(ActionType.Notice, `Failed to plumb room. ${ex.message}`);
+            }
             return new MatrixAction(ActionType.Notice, "Failed to unlink room. Check the logs for details.");
         }
         return new MatrixAction(ActionType.Notice, "Room unlinked.");
