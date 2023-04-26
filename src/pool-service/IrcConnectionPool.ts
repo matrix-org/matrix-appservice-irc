@@ -37,7 +37,7 @@ const connectionsGauge = new Gauge({
 });
 
 export class IrcConnectionPool {
-    private readonly redis: Redis;
+    private readonly cmdWriter: Redis;
     /**
      * Track all the connections expecting a pong response.
      */
@@ -50,19 +50,19 @@ export class IrcConnectionPool {
     private shouldRun = true;
 
     constructor(private readonly config: typeof Config) {
-        this.redis = new Redis(config.redisUri);
+        this.cmdWriter = new Redis(config.redisUri);
         this.cmdReader = new Redis(config.redisUri);
     }
 
     private updateLastRead(lastRead: string) {
         this.commandStreamId = lastRead;
-        this.redis.set(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ, lastRead).catch((ex) => {
+        this.cmdWriter.set(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ, lastRead).catch((ex) => {
             log.warn(`Unable to update last-read for command.in`, ex);
         })
     }
 
     private async sendCommandOut<T extends OutCommandType>(type: T, payload: OutCommandPayload[T]) {
-        await this.redis.xadd(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "*", type, JSON.stringify({
+        await this.cmdWriter.xadd(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "*", type, JSON.stringify({
             info: payload,
             origin_ts: Date.now(),
         } as IrcConnectionPoolCommandOut<OutCommandType>)).catch((ex) => {
@@ -150,7 +150,7 @@ export class IrcConnectionPool {
             `Connected ${clientId} to ${connection.remoteAddress}:${connection.remotePort}` +
             `(via ${connection.localAddress}:${connection.localPort})`
         );
-        this.redis.hset(REDIS_IRC_POOL_CONNECTIONS, clientId, `${connection.localAddress}:${connection.localPort}`);
+        this.cmdWriter.hset(REDIS_IRC_POOL_CONNECTIONS, clientId, `${connection.localAddress}:${connection.localPort}`);
         this.connections.set(clientId, connection);
         connectionsGauge.set(this.connections.size);
 
@@ -183,14 +183,14 @@ export class IrcConnectionPool {
                 }
             }
 
-            this.redis.xaddBuffer(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "*", clientId, data).catch((ex) => {
+            this.cmdWriter.xaddBuffer(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "*", clientId, data).catch((ex) => {
                 log.warn(`Unable to send raw read out`, ex);
             })
         });
         connection.on('close', () => {
             log.debug(`Closing connection for ${clientId}`);
-            this.redis.hdel(REDIS_IRC_POOL_CONNECTIONS, clientId);
-            this.redis.hdel(REDIS_IRC_CLIENT_STATE_KEY, payload.info.clientId);
+            this.cmdWriter.hdel(REDIS_IRC_POOL_CONNECTIONS, clientId);
+            this.cmdWriter.hdel(REDIS_IRC_CLIENT_STATE_KEY, payload.info.clientId);
             this.connections.delete(clientId);
             connectionsGauge.set(this.connections.size);
             this.sendCommandOut(OutCommandType.Disconnected, {
@@ -304,7 +304,7 @@ export class IrcConnectionPool {
 
     public sendHeartbeat() {
         log.debug(`Sending heartbeat`);
-        return this.redis.set(REDIS_IRC_POOL_HEARTBEAT_KEY, Date.now());
+        return this.cmdWriter.set(REDIS_IRC_POOL_HEARTBEAT_KEY, Date.now());
     }
 
     public async main() {
@@ -344,28 +344,28 @@ export class IrcConnectionPool {
         }
 
         // Register yourself with redis and set the current protocol version
-        await this.redis.set(REDIS_IRC_POOL_VERSION_KEY, PROTOCOL_VERSION);
+        await this.cmdWriter.set(REDIS_IRC_POOL_VERSION_KEY, PROTOCOL_VERSION);
         await this.sendHeartbeat();
 
         // Fetch the last read index.
-        this.commandStreamId = await this.redis.get(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ) || "$";
+        this.commandStreamId = await this.cmdWriter.get(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ) || "$";
 
         // Warn of any existing connections. TODO: This assumes one service process.
-        await this.redis.del(REDIS_IRC_POOL_CONNECTIONS);
-        await this.redis.del(REDIS_IRC_CLIENT_STATE_KEY);
-        await this.redis.del(REDIS_IRC_POOL_COMMAND_IN_STREAM);
-        await this.redis.del(REDIS_IRC_POOL_COMMAND_OUT_STREAM);
+        await this.cmdWriter.del(REDIS_IRC_POOL_CONNECTIONS);
+        await this.cmdWriter.del(REDIS_IRC_CLIENT_STATE_KEY);
+        await this.cmdWriter.del(REDIS_IRC_POOL_COMMAND_IN_STREAM);
+        await this.cmdWriter.del(REDIS_IRC_POOL_COMMAND_OUT_STREAM);
 
         setInterval(() => {
             this.sendHeartbeat().catch((ex) => {
                 log.warn(`Failed to send heartbeat`, ex);
             });
-            this.redis.xtrim(REDIS_IRC_POOL_COMMAND_IN_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN).then(trimCount => {
+            this.cmdWriter.xtrim(REDIS_IRC_POOL_COMMAND_IN_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN).then(trimCount => {
                 log.debug(`Trimmed ${trimCount} commands from the IN stream`);
             }).catch((ex) => {
                 log.warn(`Failed to trim commands from the IN stream`, ex);
             });
-            this.redis.xtrim(
+            this.cmdWriter.xtrim(
                 REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN).then(trimCount => {
                 log.debug(`Trimmed ${trimCount} commands from the OUT stream`);
             }).catch((ex) => {

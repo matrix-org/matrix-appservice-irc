@@ -6,6 +6,7 @@ import { IrcBridge } from '../../src/bridge/IrcBridge';
 import { IrcServer } from "../../src/irc/IrcServer";
 import { MatrixClient } from "matrix-bot-sdk";
 import { TestIrcServer } from "matrix-org-irc";
+import { IrcConnectionPool } from "../../src/pool-service/IrcConnectionPool";
 import dns from 'node:dns';
 
 // Needed to make tests work on GitHub actions. Node 17+ defaults
@@ -17,6 +18,7 @@ const WAIT_EVENT_TIMEOUT = 10000;
 
 const DEFAULT_PORT = parseInt(process.env.IRC_TEST_PORT ?? '6667', 10);
 const DEFAULT_ADDRESS = process.env.IRC_TEST_ADDRESS ?? "127.0.0.1";
+const IRCBRIDGE_TEST_REDIS_URL = process.env.IRCBRIDGE_TEST_REDIS_URL;
 
 interface Opts {
     matrixLocalparts?: string[];
@@ -47,6 +49,15 @@ export class IrcBridgeE2ETest {
             createHS(["ircbridge_bot", ...matrixLocalparts || []]),
             ircTest.setUp(opts.ircNicks),
         ]);
+        let redisPool: IrcConnectionPool|undefined;
+        if (IRCBRIDGE_TEST_REDIS_URL) {
+            redisPool = new IrcConnectionPool({
+                redisUri: IRCBRIDGE_TEST_REDIS_URL,
+                metricsHost: false,
+                metricsPort: 7002,
+                loggingLevel: 'debug',
+            });
+        }
         const ircBridge = new IrcBridge({
             homeserver: {
                 domain: homeserver.domain,
@@ -116,6 +127,11 @@ export class IrcBridgeE2ETest {
                     port: 0,
                 }
             },
+            ...(redisPool && { connectionPool: {
+                redisUrl: IRCBRIDGE_TEST_REDIS_URL!,
+                persistConnectionsOnShutdown: false,
+            }
+            }),
             ...config,
         }, AppServiceRegistration.fromObject({
             id: homeserver.id,
@@ -146,7 +162,8 @@ export class IrcBridgeE2ETest {
         public readonly homeserver: ComplementHomeServer,
         public readonly ircBridge: IrcBridge,
         public readonly postgresDb: string,
-        public readonly ircTest: TestIrcServer) {
+        public readonly ircTest: TestIrcServer,
+        public readonly pool?: IrcConnectionPool) {
     }
 
     private async dropDatabase() {
@@ -162,6 +179,7 @@ export class IrcBridgeE2ETest {
 
     public async setUp(): Promise<void> {
         console.log('Starting bridge');
+        await this.pool?.main();
         await this.ircBridge.run(null);
     }
 
@@ -172,6 +190,7 @@ export class IrcBridgeE2ETest {
             this.homeserver?.users.map(c => c.client.stop()),
             this.homeserver && destroyHS(this.homeserver.id),
             this.dropDatabase(),
+            this.pool?.close(),
         ]);
     }
 }

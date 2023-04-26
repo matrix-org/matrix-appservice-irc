@@ -1252,9 +1252,7 @@ describe("Admin rooms", function() {
             type: "m.room.message"
         });
         await disconnectPromise;
-        console.log('Disconnected');
         await connectPromise;
-        console.log('Reconnected');
     });
 
     it("should be able to store a username with !username", async function() {

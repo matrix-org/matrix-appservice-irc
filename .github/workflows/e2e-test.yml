@@ -34,11 +34,15 @@ jobs:
           docker build -f docker/complement/Dockerfile -t complement-synapse:latest docker/complement
           docker image save complement-synapse:latest > /tmp/img-synapse.tar
 
-  integration-test:
+  integration-test: &integration-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs:
       - build-synapse
+    env:
+      IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
+      IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
+      IRCBRIDGE_TEST_ENABLEPG: "yes"
     services:
       postgres:
         image: postgres:latest
@@ -116,11 +120,6 @@ jobs:
           node-version-file: matrix-appservice-irc/.node-version
       - name: Run Homerunner tests
         timeout-minutes: 10
-        env:
-          IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
-          IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
-          IRCBRIDGE_TEST_ENABLEPG: "yes"
-          IRCBRIDGE_TEST_REDIS_URL: "redis://localhost:6379"
         run: |
           cd matrix-appservice-irc
           yarn --strict-semver --frozen-lockfile
