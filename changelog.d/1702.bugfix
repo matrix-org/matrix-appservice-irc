@@ -1,0 +1,1 @@
+Show a helpful error for !link/!unlink admin failures, rather than "Check the logs for details", in more cases.
