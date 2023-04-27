@@ -325,7 +325,7 @@ export class IrcConnectionPool {
         log.debug(`Sending heartbeat`);
         return this.cmdWriter.set(REDIS_IRC_POOL_HEARTBEAT_KEY, Date.now()).catch((ex) => {
             log.warn(`Unable to send heartbeat`, ex);
-        });;
+        });
     }
 
     public async start() {
