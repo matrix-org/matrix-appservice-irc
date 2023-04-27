@@ -366,7 +366,7 @@ export class IrcConnectionPool {
         await this.cmdWriter.del(REDIS_IRC_POOL_COMMAND_IN_STREAM);
         await this.cmdWriter.del(REDIS_IRC_POOL_COMMAND_OUT_STREAM);
 
-        setInterval(() => {
+        const heartbeatInterval = setInterval(() => {
             this.sendHeartbeat().catch((ex) => {
                 log.warn(`Failed to send heartbeat`, ex);
             });
@@ -412,21 +412,22 @@ export class IrcConnectionPool {
                         ),
                 );
             }
-            log.info(`Finished loop`);
-        });
 
+            // Cleanup process.
+            await this.cmdWriter.quit();
+            await this.cmdReader.quit();
+            clearInterval(heartbeatInterval);
+            log.info(`Completed cleanup`);
+        });
     }
 
     public async close() {
-        this.shouldRun = false;
         await this.sendCommandOut(OutCommandType.PoolClosing, { });
         this.connections.forEach((socket) => {
             socket.write('QUIT :Process terminating\r\n');
             socket.end();
         });
-        // TODO: Test doesn't like this.
-        //await this.redis.quit();
-        await this.cmdReader.quit();
+        this.shouldRun = false;
     }
 
 }
@@ -437,10 +438,10 @@ if (require.main === module) {
         log.info("SIGTERM recieved, killing pool");
         pool.close().then(() => {
             log.info("Completed cleanup, exiting");
-            process.exit(0);
+            //process.exit(0);
         }).catch(err => {
             log.warn("Error while closing pool, exiting anyway", err);
-            process.exit(1);
+            //process.exit(1);
         })
     });
 
