@@ -179,8 +179,9 @@ export class IrcBridgeE2ETest {
     }
 
     public async setUp(): Promise<void> {
-        console.log('Starting bridge');
-        await this.pool?.main();
+        if (this.pool) {
+            await this.pool.start();
+        }
         await this.ircBridge.run(null);
     }
 

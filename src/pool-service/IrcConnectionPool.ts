@@ -49,10 +49,11 @@ export class IrcConnectionPool {
     private commandStreamId = "$";
     private metricsServer?: Server;
     private shouldRun = true;
+    private heartbeatTimer?: NodeJS.Timer;
 
     constructor(private readonly config: typeof Config) {
-        this.cmdWriter = new Redis(config.redisUri);
-        this.cmdReader = new Redis(config.redisUri);
+        this.cmdWriter = new Redis(config.redisUri, { lazyConnect: true });
+        this.cmdReader = new Redis(config.redisUri, { lazyConnect: true });
     }
 
     private updateLastRead(lastRead: string) {
@@ -151,7 +152,11 @@ export class IrcConnectionPool {
             `Connected ${clientId} to ${connection.remoteAddress}:${connection.remotePort}` +
             `(via ${connection.localAddress}:${connection.localPort})`
         );
-        this.cmdWriter.hset(REDIS_IRC_POOL_CONNECTIONS, clientId, `${connection.localAddress}:${connection.localPort}`);
+        this.cmdWriter.hset(
+            REDIS_IRC_POOL_CONNECTIONS, clientId, `${connection.localAddress}:${connection.localPort}`
+        ).catch((ex) => {
+            log.warn(`Unable to erase state for ${clientId}`, ex);
+        });
         this.connections.set(clientId, connection);
         connectionsGauge.set(this.connections.size);
 
@@ -195,12 +200,16 @@ export class IrcConnectionPool {
 
             this.cmdWriter.xaddBuffer(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "*", clientId, toWrite).catch((ex) => {
                 log.warn(`Unable to send raw read out`, ex);
-            })
+            });
         });
         connection.on('close', () => {
             log.debug(`Closing connection for ${clientId}`);
-            this.cmdWriter.hdel(REDIS_IRC_POOL_CONNECTIONS, clientId);
-            this.cmdWriter.hdel(REDIS_IRC_CLIENT_STATE_KEY, payload.info.clientId);
+            this.cmdWriter.hdel(REDIS_IRC_POOL_CONNECTIONS, clientId).catch((ex) => {
+                log.warn(`Unable to erase connection key for ${clientId}`, ex);
+            });
+            this.cmdWriter.hdel(REDIS_IRC_CLIENT_STATE_KEY, payload.info.clientId).catch((ex) => {
+                log.warn(`Unable to erase state for ${clientId}`, ex);
+            });
             this.connections.delete(clientId);
             connectionsGauge.set(this.connections.size);
             this.sendCommandOut(OutCommandType.Disconnected, {
@@ -314,10 +323,12 @@ export class IrcConnectionPool {
 
     public sendHeartbeat() {
         log.debug(`Sending heartbeat`);
-        return this.cmdWriter.set(REDIS_IRC_POOL_HEARTBEAT_KEY, Date.now());
+        return this.cmdWriter.set(REDIS_IRC_POOL_HEARTBEAT_KEY, Date.now()).catch((ex) => {
+            log.warn(`Unable to send heartbeat`, ex);
+        });;
     }
 
-    public async main() {
+    public async start() {
         Logger.configure({ console: this.config.loggingLevel });
         collectDefaultMetrics();
 
@@ -353,6 +364,9 @@ export class IrcConnectionPool {
             log.info(`Listening for metrics on ${this.config.metricsHost}:${this.config.metricsPort}`);
         }
 
+        await this.cmdReader.connect();
+        await this.cmdWriter.connect();
+
         // Register yourself with redis and set the current protocol version
         await this.cmdWriter.set(REDIS_IRC_POOL_VERSION_KEY, PROTOCOL_VERSION);
         await this.sendHeartbeat();
@@ -366,7 +380,7 @@ export class IrcConnectionPool {
         await this.cmdWriter.del(REDIS_IRC_POOL_COMMAND_IN_STREAM);
         await this.cmdWriter.del(REDIS_IRC_POOL_COMMAND_OUT_STREAM);
 
-        const heartbeatInterval = setInterval(() => {
+        this.heartbeatTimer = setInterval(() => {
             this.sendHeartbeat().catch((ex) => {
                 log.warn(`Failed to send heartbeat`, ex);
             });
@@ -378,7 +392,8 @@ export class IrcConnectionPool {
                 log.warn(`Failed to trim commands from the IN stream`, ex);
             });
             this.cmdWriter.xtrim(
-                REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN).then(trimCount => {
+                REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN
+            ).then(trimCount => {
                 log.debug(`Trimmed ${trimCount} commands from the OUT stream`);
             }).catch((ex) => {
                 log.warn(`Failed to trim commands from the OUT stream`, ex);
@@ -390,7 +405,8 @@ export class IrcConnectionPool {
         setImmediate(async () => {
             while (this.shouldRun) {
                 const newCmd = await this.cmdReader.xread(
-                    "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_IN_STREAM, this.commandStreamId).catch((ex) => {
+                    "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_IN_STREAM, this.commandStreamId
+                ).catch(ex => {
                     log.warn(`Failed to read new command:`, ex);
                     return null;
                 });
@@ -412,24 +428,23 @@ export class IrcConnectionPool {
                         ),
                 );
             }
-
-            // Cleanup process.
-            await this.cmdWriter.quit();
-            await this.cmdReader.quit();
-            clearInterval(heartbeatInterval);
-            log.info(`Completed cleanup`);
         });
     }
 
     public async close() {
+        if (this.heartbeatTimer) {
+            clearInterval(this.heartbeatTimer)
+        }
         await this.sendCommandOut(OutCommandType.PoolClosing, { });
         this.connections.forEach((socket) => {
             socket.write('QUIT :Process terminating\r\n');
             socket.end();
         });
+        // Cleanup process.
+        this.cmdWriter.quit();
+        this.cmdReader.quit();
         this.shouldRun = false;
     }
-
 }
 
 if (require.main === module) {
@@ -438,14 +453,13 @@ if (require.main === module) {
         log.info("SIGTERM recieved, killing pool");
         pool.close().then(() => {
             log.info("Completed cleanup, exiting");
-            //process.exit(0);
         }).catch(err => {
             log.warn("Error while closing pool, exiting anyway", err);
-            //process.exit(1);
+            process.exit(1);
         })
     });
 
-    pool.main().catch(ex => {
+    pool.start().catch(ex => {
         log.error('Pool process encountered an error', ex);
     });
 }

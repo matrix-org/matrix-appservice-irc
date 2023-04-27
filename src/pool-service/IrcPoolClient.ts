@@ -61,7 +61,7 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         // Check to see we are already connected.
         let isConnected = false;
         const clientPromise = (async () => {
-            isConnected = await this.cmdReader.hget(REDIS_IRC_POOL_CONNECTIONS, clientId) !== null;
+            isConnected = (await this.redis.hget(REDIS_IRC_POOL_CONNECTIONS, clientId)) !== null;
             const clientState = await IrcClientRedisState.create(this.redis, clientId);
             return new RedisIrcConnection(this, clientId, clientState);
         })();
@@ -162,14 +162,17 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
     public async close() {
         clearInterval(this.heartbeatInterval);
         this.shouldRun = false;
-        await this.redis.quit();
-        await this.cmdReader.quit();
+        this.redis.disconnect();
+        this.cmdReader.disconnect();
     }
 
     public async handleIncomingCommand() {
         const newCmd = await this.cmdReader.xread(
             "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_OUT_STREAM, this.commandStreamId
-        );
+        ).catch(ex => {
+            log.warn(`Failed to read new command:`, ex);
+            return null;
+        });
         if (newCmd === null) {
             // Unexpected, this is blocking.
             return;
@@ -183,7 +186,7 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
             commandData = JSON.parse(payload) as IrcConnectionPoolCommandOut;
         }
         else {
-            commandData = Buffer.from(payload).slice(READ_BUFFER_MAGIC_BYTES.length);
+            commandData = Buffer.from(payload).subarray(READ_BUFFER_MAGIC_BYTES.length);
         }
         setImmediate(
             () => this.handleCommand(commandType, commandData)
@@ -212,6 +215,9 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
     public async listen() {
         log.info(`Listening for new commands`);
         let loopCommandCheck: () => void;
+
+        await this.cmdReader.connect();
+        await this.redis.connect();
 
         // First, check if the pool is up.
         const lastHeartbeat = parseInt(await this.redis.get(REDIS_IRC_POOL_HEARTBEAT_KEY) ?? '0');
