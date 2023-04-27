@@ -18,7 +18,7 @@ export const REDIS_IRC_POOL_CONNECTIONS = "ircbridge.connections";
 export const REDIS_IRC_CLIENT_STATE_KEY = `ircbridge.clientstate`; //client-id
 export type ClientId = string;
 
-export const HEARTBEAT_EVERY_MS = 2000;
+export const HEARTBEAT_EVERY_MS = 5000;
 
 export interface ConnectionCreateArgs extends TcpNetConnectOpts {
     clientId: ClientId;
