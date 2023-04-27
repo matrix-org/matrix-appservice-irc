@@ -71,4 +71,8 @@ export interface BridgeConfig {
         maxHttpSockets: number;
         maxTxnSize?: number;
     };
+    connectionPool?: {
+        redisUrl: string;
+        persistConnectionsOnShutdown?: boolean;
+    }
 }

@@ -54,6 +54,7 @@ import { RoomConfig } from "./RoomConfig";
 import { PrivacyProtection } from "../irc/PrivacyProtection";
 import { TestingOptions } from "../config/TestOpts";
 import { MatrixBanSync } from "./MatrixBanSync";
+import { IrcPoolClient } from "../pool-service/IrcPoolClient";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -105,6 +106,7 @@ export class IrcBridge {
     }>;
     private privacyProtection: PrivacyProtection;
     private bridgeBlocker?: BridgeBlocker;
+    private ircPoolClient?: IrcPoolClient;
 
     constructor(
         public readonly config: BridgeConfig,
@@ -583,6 +585,20 @@ export class IrcBridge {
         // cli port, then config port, then default port
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
+
+        if (this.config.connectionPool) {
+            if (Object.values(this.config.ircService.servers).length > 1) {
+                throw Error('Currently the connectionPool option only supports single IRC server configurations');
+            }
+            this.ircPoolClient = new IrcPoolClient(
+                this.config.connectionPool.redisUrl,
+            );
+            this.ircPoolClient.on('lostConnection', () => {
+                this.kill();
+            });
+            await this.ircPoolClient.listen();
+        }
+
         await this.bridge.initialise();
         await this.matrixBanSyncer?.syncRules(this.bridge.getIntent());
         this.matrixHandler.initialise();
@@ -657,7 +673,7 @@ export class IrcBridge {
             this.ircServers.push(server);
         }
 
-        this.clientPool = new ClientPool(this, this.dataStore);
+        this.clientPool = new ClientPool(this, this.dataStore, this.ircPoolClient);
 
         if (this.config.ircService.debugApi.enabled) {
             this.debugApi = new DebugApi(
@@ -914,13 +930,17 @@ export class IrcBridge {
         log.info("Killing bridge");
         this.bridgeState = "killed";
         log.info("Killing all clients");
-        await this.clientPool.killAllClients(reason);
-        if (this.dataStore) {
-            await this.dataStore.destroy();
+        if (!this.config.connectionPool?.persistConnectionsOnShutdown) {
+            this.clientPool.killAllClients(reason);
         }
-        log.info("Closing bridge");
-        await this.bridge.close();
-        await this.appservice.close();
+        else {
+            log.info(`Persisting connections on shutdown`);
+        }
+        await Promise.allSettled([
+            this.ircPoolClient?.close(),
+            this.dataStore?.destroy(),
+            this.bridge.close(),
+        ])
     }
 
     public get isStartedUp() {

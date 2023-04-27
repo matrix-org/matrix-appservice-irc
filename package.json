@@ -8,8 +8,10 @@
     "node": ">=18"
   },
   "scripts": {
-    "prepare": "yarn build",
-    "build": "yarn build:app && yarn build:widget",
+    "start": "node app.js",
+    "start:pool": "node lib/pool-service/IrcConnectionPool.js",
+    "prepare": "yarn run build",
+    "build": "yarn run build:app && yarn run build:widget",
     "build:app": "tsc --project ./tsconfig.json",
     "build:widget": "vite build --config widget/vite.config.ts",
     "dev:widget": "vite dev --config widget/vite.config.ts",
@@ -39,10 +41,11 @@
     "escape-string-regexp": "^4.0.0",
     "extend": "^3.0.2",
     "he": "^1.2.0",
+    "ioredis": "^5.3.1",
     "logform": "^2.4.2",
     "matrix-appservice-bridge": "^9.0.0",
     "matrix-bot-sdk": "npm:@vector-im/matrix-bot-sdk@^0.6.6-element.1",
-    "matrix-org-irc": "^1.5.0",
+    "matrix-org-irc": "^2.0.0",
     "matrix-widget-api": "^1.1.1",
     "nopt": "^6.0.0",
     "p-queue": "^6.6.2",
@@ -52,6 +55,7 @@
     "react-dom": "^18.2.0",
     "sanitize-html": "^2.7.2",
     "typescript": "^5.0.4",
+    "typed-emitter": "^2.1.0",
     "url-join": "^5.0.0",
     "winston": "^3.8.2",
     "winston-daily-rotate-file": "^4.7.1"
