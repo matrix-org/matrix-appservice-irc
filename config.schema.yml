@@ -21,6 +21,15 @@ properties:
                 type: "string"
             serverName:
                 type: "string"
+    connectionPool:
+        type: "object"
+        required: ["redisUrl"]
+        properties:
+            redisUrl:
+                type: "string"
+                pattern: "^redis:\\/\\/(user:password@)?.+(:\\d+)?\/?\\d*$"
+            persistConnectionsOnShutdown:
+                type: "boolean"
     database:
         type: "object"
         required: ["engine", "connectionString"]

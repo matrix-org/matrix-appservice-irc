@@ -8,20 +8,21 @@ RUN git clone https://github.com/matrix-org/freebindfree.git
 RUN cd freebindfree && make
 
 # Typescript build
-FROM node:16 as builder
+FROM node:18 as builder
 
 WORKDIR /build
 
 COPY src/ /build/src/
 COPY widget/ /build/widget/
-COPY package.json package-lock.json tsconfig.json .eslintrc /build/
+COPY package.json yarn.lock tsconfig.json .eslintrc /build/
 
-RUN npm ci
-RUN npm run build
-RUN npm prune --omit dev
+RUN yarn --strict-semver --frozen-lockfile
+
+# install production dependencies only
+RUN rm -rf node_modules && yarn cache clean && yarn install --production
 
 # Runtime container image
-FROM node:16-slim
+FROM node:18-slim
 
 RUN apt-get update && apt-get install -y sipcalc iproute2 openssl --no-install-recommends
 RUN rm -rf /var/lib/apt/lists/*

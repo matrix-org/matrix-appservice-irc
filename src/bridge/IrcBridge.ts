@@ -55,6 +55,7 @@ import { PrivacyProtection } from "../irc/PrivacyProtection";
 import { TestingOptions } from "../config/TestOpts";
 import { MatrixBanSync } from "./MatrixBanSync";
 import { configure } from "../logging";
+import { IrcPoolClient } from "../pool-service/IrcPoolClient";
 
 const log = getLogger("IrcBridge");
 const DEFAULT_PORT = 8090;
@@ -106,6 +107,7 @@ export class IrcBridge {
     }>;
     private privacyProtection: PrivacyProtection;
     private bridgeBlocker?: BridgeBlocker;
+    private ircPoolClient?: IrcPoolClient;
 
     constructor(
         public readonly config: BridgeConfig,
@@ -257,6 +259,8 @@ export class IrcBridge {
             oldConfig.homeserver.media_url = newConfig.homeserver.media_url;
             log.info(`Adjusted media_url to ${newConfig.homeserver.media_url}`);
         }
+
+        await this.setupStateSyncer(newConfig);
 
         this.ircHandler.onConfigChanged(newConfig.ircService.ircHandler || {});
         this.config.ircService.ircHandler = newConfig.ircService.ircHandler;
@@ -584,6 +588,20 @@ export class IrcBridge {
         // cli port, then config port, then default port
         port = port || this.config.homeserver.bindPort || DEFAULT_PORT;
         const pkeyPath = this.config.ircService.passwordEncryptionKeyPath;
+
+        if (this.config.connectionPool) {
+            if (Object.values(this.config.ircService.servers).length > 1) {
+                throw Error('Currently the connectionPool option only supports single IRC server configurations');
+            }
+            this.ircPoolClient = new IrcPoolClient(
+                this.config.connectionPool.redisUrl,
+            );
+            this.ircPoolClient.on('lostConnection', () => {
+                this.kill();
+            });
+            await this.ircPoolClient.listen();
+        }
+
         await this.bridge.initialise();
         await this.matrixBanSyncer?.syncRules(this.bridge.getIntent());
         this.matrixHandler.initialise();
@@ -658,7 +676,7 @@ export class IrcBridge {
             this.ircServers.push(server);
         }
 
-        this.clientPool = new ClientPool(this, this.dataStore);
+        this.clientPool = new ClientPool(this, this.dataStore, this.ircPoolClient);
 
         if (this.config.ircService.debugApi.enabled) {
             this.debugApi = new DebugApi(
@@ -728,20 +746,7 @@ export class IrcBridge {
         log.info("Fetching Matrix rooms that are already joined to...");
         await this.fetchJoinedRooms();
 
-        if (this.config.ircService.bridgeInfoState?.enabled) {
-            this.bridgeStateSyncer = new BridgeInfoStateSyncer(this.bridge, {
-                bridgeName: 'org.matrix.appservice-irc',
-                getMapping: async (roomId, { channel, networkId }) => this.createInfoMapping(channel, networkId),
-            });
-            if (this.config.ircService.bridgeInfoState.initial) {
-                const mappings = await this.dataStore.getAllChannelMappings();
-                this.bridgeStateSyncer.initialSync(mappings).then(() => {
-                    log.info("Bridge state syncing completed");
-                }).catch((err) => {
-                    log.error("Bridge state syncing resulted in an error:", err);
-                });
-            }
-        }
+        await this.setupStateSyncer(this.config);
 
         log.info("Joining mapped Matrix rooms...");
         await this.joinMappedMatrixRooms();
@@ -825,6 +830,29 @@ export class IrcBridge {
         this.bridgeState = "running";
     }
 
+    private async setupStateSyncer(config: BridgeConfig) {
+        if (!config.ircService.bridgeInfoState?.enabled) {
+            this.bridgeStateSyncer = undefined;
+            this.config.ircService.bridgeInfoState = undefined;
+            return;
+        }
+        log.info("Syncing bridge state");
+        this.bridgeStateSyncer = new BridgeInfoStateSyncer(this.bridge, {
+            bridgeName: 'org.matrix.appservice-irc',
+            getMapping: async (roomId, { channel, networkId }) => this.createInfoMapping(channel, networkId),
+        });
+        if (config.ircService.bridgeInfoState.initial && !this.config.ircService.bridgeInfoState?.initial) {
+            /* Only run it on startup, or when a reload switches it from false to true */
+            const mappings = await this.dataStore.getAllChannelMappings();
+            this.bridgeStateSyncer.initialSync(mappings).then(() => {
+                log.info("Bridge state syncing completed");
+            }).catch((err) => {
+                log.error("Bridge state syncing resulted in an error:", err);
+            });
+        }
+        this.config.ircService.bridgeInfoState = config.ircService.bridgeInfoState;
+    }
+
     private logMetric(req: Request<BridgeRequestData>, outcome: string) {
         if (!this.timers) {
             return; // metrics are disabled
@@ -905,13 +933,17 @@ export class IrcBridge {
         log.info("Killing bridge");
         this.bridgeState = "killed";
         log.info("Killing all clients");
-        await this.clientPool.killAllClients(reason);
-        if (this.dataStore) {
-            await this.dataStore.destroy();
+        if (!this.config.connectionPool?.persistConnectionsOnShutdown) {
+            this.clientPool.killAllClients(reason);
         }
-        log.info("Closing bridge");
-        await this.bridge.close();
-        await this.appservice.close();
+        else {
+            log.info(`Persisting connections on shutdown`);
+        }
+        await Promise.allSettled([
+            this.ircPoolClient?.close(),
+            this.dataStore?.destroy(),
+            this.bridge.close(),
+        ])
     }
 
     public get isStartedUp() {
