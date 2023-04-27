@@ -21,7 +21,6 @@ git-repository-url = "https://github.com/matrix-org/matrix-appservice-irc"
 additional-css = [
     "docs/_site/style.css"
 ]
-
 additional-js = [
     "docs/_site/main.js",
     "docs/_site/version.js"

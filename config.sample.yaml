@@ -466,7 +466,6 @@ ircService:
 
   # Configuration for logging. Optional. Default: console debug level logging
   # only.
-  # This key CANNOT be hot-reloaded
   logging:
     # Level to log on console/logfile. One of error|warn|info|debug
     level: "debug"
@@ -701,3 +700,11 @@ database:
    # For postgres, it must start with postgres://
    # For NeDB, it must start with nedb://. The path is relative to the project directory.
   connectionString: "postgres://username:password@host:port/databasename"
+
+# Enable running IRC connections out of a secondary process.
+# See https://matrix-org.github.io/matrix-appservice-irc/latest/connection_pooling.html for more information
+# connectionPool:
+#   # The Redis URI to connect to 
+#   redisUrl: redis://user:password@host:port/dbnum
+#   # Should the connections persist after the bridge successfully shuts down?
+#   persistConnectionsOnShutdown: true

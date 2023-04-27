@@ -29,6 +29,7 @@ import { DataStore } from "../datastore/DataStore";
 import { Gauge } from "prom-client";
 import QuickLRU from "quick-lru";
 import { IRCConnectionError, IRCConnectionErrorCode } from "./ConnectionInstance";
+import { IrcPoolClient } from "../pool-service/IrcPoolClient";
 const log = getLogger("ClientPool");
 
 const NICK_CACHE_SIZE = 256;
@@ -54,7 +55,11 @@ export class ClientPool {
     private identGenerator: IdentGenerator;
     private ipv6Generator: Ipv6Generator;
     private ircEventBroker: IrcEventBroker;
-    constructor(private ircBridge: IrcBridge, private store: DataStore) {
+    constructor(
+        private readonly ircBridge: IrcBridge,
+        private readonly store: DataStore,
+        private readonly redisPool?: IrcPoolClient
+    ) {
         // The list of bot clients on servers (not specific users)
         this.botClients = new Map();
 
@@ -279,7 +284,7 @@ export class ClientPool {
         return new BridgedClient(
             server, ircClientConfig, matrixUser || undefined, isBot,
             this.ircEventBroker, this.identGenerator, this.ipv6Generator,
-            this.ircBridge.config.ircService.encodingFallback
+            this.redisPool, this.ircBridge.config.ircService.encodingFallback,
         );
     }
 

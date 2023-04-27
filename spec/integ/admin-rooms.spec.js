@@ -1240,7 +1240,6 @@ describe("Admin rooms", function() {
     });
 
     it("should reconnect when using !reconnect", async function() {
-        const sdk = env.clientMock._client(botUserId);
         const disconnectPromise = env.ircMock._whenClient(roomMapping.server, userIdNick, "disconnect", () => { });
         const connectPromise = env.ircMock._whenClient(roomMapping.server, userIdNick, "connect", () => { });
         await env.mockAppService._trigger("type:m.room.message", {
