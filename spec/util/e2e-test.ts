@@ -50,6 +50,7 @@ export class IrcBridgeE2ETest {
             ircTest.setUp(opts.ircNicks),
         ]);
         let redisPool: IrcConnectionPool|undefined;
+
         if (IRCBRIDGE_TEST_REDIS_URL) {
             redisPool = new IrcConnectionPool({
                 redisUri: IRCBRIDGE_TEST_REDIS_URL,
@@ -58,6 +59,7 @@ export class IrcBridgeE2ETest {
                 loggingLevel: 'debug',
             });
         }
+
         const ircBridge = new IrcBridge({
             homeserver: {
                 domain: homeserver.domain,
@@ -127,8 +129,8 @@ export class IrcBridgeE2ETest {
                     port: 0,
                 }
             },
-            ...(redisPool && { connectionPool: {
-                redisUrl: IRCBRIDGE_TEST_REDIS_URL!,
+            ...(IRCBRIDGE_TEST_REDIS_URL && { connectionPool: {
+                redisUrl: IRCBRIDGE_TEST_REDIS_URL,
                 persistConnectionsOnShutdown: false,
             }
             }),
@@ -154,7 +156,7 @@ export class IrcBridgeE2ETest {
         }), {
             isDBInMemory: false,
         });
-        return new IrcBridgeE2ETest(homeserver, ircBridge, postgresDb, ircTest)
+        return new IrcBridgeE2ETest(homeserver, ircBridge, postgresDb, ircTest, redisPool)
     }
 
     private constructor(

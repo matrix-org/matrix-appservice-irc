@@ -387,28 +387,34 @@ export class IrcConnectionPool {
 
 
         log.info(`Listening for new commands`);
-        while (this.shouldRun) {
-            const newCmd = await this.cmdReader.xread(
-                "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_IN_STREAM, this.commandStreamId);
-            if (newCmd === null) {
-                // Unexpected, this is blocking.
-                continue;
+        setImmediate(async () => {
+            while (this.shouldRun) {
+                const newCmd = await this.cmdReader.xread(
+                    "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_IN_STREAM, this.commandStreamId).catch((ex) => {
+                    log.warn(`Failed to read new command:`, ex);
+                    return null;
+                });
+                if (newCmd === null) {
+                    // Unexpected, this is blocking.
+                    continue;
+                }
+                // This is a list of keys, containing a list of commands, hence needing to deeply extract the values.
+                const [msgId, [cmdType, payload]] = newCmd[0][1][0];
+
+                const commandType = cmdType as InCommandType;
+
+                // If we crash, we don't want to get stuck on this msg.
+                await this.updateLastRead(msgId);
+                const commandData = JSON.parse(payload) as IrcConnectionPoolCommandIn<InCommandType>;
+                setImmediate(
+                    () => this.handleCommand(commandType, commandData)
+                        .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
+                        ),
+                );
             }
-            // This is a list of keys, containing a list of commands, hence needing to deeply extract the values.
-            const [msgId, [cmdType, payload]] = newCmd[0][1][0];
+            log.info(`Finished loop`);
+        });
 
-            const commandType = cmdType as InCommandType;
-
-            // If we crash, we don't want to get stuck on this msg.
-            await this.updateLastRead(msgId);
-            const commandData = JSON.parse(payload) as IrcConnectionPoolCommandIn<InCommandType>;
-            setImmediate(
-                () => this.handleCommand(commandType, commandData)
-                    .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
-                    ),
-            );
-        }
-        log.info(`Finished loop`);
     }
 
     public async close() {
