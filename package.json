@@ -40,8 +40,8 @@
     "extend": "^3.0.2",
     "he": "^1.2.0",
     "logform": "^2.4.2",
-    "matrix-appservice-bridge": "^8.1.1",
-    "matrix-bot-sdk": "^0.6.2",
+    "matrix-appservice-bridge": "^9.0.0",
+    "matrix-bot-sdk": "npm:@vector-im/matrix-bot-sdk@^0.6.6-element.1",
     "matrix-org-irc": "^1.5.0",
     "matrix-widget-api": "^1.1.1",
     "nopt": "^6.0.0",
@@ -55,13 +55,6 @@
     "url-join": "^5.0.0",
     "winston": "^3.8.2",
     "winston-daily-rotate-file": "^4.7.1"
-  },
-  "overrides": {
-    "matrix-appservice-bridge": {
-      "matrix-bot-sdk": {
-        "@matrix-org/matrix-sdk-crypto-nodejs": "^0.1.0-beta.3"
-      }
-    }
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.3",

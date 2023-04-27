@@ -758,12 +758,13 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
-"@matrix-org/matrix-sdk-crypto-nodejs@0.1.0-beta.3":
-  version "0.1.0-beta.3"
-  resolved "https://registry.yarnpkg.com/@matrix-org/matrix-sdk-crypto-nodejs/-/matrix-sdk-crypto-nodejs-0.1.0-beta.3.tgz#a07225dd180d9d227c24ba62bba439939446d113"
-  integrity sha512-jHFn6xBeNqfsY5gX60akbss7iFBHZwXycJWMw58Mjz08OwOi7AbTxeS9I2Pa4jX9/M2iinskmGZbzpqOT2fM3A==
+"@matrix-org/matrix-sdk-crypto-nodejs@0.1.0-beta.6":
+  version "0.1.0-beta.6"
+  resolved "https://registry.yarnpkg.com/@matrix-org/matrix-sdk-crypto-nodejs/-/matrix-sdk-crypto-nodejs-0.1.0-beta.6.tgz#0ecae51103ee3c107af0d6d0738f33eb7cc9857e"
+  integrity sha512-JXyrHuCVMydUGgSetWsfqbbvHj3aUMOX5TUghlMtLFromyEu7wIsNgYt7PjJ+k3WdF4GVABRy4P6GNjaEMy2uA==
   dependencies:
-    node-downloader-helper "^2.1.1"
+    https-proxy-agent "^5.0.1"
+    node-downloader-helper "^2.1.5"
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
@@ -992,7 +993,7 @@
     "@types/qs" "*"
     "@types/serve-static" "*"
 
-"@types/express@^4.17.13", "@types/express@^4.17.8":
+"@types/express@^4.17.13":
   version "4.17.17"
   resolved "https://registry.yarnpkg.com/@types/express/-/express-4.17.17.tgz#01d5437f6ef9cfa8668e616e13c2f2ac9a491ae4"
   integrity sha512-Q4FmmuLGBG58btUnfS1c1r/NQdlp3DMfGDGig8WhfpA2YRUtEkxAjkZb0yvplJGYdF1fsQ81iMDcH24sSCNC/Q==
@@ -1078,13 +1079,6 @@
     "@types/node" "*"
     pg-protocol "*"
     pg-types "^2.2.0"
-
-"@types/pkginfo@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@types/pkginfo/-/pkginfo-0.4.0.tgz#00143b97e98aa7c9391943266d2e4aebd8f44c35"
-  integrity sha512-4DGKkOlWkMuVDZQvytWzzWWAjyqDmlLKRYE4lzeA8t0s7fK0aF25uPbX9eBVermUjLJdeLHu9k1WmNiAssqCcg==
-  dependencies:
-    "@types/node" "*"
 
 "@types/prettier@^2.1.5":
   version "2.7.2"
@@ -2556,7 +2550,7 @@ express-rate-limit@^6.7.0:
   resolved "https://registry.yarnpkg.com/express-rate-limit/-/express-rate-limit-6.7.0.tgz#6aa8a1bd63dfe79702267b3af1161a93afc1d3c2"
   integrity sha512-vhwIdRoqcYB/72TK3tRZI+0ttS8Ytrk24GfmsxDXK9o9IhHNO5bXRiXQSExPQ4GbaE5tvIS7j1SGrxsuWs+sGA==
 
-express@^4.17.1, express@^4.18.1:
+express@^4.18.1:
   version "4.18.2"
   resolved "https://registry.yarnpkg.com/express/-/express-4.18.2.tgz#3fabe08296e930c796c19e3c516979386ba9fd59"
   integrity sha512-5/PsL6iGPdfQ/lKM1UuielYgv3BUoJfz1aUwU9vHZ+J7gyvwdQXFEBIEIaxeGf0GIcreATNyBExtalisDbuMqQ==
@@ -3129,7 +3123,7 @@ http-signature@~1.2.0:
     jsprim "^1.2.2"
     sshpk "^1.7.0"
 
-https-proxy-agent@^5.0.0:
+https-proxy-agent@^5.0.0, https-proxy-agent@^5.0.1:
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/https-proxy-agent/-/https-proxy-agent-5.0.1.tgz#c59ef224a04fe8b754f3db0063a25ea30d0005d6"
   integrity sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==
@@ -4161,13 +4155,12 @@ makeerror@1.0.12:
   dependencies:
     tmpl "1.0.5"
 
-matrix-appservice-bridge@^8.1.1:
-  version "8.1.1"
-  resolved "https://registry.yarnpkg.com/matrix-appservice-bridge/-/matrix-appservice-bridge-8.1.1.tgz#9bf37d39742aed276e01d01e5c28c75d7ba1fcf7"
-  integrity sha512-6QYvTxe8kLXa2u+npeFUJph0PVqaOK6BPyC2J4bM0iklS8wNyprwzpToxGUr0WZS6D8vRc8qbyxhN1JTUbu9kw==
+matrix-appservice-bridge@^9.0.0:
+  version "9.0.0"
+  resolved "https://registry.yarnpkg.com/matrix-appservice-bridge/-/matrix-appservice-bridge-9.0.0.tgz#99a63c3a30e06ce03ae1db80dec47da4044aed81"
+  integrity sha512-BQ3XqbFasWJQH/R3gIqPt5ERDF9TzBi+qcLqIpf140ac2vFG3dJ/c0RHhAVFoFhuu2R0keBnN6Z2GJBoETkhSw==
   dependencies:
     "@alloc/quick-lru" "^5.2.0"
-    "@types/pkginfo" "^0.4.0"
     axios "^0.27.2"
     chalk "^4.1.0"
     express "^4.18.1"
@@ -4176,8 +4169,8 @@ matrix-appservice-bridge@^8.1.1:
     ip-cidr "^3.0.4"
     is-my-json-valid "^2.20.5"
     js-yaml "^4.0.0"
-    matrix-appservice "^1.1.0"
-    matrix-bot-sdk "^0.6.2"
+    matrix-appservice "^2.0.0"
+    matrix-bot-sdk "npm:@vector-im/matrix-bot-sdk@^0.6.6-element.1"
     nedb "^1.8.0"
     nopt "^5.0.0"
     p-queue "^6.6.2"
@@ -4188,23 +4181,22 @@ matrix-appservice-bridge@^8.1.1:
     winston "^3.3.3"
     winston-daily-rotate-file "^4.5.1"
 
-matrix-appservice@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/matrix-appservice/-/matrix-appservice-1.1.0.tgz#e567945042000485e4ea4bfeef92246e93296f01"
-  integrity sha512-6hJdmo9YIbh6dS9MfMHCpHMhklN/+NOcfGQ/3UbbEEfIE8dt0bHqi1nnIiias5IqDFl6ED9y+YQdtyqnIXx+Ww==
+matrix-appservice@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/matrix-appservice/-/matrix-appservice-2.0.0.tgz#74b58e27477b4c1359da7c61878b7d18c6075261"
+  integrity sha512-HCIuJ5i0YuO8b0dMyGe5dqlsE4f3RzHU0MuMg/2gGAZ4HL3r7aSWOFbyIWStSSUrk1qCa9Eml0i4EnEi0pOtdA==
   dependencies:
-    "@types/express" "^4.17.8"
     body-parser "^1.19.0"
-    express "^4.17.1"
+    express "^4.18.1"
     js-yaml "^4.1.0"
     morgan "^1.10.0"
 
-matrix-bot-sdk@^0.6.2:
-  version "0.6.5"
-  resolved "https://registry.yarnpkg.com/matrix-bot-sdk/-/matrix-bot-sdk-0.6.5.tgz#74a88af1e2e56ccad5e6ac747f34080f5187e7ab"
-  integrity sha512-V+m+GtUSvl/2kr+x4bcKM7cZJsSe6B06DmFMdQZbR9N+FDMwVZiQuXp1mtIr2TCujGRCk/iXoSqFccq8/twUhg==
+"matrix-bot-sdk@npm:@vector-im/matrix-bot-sdk@^0.6.6-element.1":
+  version "0.6.6-element.1"
+  resolved "https://registry.yarnpkg.com/@vector-im/matrix-bot-sdk/-/matrix-bot-sdk-0.6.6-element.1.tgz#66994e96fe35d0562b16c1e3b62d0dc3f4e1ea14"
+  integrity sha512-YZApoyJhGW9clpD/h1HpCnyX6iaQueFIbdir229acGMD35ViEfvCLp8QynuvNpba1gn+TMWlebFZELTRC+TeCQ==
   dependencies:
-    "@matrix-org/matrix-sdk-crypto-nodejs" "0.1.0-beta.3"
+    "@matrix-org/matrix-sdk-crypto-nodejs" "0.1.0-beta.6"
     "@types/express" "^4.17.13"
     another-json "^0.2.0"
     async-lock "^1.3.2"
@@ -4421,7 +4413,7 @@ negotiator@0.6.3:
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.3.tgz#58e323a72fedc0d6f9cd4d31fe49f51479590ccd"
   integrity sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==
 
-node-downloader-helper@^2.1.1:
+node-downloader-helper@^2.1.5:
   version "2.1.6"
   resolved "https://registry.yarnpkg.com/node-downloader-helper/-/node-downloader-helper-2.1.6.tgz#f73ac458e3ac8c21afd0b952a994eab99c64b879"
   integrity sha512-VkOvAXIopI3xMuM/MC5UL7NqqnizQ/9QXZt28jR8FPZ6fHLQm4xe4+YXJ9FqsWwLho5BLXrF51nfOQ0QcohRkQ==
