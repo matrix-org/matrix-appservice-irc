@@ -1,0 +1,40 @@
+name: Release docs
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
+
+      # We want to install matrix-appservice-bridge, which we depend on.
+      - run: yarn --ignore-scripts
+  
+      - name: Get release tag
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - name: Set up mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: '0.4.28'
+
+      - name: Set version of docs
+        run: echo 'window.BRIDGE_VERSION = "${{ env.RELEASE_VERSION }}";' > ./docs/_site/version.js
+
+      - run: mdbook build
+
+      - name: Deploy latest
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          keep_files: true
+          publish_dir: ./book
+          destination_dir: ./${{ env.RELEASE_VERSION }}
