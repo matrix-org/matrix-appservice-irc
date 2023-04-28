@@ -316,7 +316,7 @@ const AvailableChannels = ({
                 setNetworks(networks);
 
                 if (networks.servers.length === 1) {
-                    setSelectedServer(networks.servers[0].network_id);
+                    setSelectedServer(networks.servers[0].fields.domain);
                 }
             } catch (e) {
                 console.error(e);
@@ -346,7 +346,7 @@ const AvailableChannels = ({
                     >
                         <option value="" key="blank">Select a server</option>
                         { networks.servers.map(server =>
-                            <option value={server.network_id} key={server.network_id}>
+                            <option value={server.fields.domain} key={server.network_id}>
                                 { server.desc }
                             </option>
                         ) }
