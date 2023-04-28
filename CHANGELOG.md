@@ -1,3 +1,37 @@
+1.0.0-rc1 (2023-04-28)
+======================
+
+**Note**: This release drops support for Node 16. The minimum required version is now 18+.
+
+Features
+--------
+
+- IRC connections can now be run via an external process using "connection pooling", allowing the bridge to be restarted without IRC connection loss. ([\#1669](https://github.com/matrix-org/matrix-appservice-irc/issues/1669))
+- Make bridgeInfoState configuration reloadable. ([\#1681](https://github.com/matrix-org/matrix-appservice-irc/issues/1681))
+- Bridge logging can now be hot-reloaded. ([\#1704](https://github.com/matrix-org/matrix-appservice-irc/issues/1704))
+
+
+Bugfixes
+--------
+
+- Fix not handling thread fallbacks as replies. ([\#1697](https://github.com/matrix-org/matrix-appservice-irc/issues/1697))
+- Show a helpful error for !link/!unlink admin failures, rather than "Check the logs for details", in more cases. ([\#1702](https://github.com/matrix-org/matrix-appservice-irc/issues/1702))
+- Fix documentation not being built and uploaded to GitHub pages on release. ([\#1703](https://github.com/matrix-org/matrix-appservice-irc/issues/1703))
+- Fix linking rooms from setup widget when a `networkId` is configured. ([\#1706](https://github.com/matrix-org/matrix-appservice-irc/issues/1706))
+
+
+Deprecations and Removals
+-------------------------
+
+- Add support for Node 20, and drop support for Node 16. ([\#1701](https://github.com/matrix-org/matrix-appservice-irc/issues/1701))
+
+
+Internal Changes
+----------------
+
+- Rename internal variable infoMapping to initialEvent. ([\#1672](https://github.com/matrix-org/matrix-appservice-irc/issues/1672))
+
+
 0.38.0 (2023-04-12)
 ===================
 

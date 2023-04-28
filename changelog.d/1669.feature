@@ -1,1 +1,0 @@
-IRC connections can now be run via an external process using "connection pooling", allowing the bridge to be restarted without IRC connection loss.
