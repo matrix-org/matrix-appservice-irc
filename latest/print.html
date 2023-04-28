@@ -30,6 +30,7 @@
         <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="docs/_site/style.css">
 
     </head>
     <body>
@@ -84,7 +85,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li><li class="chapter-item expanded "><a href="room_commands.html"><strong aria-hidden="true">2.2.</strong> Room Commands</a></li><li class="chapter-item expanded "><a href="room_configuration.html"><strong aria-hidden="true">2.3.</strong> Room Configuration</a></li><li class="chapter-item expanded "><a href="irc_modes.html"><strong aria-hidden="true">2.4.</strong> IRC Modes</a></li><li class="chapter-item expanded "><a href="setup_widget.html"><strong aria-hidden="true">2.5.</strong> Setup Widget</a></li></ol></li><li class="chapter-item expanded "><a href="bridged_networks.html"><strong aria-hidden="true">3.</strong> Bridged Networks</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Bridge Administrators</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">4.1.</strong> Setting up the bridge</a></li><li class="chapter-item expanded "><a href="debug_api.html"><strong aria-hidden="true">4.2.</strong> Debug API</a></li></ol></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="admin_room.html"><strong aria-hidden="true">2.1.</strong> Admin Room</a></li><li class="chapter-item expanded "><a href="room_commands.html"><strong aria-hidden="true">2.2.</strong> Room Commands</a></li><li class="chapter-item expanded "><a href="room_configuration.html"><strong aria-hidden="true">2.3.</strong> Room Configuration</a></li><li class="chapter-item expanded "><a href="irc_modes.html"><strong aria-hidden="true">2.4.</strong> IRC Modes</a></li><li class="chapter-item expanded "><a href="setup_widget.html"><strong aria-hidden="true">2.5.</strong> Setup Widget</a></li></ol></li><li class="chapter-item expanded "><a href="bridged_networks.html"><strong aria-hidden="true">3.</strong> Bridged Networks</a></li><li class="chapter-item expanded "><a href="administrators_guide.html"><strong aria-hidden="true">4.</strong> Bridge Administrators</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="bridge_setup.html"><strong aria-hidden="true">4.1.</strong> Setting up the bridge</a></li><li class="chapter-item expanded "><a href="debug_api.html"><strong aria-hidden="true">4.2.</strong> Debug API</a></li><li class="chapter-item expanded "><a href="connection_pooling.html"><strong aria-hidden="true">4.3.</strong> Connection Pooling</a></li></ol></li><li class="chapter-item expanded "><a href="irc_operators.html"><strong aria-hidden="true">5.</strong> IRC Operators</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -118,6 +119,9 @@
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/matrix-org/matrix-appservice-irc" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
 
                     </div>
@@ -164,10 +168,10 @@ IRC channel. By default your nickname will be <code>YourDisplayname-M</code>, bu
 by using a <code>[m]</code> suffix instead.</p>
 <h3 id="joining-a-channel"><a class="header" href="#joining-a-channel">Joining a channel</a></h3>
 <p>Joining a public channel over the bridge is as easy as joining an alias, for instance:</p>
-<p><code>#python:libera.chat</code> maps to the <code>#python</code> channel on <a href="libera.chat">libera.chat</a>.</p>
+<p><code>#python:libera.chat</code> maps to the <code>#python</code> channel on <a href="https://libera.chat">libera.chat</a>.</p>
 <h3 id="private-messaging"><a class="header" href="#private-messaging">Private Messaging</a></h3>
 <p>Sending a Private Message (PM) to an IRC user means starting a conversation with <code>@Alice:libera.chat</code>,
-which maps to the nickname <code>Alice</code> on Libera.chat.</p>
+which maps to the nickname <code>Alice</code> on <a href="https://libera.chat">libera.chat</a>.</p>
 <p>If a PM is sent from the IRC side, it will either appear in your existing PM room or you will be invited
 to a new room.</p>
 <p>The room alias and user formats may differ depending on the bridge you are using, so be sure to check with the
@@ -556,12 +560,12 @@ from a single IP, so you should ask them for permission before bridging.</p>
 <pre><code class="language-sh">git clone https://github.com/matrix-org/matrix-appservice-irc.git
 cd matrix-appservice-irc
 git checkout master # or 0.x.x to pin to a version
-npm i
+yarn
 </code></pre>
 <p>The bridge can now be started by: <code>node app.js</code>.</p>
 <h3 id="global-install"><a class="header" href="#global-install">Global Install</a></h3>
 <pre><code class="language-sh"># --global requires super user on most systems
-$ npm install matrix-appservice-irc --global
+$ yarn install --global matrix-appservice-irc 
 </code></pre>
 <h3 id="docker"><a class="header" href="#docker">Docker</a></h3>
 <p>The bridge has a <a href="https://hub.docker.com/r/matrixdotorg/matrix-appservice-irc">Docker image</a>.</p>
@@ -757,6 +761,40 @@ API.</p>
 <h3 id="response-format"><a class="header" href="#response-format">Response format</a></h3>
 <p>The bridge will wait 3 seconds to buffer up any responses from the IRCD and return
 them in a newline delimited JSON format.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="connection-pooling"><a class="header" href="#connection-pooling">Connection Pooling</a></h1>
+<section class="warning">
+Connection pooling is a new feature and may not be 100% stable. While extensive testing efforts have been made, it may still format your cat.
+</section>
+<p>The IRC bridge can be configured to run it's IRC connections through a seperate process from the main bridge,
+allowing you to restart and update (in most cases) the main process while keeping connections alive. This in 
+effect allows you to have a bridge that <em>appears</em> to not restart (sometimes nicknamed eternal bridges).</p>
+<p>To configure the bridge in this mode you will need to setup a <a href="https://redis.io/">Redis</a> instance.</p>
+<p>In your bridge, configure the following:</p>
+<pre><code class="language-yaml">connectionPool:
+  # The Redis URI to connect to 
+  redisUrl: redis://user:password@host:port/dbnum
+  # Should the connections persist after the bridge successfully shuts down?
+  persistConnectionsOnShutdown: true
+</code></pre>
+<p>And then you need to run the pool using:</p>
+<pre><code class="language-sh">export REDIS_URL=redis://localhost:6379
+export METRICS_HOST=localhost
+export METRICS_PORT=7002
+export LOGGING_LEVEL=info
+
+yarn start:pool
+</code></pre>
+<h3 id="upgrading-the-bridge"><a class="header" href="#upgrading-the-bridge">Upgrading the bridge</a></h3>
+<p>The bridge supports being upgraded while the connection pool service is running, and can just be updated as normal.
+There are exceptions to this rule when the protocol of the connection pool changes per release. While we endeavour
+to point this out in the documentation, the bridge will also fail to start if it detects a protocol change.</p>
+<h3 id="persisting-connections"><a class="header" href="#persisting-connections">Persisting connections</a></h3>
+<p>Connections are persisted between restarts of the main bridge process <strong>if</strong> <code>persistConnectionsOnShutdown</code> is 
+set to <code>true</code>. The default is to keep the existing single-process behaviour of closing connections on shutdown, however.</p>
+<p>If the bridge is interrupted (e.g. the process is killed by the operating system before it can complete the shutdown routine)
+then the connections WILL persist between restarts.</p>
+<p>Closing the connection pool process will immedtiately terminate any connection processes. The bridge will NOT attempt
+to reconnect users if the pool process dies, and instead will eventually timeout and restart after a period.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="irc-operators"><a class="header" href="#irc-operators">IRC Operators</a></h1>
 <p>This chapter describes useful information about the bridge for IRC operators or IRC users.</p>
 <p>The IRC bridge provides each Matrix user with one IRC connection in order to bridge them &quot;natively&quot;
@@ -859,6 +897,8 @@ resort should the bridge have failed to connect them. See the <a href="administr
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="docs/_site/main.js"></script>
+        <script src="docs/_site/version.js"></script>
 
         <script>
         window.addEventListener('load', function() {
