@@ -571,15 +571,15 @@ export class Provisioner extends ProvisioningApi {
         // Send bridge info state event
         if (this.ircBridge.stateSyncer) {
             const intent = this.ircBridge.getAppServiceBridge().getIntent();
-            const infoMapping = await this.ircBridge.stateSyncer.createInitialState(roomId, {
+            const initialEvent = await this.ircBridge.stateSyncer.createInitialState(roomId, {
                 channel: ircChannel,
                 networkId: server.getNetworkId(),
             })
             await intent.sendStateEvent(
                 roomId,
-                infoMapping.type,
-                infoMapping.state_key,
-                infoMapping.content as unknown as Record<string, unknown>,
+                initialEvent.type,
+                initialEvent.state_key,
+                initialEvent.content as unknown as Record<string, unknown>,
             );
         }
     }
