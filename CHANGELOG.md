@@ -1,3 +1,102 @@
+0.38.0 (2023-04-12)
+===================
+
+Bugfixes
+--------
+
+- Fix leak of secret channels (name, topic, and member count) to the public room directory due to a regressive refactor in a previous release. ([\#1660](https://github.com/matrix-org/matrix-appservice-irc/issues/1660), [\#1698](https://github.com/matrix-org/matrix-appservice-irc/issues/1698))
+- Fix unlink command showing an error. ([\#1692](https://github.com/matrix-org/matrix-appservice-irc/issues/1692))
+
+
+Internal Changes
+----------------
+
+- RoomAccessSyncer: Await processing of cached channel modes that changed. ([\#1620](https://github.com/matrix-org/matrix-appservice-irc/issues/1620))
+- Fix tests when running with 'yarnpkg link matrix-appservice-bridge'. ([\#1679](https://github.com/matrix-org/matrix-appservice-irc/issues/1679))
+- Add tests that cover publicity syncing behaviour. ([\#1698](https://github.com/matrix-org/matrix-appservice-irc/issues/1698))
+
+
+0.37.1 (2023-03-07)
+====================
+
+Bugfixes
+--------
+
+- Fix provisioning API base URL in setup widgets. ([\#1677](https://github.com/matrix-org/matrix-appservice-irc/issues/1677))
+
+
+Internal Changes
+----------------
+
+- Update matrix-appservice-bridge to `8.1.1`. ([\#1676](https://github.com/matrix-org/matrix-appservice-irc/issues/1676))
+
+0.37.0 (2023-02-08)
+===================
+
+Features
+--------
+
+- Add support for Node.JS 19. ([\#1646](https://github.com/matrix-org/matrix-appservice-irc/issues/1646))
+- Refactor provisioning API to use `matrix-appservice-bridge`, adding support for OpenID token auth among other improvements. ([\#1655](https://github.com/matrix-org/matrix-appservice-irc/issues/1655))
+- Add a UI in the form of a Matrix widget for linking and unlinking channels from a Matrix room. ([\#1656](https://github.com/matrix-org/matrix-appservice-irc/issues/1656))
+
+
+Bugfixes
+--------
+
+- Document 8090 to be the default port, to match the code's behaviour. ([\#1427](https://github.com/matrix-org/matrix-appservice-irc/issues/1427))
+- Fix the configured bind port being overridden in Docker. ([\#1654](https://github.com/matrix-org/matrix-appservice-irc/issues/1654))
+
+
+Internal Changes
+----------------
+
+- Update builder image for Freebind from Stretch (EOL) to Buster. ([\#1653](https://github.com/matrix-org/matrix-appservice-irc/issues/1653))
+
+0.36.0 (2022-10-25)
+===================
+
+Features
+--------
+
+* Support monospace formatting. ([\#1555](https://github.com/matrix-org/matrix-appservice-irc/issues/1555))
+
+
+Bugfixes
+--------
+
+- Disable metrics by default. ([\#1596](https://github.com/matrix-org/matrix-appservice-irc/issues/1596))
+- Fix distribution of IrcServer.randomDomain() which tended to pick domains with a lower index when there are a lot of addresses for a server. ([\#1612](https://github.com/matrix-org/matrix-appservice-irc/issues/1612))
+- Prevent runtime errors by provisisioning a room with a specific roomID. ([\#1614](https://github.com/matrix-org/matrix-appservice-irc/issues/1614))
+
+
+Improved Documentation
+----------------------
+
+- Fix typos in the documentation. ([\#1599](https://github.com/matrix-org/matrix-appservice-irc/issues/1599))
+- Update bridged networks doc to point towards GitHub issue [#1483](https://github.com/matrix-org/matrix-appservice-irc/issues/1483). ([\#1626](https://github.com/matrix-org/matrix-appservice-irc/issues/1626))
+
+
+Deprecations and Removals
+-------------------------
+
+- Breaking change: Raises the required NodeJS version to 16.
+  Fixes Room visibility setting being broken for appservice directories. ([\#1616](https://github.com/matrix-org/matrix-appservice-irc/issues/1616))
+- User activity tracking is now disabled by default, unless `userActivity` is enabled in the config. ([\#1638](https://github.com/matrix-org/matrix-appservice-irc/issues/1638))
+
+
+Internal Changes
+----------------
+
+- docker: prune dev dependencies from node_modules. ([\#1541](https://github.com/matrix-org/matrix-appservice-irc/issues/1541))
+- Logging: Use Map instead of object. ([\#1608](https://github.com/matrix-org/matrix-appservice-irc/issues/1608))
+- Refactor Logging: Increase explicit TypeScript types and safer loops. ([\#1609](https://github.com/matrix-org/matrix-appservice-irc/issues/1609))
+- Refactors: Reduce use of Bluebird, increase explicit types, use safer loops. ([\#1611](https://github.com/matrix-org/matrix-appservice-irc/issues/1611))
+- Replace uses of the deprecated String.prototype.substr(). ([\#1615](https://github.com/matrix-org/matrix-appservice-irc/issues/1615))
+- Add support for running tests against a real IRCd and Matrix homeserver in CI. ([\#1622](https://github.com/matrix-org/matrix-appservice-irc/issues/1622))
+- Update to matrix-appservice-bridge 6.0.0. ([\#1631](https://github.com/matrix-org/matrix-appservice-irc/issues/1631))
+
+
 0.35.1 (2022-09-26)
 ===================
 
@@ -5,7 +104,6 @@ Bugfixes
 --------
 
 - Prevent possible attack by provisisioning a room with a specific roomID. ([\#1619](https://github.com/matrix-org/matrix-appservice-irc/issues/1619))
-
 
 0.35.0 (2022-09-13)
 ===================

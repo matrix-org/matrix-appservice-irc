@@ -137,7 +137,7 @@ describe("Username generation", function() {
             }
             else {
                 // longpref_1, _2, _3 etc
-                expect(result.username).toBe(`${"longprefix".substr(0, 8 - 1 - (i).toString().length)}_${i}`);
+                expect(result.username).toBe(`${"longprefix".substring(0, 8 - 1 - (i).toString().length)}_${i}`);
             }
         }
     });

@@ -3,7 +3,7 @@ import { LoggerConfig } from "../logging";
 import { IrcHandlerConfig } from "../bridge/IrcHandler";
 import { RoomConfigConfig } from "../bridge/RoomConfig";
 import { MatrixHandlerConfig } from "../bridge/MatrixHandler";
-import { Rules } from "matrix-appservice-bridge";
+import { ProvisionerConfig } from "../provisioning/Provisioner";
 import { MatrixBanSyncConfig } from "../bridge/MatrixBanSync";
 
 export interface BridgeConfig {
@@ -17,20 +17,14 @@ export interface BridgeConfig {
         domain: string;
         enablePresence?: boolean;
         dropMatrixMessagesAfterSecs?: number;
-        bindHostname: string|undefined;
-        bindPort: number|undefined;
+        bindHostname?: string;
+        bindPort?: number;
     };
     ircService: {
         servers: {[domain: string]: IrcServerConfig};
         matrixHandler?: MatrixHandlerConfig;
         ircHandler?: IrcHandlerConfig;
-        provisioning: {
-            enabled: boolean;
-            requestTimeoutSeconds: number;
-            rules: Rules;
-            enableReload: boolean;
-            roomLimit?: number;
-        };
+        provisioning: ProvisionerConfig;
         logging: LoggerConfig;
         debugApi: {
             enabled: boolean;
@@ -55,7 +49,7 @@ export interface BridgeConfig {
             enabled: boolean;
             initial: boolean;
         };
-        encodingFallback: string;
+        encodingFallback?: string;
         permissions?: {
             [userIdOrDomain: string]: "admin";
         };
@@ -77,4 +71,8 @@ export interface BridgeConfig {
         maxHttpSockets: number;
         maxTxnSize?: number;
     };
+    connectionPool?: {
+        redisUrl: string;
+        persistConnectionsOnShutdown?: boolean;
+    }
 }

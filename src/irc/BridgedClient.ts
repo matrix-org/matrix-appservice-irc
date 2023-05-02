@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import Bluebird from "bluebird";
 import * as promiseutil from "../promiseutil";
 import { EventEmitter } from "events";
 import Ident from "./Ident"
@@ -30,6 +29,9 @@ import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
 import { Client, WhoisResponse } from "matrix-org-irc";
+import { IrcPoolClient } from "../pool-service/IrcPoolClient";
+import { RedisIrcConnection } from "../pool-service/RedisIrcConnection";
+import { Socket } from "net";
 
 const log = getLogger("BridgedClient");
 
@@ -88,7 +90,7 @@ export class BridgedClient extends EventEmitter {
     private lastActionTs: number;
     private _explicitDisconnect = false;
     private _disconnectReason: string|null = null;
-    private channelJoinDefers = new Map<string, Bluebird<IrcRoom>>();
+    private channelJoinDefers = new Map<string, Promise<IrcRoom>>();
     private _chanList: Set<string> = new Set();
     private connectDefer: promiseutil.Defer<void>;
     public readonly log: BridgedClientLogger;
@@ -117,7 +119,8 @@ export class BridgedClient extends EventEmitter {
         private readonly eventBroker: IrcEventBroker,
         private readonly identGenerator: IdentGenerator,
         private readonly ipv6Generator: Ipv6Generator,
-        private readonly encodingFallback: string) {
+        private readonly redisPool?: IrcPoolClient,
+        private readonly encodingFallback?: string,) {
         super();
         this.userId = matrixUser ? matrixUser.getId() : null;
         this.displayName = matrixUser ? matrixUser.getDisplayName() : null;
@@ -185,7 +188,7 @@ export class BridgedClient extends EventEmitter {
         return this.clientConfig;
     }
 
-    public kill(reason?: string) {
+    public kill(reason?: string): Promise<void> {
         log.info('Killing client ', this.nick);
         const state = this.state;
         // so that no further commands can be issued
@@ -249,9 +252,11 @@ export class BridgedClient extends EventEmitter {
                 localAddress: (
                     this.server.getIpv6Prefix() ? this.clientConfig.getIpv6Address() : undefined
                 ),
+                useRedisPool: this.redisPool,
                 encodingFallback: this.encodingFallback,
             },
             this.server.homeserverDomain,
+            this.userId ?? 'bot',
             (inst: ConnectionInstance) => {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 this.onConnectionCreated(inst, nameInfo, identResolver!);
@@ -342,11 +347,16 @@ export class BridgedClient extends EventEmitter {
         this.log.info("Rejoined channels");
     }
 
-    public disconnect(reason: InstanceDisconnectReason, textReason?: string, explicit = true) {
+    public disconnect(reason: InstanceDisconnectReason, textReason?: string, explicit = true): Promise<void> {
         return this.disconnectWithState(this.state, reason, textReason, explicit);
     }
 
-    private disconnectWithState(state: State, reason: InstanceDisconnectReason, textReason?: string, explicit = true) {
+    private disconnectWithState(
+        state: State,
+        reason: InstanceDisconnectReason,
+        textReason?: string,
+        explicit = true
+    ): Promise<void> {
         this._explicitDisconnect = explicit;
         if (state.status !== BridgedClientStatus.CONNECTED) {
             return Promise.resolve();
@@ -796,19 +806,23 @@ export class BridgedClient extends EventEmitter {
 
     private onConnectionCreated(connInst: ConnectionInstance, nameInfo: {username?: string},
                                 identResolver: () => void) {
+        // If this state has carried over from a previous connection, pull in any channels.
+        [...connInst.client.chans.keys()].forEach(k => this.chanList.add(k));
         // listen for a connect event which is done when the TCP connection is
         // established and set ident info (this is different to the connect() callback
         // in node-irc which actually fires on a registered event..)
-        connInst.client.once("connect", function() {
-            let localPort = -1;
-            if (connInst.client.conn && connInst.client.conn.localPort) {
-                localPort = connInst.client.conn.localPort;
-            }
-            if (localPort > 0 && nameInfo.username) {
-                Ident.setMapping(nameInfo.username, localPort);
-            }
-            identResolver();
-        });
+        if (Ident.enabled) {
+            connInst.client.once("connect", function() {
+                const conn = connInst.client.conn as RedisIrcConnection|Socket;
+                const localPort = conn?.localPort ?? 0;
+                // Fix horrible ident
+                if (localPort > 0 && nameInfo.username) {
+                    Ident.setMapping(nameInfo.username, localPort);
+                }
+                identResolver();
+            });
+        }
+
         // Emitters for SASL
         connInst.client.on("sasl_loggedin", (...args: string[]) => {
             const msg = args.pop();
@@ -921,7 +935,7 @@ export class BridgedClient extends EventEmitter {
         await defer.promise;
     }
 
-    public joinChannel(channel: string, key?: string, attemptCount = 1) {
+    public joinChannel(channel: string, key?: string, attemptCount = 1): Promise<IrcRoom> {
         // Wrap the join.
         const existing = this.channelJoinDefers.get(channel);
         if (existing) {
@@ -934,7 +948,7 @@ export class BridgedClient extends EventEmitter {
         return promise;
     }
 
-    private _joinChannel(channel: string, key?: string, attemptCount = 1): Bluebird<IrcRoom> {
+    private async _joinChannel(channel: string, key?: string, attemptCount = 1): Promise<IrcRoom> {
         if (this.state.status !== BridgedClientStatus.CONNECTED) {
             // we may be trying to join before we've connected, so check and wait
             if (this.connectDefer && this.connectDefer.promise.isPending()) {
@@ -942,21 +956,22 @@ export class BridgedClient extends EventEmitter {
                     return this._joinChannel(channel, key, attemptCount);
                 });
             }
-            return Bluebird.reject(new Error("No client"));
+            return Promise.reject(new Error("No client"));
         }
         if (this.state.client.chans.has(channel)) {
-            return Bluebird.resolve(new IrcRoom(this.server, channel));
+            return Promise.resolve(new IrcRoom(this.server, channel));
         }
         if (!channel.startsWith("#")) {
             // PM room
-            return Bluebird.resolve(new IrcRoom(this.server, channel));
+            return Promise.resolve(new IrcRoom(this.server, channel));
         }
         if (this.server.isExcludedChannel(channel)) {
-            return Bluebird.reject(new Error(channel + " is a do-not-track channel."));
+            return Promise.reject(new Error(channel + " is a do-not-track channel."));
         }
         const defer = promiseutil.defer() as promiseutil.Defer<IrcRoom>;
         this.log.debug("Joining channel %s", channel);
         const client = this.state.client;
+
         // listen for failures to join a channel (e.g. +i, +k)
 
         // add a timeout to try joining again
@@ -1068,7 +1083,7 @@ export class BridgedClient extends EventEmitter {
         return this.assertConnected().send(...data);
     }
 
-    public writeToConnection(buffer: string|Uint8Array) {
+    public writeToConnection(buffer: string) {
         const client = this.assertConnected();
         if (!client.conn) {
             throw Error('Client is not connected');

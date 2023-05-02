@@ -1,6 +1,5 @@
 # Freebind build
-# node:14-slim uses debian:stretch-slim as a base, so it's safe to build on here.
-FROM debian:stretch-slim as freebind 
+FROM debian:buster-slim as freebind
 
 RUN apt-get update \
  && apt-get install -y git build-essential
@@ -9,18 +8,21 @@ RUN git clone https://github.com/matrix-org/freebindfree.git
 RUN cd freebindfree && make
 
 # Typescript build
-FROM node:14-slim as builder
+FROM node:18 as builder
 
 WORKDIR /build
 
-COPY src/ /build/src/ 
-COPY .eslintrc *json /build/
+COPY src/ /build/src/
+COPY widget/ /build/widget/
+COPY package.json yarn.lock tsconfig.json .eslintrc /build/
 
-RUN npm ci
-RUN npm run build
+RUN yarn --strict-semver --frozen-lockfile
 
-# App
-FROM node:14-slim
+# install production dependencies only
+RUN rm -rf node_modules && yarn cache clean && yarn install --production
+
+# Runtime container image
+FROM node:18-slim
 
 RUN apt-get update && apt-get install -y sipcalc iproute2 openssl --no-install-recommends
 RUN rm -rf /var/lib/apt/lists/*
@@ -33,6 +35,7 @@ COPY --from=freebind /freebindfree/libfreebindfree.so /app/libfreebindfree.so
 COPY --from=builder /build/node_modules /app/node_modules
 COPY --from=builder /build/package.json /app/package.json
 COPY --from=builder /build/lib /app/lib
+COPY --from=builder /build/public /app/public
 
 COPY app.js config.schema.yml /app/
 COPY docker /app/docker

@@ -21,6 +21,15 @@ properties:
                 type: "string"
             serverName:
                 type: "string"
+    connectionPool:
+        type: "object"
+        required: ["redisUrl"]
+        properties:
+            redisUrl:
+                type: "string"
+                pattern: "^redis:\\/\\/(user:password@)?.+(:\\d+)?\/?\\d*$"
+            persistConnectionsOnShutdown:
+                type: "boolean"
     database:
         type: "object"
         required: ["engine", "connectionString"]
@@ -106,6 +115,8 @@ properties:
                 properties:
                     enabled:
                         type: "boolean"
+                    widget:
+                        type: "boolean"
                     requestTimeoutSeconds:
                         type: "number"
                     rules:
@@ -122,11 +133,22 @@ properties:
                                         type: "array"
                                         items:
                                             type: "string"
-                                    
-                    enableReload:
-                        type: "boolean"
                     roomLimit:
                         type: "number"
+                    secret:
+                        type: "string"
+                    apiPrefix:
+                        type: "string"
+                    ratelimit:
+                        type: "boolean"
+                    openIdDisallowedIpRanges:
+                        type: ["array", "null"]
+                        items:
+                            type: "string"
+                    openIdOverrides:
+                        type: ["object"]
+                        additionalProperties:
+                            type: "string"
             passwordEncryptionKeyPath:
                 type: "string"
             RMAUlimit:

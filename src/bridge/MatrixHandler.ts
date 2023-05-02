@@ -146,7 +146,7 @@ export class MatrixHandler {
         this.adminHandler = new AdminRoomHandler(ircBridge, this);
     }
 
-    public initalise() {
+    public initialise() {
         this.memberTracker = new StateLookup({
             intent: this.ircBridge.getAppServiceBridge().getIntent(),
             eventTypes: ['m.room.member']
@@ -556,7 +556,7 @@ export class MatrixHandler {
                             user.getId(),
                             req,
                             true,
-                            excluded && excluded.kickReason ? excluded.kickReason : `IRC connection failure.`,
+                            excluded && excluded.kickReason || `IRC connection failure.`,
                             this.ircBridge.appServiceUserId,
                         );
                     }
@@ -815,7 +815,7 @@ export class MatrixHandler {
             throw Error('Cannot handle command with no text');
         }
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
-        const [command, ...args] = event.content.body.trim().substr("!irc ".length).split(" ");
+        const [command, ...args] = event.content.body.trim().substring("!irc ".length).split(" ");
         // We currently only check the first room.
         const [targetRoom] = await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
         if (command === "nick") {
@@ -1033,7 +1033,7 @@ export class MatrixHandler {
 
         let cacheBody = ircAction.text;
 
-        // special handling for replies
+        // special handling for replies (and threads)
         if (event.content["m.relates_to"] && event.content["m.relates_to"]["m.in_reply_to"]) {
             const eventId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
             const reply = await this.textForReplyEvent(event, eventId, ircRoom);
@@ -1255,20 +1255,25 @@ export class MatrixHandler {
 
     private async textForReplyEvent(event: MatrixMessageEvent, replyEventId: string, ircRoom: IrcRoom):
     Promise<{formatted: string; reply: string}|null> {
-        const REPLY_REGEX = /> <(.*?)>(.*?)\n\n([\s\S]*)/;
+        // strips out the quotation of the original message, if needed
+        const replyText = (body: string): string => {
+            const REPLY_REGEX = /> <(.*?)>(.*?)\n\n([\s\S]*)/;
+            const match = REPLY_REGEX.exec(body);
+            if (match === null || match.length !== 4) {
+                return body;
+            }
+            return match[3];
+        };
+
         const REPLY_NAME_MAX_LENGTH = 12;
         const eventId = replyEventId;
         if (!event.content.body) {
             return null;
         }
-        const match = REPLY_REGEX.exec(event.content.body);
-        if (match === null || match.length !== 4) {
-            return null;
-        }
 
+        const rplText = replyText(event.content.body);
         let rplName: string;
         let rplSource: string;
-        const rplText = match[3];
         let cachedEvent = this.getCachedEvent(eventId);
         if (!cachedEvent) {
             // Fallback to fetching from the homeserver.
@@ -1283,8 +1288,7 @@ export class MatrixHandler {
                 const isReply = eventContent.content["m.relates_to"] &&
                     eventContent.content["m.relates_to"]["m.in_reply_to"];
                 if (isReply) {
-                    const sourceMatch = REPLY_REGEX.exec(eventContent.content.body);
-                    rplSource = sourceMatch && sourceMatch.length === 4 ? sourceMatch[3] : event.content.body;
+                    rplSource = replyText(eventContent.content.body);
                 }
                 else {
                     rplSource = eventContent.content.body;
@@ -1330,8 +1334,8 @@ export class MatrixHandler {
             // If we couldn't find a client for them, they might be a ghost.
             const ghostName = ircRoom.getServer().getNickFromUserId(rplName);
             // If we failed to get a name, just make a guess of it.
-            rplName = ghostName !== null ? ghostName : rplName.substr(1,
-                Math.min(REPLY_NAME_MAX_LENGTH, rplName.indexOf(":") - 1)
+            rplName = ghostName !== null ? ghostName : rplName.substring(1,
+                1 + Math.min(REPLY_NAME_MAX_LENGTH, rplName.indexOf(":") - 1)
             );
         }
 

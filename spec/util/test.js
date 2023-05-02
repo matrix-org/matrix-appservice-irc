@@ -1,12 +1,12 @@
 // common tasks performed in tests
 const extend = require("extend");
-const proxyquire = require('proxyquire');
-const { AppServiceRegistration, Intent } = require("matrix-appservice-bridge");
-const MockAppService = require("./app-service-mock");
+const proxyquire = require("proxyquire");
+const { Client } = require("pg");
 const Promise = require("bluebird");
+const { AppServiceRegistration, Intent } = require("matrix-appservice-bridge");
 const clientMock = require("./bot-sdk-mock");
 const ircMock = require("./irc-client-mock");
-const { Client } = require('pg');
+const MockAppService = require("./app-service-mock");
 
 const USING_PG = process.env.IRCBRIDGE_TEST_ENABLEPG === "yes";
 
@@ -80,7 +80,6 @@ class TestEnv {
                 AppServiceRegistration.fromObject(this.config._registration),
                 {
                     isDBInMemory:  !USING_PG,
-                    skipPingCheck: true,
                     onIntentCreate: (...args) => this.intentCreateFn(...args),
                 }
             )
@@ -149,9 +148,9 @@ module.exports.mkEnv = function() {
 };
 
 
-module.exports.initEnv = Promise.coroutine(function*(env, customConfig) {
-    return yield env.init(customConfig);
-});
+module.exports.initEnv = (env, customConfig) => {
+    return env.init(customConfig);
+};
 
 module.exports.afterEach = function(env) {
     return env.afterEach();

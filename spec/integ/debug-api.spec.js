@@ -1,5 +1,5 @@
 const envBundle = require("../util/env-bundle");
-const request = require("request-promise-native");
+const crossFetch = require('cross-fetch');
 
 const { getBridgeVersion } = require("matrix-appservice-bridge");
 
@@ -24,7 +24,7 @@ describe("Debug API", () => {
     it("should enable the debug API", async () => {
         // Revert to the default value for this one test
         expect(env.ircBridge.debugApi).not.toBeNull();
-        const res = await request(`http://localhost:${DEBUG_PORT}/version?access_token=${asToken}`);
+        const res = await (await crossFetch(`http://localhost:${DEBUG_PORT}/version?access_token=${asToken}`)).text();
         expect(res).toEqual(getBridgeVersion());
     });
 });

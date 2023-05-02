@@ -1,7 +1,7 @@
 import { PoolClient } from "pg";
-import { Logging } from "matrix-appservice-bridge";
+import { Logger } from "matrix-appservice-bridge";
 
-const log = Logging.get('postgres/schema/v8');
+const log = new Logger('postgres/schema/v8');
 
 function domainSetToValues(domains: string[], count: number): [string, Array<string|number|null>] {
     let res = "";

@@ -1,0 +1,210 @@
+name: E2E tests
+
+on:
+  push:
+    branches: ["develop", "release-*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # Build the latest version of complement-compatible-synapse, and cache the image for use in e2e tests.
+  build-synapse:
+    runs-on: ubuntu-latest
+    outputs:
+      synapsesha: ${{ steps.gitsha.outputs.sha }}
+    steps:
+      - name: Checkout synapse
+        uses: actions/checkout@v3
+        with:
+          repository: matrix-org/synapse
+          ref: master
+      - name: Get synapse git sha
+        id: gitsha
+        run: echo sha=`git rev-parse --short HEAD` >> "$GITHUB_OUTPUT"
+      - name: Cache complement-synapse image
+        id: cached-image
+        uses: actions/cache@v3
+        with:
+          path: /tmp/img-synapse.tar
+          key: ${{ runner.os }}-complement-synapse-${{ steps.gitsha.outputs.sha }}
+      - if: ${{ steps.cached-image.outputs.cache-hit != 'true' }}
+        name: Build images
+        run: |
+          # enable buildkit for the docker builds
+          export DOCKER_BUILDKIT=1
+          docker build -f docker/Dockerfile-workers -t matrixdotorg/synapse-workers:latest .
+          docker build -f docker/complement/Dockerfile -t complement-synapse:latest docker/complement
+          docker image save complement-synapse:latest > /tmp/img-synapse.tar
+
+  build-homerunner:
+    runs-on: ubuntu-latest
+    outputs:
+      homerunnersha: ${{ steps.gitsha.outputs.sha }}
+    steps:
+      - name: Checkout matrix-org/complement
+        uses: actions/checkout@v3
+        with:
+          repository: matrix-org/complement
+      - name: Get complement git sha
+        id: gitsha
+        run: echo sha=`git rev-parse --short HEAD` >> "$GITHUB_OUTPUT"
+      - name: Cache homerunner
+        id: cached
+        uses: actions/cache@v3
+        with:
+          path: homerunner
+          key: ${{ runner.os }}-homerunner-${{ steps.gitsha.outputs.sha }}
+      - name: "Set Go Version"
+        if: ${{ steps.cached.outputs.cache-hit != 'true' }}
+        run: |
+          echo "$GOROOT_1_17_X64/bin" >> $GITHUB_PATH
+          echo "~/go/bin" >> $GITHUB_PATH
+      # Build and install homerunner
+      - name: Install Complement Dependencies
+        if: ${{ steps.cached.outputs.cache-hit != 'true' }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y libolm3 libolm-dev
+      - name: Build homerunner
+        if: ${{ steps.cached.outputs.cache-hit != 'true' }}
+        run: |
+          go build ./cmd/homerunner
+
+
+  integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - build-synapse
+      - build-homerunner
+    env:
+      IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
+      IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
+      IRCBRIDGE_TEST_ENABLEPG: "yes"
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres_password
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres_user
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+      ircd:
+        image: ghcr.io/ergochat/ergo:stable
+        ports:
+          - 6667:6667
+    steps:
+      - name: Install Complement Dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y libolm3
+      - name: Load cached homerunner bin
+        uses: actions/cache@v3
+        with:
+          path: homerunner
+          key: ${{ runner.os }}-homerunner-${{ needs.build-synapse.outputs.homerunnersha }}
+          fail-on-cache-miss: true # Shouldn't happen, we build this in the needs step.
+      - name: Load cached complement-synapse image
+        uses: actions/cache@v3
+        with:
+          path: /tmp/img-synapse.tar
+          key: ${{ runner.os }}-complement-synapse-${{ needs.build-synapse.outputs.synapsesha }}
+          fail-on-cache-miss: true # Shouldn't happen, we build this in the needs step.
+      - name: Load images
+        run: |
+          docker load --input /tmp/img-synapse.tar
+      - name: Checkout matrix-appservice-irc
+        uses: actions/checkout@v3
+        with:
+          path: matrix-appservice-irc
+      # Setup node & run tests
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: matrix-appservice-irc/.node-version
+      - name: Run Homerunner tests
+        timeout-minutes: 10
+        run: |
+          cd matrix-appservice-irc
+          yarn --strict-semver --frozen-lockfile
+          HOMERUNNER_SPAWN_HS_TIMEOUT_SECS=100 ../homerunner &
+          bash -ic 'yarn test:e2e'
+
+  integration-test-pool: 
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - build-synapse
+      - build-homerunner
+    env:
+      IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
+      IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
+      IRCBRIDGE_TEST_ENABLEPG: "yes"
+      IRCBRIDGE_TEST_REDIS_URL: "redis://localhost:6379"
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres_password
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres_user
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+      ircd:
+        image: ghcr.io/ergochat/ergo:stable
+        ports:
+          - 6667:6667
+    steps:
+      - name: Install Complement Dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y libolm3
+      - name: Load cached homerunner bin
+        uses: actions/cache@v3
+        with:
+          path: homerunner
+          key: ${{ runner.os }}-homerunner-${{ needs.build-synapse.outputs.homerunnersha }}
+          fail-on-cache-miss: true # Shouldn't happen, we build this in the needs step.
+      - name: Load cached complement-synapse image
+        uses: actions/cache@v3
+        with:
+          path: /tmp/img-synapse.tar
+          key: ${{ runner.os }}-complement-synapse-${{ needs.build-synapse.outputs.synapsesha }}
+          fail-on-cache-miss: true # Shouldn't happen, we build this in the needs step.
+      - name: Load images
+        run: |
+          docker load --input /tmp/img-synapse.tar
+      - name: Checkout matrix-appservice-irc
+        uses: actions/checkout@v3
+        with:
+          path: matrix-appservice-irc
+      # Setup node & run tests
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: matrix-appservice-irc/.node-version
+      - name: Run Homerunner tests
+        timeout-minutes: 10
+        run: |
+          cd matrix-appservice-irc
+          yarn --strict-semver --frozen-lockfile
+          HOMERUNNER_SPAWN_HS_TIMEOUT_SECS=100 ../homerunner &
+          bash -ic 'yarn test:e2e'

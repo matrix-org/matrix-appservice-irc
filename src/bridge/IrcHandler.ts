@@ -21,6 +21,7 @@ const PM_POWERLEVEL_IRCUSER = 100;
 const MEMBERSHIP_INITIAL_TTL_MS = 30 * 60 * 1000; // 30 mins
 const PM_ROOM_CREATION_RETRIES = 3; // How often to retry to create a PM room, if it fails?
 
+export type MatrixDirectoryVisibility = "private"|"public";
 export type MatrixMembership = "join"|"invite"|"leave"|"ban";
 
 interface RoomIdtoPrivateMember {

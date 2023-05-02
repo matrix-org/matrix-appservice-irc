@@ -36,7 +36,7 @@ homeserver:
 
   # Which port should the appservice bind to. Can be overriden by the one provided in the
   # command line! Optional.
-  # bindPort: 9999
+  # bindPort: 8090
 
   # Use this option to force the appservice to listen on another hostname for transactions.
   # This is NOT your synapse hostname. E.g. use 127.0.0.1 to only listen locally. Optional.
@@ -222,7 +222,7 @@ ircService:
         # This MUST have $CHANNEL somewhere in it.
         #
         # In certain circumstances you might want to bridge your whole IRC network as a
-        # homeserver (e.g. #matrix:libera.chat). For these use cases, you can set the 
+        # homeserver (e.g. #matrix:libera.chat). For these use cases, you can set the
         # template to just be $CHANNEL. Doing so will preclude you from supporting
         # other prefix characters though.
         #
@@ -368,11 +368,11 @@ ircService:
           # Older kernels will need IP_FREEBIND, which requires an LD_PRELOAD with the library
           # https://github.com/matrix-org/freebindfree as Node does not expose setsockopt.
           # prefix: "2001:0db8:85a3::"  # modify appropriately
-  
+
           # Optional. Define blocks of IPv6 addresses for different homeservers
           # which can be used to restrict users of those homeservers to a given
           # IP. These blocks should be considered immutable once set, as changing
-          # the startFrom value will NOT adjust existing IP addresses. 
+          # the startFrom value will NOT adjust existing IP addresses.
           # Changing the startFrom value to a lower value may conflict with existing clients.
           # Multiple homeservers may NOT share blocks.
           blocks:
@@ -466,7 +466,6 @@ ircService:
 
   # Configuration for logging. Optional. Default: console debug level logging
   # only.
-  # This key CANNOT be hot-reloaded
   logging:
     # Level to log on console/logfile. One of error|warn|info|debug
     level: "debug"
@@ -485,7 +484,7 @@ ircService:
   # This key CANNOT be hot-reloaded
   metrics:
     # Whether to actually enable the metric endpoint. Default: false
-    enabled: true
+    enabled: false
     # Which port to listen on (omit to listen on the bindPort)
     port: 7001
     # Which hostname to listen on (omit to listen on 127.0.0.1), requires port to be set
@@ -517,15 +516,15 @@ ircService:
     port: 11100
 
   # Configuration for the provisioning API.
-  #
-  # GET /_matrix/provision/link
-  # GET /_matrix/provision/unlink
-  # GET /_matrix/provision/listlinks
-  #
   # This key CANNOT be hot-reloaded
   provisioning:
     # True to enable the provisioning HTTP endpoint. Default: false.
-    enabled: false
+    enabled: true
+    # Whether to enable hosting the setup widget page. Default: false.
+    widget: true
+    # A secure secret token for making provisioner requests. Default: the appservice hs_token.
+    secret: $generateMe
+
     # The number of seconds to wait before giving up on getting a response from
     # an IRC channel operator. If the channel operator does not respond within the
     # allotted time period, the provisioning request will fail.
@@ -538,17 +537,52 @@ ircService:
       # match, and will be ignored. If any user matches `conflict`, the room will not
       # be allowed to be bridged until the user is removed. Both sets take a regular expression.
       userIds:
-        exempt: 
+        exempt:
           # These users never conflict, even if matching
           - "@doubleagent:badguys.com"
         conflict:
           # These users will deny a room from being bridged.
           - "@.*:badguys.com"
 
-    # Watch the file for changes, and apply the rules. Default: false
-    enableReload: true
     # Number of channels allowed to be bridged
     roomLimit: 50
+
+    # Endpoint prefix for provisoning requests. Default: "/_matrix/provision"
+    # apiPrefix: "/_matrix/provision"
+    # Whether to apply rate limiting to the provisioning API. Default: true.
+    # ratelimit: true
+
+    # Run a separate HTTP listener for provisioning requests.
+    http:
+      # The port to listen on.
+      port: 7700
+      # The host to listen on. Optional. By default this is 0.0.0.0
+      # host: 0.0.0.0
+
+    # When users request a token from the bridge to make provisioning
+    # requests, disallow any requests that resolve a Matrix server_name included in these ranges.
+    # This list should include any internal IPs that the bridge should never lookup.
+    # By default, the below list is used.
+    # openIdDisallowedIpRanges:
+    #  - '127.0.0.0/8'
+    #  - '10.0.0.0/8'
+    #  - '172.16.0.0/12'
+    #  - '192.168.0.0/16'
+    #  - '100.64.0.0/10'
+    #  - '192.0.0.0/24'
+    #  - '169.254.0.0/16'
+    #  - '192.88.99.0/24'
+    #  - '198.18.0.0/15'
+    #  - '192.0.2.0/24'
+    #  - '198.51.100.0/24'
+    #  - '203.0.113.0/24'
+    #  - '224.0.0.0/4'
+    #  - '::1/128'
+    #  - 'fe80::/10'
+    #  - 'fc00::/7'
+    #  - '2001:db8::/32'
+    #  - 'ff00::/8'
+    #  - 'fec0::/10'
 
   # WARNING: The bridge needs to send plaintext passwords to the IRC server, it cannot
   # send a password hash. As a result, passwords (NOT hashes) are stored encrypted in
@@ -579,7 +613,8 @@ ircService:
 
   # Maximum number of montly active users, beyond which the bridge gets blocked (both ways)
   # RMAUlimit: 100
-  
+
+  # Optional.
   # userActivity:
     # The "grace period" before we start counting users as active
     # minUserActiveDays: 1
@@ -621,12 +656,12 @@ ircService:
     # Allow matrix admins to disable or require Matrix users to be connected to the
     # channel before any messages can be bridged. i.e. this is the per room
     # version of `membershipLists.[].ircToMatrix.requireMatrixJoined`.
-    # 
+    #
     # If this is true, configuration in the room state will take priority over
     # the configuration in the config file.
     # allowUnconnectedMatrixUsers: true
 
-  # Options for hooking into Matrix moderation policy lists 
+  # Options for hooking into Matrix moderation policy lists
   banLists:
     # A list of rooms containing "m.policy.rule.*" events which can be used
     # to identify banned users, rooms and servers.
@@ -665,3 +700,11 @@ database:
    # For postgres, it must start with postgres://
    # For NeDB, it must start with nedb://. The path is relative to the project directory.
   connectionString: "postgres://username:password@host:port/databasename"
+
+# Enable running IRC connections out of a secondary process.
+# See https://matrix-org.github.io/matrix-appservice-irc/latest/connection_pooling.html for more information
+# connectionPool:
+#   # The Redis URI to connect to 
+#   redisUrl: redis://user:password@host:port/dbnum
+#   # Should the connections persist after the bridge successfully shuts down?
+#   persistConnectionsOnShutdown: true

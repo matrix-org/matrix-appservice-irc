@@ -11,7 +11,7 @@ bridge configuration.
 creating an issue.*
 
 The bridge allows room moderators to create a state event in the room to change the way the bridge
-behaves in that room. 
+behaves in that room.
 
 In Element you can modify the room state by:
 
@@ -26,7 +26,7 @@ If an event does not exist yet, you can instead do:
 - Typing `/devtools`.
 - Click Send Custom Event.
 - Click the Event button to change the type to a **State Event**.
-- The event type must be `org.matrix.appservice-irc.config`
+- The event type must be `org.matrix.appservice-irc.config`.
 - The state key can be left blank.
 - Enter the `Event Content` as a JSON object. The schema is described in the following section.
 - You may now hit Send to apply the config.

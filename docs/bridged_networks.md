@@ -6,7 +6,7 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 | fc00         | `#fc00-irc_#channame:m.trnsz.com`         | [`@fc00ircmtx:m.trnsz.com`]        | None                           |                                           |
 | GIMPNet[^1]  | `#_gimpnet_#channame:gnome.org`           | [`@gimpnet-irc:gnome.org`][^2]     | [`#irc:matrix.org`]            | [Matrix.org] / [Gnome.org]                |
 | IRCnet       | `#_ircnet_#channame:irc.snt.utwente.nl`   | [`@ircnet:irc.snt.utwente.nl`]     | [`#ircnet:utwente.io`]         | [SNT]                                     |
-| OFTC         | `#_oftc_#channame:matrix.org`             | [`@oftc-irc:matrix.org`]           | [`#irc:matrix.org`]            | [Matrix.org]                              |
+| OFTC[^3]     | `#_oftc_#channame:matrix.org`             | [`@oftc-irc:matrix.org`]           | [`#irc:matrix.org`]            | [Matrix.org]                              |
 | PirateIRC    | `#pirateirc_#channame:diasp.in`           | [`@pirateirc:diasp.in`]            | [`#diasp.in:diasp.in`]         | [Indian Pirates](https://pirates.org.in/) |
 | Snoonet      | `#_snoonet_#channame:matrix.org`          | [`@snoonet-irc:matrix.org`]        | [`#irc:matrix.org`]            | [Matrix.org]                              |
 | Tweakers.net | `#_tweakers_#channame:irc.snt.utwente.nl` | [`@tweakers:irc.snt.utwente.nl`]   | [`#tweakers-irc:utwente.io`]   | [SNT]                                     |
@@ -46,9 +46,9 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 [SNT]: https://snt.utwente.nl/en/
 
 * Random.sh is no longer contactable. Status of the bridge is unknown.
-* Foonetic IRC has shut down. #xkcd channels [moved to slashnet](https://web.archive.org/web/20190824061533/http://wiki.xkcd.com/irc/Main_Page#Channel_Migration)
+* Foonetic IRC has shut down. #xkcd channels [moved to slashnet](https://web.archive.org/web/20190824061533/http://wiki.xkcd.com/irc/Main_Page#Channel_Migration).
 * The Espernet bridge was shut down after the 2019 matrix.org network breach.
-* The Moznet IRC network has been shut down. They now run their own Matrix homeserver at [chat.mozilla.org](https://chat.mozilla.org/) 🎉
+* The Moznet IRC network has been shut down. They now run their own Matrix homeserver at [chat.mozilla.org](https://chat.mozilla.org/) 🎉.
 * The freenode IRC bridge offically was shut down on 2021-12-20.
 
 ### Footnotes
@@ -56,3 +56,5 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 [^1]: This includes both irc.gimp.org and irc.gnome.org, as they are the same thing.
 
 [^2]: The bridge has moved from matrix.org to gnome.org.
+
+[^3]: OFTC does not support SASL at the time of writing, so after reconnects you need to manually REGAIN your nickname with NickServ. See https://github.com/matrix-org/matrix-appservice-irc/issues/1483 for details

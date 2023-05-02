@@ -2,10 +2,9 @@ const { QueuePool } = require("../../lib/util/QueuePool");
 const promiseutil = require("../../lib/promiseutil");
 
 async function nextTick(ticks = 1) {
-    await new Promise(resolve => process.nextTick(resolve));
-    ticks--;
-    if (ticks > 0) {
-        return nextTick(ticks);
+    while (ticks > 0) {
+        await new Promise(resolve => process.nextTick(resolve));
+        ticks--;
     }
     return undefined;
 }

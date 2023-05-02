@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { MatrixDirectoryVisibility } from "../bridge/IrcHandler";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
 import { getLogger } from "../logging";
@@ -22,7 +23,7 @@ import {
     MatrixRoom, MatrixUser, RemoteUser, RemoteRoom,
     UserBridgeStore, UserActivityStore,
     RoomBridgeStore, RoomBridgeStoreEntry as Entry,
-    UserActivity, UserActivitySet
+    UserActivity, UserActivitySet, ProvisionSession
 } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "./DataStore";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
@@ -304,8 +305,8 @@ export class NeDBDataStore implements DataStore {
      */
     public async getMatrixRoomsForChannel(server: IrcServer, channel: string): Promise<MatrixRoom[]> {
         const ircRoom = new IrcRoom(server, channel);
-        return await this.roomStore.getLinkedMatrixRooms(
-            IrcRoom.createId(ircRoom.getServer(), ircRoom.getChannel())
+        return this.roomStore.getLinkedMatrixRooms(
+            ircRoom.getId()
         );
     }
 
@@ -705,18 +706,18 @@ export class NeDBDataStore implements DataStore {
         if (!room) {
             return "private";
         }
-        return room.get("visibility") as "public"|"private";
+        return room.get("visibility") as MatrixDirectoryVisibility;
     }
 
-    public async getRoomsVisibility(roomIds: string[]) {
-        const map: {[roomId: string]: "public"|"private"} = {};
+    public async getRoomsVisibility(roomIds: string[]): Promise<Map<string, MatrixDirectoryVisibility>> {
+        const map: Map<string, MatrixDirectoryVisibility> = new Map();
         for (const roomId of roomIds) {
-            map[roomId] = await this.getRoomVisibility(roomId);
+            map.set(roomId, await this.getRoomVisibility(roomId));
         }
         return map;
     }
 
-    public async setRoomVisibility(roomId: string, visibility: "public"|"private") {
+    public async setRoomVisibility(roomId: string, visibility: MatrixDirectoryVisibility) {
         let room = await this.roomStore.getMatrixRoom(roomId);
         if (!room) {
             room = new MatrixRoom(roomId);
@@ -769,6 +770,23 @@ export class NeDBDataStore implements DataStore {
         }
         log.debug("Finished migrating rooms in database");
     }
+
+    public async getSessionForToken(): Promise<ProvisionSession|null> {
+        throw Error('Not implemented for NeDB store');
+    }
+
+    public async createSession() {
+        throw Error('Not implemented for NeDB store');
+    }
+
+    public async deleteSession() {
+        throw Error('Not implemented for NeDB store');
+    }
+
+    public async deleteAllSessions() {
+        throw Error('Not implemented for NeDB store');
+    }
+
 
     public async destroy() {
         // This will no-op

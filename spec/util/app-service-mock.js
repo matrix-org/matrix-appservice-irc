@@ -1,25 +1,19 @@
 "use strict";
 const EventEmitter = require("events");
 const util = require("util");
+const { createRequest, createResponse } = require("node-mocks-http");
+const config = require("./test-config.json");
 var instance = null;
 
 function MockAppService() {
     this.expressApp = {
-        post: (path, handler) => {
-            if (path === '/_matrix/provision/link') {
-                this.link = handler;
+        get: () => {},
+        post: () => {},
+        use: (path, router) => {
+            if (path === "/_matrix/provision") {
+                // The provisioner router.
+                this.provisionerRouter = router;
             }
-            else if (path === '/_matrix/provision/unlink') {
-                this.unlink = handler;
-            }
-        },
-        get: (path, handler) => {
-            if (path === '/_matrix/provision/listlinks/:roomId') {
-                this.listLinks = handler;
-            }
-        },
-        use: (req, res, next) => {
-            //stub
         }
     };
 
@@ -27,55 +21,56 @@ function MockAppService() {
 }
 util.inherits(MockAppService, EventEmitter);
 
-// Simulate a request to the link provisioning API
-//  reqBody {object} - the API request body
-//  statusCallback {function} - Called when the server returns a HTTP response code.
-//  jsonCallback {function} - Called when the server returns a JSON object.
-//  link {boolean} - true if this is a link request (false if unlink).
-MockAppService.prototype._linkAction = function(reqBody, statusCallback, jsonCallback, link) {
-    if (link ? !this.link : !this.unlink) {
-        throw new Error("IRC AS hasn't hooked into link/unlink yet.");
+MockAppService.prototype._mockApiCall = async function mockApiCall(opts) {
+    if (!this.provisionerRouter) {
+        throw new Error("Provisioner router has not been added yet");
     }
 
-    const req = {
-        body : reqBody,
-        getId : () => 'test@' + Date.now()
-    };
+    const request = createRequest({
+        headers: {
+            "authorization": `Bearer ${config.ircService.provisioning.secret}`,
+        },
+        ...opts,
+    });
 
-    const res = {
-        status : function (number) { statusCallback(number); return res;},
-        json : function (obj) { jsonCallback(obj); return res;},
-    }
-
-    if (link) {
-        return this.link(req, res);
-    }
-    return this.unlink(req, res);
-};
-
-MockAppService.prototype._link = function(reqBody, statusCallback, jsonCallback) {
-    return this._linkAction(reqBody, statusCallback, jsonCallback, true);
+    return new Promise((resolve, reject) => {
+        const response = createResponse({
+            eventEmitter: EventEmitter,
+        });
+        this.provisionerRouter(
+            request,
+            response,
+            () => {
+                // no-op
+            },
+        );
+        response.on("end", () => {
+            return resolve(response);
+        });
+    });
 }
 
-MockAppService.prototype._unlink = function(reqBody, statusCallback, jsonCallback) {
-    return this._linkAction(reqBody, statusCallback, jsonCallback, false);
+MockAppService.prototype._link = function(body) {
+    return this._mockApiCall({
+        method: "POST",
+        url: "/link",
+        body,
+    });
 }
 
-// Simulate a request to get provisioned mappings
-//  reqParameters {object} - the API request parameters
-//  statusCallback {function} - Called when the server returns a HTTP response code.
-//  jsonCallback {function} - Called when the server returns a JSON object.
-MockAppService.prototype._listLinks = function(reqParameters, statusCallback, jsonCallback) {
-    const req = {
-        params : reqParameters,
-        getId : () => 'test@' + Date.now()
-    };
+MockAppService.prototype._unlink = function(body) {
+    return this._mockApiCall({
+        method: "POST",
+        url: "/unlink",
+        body,
+    });
+}
 
-    const res = {
-        status : function (number) { statusCallback(number); return res;},
-        json : function (obj) { jsonCallback(obj); return res;},
-    }
-    return this.listLinks(req, res);
+MockAppService.prototype._listLinks = function(query) {
+    return this._mockApiCall({
+        method: "GET",
+        url: `/listlinks/${encodeURIComponent(query.roomId)}`,
+    });
 }
 
 MockAppService.prototype.listen = function(port) {
