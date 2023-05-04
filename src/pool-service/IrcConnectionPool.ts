@@ -94,6 +94,7 @@ export class IrcConnectionPool {
                 const sock = tls.connect(secureOpts, () => {
                     if (sock.authorized) {
                         resolve(sock);
+                        return;
                     }
                     let valid = false;
                     const err = sock.authorizationError.toString();
