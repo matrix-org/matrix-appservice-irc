@@ -74,7 +74,6 @@ export class IrcConnectionPool {
     }
 
     private async createConnectionForOpts(opts: ConnectionCreateArgs): Promise<Socket> {
-        let socket: Socket;
         if (opts.secure) {
             let secureOpts: tls.ConnectionOptions = {
                 ...opts,
@@ -89,7 +88,7 @@ export class IrcConnectionPool {
                 };
             }
 
-            socket = await new Promise((resolve, reject) => {
+            return await new Promise((resolve, reject) => {
                 // Taken from https://github.com/matrix-org/node-irc/blob/0764733af7c324ee24f8c2a3c26fe9d1614be344/src/irc.ts#L1231
                 const sock = tls.connect(secureOpts, () => {
                     if (sock.authorized) {
@@ -126,7 +125,7 @@ export class IrcConnectionPool {
             });
         }
         return new Promise((resolve, reject) => {
-            socket = createConnection(opts, () => resolve(socket)) as Socket;
+            const socket = createConnection(opts, () => resolve(socket)) as Socket;
             socket.once('error', (error) => {
                 reject(error);
             });
