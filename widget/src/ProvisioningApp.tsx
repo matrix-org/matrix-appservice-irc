@@ -72,7 +72,7 @@ export const ProvisioningApp: React.FC<React.PropsWithChildren<{
             return;
         }
 
-        const widgetApi = new WidgetApi(widgetId);
+        const widgetApi = new WidgetApi(widgetId, '*');
         widgetApi.on('ready', () => {
             console.log('Widget API ready');
         });
