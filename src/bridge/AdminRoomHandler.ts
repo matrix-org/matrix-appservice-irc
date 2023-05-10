@@ -601,7 +601,7 @@ export class AdminRoomHandler {
 
         let chanList = `You are joined to ${client.chanList.size} rooms: \n\n`;
         let chanListHTML = `<p>You are joined to <code>${client.chanList.size}</code> rooms:</p><ul>`;
-        for (const channel of client.chanList) {
+        for (const channel of [...client.chanList].sort()) {
             const rooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
             chanList += `- \`${channel}\` which is bridged to ${rooms.map((r) => r.getId()).join(", ")}`;
             const roomMentions = rooms
