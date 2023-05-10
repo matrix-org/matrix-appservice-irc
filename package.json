@@ -46,7 +46,7 @@
     "matrix-appservice-bridge": "^9.0.0",
     "matrix-bot-sdk": "npm:@vector-im/matrix-bot-sdk@^0.6.6-element.1",
     "matrix-org-irc": "^2.0.0",
-    "matrix-widget-api": "^1.1.1",
+    "matrix-widget-api": "^1.4.0",
     "nopt": "^6.0.0",
     "p-queue": "^6.6.2",
     "pg": "^8.8.0",
