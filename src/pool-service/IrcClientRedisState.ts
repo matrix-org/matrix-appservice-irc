@@ -21,7 +21,7 @@ interface ChanDataDehydrated {
     topicBy?: string;
 }
 
-interface IrcClientStateDehydrated {
+export interface IrcClientStateDehydrated {
     loggedIn: boolean;
     registered: boolean;
     /**
@@ -46,24 +46,21 @@ interface IrcClientStateDehydrated {
 
 
 export class IrcClientRedisState implements IrcClientState {
-    private putStatePromise: Promise<void> = Promise.resolve();
+    private putStatePromise: Promise<unknown> = Promise.resolve();
 
     static async create(redis: Redis, clientId: string) {
         const data = await redis.hget(REDIS_IRC_CLIENT_STATE_KEY, clientId);
         const deseralisedData = data ? JSON.parse(data) as IrcClientStateDehydrated : {} as Record<string, never>;
         const chans = new Map<string, ChanData>();
-        if (Array.isArray(deseralisedData.chans)) {
-            deseralisedData.chans.forEach(([channelName, chanData]) => {
-                chans.set(channelName, {
-                    ...chanData,
-                    users: new Map(chanData.users),
-                    modeParams: new Map(chanData.modeParams),
-                })
+
+        const isPreviousBuggyState = !Array.isArray(deseralisedData.chans?.[0]?.[1]?.users);
+        deseralisedData?.chans?.forEach(([channelName, chanData]) => {
+            chans.set(channelName, {
+                ...chanData,
+                users: new Map(!isPreviousBuggyState ? chanData.users : []),
+                modeParams: new Map(!isPreviousBuggyState ? chanData.modeParams : []),
             })
-        }
-        else {
-            // Old broken state, reset
-        }
+        });
 
         // The client library is currently responsible for flushing any new changes
         // to the state so we do not need to detect changes in this class.
@@ -225,9 +222,7 @@ export class IrcClientRedisState implements IrcClientState {
         } as IrcClientStateDehydrated);
 
         this.putStatePromise = this.putStatePromise.then(() => {
-            return this.innerPutState(serialState).then(() => {
-                
-            }).catch((ex) => {
+            return this.innerPutState(serialState).catch((ex) => {
                 log.warn(`Failed to store state for ${this.clientId}`, ex);
             });
         });

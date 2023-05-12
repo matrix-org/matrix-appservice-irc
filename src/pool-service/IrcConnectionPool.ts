@@ -21,6 +21,8 @@ import { parseMessage } from 'matrix-org-irc';
 import { collectDefaultMetrics, register, Gauge } from 'prom-client';
 import { createServer, Server } from 'http';
 
+collectDefaultMetrics();
+
 const log = new Logger('IrcConnectionPool');
 const TIME_TO_WAIT_BEFORE_PONG = 10000;
 const STREAM_HISTORY_MAXLEN = 50;
@@ -339,7 +341,6 @@ export class IrcConnectionPool {
         }
         this.shouldRun = true;
         Logger.configure({ console: this.config.loggingLevel });
-        collectDefaultMetrics();
 
         // Load metrics
         if (this.config.metricsHost) {
