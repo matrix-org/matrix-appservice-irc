@@ -53,6 +53,7 @@ export class IrcClientRedisState implements IrcClientState {
         const deseralisedData = data ? JSON.parse(data) as IrcClientStateDehydrated : {} as Record<string, never>;
         const chans = new Map<string, ChanData>();
 
+        // In a previous iteration we failed to seralise this properly.
         const isPreviousBuggyState = !Array.isArray(deseralisedData.chans?.[0]?.[1]?.users);
         deseralisedData?.chans?.forEach(([channelName, chanData]) => {
             chans.set(channelName, {
