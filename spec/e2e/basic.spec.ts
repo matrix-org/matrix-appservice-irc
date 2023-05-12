@@ -15,7 +15,7 @@ describe('Basic bridge usage', () => {
     afterEach(() => {
         return testEnv?.tearDown();
     });
-    it.skip('should be able to dynamically bridge a room via the !join command', async () => {
+    it('should be able to dynamically bridge a room via the !join command', async () => {
         const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
         const { homeserver } = testEnv;
         const alice = homeserver.users[0].client;

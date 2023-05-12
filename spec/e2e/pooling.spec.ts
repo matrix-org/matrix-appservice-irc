@@ -27,7 +27,7 @@ describeif('Connection pooling', () => {
         return testEnv.tearDown();
     });
 
-    it.only('should be able to shut down the bridge and start back up again', async () => {
+    it('should be able to shut down the bridge and start back up again', async () => {
         const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
 
         const { homeserver } = testEnv;
@@ -60,7 +60,51 @@ describeif('Connection pooling', () => {
         console.log('Recreating bridge');
 
         // Now kill the bridge, do NOT kill the dependencies.
-        testEnv.recreateBridge();
+        await testEnv.recreateBridge();
+        await testEnv.setUp();
+
+        aliceMsg = bob.waitForEvent('message', 10000);
+        bobMsg = alice.waitForRoomEvent(
+            {eventType: 'm.room.message', sender: bobUserId, roomId: cRoomId}
+        );
+        alice.sendText(cRoomId, "Hello bob!");
+        await aliceMsg;
+        bob.say(channel, "Hi alice!");
+        await bobMsg;
+    });
+
+    it('should be able to recover from legacy client state', async () => {
+        const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
+
+        const { homeserver } = testEnv;
+        const alice = homeserver.users[0].client;
+        const { bob } = testEnv.ircTest.clients;
+
+        // Create the channel
+        await bob.join(channel);
+
+        const adminRoomId = await testEnv.createAdminRoomHelper(alice);
+        const cRoomId = await testEnv.joinChannelHelper(alice, adminRoomId, channel);
+
+        // And finally wait for bob to appear.
+        const bobUserId = `@irc_${bob.nick}:${homeserver.domain}`;
+        await alice.waitForRoomEvent(
+            {eventType: 'm.room.member', sender: bobUserId, stateKey: bobUserId, roomId: cRoomId}
+        );
+
+
+        // Send some messages
+        let aliceMsg = bob.waitForEvent('message', 10000);
+        let bobMsg = alice.waitForRoomEvent(
+            {eventType: 'm.room.message', sender: bobUserId, roomId: cRoomId}
+        );
+        alice.sendText(cRoomId, "Hello bob!");
+        await aliceMsg;
+        bob.say(channel, "Hi alice!");
+        await bobMsg;
+
+        // Now kill the bridge, do NOT kill the dependencies.
+        await testEnv.recreateBridge();
         await testEnv.setUp();
 
         aliceMsg = bob.waitForEvent('message', 10000);
