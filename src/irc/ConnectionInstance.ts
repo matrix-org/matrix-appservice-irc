@@ -428,7 +428,7 @@ export class ConnectionInstance {
 
         // Returns: A promise which resolves to a ConnectionInstance
         const retryConnection = async () => {
-
+            const domain = server.randomDomain();
             const redisConn = opts.useRedisPool && await opts.useRedisPool.createOrGetIrcSocket(ident, {
                 ...connectionOpts,
                 clientId: ident,
@@ -436,10 +436,11 @@ export class ConnectionInstance {
                 localAddress: connectionOpts.localAddress ?? undefined,
                 localPort: connectionOpts.localPort ?? undefined,
                 family: connectionOpts.family ?? undefined,
+                host: domain,
             });
 
             const nodeClient = new Client(
-                server.randomDomain(), opts.nick, connectionOpts, redisConn?.state, redisConn,
+                domain, opts.nick, connectionOpts, redisConn?.state, redisConn,
             );
             const inst = new ConnectionInstance(
                 nodeClient, server.domain, opts.nick, {
