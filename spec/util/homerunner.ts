@@ -25,9 +25,12 @@ export interface ComplementHomeServer {
     users: {userId: string, accessToken: string, deviceId: string, client: E2ETestMatrixClient}[]
 }
 
-let appPort = 32100;
+// Ensure we don't clash with other tests.
 
 async function waitForHomerunner() {
+
+    // Check if port is in use.
+
     // Needs https://github.com/matrix-org/complement/issues/398
     let attempts = 0;
     do {
@@ -47,10 +50,10 @@ async function waitForHomerunner() {
     }
 }
 
-export async function createHS(localparts: string[] = []): Promise<ComplementHomeServer> {
+export async function createHS(localparts: string[] = [], workerId: number): Promise<ComplementHomeServer> {
+    const appPort = 49152 + workerId;
     await waitForHomerunner();
     // Ensure we never use the same port twice.
-    appPort++;
     const AppserviceConfig = {
         id: 'ircbridge',
         port: appPort,

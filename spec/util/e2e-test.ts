@@ -27,7 +27,82 @@ interface Opts {
     config?: Partial<BridgeConfig>,
 }
 
+export class E2ETestMatrixClient extends MatrixClient {
+
+    public async waitForRoomEvent(
+        opts: {eventType: string, sender: string, roomId?: string, stateKey?: string}
+    ): Promise<{roomId: string, data: unknown}> {
+        const {eventType, sender, roomId, stateKey} = opts;
+        return this.waitForEvent('room.event', (eventRoomId: string, eventData: {
+            sender: string, type: string, state_key?: string, content: {body?: string}, event_id: string,
+        }) => {
+            if (eventData.sender !== sender) {
+                return undefined;
+            }
+            if (eventData.type !== eventType) {
+                return undefined;
+            }
+            if (roomId && eventRoomId !== roomId) {
+                return undefined;
+            }
+            if (stateKey !== undefined && eventData.state_key !== stateKey) {
+                return undefined;
+            }
+            console.info(
+                // eslint-disable-next-line max-len
+                `${eventRoomId} ${eventData.event_id} ${eventData.type} ${eventData.sender} ${eventData.state_key ?? eventData.content?.body ?? ''}`
+            );
+            return {roomId: eventRoomId, data: eventData};
+        }, `Timed out waiting for ${eventType} from ${sender} in ${roomId || "any room"}`)
+    }
+
+    public async waitForRoomInvite(
+        opts: {sender: string, roomId?: string}
+    ): Promise<{roomId: string, data: unknown}> {
+        const {sender, roomId} = opts;
+        return this.waitForEvent('room.invite', (eventRoomId: string, eventData: {
+            sender: string
+        }) => {
+            const inviteSender = eventData.sender;
+            console.info(`Got invite to ${eventRoomId} from ${inviteSender}`);
+            if (eventData.sender !== sender) {
+                return undefined;
+            }
+            if (roomId && eventRoomId !== roomId) {
+                return undefined;
+            }
+            return {roomId: eventRoomId, data: eventData};
+        }, `Timed out waiting for invite to ${roomId || "any room"} from ${sender}`)
+    }
+
+    public async waitForEvent<T>(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        emitterType: string, filterFn: (...args: any[]) => T|undefined, timeoutMsg: string)
+    : Promise<T> {
+        return new Promise((resolve, reject) => {
+            // eslint-disable-next-line prefer-const
+            let timer: NodeJS.Timeout;
+            const fn = (...args: unknown[]) => {
+                const data = filterFn(...args);
+                if (data) {
+                    clearTimeout(timer);
+                    resolve(data);
+                }
+            };
+            timer = setTimeout(() => {
+                this.removeListener(emitterType, fn);
+                reject(new Error(timeoutMsg));
+            }, WAIT_EVENT_TIMEOUT);
+            this.on(emitterType, fn)
+        });
+    }
+}
+
 export class IrcBridgeE2ETest {
+
+    public static get usingRedis() {
+        return !!IRCBRIDGE_TEST_REDIS_URL;
+    }
 
     private static async createDatabase() {
         const pgClient = new PgClient(`${process.env.IRCBRIDGE_TEST_PGURL}/postgres`);
@@ -41,24 +116,47 @@ export class IrcBridgeE2ETest {
             await pgClient.end();
         }
     }
+
     static async createTestEnv(opts: Opts = {}): Promise<IrcBridgeE2ETest> {
+        const workerID = parseInt(process.env.JEST_WORKER_ID ?? '0');
         const { matrixLocalparts, config } = opts;
         const ircTest = new TestIrcServer();
         const [postgresDb, homeserver] = await Promise.all([
             this.createDatabase(),
-            createHS(["ircbridge_bot", ...matrixLocalparts || []]),
+            createHS(["ircbridge_bot", ...matrixLocalparts || []], workerID),
             ircTest.setUp(opts.ircNicks),
         ]);
+        const redisUri = IRCBRIDGE_TEST_REDIS_URL && `${IRCBRIDGE_TEST_REDIS_URL}/${workerID}`;
         let redisPool: IrcConnectionPool|undefined;
 
-        if (IRCBRIDGE_TEST_REDIS_URL) {
+        if (redisUri) {
             redisPool = new IrcConnectionPool({
-                redisUri: IRCBRIDGE_TEST_REDIS_URL,
+                redisUri,
                 metricsHost: false,
                 metricsPort: 7002,
                 loggingLevel: 'debug',
             });
         }
+
+        const registration = AppServiceRegistration.fromObject({
+            id: homeserver.id,
+            as_token: homeserver.appserviceConfig.asToken,
+            hs_token: homeserver.appserviceConfig.hsToken,
+            sender_localpart: homeserver.appserviceConfig.senderLocalpart,
+            namespaces: {
+                users: [{
+                    exclusive: true,
+                    regex: `@irc_.+:${homeserver.domain}`,
+                }],
+                // TODO: No support on complement yet:
+                // https://github.com/matrix-org/complement/blob/8e341d54bbb4dbbabcea25e6a13b29ead82978e3/internal/docker/builder.go#L413
+                aliases: [{
+                    exclusive: true,
+                    regex: `#irc_.+:${homeserver.domain}`,
+                }]
+            },
+            url: "not-used",
+        });
 
         const ircBridge = new IrcBridge({
             homeserver: {
@@ -129,42 +227,30 @@ export class IrcBridgeE2ETest {
                     port: 0,
                 }
             },
-            ...(IRCBRIDGE_TEST_REDIS_URL && { connectionPool: {
-                redisUrl: IRCBRIDGE_TEST_REDIS_URL,
+            ...config,
+            ...(redisUri && { connectionPool: {
                 persistConnectionsOnShutdown: false,
+                ...config?.connectionPool || {},
+                redisUrl: redisUri,
             }
             }),
-            ...config,
-        }, AppServiceRegistration.fromObject({
-            id: homeserver.id,
-            as_token: homeserver.appserviceConfig.asToken,
-            hs_token: homeserver.appserviceConfig.hsToken,
-            sender_localpart: homeserver.appserviceConfig.senderLocalpart,
-            namespaces: {
-                users: [{
-                    exclusive: true,
-                    regex: `@irc_.+:${homeserver.domain}`,
-                }],
-                // TODO: No support on complement yet:
-                // https://github.com/matrix-org/complement/blob/8e341d54bbb4dbbabcea25e6a13b29ead82978e3/internal/docker/builder.go#L413
-                aliases: [{
-                    exclusive: true,
-                    regex: `#irc_.+:${homeserver.domain}`,
-                }]
-            },
-            url: "not-used",
-        }), {
-            isDBInMemory: false,
-        });
-        return new IrcBridgeE2ETest(homeserver, ircBridge, postgresDb, ircTest, redisPool)
+        }, registration);
+        return new IrcBridgeE2ETest(homeserver, ircBridge, registration, postgresDb, ircTest, redisPool)
     }
 
     private constructor(
         public readonly homeserver: ComplementHomeServer,
-        public readonly ircBridge: IrcBridge,
-        public readonly postgresDb: string,
+        public ircBridge: IrcBridge,
+        public readonly registration: AppServiceRegistration,
+        readonly postgresDb: string,
         public readonly ircTest: TestIrcServer,
         public readonly pool?: IrcConnectionPool) {
+    }
+
+    public async recreateBridge() {
+        await this.ircBridge.kill('Recreating');
+        this.ircBridge = new IrcBridge(this.ircBridge.config, this.registration);
+        return this.ircBridge;
     }
 
     private async dropDatabase() {
@@ -192,75 +278,28 @@ export class IrcBridgeE2ETest {
             this.homeserver?.users.map(c => c.client.stop()),
             this.homeserver && destroyHS(this.homeserver.id),
             this.dropDatabase(),
-            this.pool?.close(),
         ]);
-    }
-}
-
-export class E2ETestMatrixClient extends MatrixClient {
-
-    public async waitForRoomEvent(
-        opts: {eventType: string, sender: string, roomId?: string, stateKey?: string}
-    ): Promise<{roomId: string, data: unknown}> {
-        const {eventType, sender, roomId, stateKey} = opts;
-        return this.waitForEvent('room.event', (eventRoomId: string, eventData: {
-            sender: string, type: string, state_key?: string, content: unknown
-        }) => {
-            console.info(`Got ${eventRoomId}`, eventData);
-            if (eventData.sender !== sender) {
-                return undefined;
-            }
-            if (eventData.type !== eventType) {
-                return undefined;
-            }
-            if (roomId && eventRoomId !== roomId) {
-                return undefined;
-            }
-            if (stateKey !== undefined && eventData.state_key !== stateKey) {
-                return undefined;
-            }
-            return {roomId: eventRoomId, data: eventData};
-        }, `Timed out waiting for ${eventType} from ${sender} in ${roomId || "any room"}`)
+        await this.pool?.close();
     }
 
-    public async waitForRoomInvite(
-        opts: {sender: string, roomId?: string}
-    ): Promise<{roomId: string, data: unknown}> {
-        const {sender, roomId} = opts;
-        return this.waitForEvent('room.invite', (eventRoomId: string, eventData: {
-            sender: string
-        }) => {
-            const inviteSender = eventData.sender;
-            console.info(`Got invite to ${eventRoomId} from ${inviteSender}`);
-            if (eventData.sender !== sender) {
-                return undefined;
-            }
-            if (roomId && eventRoomId !== roomId) {
-                return undefined;
-            }
-            return {roomId: eventRoomId, data: eventData};
-        }, `Timed out waiting for invite to ${roomId || "any room"} from ${sender}`)
-    }
-
-    public async waitForEvent<T>(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        emitterType: string, filterFn: (...args: any[]) => T|undefined, timeoutMsg: string)
-    : Promise<T> {
-        return new Promise((resolve, reject) => {
-            // eslint-disable-next-line prefer-const
-            let timer: NodeJS.Timeout;
-            const fn = (...args: unknown[]) => {
-                const data = filterFn(...args);
-                if (data) {
-                    clearTimeout(timer);
-                    resolve(data);
-                }
-            };
-            timer = setTimeout(() => {
-                this.removeListener(emitterType, fn);
-                reject(new Error(timeoutMsg));
-            }, WAIT_EVENT_TIMEOUT);
-            this.on(emitterType, fn)
+    public async createAdminRoomHelper(client: E2ETestMatrixClient): Promise<string> {
+        const adminRoomId = await client.createRoom({
+            is_direct: true,
+            invite: [this.ircBridge.appServiceUserId],
         });
+        await client.waitForRoomEvent(
+            {eventType: 'm.room.member', sender: this.ircBridge.appServiceUserId, roomId: adminRoomId}
+        );
+        return adminRoomId;
+    }
+
+    public async joinChannelHelper(client: E2ETestMatrixClient, adminRoomId: string, channel: string): Promise<string> {
+        await client.sendText(adminRoomId, `!join ${channel}`);
+        const invite = await client.waitForRoomInvite(
+            {sender: this.ircBridge.appServiceUserId}
+        );
+        const cRoomId = invite.roomId;
+        await client.joinRoom(cRoomId);
+        return cRoomId;
     }
 }

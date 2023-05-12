@@ -16,7 +16,7 @@ import TypedEmitter from "typed-emitter";
 
 const log = new Logger('IrcPoolClient');
 
-const CONNECTION_TIMEOUT = 20000;
+const CONNECTION_TIMEOUT = 40000;
 const MAX_MISSED_HEARTBEATS = 5;
 
 type Events = {
@@ -36,6 +36,9 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         super();
         this.redis = new Redis(url, {
             lazyConnect: true,
+        });
+        this.redis.on('connecting', () => {
+            log.debug('Connecting to', url);
         });
         this.cmdReader = new Redis(url, {
             lazyConnect: true,
@@ -162,8 +165,8 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
     public async close() {
         clearInterval(this.heartbeatInterval);
         this.shouldRun = false;
-        this.redis.disconnect();
-        this.cmdReader.disconnect();
+        this.redis.quit();
+        this.cmdReader.quit();
     }
 
     public async handleIncomingCommand() {
