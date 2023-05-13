@@ -39,6 +39,15 @@ enum CommandPermission {
 // This is just a length to avoid silly long usernames
 const SANE_USERNAME_LENGTH = 64;
 
+// Technically, anything but \0 is allowed as username (aka. authcid and authzid):
+// https://www.rfc-editor.org/rfc/rfc4616#section-2
+//
+// However, IRC services are very unlikely to allow the username to contain CR or LF
+// (because they would not fit in the wire format) or spaces (because usernames are
+// usually followed by passwords in "PRIVMSG NickServ :REGISTER" commands and
+// IRCv3 draft/account-registration.
+const SASL_USERNAME_INVALID_CHARS_PATTERN = /[ \0\r\n]+/;
+
 interface Command {
     example: string;
     summary: string;
@@ -490,6 +499,7 @@ export class AdminRoomHandler {
         try {
             // Allow passwords with spaces
             const username = args[0]?.trim();
+            const invalidChars = SASL_USERNAME_INVALID_CHARS_PATTERN.exec(username);
             if (!username) {
                 notice = new MatrixAction(
                     ActionType.Notice,
@@ -503,10 +513,10 @@ export class AdminRoomHandler {
                     `Username is longer than the maximum permitted by the bridge (${SANE_USERNAME_LENGTH}).`
                 );
             }
-            else if (IdentGenerator.sanitiseUsername(username) !== username) {
+            else if (invalidChars !== null) {
                 notice = new MatrixAction(
                     ActionType.Notice,
-                    `Username contained invalid characters not supported by IRC.`
+                    `Username contained invalid characters not supported by IRC (${JSON.stringify(invalidChars.join(""))}).`
                 );
             }
             else {

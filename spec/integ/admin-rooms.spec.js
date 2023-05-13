@@ -1270,7 +1270,7 @@ describe("Admin rooms", function() {
         // Ensure that the user reconnects
         await env.mockAppService._trigger("type:m.room.message", {
             content: {
-                body: "!username foobar",
+                body: "!username foobar\"[]{}`_^",
                 msgtype: "m.text"
             },
             sender: userId,
@@ -1279,7 +1279,36 @@ describe("Admin rooms", function() {
         });
         await sendPromise;
         const userCfg = await env.ircBridge.getStore().getIrcClientConfig(userId, roomMapping.server);
-        expect(userCfg.getUsername()).toEqual("foobar");
+        expect(userCfg.getUsername()).toEqual("foobar\"[]{}`_^");
+    });
+
+    it("should not be able to store an invalid username with !username", async function() {
+        const sdk = env.clientMock._client(botUserId);
+
+        const sendPromise = sdk.sendEvent.and.callFake(async (roomId, _, content) => {
+            expect(roomId).toEqual(adminRoomId);
+            expect(content.msgtype).toEqual("m.notice");
+            expect(content.body).toEqual(
+                "Username contained invalid characters not supported by IRC (\"\\u0000\")."
+            );
+            return {};
+        });
+
+        let userCfg = await env.ircBridge.getStore().getIrcClientConfig(userId, roomMapping.server);
+        const defaultUsername = userCfg.getUsername();
+
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: "!username foo\0bar",
+                msgtype: "m.text"
+            },
+            sender: userId,
+            room_id: adminRoomId,
+            type: "m.room.message"
+        });
+        await sendPromise;
+        userCfg = await env.ircBridge.getStore().getIrcClientConfig(userId, roomMapping.server);
+        expect(userCfg.getUsername()).toEqual(defaultUsername);  // unchanged
     });
 
     it("should be able to store a password with !storepass", async function() {
