@@ -617,6 +617,10 @@ export class IrcBridge {
             const pgDs = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
             await pgDs.ensureSchema();
             this.dataStore = pgDs;
+
+            if (pkeyPath) {
+                await pgDs.ensurePasskeyCanDecrypt();
+            }
         }
         else if (dbConfig.engine === "nedb") {
             await this.bridge.loadDatabases();
@@ -648,6 +652,7 @@ export class IrcBridge {
         else {
             throw Error("Incorrect database config");
         }
+
 
         await this.dataStore.removeConfigMappings();
 
