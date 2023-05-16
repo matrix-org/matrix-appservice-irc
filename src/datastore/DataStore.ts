@@ -159,6 +159,8 @@ export interface DataStore extends ProvisioningStore {
 
     storeIrcClientConfig(config: IrcClientConfig): Promise<void>;
 
+    ensurePasskeyCanDecrypt(): Promise<void>;
+
     getMatrixUserByLocalpart(localpart: string): Promise<MatrixUser|null>;
 
     getUserFeatures(userId: string): Promise<UserFeatures>;

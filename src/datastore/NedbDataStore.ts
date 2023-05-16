@@ -610,6 +610,29 @@ export class NeDBDataStore implements DataStore {
         await this.userStore.setMatrixUser(user);
     }
 
+    public async ensurePasskeyCanDecrypt(): Promise<void> {
+        if (!this.cryptoStore) {
+            throw Error('Cannot run ensurePasskeyCanDecrypt without enabling passkey encryption');
+        }
+        const docs = await this.userStore.select<unknown, {id: string; data: { client_config: ClientConfigMap }}>({
+            type: "matrix",
+            "data.client_config": {$exists: true},
+        });
+        for (const { id: userId, data } of docs) {
+            for (const [domain, clientConfig] of Object.entries(data.client_config)) {
+                if (clientConfig.password) {
+                    try {
+                        this.cryptoStore.decrypt(clientConfig.password);
+                    }
+                    catch (ex) {
+                        log.error(`Failed to decrypt password for ${userId} on ${domain}`, ex);
+                        throw Error('Cannot decrypt user password, refusing to continue');
+                    }
+                }
+            }
+        }
+    }
+
     public async getUserFeatures(userId: string): Promise<UserFeatures> {
         const matrixUser = await this.userStore.getMatrixUser(userId);
         return matrixUser ? (matrixUser.get("features") as UserFeatures || {}) : {};
