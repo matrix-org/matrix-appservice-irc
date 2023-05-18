@@ -847,21 +847,37 @@ export class BridgedClient extends EventEmitter {
                 `The error was: ${errType} ${errorMsg}`
             );
         });
+
+        const discoverChannel = (channel: string) => {
+            // If this has happened, our state is horribly invalid.
+            if (channel.startsWith('#') && !connInst.client.chans.has(channel)) {
+                this.log.info(`Channel ${channel} not found in client state, but we got a message from the channel`);
+                connInst.client.chanData(channel, true);
+                this.chanList.add(channel);
+            }
+        }
+
         connInst.client.on("join", (channel, nick) => {
+            discoverChannel(channel);
             if (this.nick !== nick) { return; }
             log.debug(`Joined ${channel}`);
             this.chanList.add(channel);
         });
         connInst.client.on("part", (channel, nick) => {
+            discoverChannel(channel);
             if (this.nick !== nick) { return; }
             log.debug(`Parted ${channel}`);
             this.chanList.delete(channel);
         });
         connInst.client.on("kick", (channel, nick) => {
+            discoverChannel(channel);
             if (this.nick !== nick) { return; }
             log.debug(`Kicked from ${channel}`);
             this.chanList.delete(channel);
         });
+        connInst.client.on("message", (from, channel) => {
+            discoverChannel(channel);
+        })
 
         connInst.onDisconnect = (reason) => {
             this._disconnectReason = reason;
