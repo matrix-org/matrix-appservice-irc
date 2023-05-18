@@ -1,7 +1,7 @@
 
 import { Redis } from 'ioredis';
 import { IrcClientState, WhoisResponse,
-    IrcCapabilities, IrcSupported, DefaultIrcSupported, ChanData } from 'matrix-org-irc';
+    IrcCapabilities, IrcSupported, ChanData } from 'matrix-org-irc';
 import { REDIS_IRC_CLIENT_STATE_KEY } from './types';
 import * as Logger from "../logging";
 
