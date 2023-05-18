@@ -858,20 +858,23 @@ export class BridgedClient extends EventEmitter {
         }
 
         connInst.client.on("join", (channel, nick) => {
-            discoverChannel(channel);
             if (this.nick !== nick) { return; }
             log.debug(`Joined ${channel}`);
             this.chanList.add(channel);
         });
         connInst.client.on("part", (channel, nick) => {
-            discoverChannel(channel);
-            if (this.nick !== nick) { return; }
+            if (this.nick !== nick) {
+                discoverChannel(channel);
+                return;
+            }
             log.debug(`Parted ${channel}`);
             this.chanList.delete(channel);
         });
         connInst.client.on("kick", (channel, nick) => {
-            discoverChannel(channel);
-            if (this.nick !== nick) { return; }
+            if (this.nick !== nick) {
+                discoverChannel(channel);
+                return;
+            }
             log.debug(`Kicked from ${channel}`);
             this.chanList.delete(channel);
         });
