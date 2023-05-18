@@ -48,8 +48,9 @@ export interface IrcClientStateDehydrated {
 export class IrcClientRedisState implements IrcClientState {
     private putStatePromise: Promise<unknown> = Promise.resolve();
 
-    static async create(redis: Redis, clientId: string) {
-        const data = await redis.hget(REDIS_IRC_CLIENT_STATE_KEY, clientId);
+    static async create(redis: Redis, clientId: string, freshState: boolean) {
+        log.debug(`Requesting ${freshState ? "fresh" : "existing"} state for ${clientId}`);
+        const data = freshState ? null : await redis.hget(REDIS_IRC_CLIENT_STATE_KEY, clientId);
         const deseralisedData = data ? JSON.parse(data) as IrcClientStateDehydrated : {} as Record<string, never>;
         const chans = new Map<string, ChanData>();
 
@@ -62,6 +63,23 @@ export class IrcClientRedisState implements IrcClientState {
                 modeParams: new Map(!isPreviousBuggyState ? chanData.modeParams : []),
             })
         });
+
+        // We also had a bug where the supported state is bloated enormously
+        if (deseralisedData) {
+            deseralisedData.supportedState = {
+                ...deseralisedData.supportedState,
+                channel: {
+                    ...deseralisedData.supportedState.channel,
+                    modes: {
+                        a: [...new Set(deseralisedData.supportedState.channel.modes.a.split(''))].join(''),
+                        b: [...new Set(deseralisedData.supportedState.channel.modes.b.split(''))].join(''),
+                        c: [...new Set(deseralisedData.supportedState.channel.modes.c.split(''))].join(''),
+                        d: [...new Set(deseralisedData.supportedState.channel.modes.d.split(''))].join(''),
+                    }
+                },
+                extra: [...new Set(deseralisedData.supportedState.extra)],
+            }
+        }
 
         // The client library is currently responsible for flushing any new changes
         // to the state so we do not need to detect changes in this class.
@@ -78,11 +96,30 @@ export class IrcClientRedisState implements IrcClientState {
             maxLineLength: deseralisedData.maxLineLength ?? -1,
             lastSendTime: deseralisedData.lastSendTime ?? 0,
             prefixForMode: deseralisedData.prefixForMode ?? {},
-            supportedState: deseralisedData.supportedState ?? DefaultIrcSupported,
+            supportedState: deseralisedData.supportedState ?? {
+                channel: {
+                    idlength: {},
+                    length: 200,
+                    limit: {},
+                    modes: { a: '', b: '', c: '', d: ''},
+                    types: '',
+                },
+                kicklength: 0,
+                maxlist: {},
+                maxtargets: {},
+                modes: 3,
+                nicklength: 9,
+                topiclength: 0,
+                usermodes: '',
+                usermodepriority: '', // E.g "ov"
+                casemapping: 'ascii',
+                extra: [],
+            },
             capabilities: new IrcCapabilities(deseralisedData.capabilities),
         };
         return new IrcClientRedisState(redis, clientId, innerState);
     }
+
 
     private constructor(
         private readonly redis: Redis,
