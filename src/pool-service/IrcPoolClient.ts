@@ -65,7 +65,8 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         let isConnected = false;
         const clientPromise = (async () => {
             isConnected = (await this.redis.hget(REDIS_IRC_POOL_CONNECTIONS, clientId)) !== null;
-            const clientState = await IrcClientRedisState.create(this.redis, clientId);
+            // NOTE: Bandaid solution
+            const clientState = await IrcClientRedisState.create(this.redis, clientId, !isConnected);
             return new RedisIrcConnection(this, clientId, clientState);
         })();
         this.connections.set(clientId, clientPromise);
