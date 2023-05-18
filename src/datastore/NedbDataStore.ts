@@ -612,7 +612,7 @@ export class NeDBDataStore implements DataStore {
 
     public async ensurePasskeyCanDecrypt(): Promise<void> {
         if (!this.cryptoStore) {
-            throw Error('Cannot run ensurePasskeyCanDecrypt without enabling passkey encryption');
+            return;
         }
         const docs = await this.userStore.select<unknown, {id: string; data: { client_config: ClientConfigMap }}>({
             type: "matrix",

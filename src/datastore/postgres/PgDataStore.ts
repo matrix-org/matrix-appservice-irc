@@ -554,7 +554,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
 
     public async ensurePasskeyCanDecrypt(): Promise<void> {
         if (!this.cryptoStore) {
-            throw Error('Cannot run ensurePasskeyCanDecrypt without enabling passkey encryption');
+            return;
         }
         const res = await this.pgPool.query<{password: string, user_id: string, domain: string}>(
             "SELECT password, user_id, domain FROM client_config WHERE password IS NOT NULL");
