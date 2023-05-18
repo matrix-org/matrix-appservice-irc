@@ -42,11 +42,13 @@ const SANE_USERNAME_LENGTH = 64;
 // Technically, anything but \0 is allowed as username (aka. authcid and authzid):
 // https://www.rfc-editor.org/rfc/rfc4616#section-2
 //
-// However, IRC services are very unlikely to allow the username to contain CR or LF
-// (because they would not fit in the wire format) or spaces (because usernames are
-// usually followed by passwords in "PRIVMSG NickServ :REGISTER" commands and
-// IRCv3 draft/account-registration.
-const SASL_USERNAME_INVALID_CHARS_PATTERN = /[ \0\r\n]+/;
+// However, IRC services are very unlikely to allow the username to contain CR (0x0A)
+// or LF (0x0D) because they would not fit in the wire format or spaces (0x20) because
+// usernames are usually followed by passwords in "PRIVMSG NickServ :REGISTER" commands
+// and IRCv3 draft/account-registration.
+// Since we are at it, we might as well ban other non-printable ASCII characters
+// (0x00 to 0x1F, plus DEL (0x7F)), as they are most likely mistakes.
+const SASL_USERNAME_INVALID_CHARS_PATTERN = /[\x00-\x20\x7F]+/;
 
 interface Command {
     example: string;
