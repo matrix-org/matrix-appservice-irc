@@ -65,7 +65,7 @@ export class IrcClientRedisState implements IrcClientState {
         });
 
         // We also had a bug where the supported state is bloated enormously
-        if (deseralisedData) {
+        if (deseralisedData.supportedState) {
             deseralisedData.supportedState = {
                 ...deseralisedData.supportedState,
                 channel: {
