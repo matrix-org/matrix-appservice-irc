@@ -17,12 +17,12 @@ by using a `[m]` suffix instead.
 
 Joining a public channel over the bridge is as easy as joining an alias, for instance:
 
-`#python:libera.chat` maps to the `#python` channel on [libera.chat](libera.chat).
+`#python:libera.chat` maps to the `#python` channel on [libera.chat](https://libera.chat).
 
 ### Private Messaging
 
 Sending a Private Message (PM) to an IRC user means starting a conversation with `@Alice:libera.chat`,
-which maps to the nickname `Alice` on Libera.chat.
+which maps to the nickname `Alice` on [libera.chat](https://libera.chat).
 
 If a PM is sent from the IRC side, it will either appear in your existing PM room or you will be invited
 to a new room.

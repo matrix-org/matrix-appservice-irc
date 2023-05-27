@@ -21,10 +21,16 @@ import * as logging from "../logging";
 import { Defer } from "../promiseutil";
 import { IrcServer } from "./IrcServer";
 import { getBridgeVersion } from "matrix-appservice-bridge";
+import { IrcPoolClient } from "../pool-service/IrcPoolClient";
+import { RedisIrcConnection } from "../pool-service/RedisIrcConnection";
 
 const log = logging.get("client-connection");
 
-// The time we're willing to wait for a connect callback when connecting to IRC.
+/**
+ * The time we're willing to wait for a connect callback when connecting to IRC.
+ *
+ * This is also the time we will wait before assuming a disconnect has gone through.
+ */
 const CONNECT_TIMEOUT_MS = 30 * 1000; // 30s
 // The delay between messages when there are >1 messages to send.
 const FLOOD_PROTECTION_DELAY_MS = 700;
@@ -62,6 +68,7 @@ export interface ConnectionOpts {
         ca?: string;
     };
     encodingFallback?: string;
+    useRedisPool?: IrcPoolClient,
 }
 
 export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|
@@ -89,6 +96,7 @@ export class ConnectionInstance {
     // eslint-disable-next-line no-use-before-define
     private connectDefer: Defer<ConnectionInstance>;
     public onDisconnect?: (reason: string) => void;
+
     /**
      * Create an IRC connection instance. Wraps the matrix-org-irc library to handle
      * connections correctly.
@@ -103,7 +111,7 @@ export class ConnectionInstance {
         private pingOpts: {
         pingRateMs: number;
         pingTimeoutMs: number;
-    }, private readonly homeserverDomain: string) {
+    }, private readonly homeserverDomain: string, private readonly redisConn?: RedisIrcConnection) {
         this.listenForErrors();
         this.listenForPings();
         this.listenForCTCPVersions();
@@ -145,9 +153,9 @@ export class ConnectionInstance {
      * @param {string} reason - Reason to reject with. One of:
      * throttled|irc_error|net_error|timeout|raw_error|toomanyconns|banned
      */
-    public disconnect(reason: InstanceDisconnectReason, ircReason?: string): Promise<void> {
+    public async disconnect(reason: InstanceDisconnectReason, ircReason?: string): Promise<void> {
         if (this.dead) {
-            return Promise.resolve();
+            return;
         }
         ircReason = ircReason || reason;
         log.info(
@@ -155,32 +163,44 @@ export class ConnectionInstance {
         );
         this.dead = true;
 
-        return new Promise((resolve) => {
-            // close the connection
-            this.client.disconnect(ircReason, () => { /* This is needed for tests */ });
-            // remove timers
-            if (this.pingRateTimerId) {
-                clearTimeout(this.pingRateTimerId);
-                this.pingRateTimerId = null;
-            }
-            if (this.clientSidePingTimeoutTimerId) {
-                clearTimeout(this.clientSidePingTimeoutTimerId);
-                this.clientSidePingTimeoutTimerId = null;
-            }
-            if (this.state !== "connected") {
-                // we never resolved this defer, so reject it.
-                this.connectDefer.reject(new Error(reason));
-            }
-            if (this.state === "connected" && this.onDisconnect) {
-                // we only invoke onDisconnect once we've had a successful connect.
-                // Connection *attempts* are managed by the create() function so if we
-                // call this now it would potentially invoke this 3 times (once per
-                // connection instance!). Each time would have dead=false as they are
-                // separate objects.
-                this.onDisconnect(reason);
-            }
-            resolve();
+        // It's imperative we wait for the disconnect, as the IrcConnectionPool
+        // doesn't allow us to create new connections for a given user
+        // while a previous one is active.
+        // close the connection
+        await new Promise<void>((resolveDc) => {
+            // Forcibly ignore the DC if it takes any longer.
+            const timeout = setTimeout(() => {
+                log.warn(`Waited for 'end' that never came`);
+                resolveDc();
+            }, CONNECT_TIMEOUT_MS);
+            this.client.disconnect(ircReason, () => {
+                log.debug("Server responded to our disconnect");
+                clearTimeout(timeout);
+                resolveDc();
+            });
         });
+
+        // remove timers
+        if (this.pingRateTimerId) {
+            clearTimeout(this.pingRateTimerId);
+            this.pingRateTimerId = null;
+        }
+        if (this.clientSidePingTimeoutTimerId) {
+            clearTimeout(this.clientSidePingTimeoutTimerId);
+            this.clientSidePingTimeoutTimerId = null;
+        }
+        if (this.state !== "connected") {
+            // we never resolved this defer, so reject it.
+            this.connectDefer.reject(new Error(reason));
+        }
+        if (this.state === "connected" && this.onDisconnect) {
+            // we only invoke onDisconnect once we've had a successful connect.
+            // Connection *attempts* are managed by the create() function so if we
+            // call this now it would potentially invoke this 3 times (once per
+            // connection instance!). Each time would have dead=false as they are
+            // separate objects.
+            this.onDisconnect(reason);
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,7 +227,6 @@ export class ConnectionInstance {
 
     private listenForErrors() {
         this.client.addListener("error", (err?: Message) => {
-            log.error("Server: %s (%s) Error: %s", this.domain, this.nick, JSON.stringify(err));
             // We should disconnect the client for some but not all error codes. This
             // list is a list of codes which we will NOT disconnect the client for.
             const failCodes = [
@@ -225,9 +244,12 @@ export class ConnectionInstance {
             ];
             if (err && err.command) {
                 if (failCodes.includes(err.command)) {
+                    // Don't log these so loudly
+                    log.info("Server: %s (%s) %s", this.domain, this.nick, JSON.stringify(err));
                     return; // don't disconnect for these error codes.
                 }
             }
+            log.error("Server: %s (%s) Error: %s", this.domain, this.nick, JSON.stringify(err));
             if (err && err.command === "err_yourebannedcreep") {
                 this.disconnect("banned").catch(logError);
                 return;
@@ -378,6 +400,7 @@ export class ConnectionInstance {
     public static async create (server: IrcServer,
                                 opts: ConnectionOpts,
                                 homeserverDomain: string,
+                                ident: string,
                                 onCreatedCallback?: (inst: ConnectionInstance) => void): Promise<ConnectionInstance> {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
@@ -402,10 +425,22 @@ export class ConnectionInstance {
             encodingFallback: opts.encodingFallback,
         };
 
+
         // Returns: A promise which resolves to a ConnectionInstance
-        const retryConnection = () => {
+        const retryConnection = async () => {
+            const domain = server.randomDomain();
+            const redisConn = opts.useRedisPool && await opts.useRedisPool.createOrGetIrcSocket(ident, {
+                ...connectionOpts,
+                clientId: ident,
+                port: connectionOpts.port ?? 6667,
+                localAddress: connectionOpts.localAddress ?? undefined,
+                localPort: connectionOpts.localPort ?? undefined,
+                family: connectionOpts.family ?? undefined,
+                host: domain,
+            });
+
             const nodeClient = new Client(
-                server.randomDomain(), opts.nick, connectionOpts
+                domain, opts.nick, connectionOpts, redisConn?.state, redisConn,
             );
             const inst = new ConnectionInstance(
                 nodeClient, server.domain, opts.nick, {
@@ -413,9 +448,13 @@ export class ConnectionInstance {
                     pingTimeoutMs: server.pingTimeout,
                 },
                 homeserverDomain,
+                redisConn,
             );
             if (onCreatedCallback) {
                 onCreatedCallback(inst);
+            }
+            if (redisConn) {
+                log.debug(`Calling connect for ${redisConn?.clientId}`);
             }
             return inst.connect();
         };

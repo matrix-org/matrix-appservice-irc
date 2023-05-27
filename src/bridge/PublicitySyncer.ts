@@ -48,8 +48,8 @@ export class PublicitySyncer {
 
     public async initModes (server: IrcServer) {
         //Get all channels and call modes for each one
-
         const channels = await this.ircBridge.getStore().getTrackedChannelsForServer(server.domain);
+        log.info(`Syncing modes for ${channels.length} on ${server.domain}`);
         await Promise.all(channels.map((channel) =>
             this.initModeQueue.enqueue(`${channel}@${server.domain}`, {
                 channel,
@@ -61,47 +61,40 @@ export class PublicitySyncer {
     /**
      * Returns the key used when calling `updateVisibilityMap` for updating an IRC channel
      * visibility mode (+s or -s).
-     * ```
-     * // Set channel on server to be +s
-     * const key = publicitySyncer.getIRCVisMapKey(server.getNetworkId(), channel);
-     * publicitySyncer.updateVisibilityMap(true, key, true);
-     * ```
      * @param {string} networkId
      * @param {string} channel
      * @returns {string}
      */
-    public getIRCVisMapKey(networkId: string, channel: string) {
+    private getIRCVisMapKey(networkId: string, channel: string) {
         return `${networkId} ${channel}`;
     }
 
-    public updateVisibilityMap(isMode: boolean, key: string, value: boolean, channel: string, server: IrcServer) {
-        log.debug(`updateVisibilityMap: isMode:${isMode} k:${key} v:${value} chan:${channel} srv:${server.domain}`);
+    /**
+     * Update the visibility of a given channel
+     *
+     * @param isSecret Is the channel secret.
+     * @param channel Channel name
+     * @param server Server the channel is part of.
+     * @returns If the channel publicity was synced.
+     */
+    public async updateVisibilityMap(channel: string, server: IrcServer, isSecret: boolean): Promise<boolean> {
+        const key = this.getIRCVisMapKey(server.getNetworkId(), channel);
+        log.debug(`updateVisibilityMap ${key} isSecret:${isSecret}`);
         let hasChanged = false;
-        if (isMode) {
-            if (typeof value !== 'boolean') {
-                throw new Error('+s state must be indicated with a boolean');
-            }
-            if (this.visibilityMap.channelIsSecret.get(key) !== value) {
-                this.visibilityMap.channelIsSecret.set(key, value);
-                hasChanged = true;
-            }
-        }
-        else {
-            if (typeof value !== 'string' || (value !== "private" && value !== "public")) {
-                throw new Error('Room visibility must = "private" | "public"');
-            }
-
-            if (this.visibilityMap.roomVisibilities.get(key) !== value) {
-                this.visibilityMap.roomVisibilities.set(key, value);
-                hasChanged = true;
-            }
+        if (this.visibilityMap.channelIsSecret.get(key) !== isSecret) {
+            this.visibilityMap.channelIsSecret.set(key, isSecret);
+            hasChanged = true;
         }
 
         if (hasChanged) {
-            this.solveVisibility(channel, server).catch((err: Error) => {
-                log.error(`Failed to sync publicity for ${channel}: ` + err.message);
-            });
+            try {
+                await this.solveVisibility(channel, server)
+            }
+            catch (err) {
+                throw Error(`Failed to sync publicity for ${channel}: ${err.message}`);
+            }
         }
+        return hasChanged;
     }
 
     /* Solve any inconsistencies between the currently known state of channels '+s' modes
@@ -126,17 +119,8 @@ export class PublicitySyncer {
         this.visibilityMap.mappings = new Map();
 
         // Update rooms to correct visibilities
-        let currentStates: Map<string, MatrixDirectoryVisibility> = new Map();
-
-        // Assume private by default
-        for (const roomId of roomIds) {
-            currentStates.set(roomId, "private");
-        }
-
-        currentStates = {
-            ...currentStates,
-            ...await this.ircBridge.getStore().getRoomsVisibility(roomIds),
-        };
+        const currentStates: Map<string, MatrixDirectoryVisibility>
+            = await this.ircBridge.getStore().getRoomsVisibility(roomIds);
 
         const correctState = this.visibilityMap.channelIsSecret.get(visKey) ? 'private' : 'public';
 

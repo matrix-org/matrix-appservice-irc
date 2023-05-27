@@ -52,6 +52,10 @@ class IdentSrv {
     private pendingConnections: Set<Promise<void>> = new Set();
     private isEnabled = false;
 
+    public get enabled() {
+        return this.isEnabled;
+    }
+
     public run() {
         net.createServer(
             this.onConnection.bind(this)

@@ -181,9 +181,22 @@ export class IrcHandler {
                     "m.room.canonical_alias": 100,
                     "m.room.history_visibility": 100,
                     "m.room.power_levels": 100,
-                    "m.room.encryption": 100
+                    "m.room.encryption": 100,
+                    // Event types that we cannot translate to IRC;
+                    // we might as well block them with PLs so
+                    // Matrix clients can hide them from their UI.
+                    "m.call.invite": 100,
+                    "m.call.candidate": 100,
+                    "org.matrix.msc3401.call": 100,
+                    "org.matrix.msc3401.call.member": 100,
+                    "im.vector.modular.widgets": 100,
+                    "io.element.voice_broadcast_info": 100,
+                    "m.reaction": 100,
+                    "m.room.redaction": 100,
+                    "m.sticker": 100,
                 },
                 invite: 100,
+                redact: 100,
             },
             type: "m.room.power_levels",
             state_key: "",

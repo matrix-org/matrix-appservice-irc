@@ -11,4 +11,5 @@
 - [Bridge Administrators](./administrators_guide.md)
   - [Setting up the bridge](./bridge_setup.md)
   - [Debug API](./debug_api.md)
+  - [Connection Pooling](./connection_pooling.md)
 - [IRC Operators](./irc_operators.md)

@@ -1,4 +1,22 @@
- 0.37.1 (2023-03-07)
+0.38.0 (2023-04-12)
+===================
+
+Bugfixes
+--------
+
+- Fix leak of secret channels (name, topic, and member count) to the public room directory due to a regressive refactor in a previous release. ([\#1660](https://github.com/matrix-org/matrix-appservice-irc/issues/1660), [\#1698](https://github.com/matrix-org/matrix-appservice-irc/issues/1698))
+- Fix unlink command showing an error. ([\#1692](https://github.com/matrix-org/matrix-appservice-irc/issues/1692))
+
+
+Internal Changes
+----------------
+
+- RoomAccessSyncer: Await processing of cached channel modes that changed. ([\#1620](https://github.com/matrix-org/matrix-appservice-irc/issues/1620))
+- Fix tests when running with 'yarnpkg link matrix-appservice-bridge'. ([\#1679](https://github.com/matrix-org/matrix-appservice-irc/issues/1679))
+- Add tests that cover publicity syncing behaviour. ([\#1698](https://github.com/matrix-org/matrix-appservice-irc/issues/1698))
+
+
+0.37.1 (2023-03-07)
 ====================
 
 Bugfixes
@@ -37,6 +55,12 @@ Internal Changes
 
 0.36.0 (2022-10-25)
 ===================
+
+Features
+--------
+
+* Support monospace formatting. ([\#1555](https://github.com/matrix-org/matrix-appservice-irc/issues/1555))
+
 
 Bugfixes
 --------

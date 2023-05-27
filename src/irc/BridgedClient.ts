@@ -29,6 +29,9 @@ import { IdentGenerator } from "./IdentGenerator";
 import { Ipv6Generator } from "./Ipv6Generator";
 import { IrcEventBroker } from "./IrcEventBroker";
 import { Client, WhoisResponse } from "matrix-org-irc";
+import { IrcPoolClient } from "../pool-service/IrcPoolClient";
+import { RedisIrcConnection } from "../pool-service/RedisIrcConnection";
+import { Socket } from "net";
 
 const log = getLogger("BridgedClient");
 
@@ -116,7 +119,8 @@ export class BridgedClient extends EventEmitter {
         private readonly eventBroker: IrcEventBroker,
         private readonly identGenerator: IdentGenerator,
         private readonly ipv6Generator: Ipv6Generator,
-        private readonly encodingFallback?: string) {
+        private readonly redisPool?: IrcPoolClient,
+        private readonly encodingFallback?: string,) {
         super();
         this.userId = matrixUser ? matrixUser.getId() : null;
         this.displayName = matrixUser ? matrixUser.getDisplayName() : null;
@@ -248,9 +252,11 @@ export class BridgedClient extends EventEmitter {
                 localAddress: (
                     this.server.getIpv6Prefix() ? this.clientConfig.getIpv6Address() : undefined
                 ),
+                useRedisPool: this.redisPool,
                 encodingFallback: this.encodingFallback,
             },
             this.server.homeserverDomain,
+            this.userId ?? 'bot',
             (inst: ConnectionInstance) => {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 this.onConnectionCreated(inst, nameInfo, identResolver!);
@@ -800,19 +806,23 @@ export class BridgedClient extends EventEmitter {
 
     private onConnectionCreated(connInst: ConnectionInstance, nameInfo: {username?: string},
                                 identResolver: () => void) {
+        // If this state has carried over from a previous connection, pull in any channels.
+        [...connInst.client.chans.keys()].forEach(k => this.chanList.add(k));
         // listen for a connect event which is done when the TCP connection is
         // established and set ident info (this is different to the connect() callback
         // in node-irc which actually fires on a registered event..)
-        connInst.client.once("connect", function() {
-            let localPort = -1;
-            if (connInst.client.conn && connInst.client.conn.localPort) {
-                localPort = connInst.client.conn.localPort;
-            }
-            if (localPort > 0 && nameInfo.username) {
-                Ident.setMapping(nameInfo.username, localPort);
-            }
-            identResolver();
-        });
+        if (Ident.enabled) {
+            connInst.client.once("connect", function() {
+                const conn = connInst.client.conn as RedisIrcConnection|Socket;
+                const localPort = conn?.localPort ?? 0;
+                // Fix horrible ident
+                if (localPort > 0 && nameInfo.username) {
+                    Ident.setMapping(nameInfo.username, localPort);
+                }
+                identResolver();
+            });
+        }
+
         // Emitters for SASL
         connInst.client.on("sasl_loggedin", (...args: string[]) => {
             const msg = args.pop();
@@ -961,6 +971,7 @@ export class BridgedClient extends EventEmitter {
         const defer = promiseutil.defer() as promiseutil.Defer<IrcRoom>;
         this.log.debug("Joining channel %s", channel);
         const client = this.state.client;
+
         // listen for failures to join a channel (e.g. +i, +k)
 
         // add a timeout to try joining again
@@ -1072,7 +1083,7 @@ export class BridgedClient extends EventEmitter {
         return this.assertConnected().send(...data);
     }
 
-    public writeToConnection(buffer: string|Uint8Array) {
+    public writeToConnection(buffer: string) {
         const client = this.assertConnected();
         if (!client.conn) {
             throw Error('Client is not connected');

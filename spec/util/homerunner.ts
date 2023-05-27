@@ -25,13 +25,7 @@ export interface ComplementHomeServer {
     users: {userId: string, accessToken: string, deviceId: string, client: E2ETestMatrixClient}[]
 }
 
-const AppserviceConfig = {
-    id: 'ircbridge',
-    port: 32100,
-    hsToken: 'hs_token',
-    asToken: 'as_token',
-    senderLocalpart: 'ircbridge_bot'
-};
+let appPort = 32100;
 
 async function waitForHomerunner() {
     // Needs https://github.com/matrix-org/complement/issues/398
@@ -55,6 +49,15 @@ async function waitForHomerunner() {
 
 export async function createHS(localparts: string[] = []): Promise<ComplementHomeServer> {
     await waitForHomerunner();
+    // Ensure we never use the same port twice.
+    appPort++;
+    const AppserviceConfig = {
+        id: 'ircbridge',
+        port: appPort,
+        hsToken: 'hs_token',
+        asToken: 'as_token',
+        senderLocalpart: 'ircbridge_bot'
+    };
     const blueprint = `${AppserviceConfig.id}_integration_test_${Date.now()}`;
     const asRegistration = {
         ID: AppserviceConfig.id,

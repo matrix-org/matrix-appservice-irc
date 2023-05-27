@@ -153,6 +153,9 @@ export interface IrcServerConfig {
     };
 }
 
+const IRC_DEFAULT_INSECURE_PORT = 6667;
+const IRC_DEFAULT_SECURE_PORT = 6697;
+
 /*
  * Represents a single IRC server from config.yaml
  */
@@ -321,7 +324,7 @@ export class IrcServer {
     }
 
     public getPort() {
-        return this.config.port;
+        return this.config.port ?? (this.useSsl() ? IRC_DEFAULT_SECURE_PORT : IRC_DEFAULT_INSECURE_PORT);
     }
 
     public isInWhitelist(userId: string) {

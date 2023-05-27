@@ -27,6 +27,7 @@ import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "matrix-appservice-bridge";
 import { IdentGenerator } from "../irc/IdentGenerator";
 import { Provisioner } from "../provisioning/Provisioner";
+import { IrcProvisioningError } from "../provisioning/Schema";
 
 const log = logging("AdminRoomHandler");
 
@@ -239,6 +240,9 @@ export class AdminRoomHandler {
         }
         catch (ex) {
             log.error(`Failed to handle !plumb command:`, ex);
+            if (ex instanceof IrcProvisioningError) {
+                return new MatrixAction(ActionType.Notice, `Failed to plumb room. ${ex.message}`);
+            }
             return new MatrixAction(ActionType.Notice, "Failed to plumb room. Check the logs for details.");
         }
         return new MatrixAction(ActionType.Notice, "Room plumbed.");
@@ -259,6 +263,7 @@ export class AdminRoomHandler {
                 Provisioner.createFakeRequest(
                     "unplumb",
                     sender,
+                    { },
                     {
                         remote_room_server: serverDomain,
                         remote_room_channel: ircChannel,
@@ -271,6 +276,9 @@ export class AdminRoomHandler {
         }
         catch (ex) {
             log.error(`Failed to handle !unlink command:`, ex);
+            if (ex instanceof IrcProvisioningError) {
+                return new MatrixAction(ActionType.Notice, `Failed to plumb room. ${ex.message}`);
+            }
             return new MatrixAction(ActionType.Notice, "Failed to unlink room. Check the logs for details.");
         }
         return new MatrixAction(ActionType.Notice, "Room unlinked.");
@@ -281,7 +289,7 @@ export class AdminRoomHandler {
         // check that the server exists and that the user_id is on the whitelist
         const ircChannel = args[0];
         const key = args[1]; // keys can't have spaces in them, so we can just do this.
-        let errText = null;
+        let errText: string|null = null;
         if (!ircChannel || !ircChannel.startsWith("#")) {
             errText = "Format: '!join irc.example.com #channel [key]'";
         }
@@ -593,7 +601,7 @@ export class AdminRoomHandler {
 
         let chanList = `You are joined to ${client.chanList.size} rooms: \n\n`;
         let chanListHTML = `<p>You are joined to <code>${client.chanList.size}</code> rooms:</p><ul>`;
-        for (const channel of client.chanList) {
+        for (const channel of [...client.chanList].sort()) {
             const rooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
             chanList += `- \`${channel}\` which is bridged to ${rooms.map((r) => r.getId()).join(", ")}`;
             const roomMentions = rooms

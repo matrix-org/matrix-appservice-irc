@@ -26,7 +26,7 @@ from a single IP, so you should ask them for permission before bridging.
 git clone https://github.com/matrix-org/matrix-appservice-irc.git
 cd matrix-appservice-irc
 git checkout master # or 0.x.x to pin to a version
-npm i
+yarn
 ```
 
 The bridge can now be started by: `node app.js`.
@@ -35,7 +35,7 @@ The bridge can now be started by: `node app.js`.
 
 ```sh
 # --global requires super user on most systems
-$ npm install matrix-appservice-irc --global
+$ yarn install --global matrix-appservice-irc 
 ```
 
 ### Docker

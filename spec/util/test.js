@@ -80,7 +80,6 @@ class TestEnv {
                 AppServiceRegistration.fromObject(this.config._registration),
                 {
                     isDBInMemory:  !USING_PG,
-                    skipPingCheck: true,
                     onIntentCreate: (...args) => this.intentCreateFn(...args),
                 }
             )

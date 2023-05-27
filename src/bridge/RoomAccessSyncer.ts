@@ -344,10 +344,11 @@ export class RoomAccessSyncer {
         Object.values(roomModeMap).forEach((roomMode) => {
             roomMode.forEach((m) => {oldModes.add(m)});
         });
-        req.log.debug(`Got cached mode for ${channel} ${[...oldModes]}`);
+        const oldModesArray = [...oldModes];
+        req.log.debug(`Got cached mode for ${channel} ${oldModesArray}`);
 
         // For each cached mode we have for the room, that is no longer set: emit a disabled mode.
-        promises.concat([...oldModes].map((oldModeChar) => {
+        promises.push(...oldModesArray.map((oldModeChar) => {
             if (!MODES_TO_WATCH.includes(oldModeChar)) {
                 return Promise.resolve();
             }
@@ -422,17 +423,23 @@ export class RoomAccessSyncer {
                 req.log.info("Not syncing publicity: shouldPublishRooms is false");
                 return;
             }
-            const key = this.ircBridge.publicitySyncer.getIRCVisMapKey(
-                server.getNetworkId(), channel
-            );
 
+            try {
+                // Update the visibility for all rooms connected to this channel
+                await this.ircBridge.publicitySyncer.updateVisibilityMap(
+                    channel, server, enabled,
+                );
+            }
+            catch (ex) {
+                log.error(
+                    `Failed to update visibility map for ${channel} ${server.getNetworkId()}: ${ex}`
+                );
+            }
+
+            // Only set this after we've applied the changes.
             matrixRooms.map((room) => {
                 this.ircBridge.getStore().setModeForRoom(room.getId(), "s", enabled);
             });
-            // Update the visibility for all rooms connected to this channel
-            this.ircBridge.publicitySyncer.updateVisibilityMap(
-                true, key, enabled, channel, server,
-            );
         }
         // "k" and "i"
         await Promise.all(matrixRooms.map((room) =>
