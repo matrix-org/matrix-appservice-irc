@@ -564,7 +564,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
             }
             catch (ex) {
                 log.error(`Failed to decrypt password for ${user_id} on ${domain}`, ex);
-                throw Error('Cannot decrypt user password, refusing to continue');
+                throw Error('Cannot decrypt user password, refusing to continue', { cause: ex });
             }
         }
     }

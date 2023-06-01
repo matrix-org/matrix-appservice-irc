@@ -569,12 +569,15 @@ export class NeDBDataStore implements DataStore {
         }
         const clientConfig = new IrcClientConfig(userId, domain, configData);
         const encryptedPass = clientConfig.getPassword();
-        if (encryptedPass) {
-            if (!this.cryptoStore) {
-                throw new Error(`Cannot decrypt password of ${userId} - no private key`);
+        if (encryptedPass && this.cryptoStore) {
+            // NOT fatal, but really worrying.
+            try {
+                const decryptedPass = this.cryptoStore.decrypt(encryptedPass);
+                clientConfig.setPassword(decryptedPass);
             }
-            const decryptedPass = this.cryptoStore.decrypt(encryptedPass);
-            clientConfig.setPassword(decryptedPass);
+            catch (ex) {
+                log.warn(`Failed to decrypt password for ${userId} ${domain}`, ex);
+            }
         }
         return clientConfig;
     }
@@ -626,7 +629,7 @@ export class NeDBDataStore implements DataStore {
                     }
                     catch (ex) {
                         log.error(`Failed to decrypt password for ${userId} on ${domain}`, ex);
-                        throw Error('Cannot decrypt user password, refusing to continue');
+                        throw Error('Cannot decrypt user password, refusing to continue', { cause: ex });
                     }
                 }
             }
