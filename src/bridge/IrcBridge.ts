@@ -617,7 +617,6 @@ export class IrcBridge {
             const pgDs = new PgDataStore(this.config.homeserver.domain, dbConfig.connectionString, pkeyPath);
             await pgDs.ensureSchema();
             this.dataStore = pgDs;
-
         }
         else if (dbConfig.engine === "nedb") {
             await this.bridge.loadDatabases();
