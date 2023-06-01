@@ -34,9 +34,9 @@ export interface IrcClientStateDehydrated {
         [prefix: string]: string;
     };
     capabilities: ReturnType<IrcCapabilities["serialise"]>;
-    supportedState: IrcSupported;
+    supportedState?: IrcSupported;
     hostMask: string;
-    chans: [string, ChanDataDehydrated][];
+    chans?: [string, ChanDataDehydrated][];
     prefixForMode: {
         [mode: string]: string;
     };
@@ -46,7 +46,7 @@ export interface IrcClientStateDehydrated {
 
 
 export class IrcClientRedisState implements IrcClientState {
-    private putStatePromise: Promise<unknown> = Promise.resolve();
+    private putStatePromise: Promise<void> = Promise.resolve();
 
     static async create(redis: Redis, clientId: string, freshState: boolean) {
         log.debug(`Requesting ${freshState ? "fresh" : "existing"} state for ${clientId}`);
@@ -55,30 +55,24 @@ export class IrcClientRedisState implements IrcClientState {
         const chans = new Map<string, ChanData>();
 
         // In a previous iteration we failed to seralise this properly.
-        const isPreviousBuggyState = !Array.isArray(deseralisedData.chans?.[0]?.[1]?.users);
-        deseralisedData?.chans?.forEach(([channelName, chanData]) => {
+        deseralisedData.chans?.forEach(([channelName, chanData]) => {
+            const isBuggyState = !Array.isArray(chanData.users);
             chans.set(channelName, {
                 ...chanData,
-                users: new Map(!isPreviousBuggyState ? chanData.users : []),
-                modeParams: new Map(!isPreviousBuggyState ? chanData.modeParams : []),
+                users: new Map(!isBuggyState ? chanData.users : []),
+                modeParams: new Map(!isBuggyState ? chanData.modeParams : []),
             })
         });
 
         // We also had a bug where the supported state is bloated enormously
         if (deseralisedData.supportedState) {
-            deseralisedData.supportedState = {
-                ...deseralisedData.supportedState,
-                channel: {
-                    ...deseralisedData.supportedState.channel,
-                    modes: {
-                        a: [...new Set(deseralisedData.supportedState.channel.modes.a.split(''))].join(''),
-                        b: [...new Set(deseralisedData.supportedState.channel.modes.b.split(''))].join(''),
-                        c: [...new Set(deseralisedData.supportedState.channel.modes.c.split(''))].join(''),
-                        d: [...new Set(deseralisedData.supportedState.channel.modes.d.split(''))].join(''),
-                    }
-                },
-                extra: [...new Set(deseralisedData.supportedState.extra)],
+            deseralisedData.supportedState.channel.modes = {
+                a: [...new Set(deseralisedData.supportedState.channel.modes.a.split(''))].join(''),
+                b: [...new Set(deseralisedData.supportedState.channel.modes.b.split(''))].join(''),
+                c: [...new Set(deseralisedData.supportedState.channel.modes.c.split(''))].join(''),
+                d: [...new Set(deseralisedData.supportedState.channel.modes.d.split(''))].join(''),
             }
+            deseralisedData.supportedState.extra = [...new Set(deseralisedData.supportedState.extra)];
         }
 
         // The client library is currently responsible for flushing any new changes
@@ -267,6 +261,6 @@ export class IrcClientRedisState implements IrcClientState {
     }
 
     private async innerPutState(data: string) {
-        return this.redis.hset(REDIS_IRC_CLIENT_STATE_KEY, this.clientId, data);
+        await this.redis.hset(REDIS_IRC_CLIENT_STATE_KEY, this.clientId, data);
     }
 }
