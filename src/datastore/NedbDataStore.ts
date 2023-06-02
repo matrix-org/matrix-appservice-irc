@@ -569,12 +569,15 @@ export class NeDBDataStore implements DataStore {
         }
         const clientConfig = new IrcClientConfig(userId, domain, configData);
         const encryptedPass = clientConfig.getPassword();
-        if (encryptedPass) {
-            if (!this.cryptoStore) {
-                throw new Error(`Cannot decrypt password of ${userId} - no private key`);
+        if (encryptedPass && this.cryptoStore) {
+            // NOT fatal, but really worrying.
+            try {
+                const decryptedPass = this.cryptoStore.decrypt(encryptedPass);
+                clientConfig.setPassword(decryptedPass);
             }
-            const decryptedPass = this.cryptoStore.decrypt(encryptedPass);
-            clientConfig.setPassword(decryptedPass);
+            catch (ex) {
+                log.warn(`Failed to decrypt password for ${userId} ${domain}`, ex);
+            }
         }
         return clientConfig;
     }
@@ -608,6 +611,29 @@ export class NeDBDataStore implements DataStore {
         userConfig[config.getDomain().replace(/\./g, "_")] = config.serialize();
         user.set("client_config", userConfig);
         await this.userStore.setMatrixUser(user);
+    }
+
+    public async ensurePasskeyCanDecrypt(): Promise<void> {
+        if (!this.cryptoStore) {
+            return;
+        }
+        const docs = await this.userStore.select<unknown, {id: string; data: { client_config: ClientConfigMap }}>({
+            type: "matrix",
+            "data.client_config": {$exists: true},
+        });
+        for (const { id: userId, data } of docs) {
+            for (const [domain, clientConfig] of Object.entries(data.client_config)) {
+                if (clientConfig.password) {
+                    try {
+                        this.cryptoStore.decrypt(clientConfig.password);
+                    }
+                    catch (ex) {
+                        log.error(`Failed to decrypt password for ${userId} on ${domain}`, ex);
+                        throw Error('Cannot decrypt user password, refusing to continue', { cause: ex });
+                    }
+                }
+            }
+        }
     }
 
     public async getUserFeatures(userId: string): Promise<UserFeatures> {

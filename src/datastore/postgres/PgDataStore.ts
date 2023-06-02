@@ -516,7 +516,13 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         const row = res.rows[0];
         const config = row.config || {}; // This may not be defined.
         if (row.password && this.cryptoStore) {
-            config.password = this.cryptoStore.decrypt(row.password);
+            // NOT fatal, but really worrying.
+            try {
+                config.password = this.cryptoStore.decrypt(row.password);
+            }
+            catch (ex) {
+                log.warn(`Failed to decrypt password for ${userId} ${domain}`, ex);
+            }
         }
         return new IrcClientConfig(userId, domain, config);
     }
@@ -543,6 +549,24 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         const statement = PgDataStore.BuildUpsertStatement(
             "client_config", "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
         await this.pgPool.query(statement, Object.values(parameters));
+    }
+
+
+    public async ensurePasskeyCanDecrypt(): Promise<void> {
+        if (!this.cryptoStore) {
+            return;
+        }
+        const res = await this.pgPool.query<{password: string, user_id: string, domain: string}>(
+            "SELECT password, user_id, domain FROM client_config WHERE password IS NOT NULL");
+        for (const { password, user_id, domain } of res.rows) {
+            try {
+                this.cryptoStore.decrypt(password);
+            }
+            catch (ex) {
+                log.error(`Failed to decrypt password for ${user_id} on ${domain}`, ex);
+                throw Error('Cannot decrypt user password, refusing to continue', { cause: ex });
+            }
+        }
     }
 
     public async getMatrixUserByLocalpart(localpart: string): Promise<MatrixUser|null> {
