@@ -709,6 +709,10 @@ export class IrcServer {
                 joinChannelsIfNoUsers: true,
                 enabled: true
             },
+            modePowerMap: {
+                o: 50,
+                v: 1,
+            },
             privateMessages: {
                 enabled: true,
                 exclude: [],
