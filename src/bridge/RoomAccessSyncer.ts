@@ -50,8 +50,7 @@ export class RoomAccessSyncer {
     constructor(private ircBridge: IrcBridge) { }
 
     get powerLevelGracePeriod() {
-        const configPeriod = this.ircBridge.config.ircService.ircHandler?.powerLevelGracePeriodMs;
-        return configPeriod === undefined ? DEFAULT_POWER_LEVEL_GRACE_MS : configPeriod;
+        return this.ircBridge.config.ircService.ircHandler?.powerLevelGracePeriodMs ?? DEFAULT_POWER_LEVEL_GRACE_MS;
     }
 
     /**
@@ -215,7 +214,8 @@ export class RoomAccessSyncer {
 
         // Bridge usermodes to power levels
         const modeToPower = server.getModePowerMap();
-        if (!Object.keys(modeToPower).includes(mode)) {
+        if (typeof modeToPower[mode] !== "number") {
+            req.log.debug(`Mode '${mode}' is not known`);
             // Not an operator power mode
             return;
         }
