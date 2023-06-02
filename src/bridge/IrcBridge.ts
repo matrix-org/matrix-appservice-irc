@@ -650,6 +650,8 @@ export class IrcBridge {
             throw Error("Incorrect database config");
         }
 
+        await this.dataStore.ensurePasskeyCanDecrypt();
+
         await this.dataStore.removeConfigMappings();
 
         if (this.activityTracker) {
