@@ -906,14 +906,14 @@ export class IrcHandler {
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     public async onMode(req: BridgeRequest, server: IrcServer, channel: string, by: string,
-                        mode: string, enabled: boolean, arg: string|null) {
+                        mode: string, enabled: boolean, arg: string|null): Promise<BridgeRequestErr|void> {
         this.incrementMetric("mode");
         req.log.info(
             "onMode(%s) in %s by %s (arg=%s)",
             (enabled ? ("+" + mode) : ("-" + mode)),
             channel, by, arg
         );
-        await this.roomAccessSyncer.onMode(req, server, channel, by, mode, enabled, arg);
+        return this.roomAccessSyncer.onMode(req, server, channel, by, mode, enabled, arg);
     }
 
     /**

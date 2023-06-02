@@ -1,6 +1,6 @@
 import { getLogger } from "../logging";
 import { IrcBridge } from "./IrcBridge";
-import { BridgeRequest } from "../models/BridgeRequest";
+import { BridgeRequest, BridgeRequestErr } from "../models/BridgeRequest";
 import { IrcServer } from "../irc/IrcServer";
 import { MatrixRoom, PowerLevelContent } from "matrix-appservice-bridge";
 import { BridgedClientStatus } from "../irc/BridgedClient";
@@ -202,7 +202,7 @@ export class RoomAccessSyncer {
      * @param {string|null} arg This is usually the affected user, if applicable.
      */
     public async onMode(req: BridgeRequest, server: IrcServer, channel: string, by: string,
-                        mode: string, enabled: boolean, arg: string|null) {
+                        mode: string, enabled: boolean, arg: string|null): Promise<BridgeRequestErr|undefined> {
         if (PRIVATE_MODES.includes(mode)) {
             await this.onPrivateMode(req, server, channel, mode, enabled);
             return;
@@ -226,7 +226,7 @@ export class RoomAccessSyncer {
         );
         if (matrixRooms.length === 0) {
             req.log.info("No mapped matrix rooms for IRC channel %s", channel);
-            return;
+            return BridgeRequestErr.ERR_NOT_MAPPED;
         }
 
         // Work out what power levels to give
@@ -243,12 +243,12 @@ export class RoomAccessSyncer {
             userId = bridgedClient.userId;
             if (bridgedClient.status !== BridgedClientStatus.CONNECTED) {
                 req.log.info(`Bridged client for ${nick} has no IRC client.`);
-                return;
+                return BridgeRequestErr.ERR_DROPPED;
             }
             const userPrefixes = bridgedClient.chanData(channel)?.users.get(nick);
             if (!userPrefixes) {
                 req.log.error(`No channel data for ${channel}/${nick}`);
-                return;
+                return BridgeRequestErr.ERR_DROPPED;
             }
             userPrefixes.split('').forEach(
                 prefix => {
@@ -266,7 +266,8 @@ export class RoomAccessSyncer {
 
         if (userId === null) {
             // Probably the BridgeBot or a user we don't know about, drop it.
-            return;
+            req.log.info('Could not determine userId for mode, ignoring');
+            return BridgeRequestErr.ERR_DROPPED;
         }
 
         // By default, unset the user's power level. This will be treated
@@ -283,8 +284,10 @@ export class RoomAccessSyncer {
             `${enabled ? level : 0} to ${userId}`
         );
 
+        let didFail = false;
         for (const room of matrixRooms) {
-            const powerLevelMap = await (this.getCurrentPowerlevels(room.getId())) || {};
+            const roomId = room.getId();
+            const powerLevelMap = await (this.getCurrentPowerlevels(roomId)) || {};
             const users = (powerLevelMap.users || {}) as {[userId: string]: number};
 
             // If the user's present PL is equal to the level,
@@ -310,9 +313,18 @@ export class RoomAccessSyncer {
                 // set of modes.
                 level = 0;
             }
-            this.setPowerLevel(room.getId(), userId, level, req);
+            try {
+                req.log.info(`Granting PL${level} to ${userId} in ${roomId}`);
+                await this.setPowerLevel(roomId, userId, level, req);
+            }
+            catch (ex) {
+                req.log.warn(`Failed to grant PL in ${roomId}`, ex);
+                didFail = true;
+            }
         }
-
+        if (didFail) {
+            throw new Error('Failed to update PL in soime rooms');
+        }
     }
     /**
      * Called when an IRC server responds to a mode request.
