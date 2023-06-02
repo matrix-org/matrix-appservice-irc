@@ -597,6 +597,7 @@ export class IrcBridge {
                 this.config.connectionPool.redisUrl,
             );
             this.ircPoolClient.on('lostConnection', () => {
+                console.log('Lost connection to bridge');
                 this.kill();
             });
             await this.ircPoolClient.listen();

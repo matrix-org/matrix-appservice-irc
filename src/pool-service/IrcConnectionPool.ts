@@ -21,6 +21,8 @@ import { parseMessage } from 'matrix-org-irc';
 import { collectDefaultMetrics, register, Gauge } from 'prom-client';
 import { createServer, Server } from 'http';
 
+collectDefaultMetrics();
+
 const log = new Logger('IrcConnectionPool');
 const TIME_TO_WAIT_BEFORE_PONG = 10000;
 const STREAM_HISTORY_MAXLEN = 50;
@@ -52,8 +54,12 @@ export class IrcConnectionPool {
     private heartbeatTimer?: NodeJS.Timer;
 
     constructor(private readonly config: typeof Config) {
+        this.shouldRun = false;
         this.cmdWriter = new Redis(config.redisUri, { lazyConnect: true });
         this.cmdReader = new Redis(config.redisUri, { lazyConnect: true });
+        this.cmdWriter.on('connecting', () => {
+            log.debug('Connecting to', config.redisUri);
+        });
     }
 
     private updateLastRead(lastRead: string) {
@@ -329,8 +335,12 @@ export class IrcConnectionPool {
     }
 
     public async start() {
+        if (this.shouldRun) {
+            // Is already running!
+            return;
+        }
+        this.shouldRun = true;
         Logger.configure({ console: this.config.loggingLevel });
-        collectDefaultMetrics();
 
         // Load metrics
         if (this.config.metricsHost) {
