@@ -29,12 +29,14 @@ interface Opts {
 
 export class E2ETestMatrixClient extends MatrixClient {
 
-    public async waitForRoomEvent(
+    public async waitForRoomEvent<T extends object = Record<string, unknown>>(
         opts: {eventType: string, sender: string, roomId?: string, stateKey?: string}
-    ): Promise<{roomId: string, data: unknown}> {
+    ): Promise<{roomId: string, data: {
+        sender: string, type: string, state_key?: string, content: T, event_id: string,
+    }}> {
         const {eventType, sender, roomId, stateKey} = opts;
         return this.waitForEvent('room.event', (eventRoomId: string, eventData: {
-            sender: string, type: string, state_key?: string, content: {body?: string}, event_id: string,
+            sender: string, type: string, state_key?: string, content: T, event_id: string,
         }) => {
             if (eventData.sender !== sender) {
                 return undefined;
@@ -48,9 +50,10 @@ export class E2ETestMatrixClient extends MatrixClient {
             if (stateKey !== undefined && eventData.state_key !== stateKey) {
                 return undefined;
             }
+            const body = 'body' in eventData.content && eventData.content.body;
             console.info(
                 // eslint-disable-next-line max-len
-                `${eventRoomId} ${eventData.event_id} ${eventData.type} ${eventData.sender} ${eventData.state_key ?? eventData.content?.body ?? ''}`
+                `${eventRoomId} ${eventData.event_id} ${eventData.type} ${eventData.sender} ${eventData.state_key ?? body ?? ''}`
             );
             return {roomId: eventRoomId, data: eventData};
         }, `Timed out waiting for ${eventType} from ${sender} in ${roomId || "any room"}`)
@@ -170,6 +173,9 @@ export class IrcBridgeE2ETest {
                 connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${postgresDb}`,
             },
             ircService: {
+                ircHandler: {
+                    powerLevelGracePeriodMs: 0,
+                },
                 servers: {
                     localhost: {
                         ...IrcServer.DEFAULT_CONFIG,
