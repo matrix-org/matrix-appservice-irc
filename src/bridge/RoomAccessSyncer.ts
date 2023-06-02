@@ -245,9 +245,14 @@ export class RoomAccessSyncer {
                 req.log.info(`Bridged client for ${nick} has no IRC client.`);
                 return BridgeRequestErr.ERR_DROPPED;
             }
-            const userPrefixes = bridgedClient.chanData(channel)?.users.get(nick);
-            if (!userPrefixes) {
-                req.log.error(`No channel data for ${channel}/${nick}`);
+            const chanData = bridgedClient.chanData(channel);
+            if (!chanData) {
+                req.log.error(`No channel data for ${channel}`);
+                return BridgeRequestErr.ERR_DROPPED;
+            }
+            const userPrefixes = chanData.users.get(nick);
+            if (userPrefixes === undefined) {
+                req.log.error(`No channel data for ${channel}/${nick}. Is the user still joined to the channel?`);
                 return BridgeRequestErr.ERR_DROPPED;
             }
             userPrefixes.split('').forEach(
