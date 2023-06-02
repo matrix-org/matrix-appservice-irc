@@ -352,7 +352,6 @@ export class ConnectionInstance {
         });
         // decorate client.send to refresh the timer
         const realSend = this.client.send;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.client.send = (...args: string[]) => {
             keepAlivePing();
             this.resetPingSendTimer(); // sending a message counts as a ping

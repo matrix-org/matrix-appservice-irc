@@ -4249,10 +4249,10 @@ matrix-appservice@^2.0.0:
     request-promise "^4.2.6"
     sanitize-html "^2.8.0"
 
-matrix-org-irc@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/matrix-org-irc/-/matrix-org-irc-2.0.0.tgz#b89f932979bd7550c18f551af6dd821b14277c76"
-  integrity sha512-NFpFX7oa8SF8KBW068o9+k6Gw1LnyMnJflVOXYToxW5NBIDvyYXbuftB1BM3Bsflpv0FgodNLmH35PL/1o0s+w==
+matrix-org-irc@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/matrix-org-irc/-/matrix-org-irc-2.0.1.tgz#80cc1ce3abb3e8f240bbc3b4acf1a0fe0f1057e7"
+  integrity sha512-Qnzx1r5QjTtm63oGUY/XyE3t+1xH43CaC8r3QifkKmBihrYyhHq4bpMsnxNYb558sc2j52pixJ5CUsQ8zMediQ==
   dependencies:
     chardet "^1.5.1"
     iconv-lite "^0.6.3"
