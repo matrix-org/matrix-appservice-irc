@@ -30,7 +30,8 @@ interface Opts {
 export class E2ETestMatrixClient extends MatrixClient {
 
     public async waitForRoomEvent<T extends object = Record<string, unknown>>(
-        opts: {eventType: string, sender: string, roomId?: string, stateKey?: string}
+        opts: {eventType: string, sender: string, roomId?: string, stateKey?: string},
+        timeout = WAIT_EVENT_TIMEOUT,
     ): Promise<{roomId: string, data: {
         sender: string, type: string, state_key?: string, content: T, event_id: string,
     }}> {
@@ -56,7 +57,7 @@ export class E2ETestMatrixClient extends MatrixClient {
                 `${eventRoomId} ${eventData.event_id} ${eventData.type} ${eventData.sender} ${eventData.state_key ?? body ?? ''}`
             );
             return {roomId: eventRoomId, data: eventData};
-        }, `Timed out waiting for ${eventType} from ${sender} in ${roomId || "any room"}`)
+        }, `Timed out waiting for ${eventType} from ${sender} in ${roomId || "any room"}`, timeout)
     }
 
     public async waitForRoomInvite(
@@ -80,7 +81,8 @@ export class E2ETestMatrixClient extends MatrixClient {
 
     public async waitForEvent<T>(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        emitterType: string, filterFn: (...args: any[]) => T|undefined, timeoutMsg: string)
+        emitterType: string, filterFn: (...args: any[]) => T|undefined, timeoutMsg: string,
+        timeout = WAIT_EVENT_TIMEOUT)
     : Promise<T> {
         return new Promise((resolve, reject) => {
             // eslint-disable-next-line prefer-const
@@ -95,7 +97,7 @@ export class E2ETestMatrixClient extends MatrixClient {
             timer = setTimeout(() => {
                 this.removeListener(emitterType, fn);
                 reject(new Error(timeoutMsg));
-            }, WAIT_EVENT_TIMEOUT);
+            }, timeout);
             this.on(emitterType, fn)
         });
     }

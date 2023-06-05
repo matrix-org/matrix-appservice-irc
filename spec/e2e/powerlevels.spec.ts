@@ -31,10 +31,10 @@ describe('Ensure powerlevels are appropriately applied', () => {
 
         // Now have charlie join and be opped.
         await charlie.join(channel);
-        await bob.send('MODE', channel, '+o', charlie.nick);
         await alice.waitForRoomEvent(
             {eventType: 'm.room.member', sender: charlieUserId, stateKey: charlieUserId, roomId: cRoomId}
         );
+        await bob.send('MODE', channel, '+o', charlie.nick);
         const powerLevel = alice.waitForRoomEvent<PowerLevelContent>(
             {eventType: 'm.room.power_levels', roomId: cRoomId, sender: testEnv.ircBridge.appServiceUserId}
         );
