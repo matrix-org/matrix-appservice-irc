@@ -166,8 +166,13 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
     public async close() {
         clearInterval(this.heartbeatInterval);
         this.shouldRun = false;
-        this.redis.quit();
-        this.cmdReader.quit();
+        // Catch these, because it's quite explosive.
+        this.redis.quit().catch((ex) => {
+            log.warn('Failed to quit redis writer', ex);
+        });
+        this.cmdReader.quit().catch((ex) => {
+            log.warn('Failed to quit redis command reader', ex);
+        });
     }
 
     public async handleIncomingCommand() {
