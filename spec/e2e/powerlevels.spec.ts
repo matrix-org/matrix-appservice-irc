@@ -40,7 +40,6 @@ describe('Ensure powerlevels are appropriately applied', () => {
         );
 
         const powerlevelContent = (await powerLevel).data.content;
-        console.log(powerlevelContent.users);
         expect(powerlevelContent.users![charlieUserId]).toEqual(
             testEnv.ircBridge.config.ircService.servers.localhost.modePowerMap!.o
         );
