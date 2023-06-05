@@ -188,8 +188,8 @@ export class IrcConnectionPool {
             if (data.includes('PING')) {
                 const msg = parseMessage(data.toString('utf-8'), false);
                 if (msg.command === 'PING') {
-                    log.warn(`Sending PONG for ${clientId}, since the bridge didn't respond fast enough.`);
                     this.connectionPongTimeouts.set(clientId, setTimeout(() => {
+                        log.warn(`Sending PONG for ${clientId}, since the bridge didn't respond fast enough.`);
                         connection.write('PONG ' + msg.args[0] + "\r\n");
                     }, TIME_TO_WAIT_BEFORE_PONG));
                 }
