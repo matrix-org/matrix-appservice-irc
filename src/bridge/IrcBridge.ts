@@ -681,6 +681,11 @@ export class IrcBridge {
 
         this.clientPool = new ClientPool(this, this.dataStore, this.ircPoolClient);
 
+        if (this.ircPoolClient) {
+            // Discover connected clients.
+            await this.clientPool.discoverPoolConnectedClients();
+        }
+
         if (this.config.ircService.debugApi.enabled) {
             this.debugApi = new DebugApi(
                 this,

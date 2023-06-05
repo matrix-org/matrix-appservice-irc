@@ -128,6 +128,33 @@ export class ClientPool {
         return this.botClients.get(server.domain);
     }
 
+    /**
+     * Discover any clients connected from a previous session when
+     * using the pool
+     */
+    public async discoverPoolConnectedClients() {
+        if (!this.redisPool) {
+            log.warn("discoverPoolConnectedClients called but redisPool wasn't set. No clients discovered");
+            return;
+        }
+
+        for await (const connection of this.redisPool.getPreviouslyConnectedClients()) {
+            if (connection.clientId === 'bot') {
+                continue;
+            }
+            // HACK: This is a safe assumption *for now* but when the proxy supports multiple
+            // servers this will break!
+            const server = this.ircBridge.getServers()[0];
+            try {
+                await this.getBridgedClient(server, connection.clientId);
+                log.info(`Connected previously connected user ${connection.clientId}`);
+            }
+            catch (ex) {
+                log.warn(`Failed to connect ${connection.clientId}, who is connected through the proxy`, ex);
+            }
+        }
+    }
+
     public async loginToServer(server: IrcServer): Promise<BridgedClient> {
         let bridgedClient = this.getBot(server);
         if (!bridgedClient) {

@@ -53,6 +53,25 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         log.debug(`Sent command in ${type}: ${payload}`);
     }
 
+
+    public async *getPreviouslyConnectedClients(): AsyncGenerator<RedisIrcConnection> {
+        let count = 0;
+        for (const [clientId, clientAddressPair] of
+            Object.entries(await this.redis.hgetall(REDIS_IRC_POOL_CONNECTIONS))) {
+            const [, address, portStr] = /(.+):(\d+)/.exec(clientAddressPair) || [];
+
+            // Doing this here allows us to frontload the work that would be done in createOrGetIrcSocket
+            const state = await IrcClientRedisState.create(this.redis, clientId, false);
+            const connection = new RedisIrcConnection(this, clientId, state);
+            const port = parseInt(portStr);
+            connection.setConnectionInfo({ localPort: port, localIp: address, clientId });
+            this.connections.set(clientId, Promise.resolve(connection));
+            yield connection;
+            count++;
+        }
+        log.info(`Found ${count} previously connected clients`);
+    }
+
     public async createOrGetIrcSocket(clientId: string, netOpts: ConnectionCreateArgs): Promise<RedisIrcConnection> {
         const existingConnection = this.connections.get(clientId);
         if (existingConnection) {
