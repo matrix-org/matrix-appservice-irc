@@ -1,7 +1,6 @@
 // Controls the logic for determining which membership lists should be synced and
 // handles the sequence of events until the lists are in sync.
 
-import Bluebird from "bluebird";
 import { IrcBridge } from "./IrcBridge";
 import { AppServiceBot, MembershipQueue } from "matrix-appservice-bridge";
 import { IrcServer } from "../irc/IrcServer";
@@ -35,8 +34,15 @@ interface LeaveQueueItem {
     userIds: string[];
 }
 
+interface MemberJoinEntry {
+    roomId: string;
+    displayName: string;
+    userId: string;
+    frontier: boolean
+}
+
 type InjectJoinFn = (roomId: string, joiningUserId: string,
-                     displayName: string, isFrontier: boolean) => PromiseLike<unknown>;
+                     displayName: string, isFrontier: boolean) => PromiseLike<boolean>;
 
 export class MemberListSyncer {
     private syncableRoomsPromise: Promise<RoomInfo[]>|null = null;
@@ -260,7 +266,7 @@ export class MemberListSyncer {
 
         // map the filtered rooms to a list of users to join
         // [Room:{reals:[uid,uid]}, ...] => [{uid,roomid}, ...]
-        const entries: { roomId: string; displayName: string; userId: string; frontier: boolean}[] = [];
+        const entries: MemberJoinEntry[] = [];
         const idleRegex = this.server.ignoreIdleUsersOnStartupExcludeRegex;
         for (const roomInfo of filteredRooms) {
             for (const uid of roomInfo.realJoinedUsers) {
@@ -301,36 +307,34 @@ export class MemberListSyncer {
 
         log.debug("Got %s matrix join events to inject.", entries.length);
         this.usersToJoin = entries.length;
-        const d = promiseutil.defer();
-        // take the first entry and inject a join event
-        const joinNextUser = () => {
-            const entry = entries.shift();
-            if (!entry) {
-                d.resolve();
-                return;
-            }
+
+        let entry: MemberJoinEntry|undefined;
+        // eslint-disable-next-line no-cond-assign
+        while (entry = entries.shift()) {
             this.usersToJoin--;
             if (entry.userId.startsWith("@-")) {
-                joinNextUser();
-                return;
+                // Ignore guest users.
+                continue;
             }
             log.debug(
                 "Injecting join event for %s in %s (%s left) is_frontier=%s",
                 entry.userId, entry.roomId, entries.length, entry.frontier
             );
-            Bluebird.cast(injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier)).timeout(
-                this.server.getMemberListFloodDelayMs()
-            ).then(() => {
-                joinNextUser();
-            }).catch(() => {
+            try {
+                const freshConnection =
+                    await injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier);
+
+                // We only need to delay if the connection is "fresh" i.e. makes an impact on the ircd.
+                // If this is just reestablising a connection to the proxy then we can go as fast as
+                // we like!
+                if (freshConnection) {
+                    await promiseutil.delay(this.server.getMemberListFloodDelayMs());
+                }
+            }
+            catch {
                 // discard error, this will be due to timeouts which we don't want to log
-                joinNextUser();
-            })
+            }
         }
-
-        joinNextUser();
-
-        return d.promise;
     }
 
     public leaveIrcUsersFromRooms(rooms: RoomInfo[]) {

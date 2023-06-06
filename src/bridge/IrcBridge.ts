@@ -681,6 +681,11 @@ export class IrcBridge {
 
         this.clientPool = new ClientPool(this, this.dataStore, this.ircPoolClient);
 
+        if (this.ircPoolClient) {
+            // Discover connected clients.
+            await this.clientPool.discoverPoolConnectedClients();
+        }
+
         if (this.config.ircService.debugApi.enabled) {
             this.debugApi = new DebugApi(
                 this,
@@ -767,14 +772,15 @@ export class IrcBridge {
             // TODO Remove injectJoinFn bodge
             this.memberListSyncers[server.domain] = new MemberListSyncer(
                 this, this.membershipQueue, this.bridge.getBot(), server, this.appServiceUserId,
-                (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
+                async (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
                     const req = new BridgeRequest(
                         this.bridge.getRequestFactory().newRequest()
                     );
+                    const isFresh = !this.clientPool.getBridgedClientByUserId(server, joiningUserId);
                     const target = new MatrixUser(joiningUserId);
                     // inject a fake join event which will do M->I connections and
                     // therefore sync the member list
-                    return this.matrixHandler.onJoin(req, {
+                    await this.matrixHandler.onJoin(req, {
                         room_id: roomId,
                         content: {
                             displayname: displayName,
@@ -786,6 +792,7 @@ export class IrcBridge {
                         event_id: "!injected",
                         _frontier: isFrontier
                     }, target);
+                    return isFresh;
                 }
             );
             memberlistPromises.push(
@@ -813,7 +820,7 @@ export class IrcBridge {
         log.info("Connecting to IRC networks...");
         await this.connectToIrcNetworks();
 
-        await promiseutil.allSettled(this.ircServers.map((server) => {
+        await Promise.allSettled(this.ircServers.map((server) => {
             // Call MODE on all known channels to get modes of all channels
             return Bluebird.cast(this.publicitySyncer.initModes(server));
         })).catch((err) => {
@@ -962,7 +969,7 @@ export class IrcBridge {
             }
             await this.bridge.getIntent().join(roomId);
         }).map(Bluebird.cast);
-        await promiseutil.allSettled(promises);
+        await Promise.allSettled(promises);
     }
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser|undefined, action: MatrixAction): Promise<void> {

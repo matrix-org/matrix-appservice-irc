@@ -44,11 +44,3 @@ export function defer<T>(): Defer<T> {
 export function delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-/**
- * Waits for all Promises to be "settled". A Promise is settled when
- * it resolves or rejects.
- */
-export function allSettled<T>(promises: Bluebird<T>[]): Promise<Bluebird.Inspection<T>[]> {
-    return Promise.all(promises.map(p => p.reflect()));
-}
