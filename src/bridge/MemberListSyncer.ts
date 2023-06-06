@@ -308,9 +308,11 @@ export class MemberListSyncer {
         log.debug("Got %s matrix join events to inject.", entries.length);
         this.usersToJoin = entries.length;
 
-        for (let entry: MemberJoinEntry|undefined; entries.length > 0; entry = entries.shift()) {
+        let entry: MemberJoinEntry|undefined;
+        // eslint-disable-next-line no-cond-assign
+        while (entry = entries.shift()) {
             this.usersToJoin--;
-            if (!entry || entry.userId.startsWith("@-")) {
+            if (entry.userId.startsWith("@-")) {
                 // Ignore guest users.
                 continue;
             }
