@@ -784,14 +784,15 @@ export class Provisioner extends ProvisioningApi {
         userId: string,
     ): Promise<void> {
         const ircDomain = server.domain;
+        const store = this.ircBridge.getStore();
         const mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
-        req.log.info(`Provisioning link for room ${mappingLogId}`);
+        req.log.info(`Provisioning link for room ${mappingLogId} for ${userId}`);
 
         // Create rooms for the link
         const ircRoom = new IrcRoom(server, ircChannel);
         const mxRoom = new MatrixRoom(roomId);
 
-        const entry = await this.ircBridge.getStore().getRoom(roomId, ircDomain, ircChannel);
+        const entry = await store.getRoom(roomId, ircDomain, ircChannel);
         if (entry) {
             throw new IrcProvisioningError(
                 'Room mapping already exists',
@@ -810,7 +811,7 @@ export class Provisioner extends ProvisioningApi {
             await botClient.joinChannel(ircChannel, key);
         }
 
-        await this.ircBridge.getStore().storeRoom(ircRoom, mxRoom, 'provision');
+        await store.storeRoom(ircRoom, mxRoom, 'provision');
 
         try {
             // Cause the provisioner to join the IRC channel
@@ -862,7 +863,7 @@ export class Provisioner extends ProvisioningApi {
         const roomId = body.matrix_room_id;
         const mappingLogId = `${roomId} <-/-> ${ircDomain}/${ircChannel}`;
 
-        req.log.info(`Provisioning unlink for room ${mappingLogId}`);
+        req.log.info(`Provisioning unlink for room ${mappingLogId} (for ${userId})`);
 
         // Try to find the domain requested for unlinking
         const server = this.ircBridge.getServer(ircDomain);
