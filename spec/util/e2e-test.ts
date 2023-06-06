@@ -279,15 +279,29 @@ export class IrcBridgeE2ETest {
         await this.ircBridge.run(null);
     }
 
+    private static async warnOnSlowTearDown<T>(name: string, handler: () => Promise<T>) {
+        const timeout = setTimeout(() => {
+            console.warn(`Teardown fn ${name} has taken over 5 seconds to complete`);
+        }, 5000);
+        try {
+            await handler();
+        }
+        finally {
+            clearTimeout(timeout);
+        }
+    }
+
     public async tearDown(): Promise<void> {
         await Promise.allSettled([
-            this.ircBridge?.kill(),
-            this.ircTest.tearDown(),
-            this.homeserver?.users.map(c => c.client.stop()),
-            this.homeserver && destroyHS(this.homeserver.id),
-            this.dropDatabase(),
+            IrcBridgeE2ETest.warnOnSlowTearDown('ircBridge.kill', () => this.ircBridge?.kill()),
+            // TODO: Skip teardown if the clients are already disconnected.
+            // IrcBridgeE2ETest.warnOnSlowTearDown('ircTest.tearDown', () => this.ircTest.tearDown()),
+            IrcBridgeE2ETest.warnOnSlowTearDown('homeserver.stop',
+                () => Promise.all(this.homeserver?.users.map(c => c.client.stop()))),
+            IrcBridgeE2ETest.warnOnSlowTearDown('destroyHS', () => destroyHS(this.homeserver.id)),
+            IrcBridgeE2ETest.warnOnSlowTearDown('dropDatabase', () => this.dropDatabase()),
         ]);
-        await this.pool?.close();
+        await IrcBridgeE2ETest.warnOnSlowTearDown('pool.close()', async () => this.pool?.close());
     }
 
     public async createAdminRoomHelper(client: E2ETestMatrixClient): Promise<string> {

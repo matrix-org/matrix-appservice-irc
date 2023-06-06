@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { TestIrcServer } from "matrix-org-irc";
 import { IrcBridgeE2ETest } from "../util/e2e-test";
-import { describe, it } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 
 const MEMBERSHIP_TIMEOUT = 3000;
 
@@ -38,7 +38,7 @@ describe('Ensure membership is synced to IRC rooms', () => {
                 alice.waitForRoomEvent(
                     {eventType: 'm.room.member', sender: ircUser.userId, stateKey: ircUser.userId, roomId: cRoomId},
                     MEMBERSHIP_TIMEOUT,
-                )
+                ).then(({data}) => expect(data.content.membership).toEqual("join"))
             )
             await ircUser.client.join(channel);
         }
@@ -67,7 +67,7 @@ describe('Ensure membership is synced to IRC rooms', () => {
                 alice.waitForRoomEvent(
                     {eventType: 'm.room.member', sender: ircUser.userId, stateKey: ircUser.userId, roomId: cRoomId},
                     MEMBERSHIP_TIMEOUT,
-                )
+                ).then(({data}) => expect(data.content.membership).toEqual("join"))
             )
             await ircUser.client.join(channel);
         }
@@ -80,7 +80,7 @@ describe('Ensure membership is synced to IRC rooms', () => {
                 alice.waitForRoomEvent(
                     {eventType: 'm.room.member', sender: ircUser.userId, stateKey: ircUser.userId, roomId: cRoomId},
                     MEMBERSHIP_TIMEOUT,
-                )
+                ).then(({data}) => expect(data.content.membership).toEqual("leave"))
             )
             await ircUser.client.part(channel, 'getting out of here!');
         }
@@ -108,7 +108,7 @@ describe('Ensure membership is synced to IRC rooms', () => {
                 alice.waitForRoomEvent(
                     {eventType: 'm.room.member', sender: ircUser.userId, stateKey: ircUser.userId, roomId: cRoomId},
                     MEMBERSHIP_TIMEOUT,
-                )
+                ).then(({data}) => expect(data.content.membership).toEqual("join"))
             )
             await ircUser.client.join(channel);
         }
@@ -121,7 +121,7 @@ describe('Ensure membership is synced to IRC rooms', () => {
                 alice.waitForRoomEvent(
                     {eventType: 'm.room.member', sender: ircUser.userId, stateKey: ircUser.userId, roomId: cRoomId},
                     MEMBERSHIP_TIMEOUT,
-                )
+                ).then(({data}) => expect(data.content.membership).toEqual("leave"))
             )
             await ircUser.client.disconnect();
         }
