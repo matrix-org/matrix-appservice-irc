@@ -1,7 +1,6 @@
 // Controls the logic for determining which membership lists should be synced and
 // handles the sequence of events until the lists are in sync.
 
-import Bluebird from "bluebird";
 import { IrcBridge } from "./IrcBridge";
 import { AppServiceBot, MembershipQueue } from "matrix-appservice-bridge";
 import { IrcServer } from "../irc/IrcServer";
