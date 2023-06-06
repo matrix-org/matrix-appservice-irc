@@ -681,10 +681,9 @@ export class IrcBridge {
 
         this.clientPool = new ClientPool(this, this.dataStore, this.ircPoolClient);
 
-        if (this.ircPoolClient) {
-            // Discover connected clients.
-            await this.clientPool.discoverPoolConnectedClients();
-        }
+        // We can begin discovering clients from the pool immediately.
+        const discoveringClientsPromise = this.clientPool.discoverPoolConnectedClients();
+
 
         if (this.config.ircService.debugApi.enabled) {
             this.debugApi = new DebugApi(
@@ -761,6 +760,9 @@ export class IrcBridge {
         log.info("Syncing relevant membership lists...");
         const memberlistPromises: Promise<void>[] = [];
 
+        // Note in the following section we will be waiting for discoveringClientsPromise
+        // to complete before we execute our first join, this is by design so we don't
+        // acidentally connect the same user twice by doing two mass client create loops.
         this.ircServers.forEach((server) => {
             //  If memberlist-syncing 100s of connections, the scheduler will cause massive
             //  waiting times for connections to be created.
@@ -773,6 +775,7 @@ export class IrcBridge {
             this.memberListSyncers[server.domain] = new MemberListSyncer(
                 this, this.membershipQueue, this.bridge.getBot(), server, this.appServiceUserId,
                 async (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
+                    await discoveringClientsPromise;
                     const req = new BridgeRequest(
                         this.bridge.getRequestFactory().newRequest()
                     );
@@ -828,6 +831,7 @@ export class IrcBridge {
             log.error(err.stack);
         });
 
+        await discoveringClientsPromise;
         await Promise.all(memberlistPromises);
 
         // Reset reconnectIntervals

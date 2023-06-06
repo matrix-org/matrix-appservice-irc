@@ -134,7 +134,6 @@ export class ClientPool {
      */
     public async discoverPoolConnectedClients() {
         if (!this.redisPool) {
-            log.warn("discoverPoolConnectedClients called but redisPool wasn't set. No clients discovered");
             return;
         }
 
