@@ -772,14 +772,15 @@ export class IrcBridge {
             // TODO Remove injectJoinFn bodge
             this.memberListSyncers[server.domain] = new MemberListSyncer(
                 this, this.membershipQueue, this.bridge.getBot(), server, this.appServiceUserId,
-                (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
+                async (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
                     const req = new BridgeRequest(
                         this.bridge.getRequestFactory().newRequest()
                     );
+                    const isFresh = !this.clientPool.getBridgedClientByUserId(server, joiningUserId);
                     const target = new MatrixUser(joiningUserId);
                     // inject a fake join event which will do M->I connections and
                     // therefore sync the member list
-                    return this.matrixHandler.onJoin(req, {
+                    await this.matrixHandler.onJoin(req, {
                         room_id: roomId,
                         content: {
                             displayname: displayName,
@@ -791,6 +792,7 @@ export class IrcBridge {
                         event_id: "!injected",
                         _frontier: isFrontier
                     }, target);
+                    return isFresh;
                 }
             );
             memberlistPromises.push(

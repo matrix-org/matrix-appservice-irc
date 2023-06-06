@@ -140,9 +140,10 @@ export class ClientPool {
 
         for await (const connection of this.redisPool.getPreviouslyConnectedClients()) {
             if (connection.clientId === 'bot') {
+                // The bot will be connected via the usual process.
                 continue;
             }
-            // HACK: This is a safe assumption *for now* but when the proxy supports multiple
+            // XXX: This is a safe assumption *for now* but when the proxy supports multiple
             // servers this will break!
             const server = this.ircBridge.getServers()[0];
             try {
