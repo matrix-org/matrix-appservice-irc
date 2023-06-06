@@ -29,12 +29,15 @@ interface Opts {
 
 export class E2ETestMatrixClient extends MatrixClient {
 
-    public async waitForRoomEvent(
-        opts: {eventType: string, sender: string, roomId?: string, stateKey?: string}
-    ): Promise<{roomId: string, data: unknown}> {
+    public async waitForRoomEvent<T extends object = Record<string, unknown>>(
+        opts: {eventType: string, sender: string, roomId?: string, stateKey?: string},
+        timeout = WAIT_EVENT_TIMEOUT,
+    ): Promise<{roomId: string, data: {
+        sender: string, type: string, state_key?: string, content: T, event_id: string,
+    }}> {
         const {eventType, sender, roomId, stateKey} = opts;
         return this.waitForEvent('room.event', (eventRoomId: string, eventData: {
-            sender: string, type: string, state_key?: string, content: {body?: string}, event_id: string,
+            sender: string, type: string, state_key?: string, content: T, event_id: string,
         }) => {
             if (eventData.sender !== sender) {
                 return undefined;
@@ -48,12 +51,13 @@ export class E2ETestMatrixClient extends MatrixClient {
             if (stateKey !== undefined && eventData.state_key !== stateKey) {
                 return undefined;
             }
+            const body = 'body' in eventData.content && eventData.content.body;
             console.info(
                 // eslint-disable-next-line max-len
-                `${eventRoomId} ${eventData.event_id} ${eventData.type} ${eventData.sender} ${eventData.state_key ?? eventData.content?.body ?? ''}`
+                `${eventRoomId} ${eventData.event_id} ${eventData.type} ${eventData.sender} ${eventData.state_key ?? body ?? ''}`
             );
             return {roomId: eventRoomId, data: eventData};
-        }, `Timed out waiting for ${eventType} from ${sender} in ${roomId || "any room"}`)
+        }, `Timed out waiting for ${eventType} from ${sender} in ${roomId || "any room"}`, timeout)
     }
 
     public async waitForRoomInvite(
@@ -77,7 +81,8 @@ export class E2ETestMatrixClient extends MatrixClient {
 
     public async waitForEvent<T>(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        emitterType: string, filterFn: (...args: any[]) => T|undefined, timeoutMsg: string)
+        emitterType: string, filterFn: (...args: any[]) => T|undefined, timeoutMsg: string,
+        timeout = WAIT_EVENT_TIMEOUT)
     : Promise<T> {
         return new Promise((resolve, reject) => {
             // eslint-disable-next-line prefer-const
@@ -92,7 +97,7 @@ export class E2ETestMatrixClient extends MatrixClient {
             timer = setTimeout(() => {
                 this.removeListener(emitterType, fn);
                 reject(new Error(timeoutMsg));
-            }, WAIT_EVENT_TIMEOUT);
+            }, timeout);
             this.on(emitterType, fn)
         });
     }
@@ -170,6 +175,9 @@ export class IrcBridgeE2ETest {
                 connectionString: `${process.env.IRCBRIDGE_TEST_PGURL}/${postgresDb}`,
             },
             ircService: {
+                ircHandler: {
+                    powerLevelGracePeriodMs: 0,
+                },
                 servers: {
                     localhost: {
                         ...IrcServer.DEFAULT_CONFIG,
@@ -271,15 +279,29 @@ export class IrcBridgeE2ETest {
         await this.ircBridge.run(null);
     }
 
+    private static async warnOnSlowTearDown<T>(name: string, handler: () => Promise<T>) {
+        const timeout = setTimeout(() => {
+            console.warn(`Teardown fn ${name} has taken over 5 seconds to complete`);
+        }, 5000);
+        try {
+            await handler();
+        }
+        finally {
+            clearTimeout(timeout);
+        }
+    }
+
     public async tearDown(): Promise<void> {
         await Promise.allSettled([
-            this.ircBridge?.kill(),
-            this.ircTest.tearDown(),
-            this.homeserver?.users.map(c => c.client.stop()),
-            this.homeserver && destroyHS(this.homeserver.id),
-            this.dropDatabase(),
+            IrcBridgeE2ETest.warnOnSlowTearDown('ircBridge.kill', () => this.ircBridge?.kill()),
+            // TODO: Skip teardown if the clients are already disconnected.
+            // IrcBridgeE2ETest.warnOnSlowTearDown('ircTest.tearDown', () => this.ircTest.tearDown()),
+            IrcBridgeE2ETest.warnOnSlowTearDown('homeserver.stop',
+                () => Promise.all(this.homeserver?.users.map(c => c.client.stop()))),
+            IrcBridgeE2ETest.warnOnSlowTearDown('destroyHS', () => destroyHS(this.homeserver.id)),
+            IrcBridgeE2ETest.warnOnSlowTearDown('dropDatabase', () => this.dropDatabase()),
         ]);
-        await this.pool?.close();
+        await IrcBridgeE2ETest.warnOnSlowTearDown('pool.close()', async () => this.pool?.close());
     }
 
     public async createAdminRoomHelper(client: E2ETestMatrixClient): Promise<string> {
