@@ -1308,7 +1308,7 @@ describe("Admin rooms", function() {
         });
         await sendPromise;
         userCfg = await env.ircBridge.getStore().getIrcClientConfig(userId, roomMapping.server);
-        expect(userCfg.getUsername()).toEqual(defaultUsername);  // unchanged
+        expect(userCfg.getUsername()).toEqual(defaultUsername); // unchanged
     });
 
     it("should be able to store a password with !storepass", async function() {

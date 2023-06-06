@@ -25,7 +25,6 @@ import { MatrixHandler, MatrixSimpleMessage } from "./MatrixHandler";
 import logging from "../logging";
 import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "matrix-appservice-bridge";
-import { IdentGenerator } from "../irc/IdentGenerator";
 import { Provisioner } from "../provisioning/Provisioner";
 import { IrcProvisioningError } from "../provisioning/Schema";
 
@@ -48,7 +47,7 @@ const SANE_USERNAME_LENGTH = 64;
 // and IRCv3 draft/account-registration.
 // Since we are at it, we might as well ban other non-printable ASCII characters
 // (0x00 to 0x1F, plus DEL (0x7F)), as they are most likely mistakes.
-const SASL_USERNAME_INVALID_CHARS_PATTERN = /[\x00-\x20\x7F]+/;
+const SASL_USERNAME_INVALID_CHARS_PATTERN = /[\u0000-\u0020\u007F]+/;
 
 interface Command {
     example: string;
@@ -518,7 +517,8 @@ export class AdminRoomHandler {
             else if (invalidChars !== null) {
                 notice = new MatrixAction(
                     ActionType.Notice,
-                    `Username contained invalid characters not supported by IRC (${JSON.stringify(invalidChars.join(""))}).`
+                    "Username contained invalid characters not supported by IRC " +
+                    `(${JSON.stringify(invalidChars.join(""))}).`
                 );
             }
             else {
