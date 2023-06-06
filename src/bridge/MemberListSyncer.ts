@@ -318,7 +318,7 @@ export class MemberListSyncer {
                 // If this is just reestablising a connection to the proxy then we can go as fast as
                 // we like!
                 if (freshConnection) {
-                    await new Promise((r => setTimeout(r, this.server.getMemberListFloodDelayMs())))
+                    await promiseutil.delay(this.server.getMemberListFloodDelayMs());
                 }
             }
             catch {

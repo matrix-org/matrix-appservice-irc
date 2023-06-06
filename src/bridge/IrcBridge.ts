@@ -820,7 +820,7 @@ export class IrcBridge {
         log.info("Connecting to IRC networks...");
         await this.connectToIrcNetworks();
 
-        await promiseutil.allSettled(this.ircServers.map((server) => {
+        await Promise.allSettled(this.ircServers.map((server) => {
             // Call MODE on all known channels to get modes of all channels
             return Bluebird.cast(this.publicitySyncer.initModes(server));
         })).catch((err) => {
@@ -969,7 +969,7 @@ export class IrcBridge {
             }
             await this.bridge.getIntent().join(roomId);
         }).map(Bluebird.cast);
-        await promiseutil.allSettled(promises);
+        await Promise.allSettled(promises);
     }
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser|undefined, action: MatrixAction): Promise<void> {
