@@ -34,6 +34,13 @@ interface LeaveQueueItem {
     userIds: string[];
 }
 
+interface MemberJoinEntry {
+    roomId: string;
+    displayName: string;
+    userId: string;
+    frontier: boolean
+}
+
 type InjectJoinFn = (roomId: string, joiningUserId: string,
                      displayName: string, isFrontier: boolean) => PromiseLike<boolean>;
 
@@ -259,7 +266,7 @@ export class MemberListSyncer {
 
         // map the filtered rooms to a list of users to join
         // [Room:{reals:[uid,uid]}, ...] => [{uid,roomid}, ...]
-        const entries: { roomId: string; displayName: string; userId: string; frontier: boolean}[] = [];
+        const entries: MemberJoinEntry[] = [];
         const idleRegex = this.server.ignoreIdleUsersOnStartupExcludeRegex;
         for (const roomInfo of filteredRooms) {
             for (const uid of roomInfo.realJoinedUsers) {
@@ -301,10 +308,11 @@ export class MemberListSyncer {
         log.debug("Got %s matrix join events to inject.", entries.length);
         this.usersToJoin = entries.length;
 
-        for (let entry = entries.shift(); entry;) {
+        for (let entry: MemberJoinEntry|undefined; entries.length > 0; entry = entries.shift()) {
             this.usersToJoin--;
-            if (entry.userId.startsWith("@-")) {
+            if (!entry || entry.userId.startsWith("@-")) {
                 // Ignore guest users.
+                continue;
             }
             log.debug(
                 "Injecting join event for %s in %s (%s left) is_frontier=%s",
