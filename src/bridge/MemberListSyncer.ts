@@ -309,6 +309,7 @@ export class MemberListSyncer {
         this.usersToJoin = entries.length;
 
         let entry: MemberJoinEntry|undefined;
+        const floodDelayMs = this.server.getMemberListFloodDelayMs();
         // eslint-disable-next-line no-cond-assign
         while (entry = entries.shift()) {
             this.usersToJoin--;
@@ -321,18 +322,19 @@ export class MemberListSyncer {
                 entry.userId, entry.roomId, entries.length, entry.frontier
             );
             try {
-                const freshConnection =
-                    await injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier);
-
-                // We only need to delay if the connection is "fresh" i.e. makes an impact on the ircd.
-                // If this is just reestablising a connection to the proxy then we can go as fast as
-                // we like!
-                if (freshConnection) {
-                    await promiseutil.delay(this.server.getMemberListFloodDelayMs());
-                }
+                // Inject a join to connect the user. We wait up til the delay time,
+                // and then just connect the next user.
+                // If the user connects *faster* than the delay time, then we need
+                // to delay for the remainder.
+                const delayPromise = promiseutil.delay(floodDelayMs);
+                await Promise.race([
+                    delayPromise,
+                    injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier),
+                ]);
+                await delayPromise;
             }
-            catch {
-                // discard error, this will be due to timeouts which we don't want to log
+            catch (ex) {
+                log.debug(`Failed to inject join for ${entry.userId} ${entry.roomId}`);
             }
         }
     }
