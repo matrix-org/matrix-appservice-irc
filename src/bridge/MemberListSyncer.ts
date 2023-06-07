@@ -310,9 +310,13 @@ export class MemberListSyncer {
     }
 
     public async joinMatrixUsersToChannels() {
+        const start = Date.now();
+        log.info("Joining all Matrix users in all channel rooms");
         const entries = this.memberEntriesToSync;
         if (entries === undefined) {
-            throw Error('No entries collected for joining');
+            // Can be expected if syncing is off.
+            log.info(`joinMatrixUsersToChannels: No entries collected for joining`);
+            return;
         }
         this.usersToJoin = entries.length;
 
@@ -345,6 +349,7 @@ export class MemberListSyncer {
                 log.debug(`Failed to inject join for ${entry.userId} ${entry.roomId}`);
             }
         }
+        log.info("Joining all Matrix users in all channel rooms. (%sms)", Date.now() - start);
     }
 
     public leaveIrcUsersFromRooms(rooms: RoomInfo[]) {

@@ -802,9 +802,9 @@ export class IrcBridge {
                 // all the clients already connected to avoid races.
                 syncer.sync().then(() =>
                     discoveringClientsPromise
-                ).finally(() =>
+                ).finally(() => {
                     syncer.joinMatrixUsersToChannels()
-                )
+                })
             );
         });
 
