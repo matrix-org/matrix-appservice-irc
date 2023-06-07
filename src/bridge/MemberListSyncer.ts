@@ -52,6 +52,7 @@ export class MemberListSyncer {
         irc: {[channel: string]: string[]};
         matrix: {[roomId: string]: RoomInfo};
     } = { irc: {}, matrix: {} };
+    private memberEntriesToSync?: MemberJoinEntry[];
 
     constructor(private ircBridge: IrcBridge, private memberQueue: MembershipQueue,
                 private appServiceBot: AppServiceBot, private server: IrcServer,
@@ -70,9 +71,9 @@ export class MemberListSyncer {
         log.info("Found %s syncable rooms (%sms)", rooms.length, Date.now() - start);
         this.leaveIrcUsersFromRooms(rooms);
         start = Date.now();
-        log.info("Joining Matrix users to IRC channels...");
-        await this.joinMatrixUsersToChannels(rooms, this.injectJoinFn);
-        log.info("Joined Matrix users to IRC channels. (%sms)", Date.now() - start);
+        log.info("Collecting all Matrix users in all channel rooms...");
+        await this.collectMatrixUsersToJoinToChannels(rooms);
+        log.info("Collected all Matrix users in all channel rooms. (%sms)", Date.now() - start);
         // NB: We do not need to explicitly join IRC users to Matrix rooms
         // because we get all of the NAMEs/JOINs as events when we connect to
         // the IRC server. This effectively "injects" the list for us.
@@ -240,8 +241,7 @@ export class MemberListSyncer {
         return this.syncableRoomsPromise;
     }
 
-    private async joinMatrixUsersToChannels(rooms: RoomInfo[], injectJoinFn: InjectJoinFn) {
-
+    private async collectMatrixUsersToJoinToChannels(rooms: RoomInfo[]) {
         // filter out rooms listed in the rules
         const filteredRooms: RoomInfo[] = [];
         rooms.forEach((roomInfo) => {
@@ -306,6 +306,14 @@ export class MemberListSyncer {
         });
 
         log.debug("Got %s matrix join events to inject.", entries.length);
+        this.memberEntriesToSync = entries;
+    }
+
+    public async joinMatrixUsersToChannels() {
+        const entries = this.memberEntriesToSync;
+        if (!entries) {
+            throw Error('No entries collected for joining');
+        }
         this.usersToJoin = entries.length;
 
         let entry: MemberJoinEntry|undefined;
@@ -329,7 +337,7 @@ export class MemberListSyncer {
                 const delayPromise = promiseutil.delay(floodDelayMs);
                 await Promise.race([
                     delayPromise,
-                    injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier),
+                    this.injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier),
                 ]);
                 await delayPromise;
             }

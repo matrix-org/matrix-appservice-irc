@@ -772,7 +772,7 @@ export class IrcBridge {
 
             // TODO reduce deps required to make MemberListSyncers.
             // TODO Remove injectJoinFn bodge
-            this.memberListSyncers[server.domain] = new MemberListSyncer(
+            const syncer = this.memberListSyncers[server.domain] = new MemberListSyncer(
                 this, this.membershipQueue, this.bridge.getBot(), server, this.appServiceUserId,
                 async (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
                     await discoveringClientsPromise;
@@ -799,7 +799,13 @@ export class IrcBridge {
                 }
             );
             memberlistPromises.push(
-                this.memberListSyncers[server.domain].sync()
+                // Before we can actually join Matrix users to channels, we need to ensure we've discovered
+                // all the clients already connected to avoid races.
+                syncer.sync().then(() =>
+                    discoveringClientsPromise
+                ).finally(() =>
+                    syncer.joinMatrixUsersToChannels()
+                )
             );
         });
 
