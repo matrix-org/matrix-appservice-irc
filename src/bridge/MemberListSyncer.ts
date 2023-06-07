@@ -311,7 +311,7 @@ export class MemberListSyncer {
 
     public async joinMatrixUsersToChannels() {
         const entries = this.memberEntriesToSync;
-        if (!entries) {
+        if (entries === undefined) {
             throw Error('No entries collected for joining');
         }
         this.usersToJoin = entries.length;

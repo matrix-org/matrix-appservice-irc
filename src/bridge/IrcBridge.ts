@@ -684,7 +684,6 @@ export class IrcBridge {
         // We can begin discovering clients from the pool immediately.
         const discoveringClientsPromise = this.clientPool.discoverPoolConnectedClients();
 
-
         if (this.config.ircService.debugApi.enabled) {
             this.debugApi = new DebugApi(
                 this,
