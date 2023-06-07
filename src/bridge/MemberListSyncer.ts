@@ -346,7 +346,9 @@ export class MemberListSyncer {
                 await delayPromise;
             }
             catch (ex) {
-                log.debug(`Failed to inject join for ${entry.userId} ${entry.roomId}`);
+                // injectJoinFn may fail due to failure to get a client (user may be banned)
+                // or any other reason, we should continue to iterate regardless
+                log.debug(`Failed to inject join for ${entry.userId} ${entry.roomId}`, ex);
             }
         }
         log.info("Joining all Matrix users in all channel rooms. (%sms)", Date.now() - start);
