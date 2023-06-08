@@ -906,7 +906,7 @@ export class IrcHandler {
      * @return {Promise} which is resolved/rejected when the request finishes.
      */
     public async onMode(req: BridgeRequest, server: IrcServer, channel: string, by: string,
-                        mode: string, enabled: boolean, arg: string|null): Promise<BridgeRequestErr|void> {
+                        mode: string, enabled: boolean, arg: string|null): Promise<BridgeRequestErr|undefined> {
         this.incrementMetric("mode");
         req.log.info(
             "onMode(%s) in %s by %s (arg=%s)",

@@ -214,7 +214,7 @@ export class RoomAccessSyncer {
 
         // Bridge usermodes to power levels
         const modeToPower = server.getModePowerMap();
-        if (typeof modeToPower[mode] !== "number") {
+        if (mode in modeToPower === false) {
             req.log.debug(`Mode '${mode}' is not known`);
             // Not an operator power mode
             return;
@@ -289,7 +289,7 @@ export class RoomAccessSyncer {
             `${enabled ? level : 0} to ${userId}`
         );
 
-        let didFail = false;
+        let failureCause: Error|undefined;
         for (const room of matrixRooms) {
             const roomId = room.getId();
             const powerLevelMap = await (this.getCurrentPowerlevels(roomId)) || {};
@@ -324,11 +324,13 @@ export class RoomAccessSyncer {
             }
             catch (ex) {
                 req.log.warn(`Failed to grant PL in ${roomId}`, ex);
-                didFail = true;
+                failureCause = ex;
             }
         }
-        if (didFail) {
-            throw new Error('Failed to update PL in soime rooms');
+        if (failureCause) {
+            // There *can* be multiple failures, but just use the first one.
+            // We still log all failures above.
+            throw new Error('Failed to update PL in some rooms', { cause: failureCause });
         }
     }
     /**
