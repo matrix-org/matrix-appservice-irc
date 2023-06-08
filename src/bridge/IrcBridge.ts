@@ -681,6 +681,9 @@ export class IrcBridge {
 
         this.clientPool = new ClientPool(this, this.dataStore, this.ircPoolClient);
 
+        // We can begin discovering clients from the pool immediately.
+        const discoveringClientsPromise = this.clientPool.discoverPoolConnectedClients();
+
         if (this.config.ircService.debugApi.enabled) {
             this.debugApi = new DebugApi(
                 this,
@@ -756,6 +759,9 @@ export class IrcBridge {
         log.info("Syncing relevant membership lists...");
         const memberlistPromises: Promise<void>[] = [];
 
+        // Note in the following section we will be waiting for discoveringClientsPromise
+        // to complete before we execute our first join, this is by design so we don't
+        // acidentally connect the same user twice by doing two mass client create loops.
         this.ircServers.forEach((server) => {
             //  If memberlist-syncing 100s of connections, the scheduler will cause massive
             //  waiting times for connections to be created.
@@ -765,16 +771,17 @@ export class IrcBridge {
 
             // TODO reduce deps required to make MemberListSyncers.
             // TODO Remove injectJoinFn bodge
-            this.memberListSyncers[server.domain] = new MemberListSyncer(
+            const syncer = this.memberListSyncers[server.domain] = new MemberListSyncer(
                 this, this.membershipQueue, this.bridge.getBot(), server, this.appServiceUserId,
-                (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
+                async (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
                     const req = new BridgeRequest(
                         this.bridge.getRequestFactory().newRequest()
                     );
+                    const isFresh = !this.clientPool.getBridgedClientByUserId(server, joiningUserId);
                     const target = new MatrixUser(joiningUserId);
                     // inject a fake join event which will do M->I connections and
                     // therefore sync the member list
-                    return this.matrixHandler.onJoin(req, {
+                    await this.matrixHandler.onJoin(req, {
                         room_id: roomId,
                         content: {
                             displayname: displayName,
@@ -786,10 +793,17 @@ export class IrcBridge {
                         event_id: "!injected",
                         _frontier: isFrontier
                     }, target);
+                    return isFresh;
                 }
             );
             memberlistPromises.push(
-                this.memberListSyncers[server.domain].sync()
+                // Before we can actually join Matrix users to channels, we need to ensure we've discovered
+                // all the clients already connected to avoid races.
+                syncer.sync().then(() =>
+                    discoveringClientsPromise
+                ).finally(() =>
+                    syncer.joinMatrixUsersToChannels()
+                )
             );
         });
 
@@ -813,14 +827,13 @@ export class IrcBridge {
         log.info("Connecting to IRC networks...");
         await this.connectToIrcNetworks();
 
-        await promiseutil.allSettled(this.ircServers.map((server) => {
+        await Promise.allSettled(this.ircServers.map((server) => {
             // Call MODE on all known channels to get modes of all channels
             return Bluebird.cast(this.publicitySyncer.initModes(server));
         })).catch((err) => {
             log.error('Could not init modes for publicity syncer');
             log.error(err.stack);
         });
-
         await Promise.all(memberlistPromises);
 
         // Reset reconnectIntervals
@@ -962,7 +975,7 @@ export class IrcBridge {
             }
             await this.bridge.getIntent().join(roomId);
         }).map(Bluebird.cast);
-        await promiseutil.allSettled(promises);
+        await Promise.allSettled(promises);
     }
 
     public async sendMatrixAction(room: MatrixRoom, from: MatrixUser|undefined, action: MatrixAction): Promise<void> {
