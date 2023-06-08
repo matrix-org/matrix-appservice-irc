@@ -22,6 +22,7 @@ describe('Ensure powerlevels are appropriately applied', () => {
         const { homeserver } = testEnv;
         const alice = homeserver.users[0].client;
         const { bob, charlie } = testEnv.ircTest.clients;
+        const bobUserId = `@irc_${bob.nick}:${homeserver.domain}`;
         const charlieUserId = `@irc_${charlie.nick}:${homeserver.domain}`;
 
         // Create the channel
@@ -31,25 +32,22 @@ describe('Ensure powerlevels are appropriately applied', () => {
 
         // Now have charlie join and be opped.
         await charlie.join(channel);
+        const operatorPL = testEnv.ircBridge.config.ircService.servers.localhost.modePowerMap!.o;
+        const plEvent = alice.waitForPowerLevel(
+            cRoomId, {
+                users: {
+                    [charlieUserId]: operatorPL,
+                    [testEnv.ircBridge.appServiceUserId]: 100,
+                    [bobUserId]: operatorPL,
+                },
+            }
+        );
+
         await bob.send('MODE', channel, '+o', charlie.nick);
         await alice.waitForRoomEvent(
             {eventType: 'm.room.member', sender: charlieUserId, stateKey: charlieUserId, roomId: cRoomId}
         );
 
-        const expectedPl = testEnv.ircBridge.config.ircService.servers.localhost.modePowerMap!.o;
-
-        // We might get several PL updates.
-        // This loop WILL either exit or throw
-        let userPl: unknown;
-        do {
-            const powerLevel = await alice.waitForRoomEvent<PowerLevelContent>(
-                {eventType: 'm.room.power_levels', roomId: cRoomId, sender: testEnv.ircBridge.appServiceUserId}
-            );
-            userPl = await powerLevel.data.content.users![charlieUserId];
-            if (userPl === undefined) {
-                continue;
-            }
-            expect(userPl).toEqual(expectedPl);
-        } while (userPl === undefined)
+        await plEvent;
     });
 });

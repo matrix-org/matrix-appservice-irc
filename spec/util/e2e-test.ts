@@ -1,4 +1,4 @@
-import { AppServiceRegistration } from "matrix-appservice-bridge";
+import { AppServiceRegistration, PowerLevelContent } from "matrix-appservice-bridge";
 import { BridgeConfig } from "../../src/config/BridgeConfig";
 import { Client as PgClient } from "pg";
 import { ComplementHomeServer, createHS, destroyHS } from "./homerunner";
@@ -28,6 +28,42 @@ interface Opts {
 }
 
 export class E2ETestMatrixClient extends MatrixClient {
+
+    public async waitForPowerLevel(
+        roomId: string, expected: Partial<PowerLevelContent>,
+    ): Promise<{roomId: string, data: {
+        sender: string, type: string, state_key?: string, content: PowerLevelContent, event_id: string,
+    }}> {
+        return this.waitForEvent('room.event', (eventRoomId: string, eventData: {
+            sender: string, type: string, content: Record<string, unknown>, event_id: string, state_key: string,
+        }) => {
+            if (eventRoomId !== roomId) {
+                return undefined;
+            }
+
+            if (eventData.type !== "m.room.power_levels") {
+                return undefined;
+            }
+
+            if (eventData.state_key !== "") {
+                return undefined;
+            }
+
+            // Check only the keys we care about
+            for (const [key, value] of Object.entries(expected)) {
+                console.log(key, value, "---", eventData.content[key]);
+                if (JSON.stringify(eventData.content[key], undefined, 0) !== JSON.stringify(value, undefined, 0)) {
+                    return undefined;
+                }
+            }
+
+            console.info(
+                // eslint-disable-next-line max-len
+                `${eventRoomId} ${eventData.event_id} ${eventData.sender}`
+            );
+            return {roomId: eventRoomId, data: eventData};
+        }, `Timed out waiting for powerlevel from in ${roomId}`)
+    }
 
     public async waitForRoomEvent<T extends object = Record<string, unknown>>(
         opts: {eventType: string, sender: string, roomId?: string, stateKey?: string}
