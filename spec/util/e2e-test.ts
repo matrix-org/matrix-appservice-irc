@@ -51,8 +51,11 @@ export class E2ETestMatrixClient extends MatrixClient {
 
             // Check only the keys we care about
             for (const [key, value] of Object.entries(expected)) {
-                console.log(key, value, "---", eventData.content[key]);
-                if (JSON.stringify(eventData.content[key], undefined, 0) !== JSON.stringify(value, undefined, 0)) {
+                const evValue = eventData.content[key] ?? undefined;
+                console.log(key, value, "---", evValue);
+                if (JSON.stringify(
+                    evValue, typeof evValue === "object" ? Object.keys(evValue).sort() : undefined, 0
+                ) !== JSON.stringify(value, typeof value === "object" ? Object.keys(evValue).sort() : undefined, 0)) {
                     return undefined;
                 }
             }
