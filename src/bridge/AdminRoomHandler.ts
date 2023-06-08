@@ -47,7 +47,7 @@ const SANE_USERNAME_LENGTH = 64;
 // and IRCv3 draft/account-registration.
 // Since we are at it, we might as well ban other non-printable ASCII characters
 // (0x00 to 0x1F, plus DEL (0x7F)), as they are most likely mistakes.
-const SASL_USERNAME_INVALID_CHARS_PATTERN = /[\u0000-\u0020\u007F]+/;
+const SASL_USERNAME_INVALID_CHARS_PATTERN = /[\\x00-\\x20\\x7F]+/;
 
 interface Command {
     example: string;
