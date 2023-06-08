@@ -19,7 +19,7 @@
   ],
   "rules": {
     "camelcase": 0, // Rule is bugged atm
-    "consistent-return": 2,
+    "consistent-return": 0,
     "curly": 1,
     "default-case": 2,
     "guard-for-in": 2,
