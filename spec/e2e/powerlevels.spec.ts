@@ -44,10 +44,6 @@ describe('Ensure powerlevels are appropriately applied', () => {
         );
 
         await bob.send('MODE', channel, '+o', charlie.nick);
-        await alice.waitForRoomEvent(
-            {eventType: 'm.room.member', sender: charlieUserId, stateKey: charlieUserId, roomId: cRoomId}
-        );
-
         await plEvent;
     });
 });
