@@ -55,7 +55,8 @@ describe("IrcClientRedisState", () => {
     it("should be able to create a fresh state", async () => {
         const state = await IrcClientRedisState.create(
             fakeRedis(),
-            userId
+            userId,
+            true
         );
         expect(state.loggedIn).toBeFalse();
         expect(state.registered).toBeFalse();
@@ -64,7 +65,8 @@ describe("IrcClientRedisState", () => {
     it("should be able to load existing state", async () => {
         const state = await IrcClientRedisState.create(
             fakeRedis(JSON.stringify(EXISTING_STATE)),
-            userId
+            userId,
+            false
         );
         expect(state.loggedIn).toBeTrue();
         expect(state.registered).toBeTrue();
@@ -101,7 +103,10 @@ describe("IrcClientRedisState", () => {
         }
         const state = await IrcClientRedisState.create(
             fakeRedis(JSON.stringify(existingState)),
-            userId
+            userId,
+            false
         );
+        expect(state.chans.get('#matrix-bridge-test')?.users instanceof Map);
+        expect(state.chans.get('#halfy-plumbs')?.users instanceof Map);
     })
 });
