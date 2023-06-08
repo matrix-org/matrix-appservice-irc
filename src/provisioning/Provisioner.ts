@@ -786,7 +786,7 @@ export class Provisioner extends ProvisioningApi {
         const ircDomain = server.domain;
         const store = this.ircBridge.getStore();
         const mappingLogId = `${roomId} <---> ${ircDomain}/${ircChannel}`;
-        req.log.info(`Provisioning link for room ${mappingLogId} for ${userId}`);
+        req.log.info(`Provisioning link for room ${mappingLogId} (for ${userId})`);
 
         // Create rooms for the link
         const ircRoom = new IrcRoom(server, ircChannel);
