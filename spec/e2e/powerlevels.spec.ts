@@ -35,13 +35,21 @@ describe('Ensure powerlevels are appropriately applied', () => {
         await alice.waitForRoomEvent(
             {eventType: 'm.room.member', sender: charlieUserId, stateKey: charlieUserId, roomId: cRoomId}
         );
-        const powerLevel = alice.waitForRoomEvent<PowerLevelContent>(
-            {eventType: 'm.room.power_levels', roomId: cRoomId, sender: testEnv.ircBridge.appServiceUserId}
-        );
 
-        const powerlevelContent = (await powerLevel).data.content;
-        expect(powerlevelContent.users![charlieUserId]).toEqual(
-            testEnv.ircBridge.config.ircService.servers.localhost.modePowerMap!.o
-        );
+        const expectedPl = testEnv.ircBridge.config.ircService.servers.localhost.modePowerMap!.o;
+
+        // We might get several PL updates.
+        // This loop WILL either exit or throw
+        let userPl: unknown;
+        do {
+            const powerLevel = await alice.waitForRoomEvent<PowerLevelContent>(
+                {eventType: 'm.room.power_levels', roomId: cRoomId, sender: testEnv.ircBridge.appServiceUserId}
+            );
+            userPl = await powerLevel.data.content.users![charlieUserId];
+            if (userPl === undefined) {
+                continue;
+            }
+            expect(userPl).toEqual(expectedPl);
+        } while (userPl === undefined)
     });
 });
