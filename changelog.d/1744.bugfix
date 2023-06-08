@@ -1,0 +1,1 @@
+Warn if a config reload is attempted before the bridge is ready

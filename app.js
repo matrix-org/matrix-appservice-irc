@@ -39,6 +39,10 @@ new Cli({
         },
     },
     onConfigChanged: function(config) {
+        if (!bridge) {
+            log.warn(`Bridge hasn't finished starting yet, config reload ignored`);
+            return;
+        }
         bridge.onConfigChanged(config);
     },
     generateRegistration: function(reg, callback) {
