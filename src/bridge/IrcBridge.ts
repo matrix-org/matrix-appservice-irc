@@ -774,7 +774,6 @@ export class IrcBridge {
             const syncer = this.memberListSyncers[server.domain] = new MemberListSyncer(
                 this, this.membershipQueue, this.bridge.getBot(), server, this.appServiceUserId,
                 async (roomId: string, joiningUserId: string, displayName: string, isFrontier: boolean) => {
-                    await discoveringClientsPromise;
                     const req = new BridgeRequest(
                         this.bridge.getRequestFactory().newRequest()
                     );
@@ -802,9 +801,9 @@ export class IrcBridge {
                 // all the clients already connected to avoid races.
                 syncer.sync().then(() =>
                     discoveringClientsPromise
-                ).finally(() => {
+                ).finally(() =>
                     syncer.joinMatrixUsersToChannels()
-                })
+                )
             );
         });
 
@@ -835,8 +834,6 @@ export class IrcBridge {
             log.error('Could not init modes for publicity syncer');
             log.error(err.stack);
         });
-
-        await discoveringClientsPromise;
         await Promise.all(memberlistPromises);
 
         // Reset reconnectIntervals
