@@ -8,7 +8,6 @@ import { MatrixClient } from "matrix-bot-sdk";
 import { TestIrcServer } from "matrix-org-irc";
 import { IrcConnectionPool } from "../../src/pool-service/IrcConnectionPool";
 import dns from 'node:dns';
-
 // Needed to make tests work on GitHub actions. Node 17+ defaults
 // to IPv6, and the homerunner domain resolves to IPv6, but the
 // runtime doesn't actually support IPv6 🤦
@@ -53,8 +52,10 @@ export class E2ETestMatrixClient extends MatrixClient {
             for (const [key, value] of Object.entries(expected)) {
                 const evValue = eventData.content[key] ?? undefined;
                 const sortOrder = value !== null && typeof value === "object" ? Object.keys(value).sort() : undefined;
-                console.log(key, value, "---", evValue);
-                if (JSON.stringify(evValue, sortOrder, 0) !== JSON.stringify(value, sortOrder, 0)) {
+                const jsonLeft = JSON.stringify(evValue, sortOrder);
+                const jsonRight = JSON.stringify(value, sortOrder);
+                console.log(jsonLeft, "---", jsonRight);
+                if (jsonLeft !== jsonRight) {
                     return undefined;
                 }
             }
