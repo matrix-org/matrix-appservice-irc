@@ -10,7 +10,6 @@ describe('Ensure powerlevels are appropriately applied', () => {
         testEnv = await IrcBridgeE2ETest.createTestEnv({
             matrixLocalparts: ['alice'],
             ircNicks: ['bob', 'charlie'],
-            traceToFile: true,
         });
         await testEnv.setUp();
     });

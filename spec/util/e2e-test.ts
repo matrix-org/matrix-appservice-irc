@@ -166,20 +166,9 @@ export class IrcBridgeE2ETest {
     }
 
     static async createTestEnv(opts: Opts = {}): Promise<IrcBridgeE2ETest> {
-        let traceStream;
-        if (opts.traceToFile) {
-            const testName = expect.getState().currentTestName?.replace(/[^a-zA-Z]/g, '-');
-            const tracePath = `${traceFilePath}/${testName}.log`;
-            try {
-                await fs.mkdir(traceFilePath);
-            }
-            catch (ex) {
-                if (ex.code !== 'EEXIST') {
-                    throw ex;
-                }
-            }
-            traceStream = createWriteStream(tracePath, 'utf-8');
-        }
+        const testName = expect.getState().currentTestName?.replace(/[^a-zA-Z]/g, '-');
+        const tracePath = `${traceFilePath}/${testName}.log`;
+        const traceStream = createWriteStream(tracePath, 'utf-8');
 
         const workerID = parseInt(process.env.JEST_WORKER_ID ?? '0');
         const { matrixLocalparts, config } = opts;
