@@ -1,0 +1,1 @@
+Add a `traceToFile` option for E2E tests to log out all actions performed by Matrix and IRC.
