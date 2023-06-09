@@ -28,6 +28,10 @@ describe('Ensure powerlevels are appropriately applied', () => {
         await bob.join(channel);
 
         const cRoomId = await testEnv.joinChannelHelper(alice, await testEnv.createAdminRoomHelper(alice), channel);
+        // Trigger a join on IRC.
+        await alice.sendMessage(cRoomId, 'Hello world!');
+        // Wait for alice to join.
+        await bob.waitForEvent('join');
 
         // Now have charlie join and be opped.
         await charlie.join(channel);
@@ -41,6 +45,9 @@ describe('Ensure powerlevels are appropriately applied', () => {
                 },
             }
         );
+
+        // Wait for charlie to join
+        await bob.waitForEvent('join');
 
         await bob.send('MODE', channel, '+o', charlie.nick);
         await plEvent;
