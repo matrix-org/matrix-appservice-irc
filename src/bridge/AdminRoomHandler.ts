@@ -25,7 +25,6 @@ import { MatrixHandler, MatrixSimpleMessage } from "./MatrixHandler";
 import logging from "../logging";
 import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "matrix-appservice-bridge";
-import { IdentGenerator } from "../irc/IdentGenerator";
 import { Provisioner } from "../provisioning/Provisioner";
 import { IrcProvisioningError } from "../provisioning/Schema";
 
@@ -38,6 +37,17 @@ enum CommandPermission {
 
 // This is just a length to avoid silly long usernames
 const SANE_USERNAME_LENGTH = 64;
+
+// Technically, anything but \0 is allowed as username (aka. authcid and authzid):
+// https://www.rfc-editor.org/rfc/rfc4616#section-2
+//
+// However, IRC services are very unlikely to allow the username to contain CR (0x0A)
+// or LF (0x0D) because they would not fit in the wire format or spaces (0x20) because
+// usernames are usually followed by passwords in "PRIVMSG NickServ :REGISTER" commands
+// and IRCv3 draft/account-registration.
+// Since we are at it, we might as well ban other non-printable ASCII characters
+// (0x00 to 0x1F, plus DEL (0x7F)), as they are most likely mistakes.
+const SASL_USERNAME_INVALID_CHARS_PATTERN = /[\x00-\x20\x7F]+/; // eslint-disable-line
 
 interface Command {
     example: string;
@@ -490,6 +500,7 @@ export class AdminRoomHandler {
         try {
             // Allow passwords with spaces
             const username = args[0]?.trim();
+            const invalidChars = SASL_USERNAME_INVALID_CHARS_PATTERN.exec(username);
             if (!username) {
                 notice = new MatrixAction(
                     ActionType.Notice,
@@ -503,10 +514,11 @@ export class AdminRoomHandler {
                     `Username is longer than the maximum permitted by the bridge (${SANE_USERNAME_LENGTH}).`
                 );
             }
-            else if (IdentGenerator.sanitiseUsername(username) !== username) {
+            else if (invalidChars !== null) {
                 notice = new MatrixAction(
                     ActionType.Notice,
-                    `Username contained invalid characters not supported by IRC.`
+                    "Username contained invalid characters not supported by IRC " +
+                    `(${JSON.stringify(invalidChars.join(""))}).`
                 );
             }
             else {
