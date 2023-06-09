@@ -7,7 +7,10 @@ import { IrcServer } from "../../src/irc/IrcServer";
 import { MatrixClient } from "matrix-bot-sdk";
 import { TestIrcServer } from "matrix-org-irc";
 import { IrcConnectionPool } from "../../src/pool-service/IrcConnectionPool";
+import { expect } from "@jest/globals";
 import dns from 'node:dns';
+import fs from "node:fs/promises";
+import { WriteStream, createWriteStream } from "node:fs";
 // Needed to make tests work on GitHub actions. Node 17+ defaults
 // to IPv6, and the homerunner domain resolves to IPv6, but the
 // runtime doesn't actually support IPv6 🤦
@@ -24,7 +27,10 @@ interface Opts {
     ircNicks?: string[];
     timeout?: number;
     config?: Partial<BridgeConfig>,
+    traceToFile?: boolean,
 }
+
+const traceFilePath = '.e2e-traces';
 
 export class E2ETestMatrixClient extends MatrixClient {
 
@@ -160,6 +166,21 @@ export class IrcBridgeE2ETest {
     }
 
     static async createTestEnv(opts: Opts = {}): Promise<IrcBridgeE2ETest> {
+        let traceStream;
+        if (opts.traceToFile) {
+            const testName = expect.getState().currentTestName?.replace(/[^a-zA-Z]/g, '-');
+            const tracePath = `${traceFilePath}/${testName}.log`;
+            try {
+                await fs.mkdir(traceFilePath);
+            }
+            catch (ex) {
+                if (ex.code !== 'EEXIST') {
+                    throw ex;
+                }
+            }
+            traceStream = createWriteStream(tracePath, 'utf-8');
+        }
+
         const workerID = parseInt(process.env.JEST_WORKER_ID ?? '0');
         const { matrixLocalparts, config } = opts;
         const ircTest = new TestIrcServer();
@@ -280,7 +301,7 @@ export class IrcBridgeE2ETest {
             }
             }),
         }, registration);
-        return new IrcBridgeE2ETest(homeserver, ircBridge, registration, postgresDb, ircTest, redisPool)
+        return new IrcBridgeE2ETest(homeserver, ircBridge, registration, postgresDb, ircTest, redisPool, traceStream)
     }
 
     private constructor(
@@ -289,7 +310,26 @@ export class IrcBridgeE2ETest {
         public readonly registration: AppServiceRegistration,
         readonly postgresDb: string,
         public readonly ircTest: TestIrcServer,
-        public readonly pool?: IrcConnectionPool) {
+        public readonly pool?: IrcConnectionPool,
+        private traceLog?: WriteStream,
+    ) {
+        const startTime = Date.now();
+        if (traceLog) {
+            for (const [clientId, client] of Object.entries(ircTest.clients)) {
+                client.on('raw', (msg) => {
+                    traceLog.write(
+                        `${Date.now() - startTime}ms [IRC:${clientId}] ${JSON.stringify(msg)} \n`
+                    );
+                })
+            }
+            for (const {client, userId} of Object.values(homeserver.users)) {
+                client.on('room.event', (roomId, eventData) => {
+                    traceLog.write(
+                        `${Date.now() - startTime}ms [Matrix:${userId}] ${roomId} ${JSON.stringify(eventData)}\n`
+                    );
+                })
+            }
+        }
     }
 
     public async recreateBridge() {
@@ -317,6 +357,9 @@ export class IrcBridgeE2ETest {
     }
 
     public async tearDown(): Promise<void> {
+        if (this.traceLog) {
+            this.traceLog.close();
+        }
         await Promise.allSettled([
             this.ircBridge?.kill(),
             this.ircTest.tearDown(),
