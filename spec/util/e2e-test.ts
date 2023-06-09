@@ -168,6 +168,7 @@ export class IrcBridgeE2ETest {
     static async createTestEnv(opts: Opts = {}): Promise<IrcBridgeE2ETest> {
         const testName = expect.getState().currentTestName?.replace(/[^a-zA-Z]/g, '-');
         const tracePath = `${traceFilePath}/${testName}.log`;
+        console.log('Opening new trace file', tracePath);
         const traceStream = createWriteStream(tracePath, 'utf-8');
 
         const workerID = parseInt(process.env.JEST_WORKER_ID ?? '0');
@@ -290,7 +291,7 @@ export class IrcBridgeE2ETest {
             }
             }),
         }, registration);
-        return new IrcBridgeE2ETest(homeserver, ircBridge, registration, postgresDb, ircTest, redisPool, traceStream)
+        return new IrcBridgeE2ETest(homeserver, ircBridge, registration, postgresDb, ircTest, traceStream, redisPool)
     }
 
     private constructor(
@@ -299,8 +300,8 @@ export class IrcBridgeE2ETest {
         public readonly registration: AppServiceRegistration,
         readonly postgresDb: string,
         public readonly ircTest: TestIrcServer,
+        private traceLog: WriteStream,
         public readonly pool?: IrcConnectionPool,
-        private traceLog?: WriteStream,
     ) {
         const startTime = Date.now();
         if (traceLog) {
