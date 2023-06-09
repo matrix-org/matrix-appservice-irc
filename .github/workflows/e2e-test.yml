@@ -143,8 +143,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: e2e-traces
-          path: |
-            .e2e-traces
+          path:  matrix-appservice-irc/.e2e-traces
 
   integration-test-pool: 
     runs-on: ubuntu-latest
@@ -220,5 +219,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: e2e-traces-pool
-          path: |
-            .e2e-traces
+          path:  matrix-appservice-irc/.e2e-traces
