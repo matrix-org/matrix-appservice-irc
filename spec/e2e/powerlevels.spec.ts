@@ -27,14 +27,18 @@ describe('Ensure powerlevels are appropriately applied', () => {
         // Create the channel
         await bob.join(channel);
 
+        const aliceJoin = bob.waitForEvent('join');
         const cRoomId = await testEnv.joinChannelHelper(alice, await testEnv.createAdminRoomHelper(alice), channel);
         // Trigger a join on IRC.
         await alice.sendText(cRoomId, 'Hello world!');
         // Wait for alice to join.
-        await bob.waitForEvent('join');
+        await aliceJoin;
 
         // Now have charlie join and be opped.
+        const charlieJoin = bob.waitForEvent('join');
         await charlie.join(channel);
+        await charlieJoin;
+
         const operatorPL = testEnv.ircBridge.config.ircService.servers.localhost.modePowerMap!.o;
         const plEvent = alice.waitForPowerLevel(
             cRoomId, {
@@ -47,7 +51,7 @@ describe('Ensure powerlevels are appropriately applied', () => {
         );
 
         // Wait for charlie to join
-        await bob.waitForEvent('join');
+        await charlieJoin;
 
         await bob.send('MODE', channel, '+o', charlie.nick);
         await plEvent;
