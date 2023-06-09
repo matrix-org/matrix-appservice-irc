@@ -1,4 +1,4 @@
-import fs from "node:fs/promises";
+import * as fs from "node:fs/promises";
 
 export default async function() {
     console.log('Cleaning .e2e-traces')
