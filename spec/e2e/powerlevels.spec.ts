@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { TestIrcServer } from "matrix-org-irc";
 import { IrcBridgeE2ETest } from "../util/e2e-test";
-import { describe, expect, it } from "@jest/globals";
-import { PowerLevelContent } from "matrix-appservice-bridge";
+import { describe, it } from "@jest/globals";
 
 
 describe('Ensure powerlevels are appropriately applied', () => {
@@ -11,6 +10,7 @@ describe('Ensure powerlevels are appropriately applied', () => {
         testEnv = await IrcBridgeE2ETest.createTestEnv({
             matrixLocalparts: ['alice'],
             ircNicks: ['bob', 'charlie'],
+            traceToFile: true,
         });
         await testEnv.setUp();
     });
