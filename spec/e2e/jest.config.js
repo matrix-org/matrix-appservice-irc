@@ -14,5 +14,5 @@ module.exports = {
       },
     ],
   },
-  setupFiles: ['./setup.ts']
+  globalSetup: './setup.ts'
 };
