@@ -8,8 +8,7 @@ import { MatrixClient } from "matrix-bot-sdk";
 import { TestIrcServer } from "matrix-org-irc";
 import { IrcConnectionPool } from "../../src/pool-service/IrcConnectionPool";
 import { expect } from "@jest/globals";
-import dns from 'node:dns';
-import fs from "node:fs/promises";
+import * as dns from 'node:dns';
 import { WriteStream, createWriteStream } from "node:fs";
 // Needed to make tests work on GitHub actions. Node 17+ defaults
 // to IPv6, and the homerunner domain resolves to IPv6, but the
@@ -169,7 +168,7 @@ export class IrcBridgeE2ETest {
         const testName = expect.getState().currentTestName?.replace(/[^a-zA-Z]/g, '-');
         const tracePath = `${traceFilePath}/${testName}.log`;
         console.log('Opening new trace file', tracePath);
-        const traceStream = createWriteStream(tracePath, 'utf-8');
+        const traceLog = createWriteStream(tracePath, 'utf-8');
 
         const workerID = parseInt(process.env.JEST_WORKER_ID ?? '0');
         const { matrixLocalparts, config } = opts;
@@ -291,7 +290,7 @@ export class IrcBridgeE2ETest {
             }
             }),
         }, registration);
-        return new IrcBridgeE2ETest(homeserver, ircBridge, registration, postgresDb, ircTest, traceStream, redisPool)
+        return new IrcBridgeE2ETest(homeserver, ircBridge, registration, postgresDb, ircTest, traceLog, redisPool)
     }
 
     private constructor(
@@ -304,21 +303,19 @@ export class IrcBridgeE2ETest {
         public readonly pool?: IrcConnectionPool,
     ) {
         const startTime = Date.now();
-        if (traceLog) {
-            for (const [clientId, client] of Object.entries(ircTest.clients)) {
-                client.on('raw', (msg) => {
-                    traceLog.write(
-                        `${Date.now() - startTime}ms [IRC:${clientId}] ${JSON.stringify(msg)} \n`
-                    );
-                })
-            }
-            for (const {client, userId} of Object.values(homeserver.users)) {
-                client.on('room.event', (roomId, eventData) => {
-                    traceLog.write(
-                        `${Date.now() - startTime}ms [Matrix:${userId}] ${roomId} ${JSON.stringify(eventData)}\n`
-                    );
-                })
-            }
+        for (const [clientId, client] of Object.entries(ircTest.clients)) {
+            client.on('raw', (msg) => {
+                traceLog.write(
+                    `${Date.now() - startTime}ms [IRC:${clientId}] ${JSON.stringify(msg)} \n`
+                );
+            })
+        }
+        for (const {client, userId} of Object.values(homeserver.users)) {
+            client.on('room.event', (roomId, eventData) => {
+                traceLog.write(
+                    `${Date.now() - startTime}ms [Matrix:${userId}] ${roomId} ${JSON.stringify(eventData)}\n`
+                );
+            })
         }
     }
 
