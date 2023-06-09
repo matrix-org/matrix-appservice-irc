@@ -1,6 +1,6 @@
 {
   "name": "matrix-appservice-irc",
-  "version": "1.0.0-rc1",
+  "version": "1.0.0",
   "description": "An IRC Bridge for Matrix",
   "main": "app.js",
   "bin": "./bin/matrix-appservice-irc",

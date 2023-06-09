@@ -1,2 +1,0 @@
-Fix a case where a proxied client connection may get missed until they use the bridge on startup, leading to missed
-messages and logspam.

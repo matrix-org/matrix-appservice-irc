@@ -1,3 +1,33 @@
+1.0.0 (2023-06-09)
+==================
+
+**Note**: This release drops support for Node 16. The minimum required version is now 18+.
+
+Several changes were made since the previous RC, mostly fixes around our incoming [connection pooling](https://matrix-org.github.io/matrix-appservice-irc/latest/connection_pooling.html) feature. The feature is
+*still* considered unstable for the time being, so please be careful when trying it out.
+
+Features
+--------
+
+-  New PM rooms are configured to disable calls, reactions, redactions, and stickers;
+    as they could not be bridged anyway. ([\#1663](https://github.com/matrix-org/matrix-appservice-irc/issues/1663))
+- The bridge now logs the user performing plumb/unplumb operations for easy auditing. ([\#1738](https://github.com/matrix-org/matrix-appservice-irc/issues/1738))
+
+
+Bugfixes
+--------
+
+- Fix the bridge pooling so it supports TLS. ([\#1709](https://github.com/matrix-org/matrix-appservice-irc/issues/1709))
+- Fix setup widget failing to authenticate. ([\#1711](https://github.com/matrix-org/matrix-appservice-irc/issues/1711))
+- Sort the list of channels in !listrooms output. ([\#1715](https://github.com/matrix-org/matrix-appservice-irc/issues/1715))
+- Fix cases where the IRC bridge may erronously believe a user is not joined to a channel in pooling mode. ([\#1717](https://github.com/matrix-org/matrix-appservice-irc/issues/1717))
+- Allow usernames to include more characters when using the `!username` command. ([\#1719](https://github.com/matrix-org/matrix-appservice-irc/issues/1719))
+- Ensure that all passwords can be decrypted on startup, to detect any issues with the provided passkey. ([\#1720](https://github.com/matrix-org/matrix-appservice-irc/issues/1720))
+- Fixes cases where powerlevel changes may not be correctly applied upon mode change. ([\#1732](https://github.com/matrix-org/matrix-appservice-irc/issues/1732))
+- Fix a case where a proxied client connection may get missed until they use the bridge on startup, leading to missed
+  messages and logspam. ([\#1737](https://github.com/matrix-org/matrix-appservice-irc/issues/1737))
+
+
 1.0.0-rc1 (2023-04-28)
 ======================
 

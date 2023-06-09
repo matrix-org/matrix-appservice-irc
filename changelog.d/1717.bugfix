@@ -1,1 +1,0 @@
-Fix cases where the IRC bridge may erronously believe a user is not joined to a channel in pooling mode.
