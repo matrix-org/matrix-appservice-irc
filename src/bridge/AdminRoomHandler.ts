@@ -131,6 +131,17 @@ const COMMANDS: {[command: string]: Command|Heading} = {
         summary: "Unlink an IRC channel from a Matrix room. " +
                 "You need to be a moderator of the Matrix room or an administrator of this bridge.",
     },
+    '!reconnect-other': {
+        example: "!reconnect-other @user:id [irc.example.net]",
+        summary: "Forcibly reconnect another user. " +
+                "You need to be a moderator of the Matrix room or an administrator of this bridge.",
+        requiresPermission: CommandPermission.Admin,
+    },
+    '!force-part': {
+        example: "!force-part [irc.example.net] @user:id #channel ",
+        summary: "Force a user to leave a channel. This will NOT remove them from the room. ",
+        requiresPermission: CommandPermission.Admin,
+    },
 };
 
 class ServerRequiredError extends Error {
@@ -206,12 +217,18 @@ export class AdminRoomHandler {
             case "!bridgeversion":
                 return this.showBridgeVersion();
             case "!plumb":
-                return await this.handlePlumb(args, event.sender)
+                return await this.handlePlumb(args, event.sender);
             case "!unlink":
             case "!unplumb": // alias for convinience
-                return await this.handleUnlink(args, event.sender)
+                return await this.handleUnlink(args, event.sender);
+            case "!reconnect-other": // alias for convinience
+                return await this.handleReconnectOther(args);
+            case "!force-part":
+                return await this.handleForcePart(args);
+            case "!admin-cmd":
+                return await this.handleAdminClientCmd(req, args);
             case "!help":
-                return this.showHelp(event.sender);
+                return await this.showHelp(event.sender);
             default: {
                 return new MatrixAction(ActionType.Notice,
                     "The command was not recognised. Available commands are listed by !help");
@@ -415,7 +432,7 @@ export class AdminRoomHandler {
                 server, sender
             );
 
-            bridgedClient.sendCommands(...sendArgs);
+            await bridgedClient.sendCommands(...sendArgs);
         }
         catch (err) {
             return new MatrixAction(ActionType.Notice, `${err}\n` );
@@ -770,6 +787,85 @@ export class AdminRoomHandler {
             }
         }
         return new MatrixAction(ActionType.Notice, null, body + "</ul>");
+    }
+
+    private async handleForcePart(args: string[]) {
+        const server = this.extractServerFromArgs(args);
+        const userId = args[0];
+        const channel = args[1];
+
+        if (!userId || !userId.startsWith("@")) {
+            return new MatrixAction(ActionType.Notice, "The user ID must start with a @");
+        }
+
+        if (!channel || !channel.startsWith("@")) {
+            return new MatrixAction(ActionType.Notice, "The user ID must start with a #");
+        }
+        const client = this.ircBridge.getClientPool().getBridgedClientByUserId(server, userId);
+        if (!client) {
+            return new MatrixAction(
+                ActionType.Notice, `User is not connected to ${server.domain}, not reconnecting`
+            );
+        }
+        // If the bridge doesn't think we're connected, force it anyway.
+        if (await client.leaveChannel(channel) === false) {
+            await (await client.assertConnected()).part(channel, "Force parted by bridge");
+        }
+    }
+
+    private async handleReconnectOther(args: string[]) {
+        const [userId, serverDomain] = args;
+        const server = serverDomain ? this.ircBridge.getServer(serverDomain) : this.ircBridge.getServers()[0];
+        if (!server) {
+            return new MatrixAction(ActionType.Notice, "The server provided is not configured on this bridge");
+        }
+        if (!userId || !userId.startsWith("@")) {
+            return new MatrixAction(ActionType.Notice, "The user ID must start with a @");
+        }
+        const client = this.ircBridge.getClientPool().getBridgedClientByUserId(server, userId);
+        if (!client) {
+            return new MatrixAction(
+                ActionType.Notice, `User is not connected to ${server.domain}, not reconnecting`
+            );
+        }
+        try {
+            if (client) {
+                await client.disconnect("iwanttoreconnect", "Reconnecting", false);
+                return new MatrixAction(
+                    ActionType.Notice, `Reconnecting to network...`
+                );
+            }
+        }
+        catch (err) {
+            log.error("Failed to reconnect other", err.stack);
+            return new MatrixAction(
+                ActionType.Notice, `Failed to reconnect`
+            );
+        }
+
+    }
+
+    private async handleAdminClientCmd(req: BridgeRequest, args: string[]) {
+        // Assumes commands have the form
+        // !cmd [irc.server] @userid:server COMMAND [arg0 [arg1 [...]]]
+        const server = this.extractServerFromArgs(args);
+        const [userId, ...cmds] = args[0];
+
+        if (!userId || !userId.startsWith("@")) {
+            return new MatrixAction(ActionType.Notice, "The user ID must start with a @");
+        }
+
+        try {
+            const bridgedClient = await this.ircBridge.getBridgedClient(
+                server, userId
+            );
+
+            await bridgedClient.sendCommands(...cmds);
+        }
+        catch (err) {
+            return new MatrixAction(ActionType.Notice, `${err}\n` );
+        }
+        return undefined;
     }
 
     // will mutate args if sucessful
