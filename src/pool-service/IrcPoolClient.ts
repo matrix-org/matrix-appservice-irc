@@ -18,6 +18,7 @@ const log = new Logger('IrcPoolClient');
 
 const CONNECTION_TIMEOUT = 40000;
 const MAX_MISSED_HEARTBEATS = 5;
+const COMMAND_BLOCK_TIMEOUT = HEARTBEAT_EVERY_MS * 2;
 
 type Events = {
     lostConnection: () => void,
@@ -200,32 +201,34 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
     }
 
     public async handleIncomingCommand() {
-        const newCmd = await this.cmdReader.xread(
-            "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_OUT_STREAM, this.commandStreamId
+        const newCmds = await this.cmdReader.xread(
+            "BLOCK", COMMAND_BLOCK_TIMEOUT, "STREAMS", REDIS_IRC_POOL_COMMAND_OUT_STREAM, this.commandStreamId
         ).catch(ex => {
             log.warn(`Failed to read new command:`, ex);
             return null;
         });
-        if (newCmd === null) {
-            // Unexpected, this is blocking.
+        if (newCmds === null) {
+            // Implies we might be listening for stale messages.
+            this.commandStreamId = '$';
             return;
         }
-        const [msgId, [cmdType, payload]] = newCmd[0][1][0];
-        this.commandStreamId = msgId;
+        for (const [msgId, [cmdType, payload]] of newCmds[0][1]) {
+            const commandType = cmdType as OutCommandType|ClientId;
+            let commandData: IrcConnectionPoolCommandOut|Buffer;
+            if (typeof payload === 'string' && payload[0] === '{') {
+                commandData = JSON.parse(payload) as IrcConnectionPoolCommandOut;
+            }
+            else {
+                commandData = Buffer.from(payload).subarray(READ_BUFFER_MAGIC_BYTES.length);
+            }
+            setImmediate(
+                () => this.handleCommand(commandType, commandData)
+                    .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
+                    ),
+            );
+            this.updateLastRead(msgId);
+        }
 
-        const commandType = cmdType as OutCommandType|ClientId;
-        let commandData: IrcConnectionPoolCommandOut|Buffer;
-        if (typeof payload === 'string' && payload[0] === '{') {
-            commandData = JSON.parse(payload) as IrcConnectionPoolCommandOut;
-        }
-        else {
-            commandData = Buffer.from(payload).subarray(READ_BUFFER_MAGIC_BYTES.length);
-        }
-        setImmediate(
-            () => this.handleCommand(commandType, commandData)
-                .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
-                ),
-        );
     }
 
     private async checkHeartbeat() {
