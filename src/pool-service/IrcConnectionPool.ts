@@ -2,7 +2,7 @@ import { Redis } from 'ioredis';
 import { Logger, LogLevel } from 'matrix-appservice-bridge';
 import { createConnection, Socket } from 'net';
 import tls from 'tls';
-import { REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ, OutCommandType,
+import { OutCommandType,
     REDIS_IRC_POOL_COMMAND_OUT_STREAM, IrcConnectionPoolCommandIn,
     ConnectionCreateArgs, InCommandType, CommandError,
     REDIS_IRC_POOL_HEARTBEAT_KEY,
@@ -65,9 +65,6 @@ export class IrcConnectionPool {
 
     private updateLastRead(lastRead: string) {
         this.commandStreamId = lastRead;
-        this.cmdWriter.set(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ, lastRead).catch((ex) => {
-            log.warn(`Unable to update last-read for command.in`, ex);
-        })
     }
 
     private async sendCommandOut<T extends OutCommandType>(type: T, payload: OutCommandPayload[T]) {
@@ -383,7 +380,7 @@ export class IrcConnectionPool {
         await this.sendHeartbeat();
 
         // Fetch the last read index.
-        this.commandStreamId = await this.cmdWriter.get(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ) || "$";
+        this.commandStreamId = "$";
 
         // Warn of any existing connections.
         await this.cmdWriter.del(REDIS_IRC_POOL_CONNECTIONS);
