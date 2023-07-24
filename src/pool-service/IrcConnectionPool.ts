@@ -28,6 +28,7 @@ const TIME_TO_WAIT_BEFORE_PONG = 10000;
 
 // This value is reasonably conservative to avoid trimming too far.
 const STREAM_HISTORY_MAXLEN = 10000;
+
 const Config = {
     redisUri: process.env.REDIS_URL ?? 'redis://localhost:6379',
     metricsHost: (process.env.METRICS_HOST ?? false) as string|false,

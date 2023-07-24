@@ -8,7 +8,8 @@ import { ClientId, ConnectionCreateArgs, HEARTBEAT_EVERY_MS,
     PROTOCOL_VERSION,
     READ_BUFFER_MAGIC_BYTES,
     REDIS_IRC_POOL_COMMAND_IN_STREAM, REDIS_IRC_POOL_COMMAND_OUT_STREAM,
-    REDIS_IRC_POOL_CONNECTIONS, REDIS_IRC_POOL_HEARTBEAT_KEY, REDIS_IRC_POOL_VERSION_KEY } from "./types";
+    REDIS_IRC_POOL_CONNECTIONS, REDIS_IRC_POOL_HEARTBEAT_KEY, REDIS_IRC_POOL_VERSION_KEY,
+    REDIS_IRC_POOL_COMMAND_OUT_STREAM_LAST_READ } from "./types";
 
 import { Logger } from 'matrix-appservice-bridge';
 import { EventEmitter } from "stream";
@@ -44,6 +45,13 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         this.cmdReader = new Redis(url, {
             lazyConnect: true,
         });
+    }
+
+    public updateLastRead(msgId: string) {
+        this.commandStreamId = msgId;
+        this.redis.set(REDIS_IRC_POOL_COMMAND_OUT_STREAM_LAST_READ, msgId).catch((ex) => {
+            log.error(`Failed to update last-read to ${msgId}`, ex);
+        })
     }
 
     public async sendCommand<T extends InCommandType>(type: T, payload: InCommandPayload[T]) {
