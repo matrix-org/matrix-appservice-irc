@@ -239,6 +239,10 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
     }
 
     private async trimCommandStream() {
+        if (this.commandStreamId === '$') {
+            // At the head of the queue, don't trim.
+            return;
+        }
         try {
             const trimCount = await this.redis.xtrim(
                 REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MINID", this.commandStreamId
