@@ -16,7 +16,7 @@ describe('Ensure quit messsage is sent', () => {
     afterEach(() => {
         return testEnv?.tearDown();
     });
-    it('should correctly send a quit message on ', async () => {
+    it('should correctly send a quit message on !reconnect', async () => {
         const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
         const { homeserver } = testEnv;
         const [alice] = homeserver.users.map(c => c.client);
