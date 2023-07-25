@@ -17,7 +17,7 @@ export class RedisIrcConnection extends (EventEmitter as unknown as
         return this.isConnecting;
     }
 
-    public get readyState() {
+    public get readyState(): string {
         // TODO: Should this be just pulled directly from the socket.
         // No support for readonly / writeonly.
         return this.isConnecting ? 'opening' : 'open';
