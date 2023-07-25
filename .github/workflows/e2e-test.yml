@@ -221,4 +221,4 @@ jobs:
         with:
           name: e2e-traces-pool
           path: |
-            .e2e-traces
+            matrix-appservice-irc/.e2e-traces
