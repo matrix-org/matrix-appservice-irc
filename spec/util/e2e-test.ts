@@ -60,7 +60,6 @@ export class E2ETestMatrixClient extends MatrixClient {
                 const sortOrder = value !== null && typeof value === "object" ? Object.keys(value).sort() : undefined;
                 const jsonLeft = JSON.stringify(evValue, sortOrder);
                 const jsonRight = JSON.stringify(value, sortOrder);
-                console.log(jsonLeft, "---", jsonRight);
                 if (jsonLeft !== jsonRight) {
                     return undefined;
                 }

@@ -36,11 +36,11 @@ describe('Ensure powerlevels are appropriately applied', () => {
         const plEvent = alice.waitForPowerLevel(
             cRoomId, {
                 users: {
+                    [bobUserId]: operatorPL,
                     [charlieUserId]: operatorPL,
                     [testEnv.ircBridge.appServiceUserId]: 100,
-                    [bobUserId]: operatorPL,
                 },
-            }
+            },
         );
 
         await bob.send('MODE', channel, '+o', charlie.nick);
