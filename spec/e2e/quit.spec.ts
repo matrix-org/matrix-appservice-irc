@@ -7,7 +7,7 @@ describe('Ensure quit messsage is sent', () => {
     let testEnv: IrcBridgeE2ETest;
     beforeEach(async () => {
         testEnv = await IrcBridgeE2ETest.createTestEnv({
-            matrixLocalparts: ['alice'],
+            matrixLocalparts: [TestIrcServer.generateUniqueNick('alice')],
             ircNicks: ['bob'],
             traceToFile: true,
         });
@@ -18,7 +18,7 @@ describe('Ensure quit messsage is sent', () => {
     });
     it('should correctly send a quit message on !reconnect', async () => {
         const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
-        const { homeserver } = testEnv;
+        const { homeserver, opts } = testEnv;
         const [alice] = homeserver.users.map(c => c.client);
         const { bob } = testEnv.ircTest.clients;
 
@@ -36,7 +36,7 @@ describe('Ensure quit messsage is sent', () => {
         // Now, have alice quit.
         await alice.sendText(adminRoom, `!reconnect`);
         const [nick, message, channels] = await quitEvent;
-        expect(nick).toEqual('M-alice');
+        expect(nick).toEqual(`M-${opts.matrixLocalparts?.[0]}`);
         expect(message).toEqual('Quit: Reconnecting');
         expect(channels).toContain(channel);
     });

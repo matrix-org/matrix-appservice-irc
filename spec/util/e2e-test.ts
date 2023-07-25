@@ -301,7 +301,9 @@ export class IrcBridgeE2ETest {
             }
             }),
         }, registration);
-        return new IrcBridgeE2ETest(homeserver, ircBridge, registration, postgresDb, ircTest, redisPool, traceStream)
+        return new IrcBridgeE2ETest(
+            homeserver, ircBridge, registration, postgresDb, ircTest, opts, redisPool, traceStream
+        );
     }
 
     private constructor(
@@ -310,6 +312,7 @@ export class IrcBridgeE2ETest {
         public readonly registration: AppServiceRegistration,
         readonly postgresDb: string,
         public readonly ircTest: TestIrcServer,
+        public readonly opts: Opts,
         public readonly pool?: IrcConnectionPool,
         private traceLog?: WriteStream,
     ) {
