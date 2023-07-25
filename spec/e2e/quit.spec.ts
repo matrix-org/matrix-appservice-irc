@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { TestIrcServer } from "matrix-org-irc";
 import { IrcBridgeE2ETest } from "../util/e2e-test";
 import { describe, it } from "@jest/globals";
@@ -17,7 +16,7 @@ describe('Ensure quit messsage is sent', () => {
     afterEach(() => {
         return testEnv?.tearDown();
     });
-    it('should update powerlevel of IRC user when OPed by an IRC user', async () => {
+    it('should correctly send a quit message on ', async () => {
         const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
         const { homeserver } = testEnv;
         const [alice] = homeserver.users.map(c => c.client);

@@ -357,9 +357,6 @@ export class IrcBridgeE2ETest {
     }
 
     public async tearDown(): Promise<void> {
-        if (this.traceLog) {
-            this.traceLog.close();
-        }
         await Promise.allSettled([
             this.ircBridge?.kill(),
             this.ircTest.tearDown(),
@@ -368,6 +365,9 @@ export class IrcBridgeE2ETest {
             this.dropDatabase(),
         ]);
         await this.pool?.close();
+        if (this.traceLog) {
+            this.traceLog.close();
+        }
     }
 
     public async createAdminRoomHelper(client: E2ETestMatrixClient): Promise<string> {
