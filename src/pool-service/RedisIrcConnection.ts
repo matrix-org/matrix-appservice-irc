@@ -11,10 +11,16 @@ export type RedisIrcConnectionEvents = {
 
 export class RedisIrcConnection extends (EventEmitter as unknown as
     new () => TypedEmitter<RedisIrcConnectionEvents&IrcConnectionEventsMap>) implements IrcConnection {
-    private readonly log = new Logger(`RedisIrcConnection:${this.clientId}`);
+    private readonly log: Logger;
 
     public get connecting() {
         return this.isConnecting;
+    }
+
+    public get readyState() {
+        // TODO: Should this be just pulled directly from the socket.
+        // No support for readonly / writeonly.
+        return this.isConnecting ? 'opening' : 'open';
     }
 
     private isConnecting = true;
@@ -25,6 +31,7 @@ export class RedisIrcConnection extends (EventEmitter as unknown as
                 public readonly clientId: ClientId,
                 public state: IrcClientState) {
         super();
+        this.log = new Logger(`RedisIrcConnection:${this.clientId}`);
         this.once('connect', () => {
             this.isConnecting = false;
         });
