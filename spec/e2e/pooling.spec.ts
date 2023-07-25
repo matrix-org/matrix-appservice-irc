@@ -73,7 +73,7 @@ describeif('Connection pooling', () => {
         await bobMsg;
     });
 
-    it.only('should store the IRC client state once', async () => {
+    it('should store the IRC client state once', async () => {
         const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
         const { homeserver, ircBridge } = testEnv;
         const { client, userId } = homeserver.users[0];

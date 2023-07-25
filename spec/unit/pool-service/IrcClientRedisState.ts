@@ -3,6 +3,7 @@ import { IrcClientRedisState, IrcClientStateDehydrated } from "../../../src/pool
 
 const userId = "@foo:bar";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fakeRedis(existingData: string|null = null): any {
     return {
         async hget(key, clientId) {

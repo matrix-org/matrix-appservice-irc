@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ErrCode } from "matrix-appservice-bridge";
 
 import { defer } from "../../src/promiseutil";
@@ -137,7 +138,7 @@ describe("Provisioning API", function() {
         let sentReply = false;
         if (shouldOpRespond) {
             // Listen for message from bot
-            env.ircMock._whenClient(config._server, config._botnick, "say", (self: any, message: any) => {
+            env.ircMock._whenClient(config._server, config._botnick, "say", (self: any) => {
                 // Say yes back to the bot
                 if (sentReply) {
                     return;
@@ -537,7 +538,7 @@ describe("Provisioning API", function() {
                 linkBody.remote_room_server,
                 nickForDisplayName,
                 "say",
-                (client, channel, text) => {
+                (client, channel) => {
                     expect(client.nick).toEqual(nickForDisplayName);
                     expect(client.addr).toEqual(linkBody.remote_room_server);
                     expect(channel).toEqual(linkBody.remote_room_channel);
@@ -583,7 +584,7 @@ describe("Provisioning API", function() {
                 linkBody.remote_room_server,
                 nickForDisplayName,
                 "say",
-                (client, channel, text) => {
+                (client, channel) => {
                     expect(client.nick).toEqual(nickForDisplayName);
                     expect(client.addr).toEqual(linkBody.remote_room_server);
                     expect(channel).toEqual(linkBody.remote_room_channel);
