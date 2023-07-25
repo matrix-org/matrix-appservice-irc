@@ -1169,7 +1169,7 @@ export class BridgedClient extends EventEmitter {
         return this.connectDefer.promise;
     }
 
-    private assertConnected(): Client {
+    public assertConnected(): Client {
         if (this.state.status !== BridgedClientStatus.CONNECTED) {
             throw Error('Client is not connected');
         }

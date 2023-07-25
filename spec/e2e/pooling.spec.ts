@@ -72,4 +72,31 @@ describeif('Connection pooling', () => {
         bob.say(channel, "Hi alice!");
         await bobMsg;
     });
+
+    it.only('should store the IRC client state once', async () => {
+        const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
+        const { homeserver, ircBridge } = testEnv;
+        const { client, userId } = homeserver.users[0];
+        const adminRoomId = await testEnv.createAdminRoomHelper(client);
+
+        // Ensure we join IRC.
+        const cRoomId = await testEnv.joinChannelHelper(client, adminRoomId, channel);
+        await client.sendText(cRoomId, "Hello bob!");
+
+
+        const bridgedClient = await ircBridge.getBridgedClient(ircBridge.getServers()[0], userId);
+        await bridgedClient.waitForConnected();
+        const ircClient = await bridgedClient.assertConnected();
+
+        // This is the original state of supported. We clone the object to be safe.
+        const expectedState = JSON.parse(JSON.stringify(ircClient.supported));
+
+        // Request VERSION to re-request state.
+        await bridgedClient.sendCommands('VERSION');
+        await new Promise<void>(resolve => setTimeout(resolve, 2000));
+        const newState = { ...ircClient.supported };
+
+        expect(expectedState).toEqual(newState);
+    });
+
 });
