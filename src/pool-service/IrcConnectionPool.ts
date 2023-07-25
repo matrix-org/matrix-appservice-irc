@@ -26,8 +26,6 @@ collectDefaultMetrics();
 const log = new Logger('IrcConnectionPool');
 const TIME_TO_WAIT_BEFORE_PONG = 10000;
 
-// This value is reasonably conservative to avoid trimming too far.
-const STREAM_HISTORY_MAXLEN = 10000;
 
 const Config = {
     redisUri: process.env.REDIS_URL ?? 'redis://localhost:6379',
@@ -333,6 +331,18 @@ export class IrcConnectionPool {
         });
     }
 
+    private async trimCommandStream() {
+        try {
+            const trimCount = await this.cmdWriter.xtrim(
+                REDIS_IRC_POOL_COMMAND_IN_STREAM, "MINID", this.commandStreamId
+            );
+            log.debug(`Trimmed ${trimCount} commands from the IN stream`);
+        }
+        catch (ex) {
+            log.warn(`Failed to trim commands from the IN stream`, ex);
+        }
+    }
+
     public async start() {
         if (this.shouldRun) {
             // Is already running!
@@ -393,20 +403,7 @@ export class IrcConnectionPool {
             this.sendHeartbeat().catch((ex) => {
                 log.warn(`Failed to send heartbeat`, ex);
             });
-            this.cmdWriter.xtrim(
-                REDIS_IRC_POOL_COMMAND_IN_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN
-            ).then(trimCount => {
-                log.debug(`Trimmed ${trimCount} commands from the IN stream`);
-            }).catch((ex) => {
-                log.warn(`Failed to trim commands from the IN stream`, ex);
-            });
-            this.cmdWriter.xtrim(
-                REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN
-            ).then(trimCount => {
-                log.debug(`Trimmed ${trimCount} commands from the OUT stream`);
-            }).catch((ex) => {
-                log.warn(`Failed to trim commands from the OUT stream`, ex);
-            });
+            void this.trimCommandStream();
         }, HEARTBEAT_EVERY_MS);
 
 

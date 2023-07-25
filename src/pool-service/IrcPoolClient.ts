@@ -236,13 +236,25 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
             );
             this.updateLastRead(msgId);
         }
+    }
 
+    private async trimCommandStream() {
+        try {
+            const trimCount = await this.redis.xtrim(
+                REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MINID", this.commandStreamId
+            );
+            log.debug(`Trimmed ${trimCount} commands from the OUT stream`);
+        }
+        catch (ex) {
+            log.warn(`Failed to trim commands from the OUT stream`, ex);
+        }
     }
 
     private async checkHeartbeat() {
         const lastHeartbeat = parseInt(await this.redis.get(REDIS_IRC_POOL_HEARTBEAT_KEY) ?? '0');
         if (lastHeartbeat + HEARTBEAT_EVERY_MS + 1000 > Date.now()) {
             this.missedHeartbeats = 0;
+            void this.trimCommandStream();
             return;
         }
 
