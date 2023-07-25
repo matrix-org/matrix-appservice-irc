@@ -455,12 +455,12 @@ export class BridgedClient extends EventEmitter {
         });
     }
 
-    public async leaveChannel(channel: string, reason = "User left"): Promise<void> {
+    public async leaveChannel(channel: string, reason = "User left"): Promise<boolean> {
         if (this.state.status !== BridgedClientStatus.CONNECTED) {
-            return undefined; // we were never connected to the network.
+            return false; // we were never connected to the network.
         }
         if (!channel.startsWith("#")) {
-            return undefined; // PM room
+            return false; // PM room
         }
         const deferredChannelJoin = this.channelJoinDefers.get(channel);
         if (deferredChannelJoin) {
@@ -474,7 +474,7 @@ export class BridgedClient extends EventEmitter {
             }
         }
         if (!this.inChannel(channel)) {
-            return undefined; // we were never joined to it.
+            return false; // we were never joined to it.
         }
         const defer = promiseutil.defer<void>();
         this.log.debug("Leaving channel %s", channel);
@@ -484,7 +484,8 @@ export class BridgedClient extends EventEmitter {
             defer.resolve();
         });
 
-        return defer.promise;
+        await defer.promise;
+        return true;
     }
 
     public inChannel(channel: string) {
@@ -1169,7 +1170,7 @@ export class BridgedClient extends EventEmitter {
         return this.connectDefer.promise;
     }
 
-    private assertConnected(): Client {
+    public assertConnected(): Client {
         if (this.state.status !== BridgedClientStatus.CONNECTED) {
             throw Error('Client is not connected');
         }
