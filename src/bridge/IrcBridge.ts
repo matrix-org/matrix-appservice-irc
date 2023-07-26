@@ -844,6 +844,10 @@ export class IrcBridge {
         log.info("Startup complete.");
 
         this.bridgeState = "running";
+
+        // After completing setup, double check that we're not running any clients for banned users.
+        await this.clientPool.checkForBannedConnectedUsers();
+
     }
 
     private async setupStateSyncer(config: BridgeConfig) {
