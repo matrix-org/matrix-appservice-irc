@@ -1,0 +1,1 @@
+Fix a case where the bridge would not listen for and apply bans for legacy/unspec'd `m.room.rule.*` types in use by Mjolnir.
