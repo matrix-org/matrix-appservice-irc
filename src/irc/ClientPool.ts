@@ -155,7 +155,8 @@ export class ClientPool {
                     IrcClientConfig.newConfig(
                         mxUser, server.domain
                     );
-                await this.createIrcClient(config, mxUser, false, false);
+                const bridgeClient = await this.createIrcClient(config, mxUser, false, false);
+                await bridgeClient.connect();
                 log.info(`Connected previously connected user ${connection.clientId}`);
             }
             catch (ex) {
