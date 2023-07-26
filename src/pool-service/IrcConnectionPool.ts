@@ -2,7 +2,7 @@ import { Redis } from 'ioredis';
 import { Logger, LogLevel } from 'matrix-appservice-bridge';
 import { createConnection, Socket } from 'net';
 import tls from 'tls';
-import { REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ, OutCommandType,
+import { OutCommandType,
     REDIS_IRC_POOL_COMMAND_OUT_STREAM, IrcConnectionPoolCommandIn,
     ConnectionCreateArgs, InCommandType, CommandError,
     REDIS_IRC_POOL_HEARTBEAT_KEY,
@@ -25,7 +25,7 @@ collectDefaultMetrics();
 
 const log = new Logger('IrcConnectionPool');
 const TIME_TO_WAIT_BEFORE_PONG = 10000;
-const STREAM_HISTORY_MAXLEN = 50;
+
 
 const Config = {
     redisUri: process.env.REDIS_URL ?? 'redis://localhost:6379',
@@ -64,9 +64,6 @@ export class IrcConnectionPool {
 
     private updateLastRead(lastRead: string) {
         this.commandStreamId = lastRead;
-        this.cmdWriter.set(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ, lastRead).catch((ex) => {
-            log.warn(`Unable to update last-read for command.in`, ex);
-        })
     }
 
     private async sendCommandOut<T extends OutCommandType>(type: T, payload: OutCommandPayload[T]) {
@@ -334,6 +331,22 @@ export class IrcConnectionPool {
         });
     }
 
+    private async trimCommandStream() {
+        if (this.commandStreamId === '$') {
+            // At the head of the queue, don't trim.
+            return;
+        }
+        try {
+            const trimCount = await this.cmdWriter.xtrim(
+                REDIS_IRC_POOL_COMMAND_IN_STREAM, "MINID", this.commandStreamId
+            );
+            log.debug(`Trimmed ${trimCount} commands from the IN stream`);
+        }
+        catch (ex) {
+            log.warn(`Failed to trim commands from the IN stream`, ex);
+        }
+    }
+
     public async start() {
         if (this.shouldRun) {
             // Is already running!
@@ -382,7 +395,7 @@ export class IrcConnectionPool {
         await this.sendHeartbeat();
 
         // Fetch the last read index.
-        this.commandStreamId = await this.cmdWriter.get(REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ) || "$";
+        this.commandStreamId = "$";
 
         // Warn of any existing connections.
         await this.cmdWriter.del(REDIS_IRC_POOL_CONNECTIONS);
@@ -394,49 +407,36 @@ export class IrcConnectionPool {
             this.sendHeartbeat().catch((ex) => {
                 log.warn(`Failed to send heartbeat`, ex);
             });
-            this.cmdWriter.xtrim(
-                REDIS_IRC_POOL_COMMAND_IN_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN
-            ).then(trimCount => {
-                log.debug(`Trimmed ${trimCount} commands from the IN stream`);
-            }).catch((ex) => {
-                log.warn(`Failed to trim commands from the IN stream`, ex);
-            });
-            this.cmdWriter.xtrim(
-                REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MAXLEN", "~", STREAM_HISTORY_MAXLEN
-            ).then(trimCount => {
-                log.debug(`Trimmed ${trimCount} commands from the OUT stream`);
-            }).catch((ex) => {
-                log.warn(`Failed to trim commands from the OUT stream`, ex);
-            });
+            void this.trimCommandStream();
         }, HEARTBEAT_EVERY_MS);
 
 
         log.info(`Listening for new commands`);
         setImmediate(async () => {
             while (this.shouldRun) {
-                const newCmd = await this.cmdReader.xread(
+                const newCmds = await this.cmdReader.xread(
                     "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_IN_STREAM, this.commandStreamId
                 ).catch(ex => {
                     log.warn(`Failed to read new command:`, ex);
                     return null;
                 });
-                if (newCmd === null) {
+                if (newCmds === null) {
                     // Unexpected, this is blocking.
                     continue;
                 }
                 // This is a list of keys, containing a list of commands, hence needing to deeply extract the values.
-                const [msgId, [cmdType, payload]] = newCmd[0][1][0];
+                for (const [msgId, [cmdType, payload]] of newCmds[0][1]) {
+                    const commandType = cmdType as InCommandType;
 
-                const commandType = cmdType as InCommandType;
-
-                // If we crash, we don't want to get stuck on this msg.
-                await this.updateLastRead(msgId);
-                const commandData = JSON.parse(payload) as IrcConnectionPoolCommandIn<InCommandType>;
-                setImmediate(
-                    () => this.handleCommand(commandType, commandData)
-                        .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
-                        ),
-                );
+                    // If we crash, we don't want to get stuck on this msg.
+                    await this.updateLastRead(msgId);
+                    const commandData = JSON.parse(payload) as IrcConnectionPoolCommandIn<InCommandType>;
+                    setImmediate(
+                        () => this.handleCommand(commandType, commandData)
+                            .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
+                            ),
+                    );
+                }
             }
         });
     }
