@@ -141,7 +141,7 @@ export class ClientPool {
         // servers this will break!
         const server = this.ircBridge.getServers()[0];
         for await (const connection of this.redisPool.getPreviouslyConnectedClients()) {
-            if (connection.clientId) {
+            if (connection.clientId === 'bot') {
                 // The bot will be connected via the usual process.
                 continue;
             }
