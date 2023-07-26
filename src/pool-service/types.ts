@@ -12,7 +12,8 @@ export const REDIS_IRC_POOL_VERSION_KEY = "ircbridge.poolversion";
 export const REDIS_IRC_POOL_HEARTBEAT_KEY = "ircbridge.pool.💓";
 export const REDIS_IRC_POOL_COMMAND_OUT_STREAM = "ircbridge.stream.command.out";
 export const REDIS_IRC_POOL_COMMAND_IN_STREAM = "ircbridge.stream.command.in";
-export const REDIS_IRC_POOL_COMMAND_IN_STREAM_LAST_READ = "ircbridge.stream.command.last-read";
+
+export const REDIS_IRC_POOL_COMMAND_OUT_STREAM_LAST_READ = "ircbridge.stream.out.command.last-read";
 
 export const REDIS_IRC_POOL_CONNECTIONS = "ircbridge.connections";
 export const REDIS_IRC_CLIENT_STATE_KEY = `ircbridge.clientstate`; //client-id
