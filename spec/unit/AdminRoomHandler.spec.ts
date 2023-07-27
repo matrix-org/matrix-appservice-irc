@@ -33,6 +33,16 @@ describe("AdminRoomHandler", function() {
             expect(result?.cmd).toEqual('mytestarg');
             expect(result?.args).toEqual(['hello']);
         });
+        it('should ignore subsequent null terminated lines for args', () => {
+            const result = parseCommandFromEvent({
+                content: {
+                    body: '!mytestarg hello\x00 foo'
+                }
+            });
+            expect(result).withContext('command should parse').not.toBeNull();
+            expect(result?.cmd).toEqual('mytestarg');
+            expect(result?.args).toEqual(['hello']);
+        });
         it('should ignore messages with an invalid body', () => {
             for (const body of [false, true, [], ['!foo'], 1, -1, 0, '', '!', undefined, null, NaN]) {
                 expect(

@@ -1289,7 +1289,7 @@ describe("Admin rooms", function() {
             expect(roomId).toEqual(adminRoomId);
             expect(content.msgtype).toEqual("m.notice");
             expect(content.body).toEqual(
-                "Username contained invalid characters not supported by IRC (\"\\u0000\")."
+                "Username contained invalid characters not supported by IRC (\"\\u0001\")."
             );
             return {};
         });
@@ -1299,7 +1299,7 @@ describe("Admin rooms", function() {
 
         await env.mockAppService._trigger("type:m.room.message", {
             content: {
-                body: "!username foo\0bar",
+                body: "!username foo\x01bar",
                 msgtype: "m.text"
             },
             sender: userId,

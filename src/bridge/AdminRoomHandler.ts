@@ -48,7 +48,7 @@ export function parseCommandFromEvent(event: { content?: { body?: unknown }}, pr
         return null;
     }
     // First line only
-    const body = event.content.body.trim().split("\n")[0];
+    const body = event.content.body.trim().split(/\n|\000/)[0];
     if (!body.startsWith(prefix)) {
         return null;
     }
