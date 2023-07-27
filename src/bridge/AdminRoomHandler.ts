@@ -182,10 +182,13 @@ export class AdminRoomHandler {
                 }
                 else {
                     req.log.error("Exception while handling command %s from %s: %s", cmd, event.sender, err);
-                    response = new MatrixAction(ActionType.Notice, "An unknown error happened while handling your command");
+                    response = new MatrixAction(
+                        ActionType.Notice, "An unknown error happened while handling your command"
+                    );
                 }
             }
-        } else {
+        }
+        else {
             response = new MatrixAction(ActionType.Notice,
                 "The command was not recognised. Available commands are listed by !help");
         }
