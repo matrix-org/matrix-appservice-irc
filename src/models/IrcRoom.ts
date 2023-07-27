@@ -18,6 +18,17 @@ import { RemoteRoom } from "matrix-appservice-bridge";
 import { toIrcLowerCase } from "../irc/formatting";
 import { IrcServer } from "../irc/IrcServer";
 
+/**
+ * Validate that a channel name is in the correct form.
+ * NOTE: This accepts both # and & as channel prefixes.
+ * @param channel Channel name
+ * @returns True if the channel is valid, or false otherwise.
+ */
+export function validateChannelName(channel: string) {
+    // According to https://www.rfc-editor.org/rfc/rfc1459#section-1.3
+    return /^#([^\s\cG,]){1,199}$/.test(channel);
+}
+
 export class IrcRoom extends RemoteRoom {
     /**
      * Construct a new IRC room.
