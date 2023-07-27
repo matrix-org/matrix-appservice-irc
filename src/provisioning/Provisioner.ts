@@ -14,7 +14,7 @@ import {
 } from "matrix-appservice-bridge";
 import * as promiseutil from "../promiseutil";
 import { Defer } from "../promiseutil";
-import { IrcRoom } from "../models/IrcRoom";
+import { IrcRoom, validateChannelName } from "../models/IrcRoom";
 import { IrcAction } from "../models/IrcAction";
 import { BridgeRequest, BridgeRequestData } from "../models/BridgeRequest";
 import logging, { RequestLogger } from "../logging";
@@ -648,6 +648,11 @@ export class Provisioner extends ProvisioningApi {
 
         const ircDomain = body.remote_room_server;
         let ircChannel = body.remote_room_channel;
+
+        if (!validateChannelName(ircChannel)) {
+            throw new Error("Channel name isn't valid");
+        }
+
         const key = body.key ?? undefined; // Optional key
 
         const queryInfo: {operators: string[]} = {
@@ -732,6 +737,11 @@ export class Provisioner extends ProvisioningApi {
 
         const ircDomain = body.remote_room_server;
         let ircChannel = body.remote_room_channel;
+
+        if (!validateChannelName(ircChannel)) {
+            throw new Error("Channel name isn't valid");
+        }
+
         const roomId = body.matrix_room_id;
         const opNick = body.op_nick;
         const key = body.key ?? undefined;
@@ -860,8 +870,14 @@ export class Provisioner extends ProvisioningApi {
 
         const ircDomain = body.remote_room_server;
         const ircChannel = body.remote_room_channel;
+
+
         const roomId = body.matrix_room_id;
         const mappingLogId = `${roomId} <-/-> ${ircDomain}/${ircChannel}`;
+
+        if (!validateChannelName(ircChannel)) {
+            throw new Error("Channel name isn't valid");
+        }
 
         req.log.info(`Provisioning unlink for room ${mappingLogId} (for ${userId})`);
 

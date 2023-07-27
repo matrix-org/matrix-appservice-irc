@@ -27,6 +27,7 @@ import * as RoomCreation from "./RoomCreation";
 import { getBridgeVersion } from "matrix-appservice-bridge";
 import { Provisioner } from "../provisioning/Provisioner";
 import { IrcProvisioningError } from "../provisioning/Schema";
+import { validateChannelName } from "../models/IrcRoom";
 
 const log = logging("AdminRoomHandler");
 
@@ -249,8 +250,9 @@ export class AdminRoomHandler {
         if (!server) {
             return new MatrixAction(ActionType.Notice, "The server provided is not configured on this bridge");
         }
-        if (!ircChannel || !ircChannel.startsWith("#")) {
-            return new MatrixAction(ActionType.Notice, "The channel name must start with a #");
+
+        if (!ircChannel || !validateChannelName(ircChannel) || !ircChannel.startsWith("#")) {
+            return new MatrixAction(ActionType.Notice, "The channel name must be valid and start with a #");
         }
         // Check if the room exists and the user is invited.
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
@@ -324,11 +326,12 @@ export class AdminRoomHandler {
         const ircChannel = args[0];
         const key = args[1]; // keys can't have spaces in them, so we can just do this.
         let errText: string|null = null;
-        if (!ircChannel || !ircChannel.startsWith("#")) {
-            errText = "Format: '!join irc.example.com #channel [key]'";
-        }
-        else if (!server.canJoinRooms(sender)) {
+
+        if (!server.canJoinRooms(sender)) {
             errText = "You are not authorised to join channels on this server.";
+        }
+        else if (!ircChannel || !validateChannelName(ircChannel) || !ircChannel.startsWith("#")) {
+            errText = "Format: '!join irc.example.com #channel [key]'";
         }
 
         if (errText) {
