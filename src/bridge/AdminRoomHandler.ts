@@ -35,6 +35,27 @@ enum CommandPermission {
     Admin,
 }
 
+/**
+ * For a given input event, try to parse out a command. This assumes
+ * the event may be malformed.
+ * @param event A matrix message event.
+ * @param prefix The prefix for the message.
+ * @returns A cmd (without prefix) and args
+ */
+export function parseCommandFromEvent(event: { content?: { body?: unknown }}, prefix = "!") {
+    if (typeof event.content?.body !== "string") {
+        return null;
+    }
+    // First line only
+    const body = event.content.body.trim().split("\n")[0];
+    if (!body.startsWith(prefix)) {
+        return null;
+    }
+    // Assumes all commands have the form "!wxyz [irc.server] [args...]"
+    const [cmd, ...args] = body.slice(prefix.length).split(" ");
+    return { cmd, args };
+}
+
 // This is just a length to avoid silly long usernames
 const SANE_USERNAME_LENGTH = 64;
 
@@ -61,61 +82,61 @@ interface Heading {
 
 const COMMANDS: {[command: string]: Command|Heading} = {
     'Actions': { heading: true },
-    "!cmd": {
+    "cmd": {
         example: `!cmd [irc.example.net] COMMAND [arg0 [arg1 [...]]]`,
         summary: "Issue a raw IRC command. These will not produce a reply." +
                 "(Note that the command must be all uppercase.)",
     },
-    "!feature": {
+    "feature": {
         example: `!feature feature-name [true/false/default]`,
         summary: `Enable, disable or default a feature's status for your account.` +
                 `Will display the current feature status if true/false/default not given.`,
     },
-    "!join": {
+    "join": {
         example: `!join [irc.example.net] #channel [key]`,
         summary: `Join a channel (with optional channel key)`,
     },
-    "!nick": {
+    "nick": {
         example: `!nick [irc.example.net] DesiredNick`,
         summary: "Change your nick. If no arguments are supplied, " +
                 "your current nick is shown.",
     },
-    "!quit": {
+    "quit": {
         example: `!quit`,
         summary: "Leave all bridged channels, on all networks, and remove your " +
                 "connections to all networks.",
     },
-    "!active": {
-        example: "!active",
+    "active": {
+        example: "active",
         summary: "Mark yourself as active, which will exclude you from any idleness kicks."
     },
     'Authentication': { heading: true },
-    "!storepass": {
+    "storepass": {
         example: `!storepass [irc.example.net] passw0rd`,
         summary: `Store a NickServ OR SASL password (server password)`,
     },
-    "!reconnect": {
+    "reconnect": {
         example: `!reconnect [irc.example.net]`,
         summary: "Reconnect to an IRC network.",
     },
-    "!removepass": {
+    "removepass": {
         example: `!removepass [irc.example.net]`,
         summary: `Remove a previously stored NickServ password`,
     },
-    "!username": {
+    "username": {
         example: `!username [irc.example.net] username`,
         summary: "Store a username to use for future connections.",
     },
     'Info': { heading: true},
-    "!bridgeversion": {
+    "bridgeversion": {
         example: `!bridgeversion`,
         summary: "Return the version from matrix-appservice-irc bridge.",
     },
-    "!listrooms": {
+    "listrooms": {
         example: `!listrooms [irc.example.net]`,
         summary: "List all of your joined channels, and the rooms they are bridged into.",
     },
-    "!whois": {
+    "whois": {
         example: `!whois [irc.example.net] NickName|@alice:matrix.org`,
         summary: "Do a /whois lookup. If a Matrix User ID is supplied, " +
                 "return information about that user's IRC connection.",
@@ -127,7 +148,7 @@ const COMMANDS: {[command: string]: Command|Heading} = {
         requiresPermission: CommandPermission.Admin,
     },
     '!unlink': {
-        example: "!unlink !room:example.com irc.example.net #foobar",
+        example: "unlink !room:example.com irc.example.net #foobar",
         summary: "Unlink an IRC channel from a Matrix room. " +
                 "You need to be a moderator of the Matrix room or an administrator of this bridge.",
     },
@@ -145,10 +166,13 @@ export class AdminRoomHandler {
     }
 
     public async onAdminMessage(req: BridgeRequest, event: MatrixSimpleMessage, adminRoom: MatrixRoom) {
-        req.log.info("Handling command from %s", event.sender);
-        // Assumes all commands have the form "!wxyz [irc.server] [args...]"
-        const segments = event.content.body.split(" ");
-        const [cmd, ...args] = segments;
+        req.log.info("Handling admin command from %s", event.sender);
+        const parseResult = parseCommandFromEvent(event);
+        if (!parseResult) {
+            return new MatrixAction(ActionType.Notice,
+                "The command was not recognised. Available commands are listed by !help");
+        }
+        const { cmd, args } = parseResult;
 
         let response: MatrixAction|void;
         try {
@@ -177,40 +201,40 @@ export class AdminRoomHandler {
             return new MatrixAction(ActionType.Notice, "You do not have permission to use this command");
         }
         switch (cmd) {
-            case "!active":
+            case "active":
                 // The bridge treats ANY message appearing over the network as an idleness reset,
                 // so the act of running this commmand resets that timer.
                 return new MatrixAction(ActionType.Notice, "You have been marked as active by the bridge");
-            case "!join":
+            case "join":
                 return await this.handleJoin(req, args, event.sender);
-            case "!cmd":
+            case "cmd":
                 return await this.handleCmd(req, args, event.sender);
-            case "!whois":
+            case "whois":
                 return await this.handleWhois(req, args, event.sender);
-            case "!reconnect":
+            case "reconnect":
                 return await this.handleReconnect(req, args, event.sender);
-            case "!username":
+            case "username":
                 return await this.handleUsername(req, args, event.sender)
-            case "!storepass":
+            case "storepass":
                 return await this.handleStorePass(req, args, event.sender);
-            case "!removepass":
+            case "removepass":
                 return await this.handleRemovePass(args, event.sender);
-            case "!listrooms":
+            case "listrooms":
                 return await this.handleListRooms(args, event.sender);
-            case "!quit":
+            case "quit":
                 return await this.handleQuit(req, event.sender, args);
-            case "!nick":
+            case "nick":
                 return await this.handleNick(req, args, event.sender);
-            case "!feature":
+            case "feature":
                 return await this.handleFeature(args, event.sender);
-            case "!bridgeversion":
+            case "bridgeversion":
                 return this.showBridgeVersion();
-            case "!plumb":
+            case "plumb":
                 return await this.handlePlumb(args, event.sender)
-            case "!unlink":
-            case "!unplumb": // alias for convinience
+            case "unlink":
+            case "unplumb": // alias for convinience
                 return await this.handleUnlink(args, event.sender)
-            case "!help":
+            case "help":
                 return this.showHelp(event.sender);
             default: {
                 return new MatrixAction(ActionType.Notice,
