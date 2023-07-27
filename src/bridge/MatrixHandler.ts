@@ -926,8 +926,7 @@ export class MatrixHandler {
         if (ircRooms.length === 0 && event.content && event.content.msgtype === "m.text") {
             // This is used to ensure type safety.
             const body = event.content.body;
-            // Ignore if body is falsey or 
-            if ( !body?.trim().length) {
+            if (!body?.trim().length) {
                 return BridgeRequestErr.ERR_DROPPED;
             }
             // could be an Admin room, so check.

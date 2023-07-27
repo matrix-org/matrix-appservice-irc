@@ -169,24 +169,25 @@ export class AdminRoomHandler {
     public async onAdminMessage(req: BridgeRequest, event: MatrixSimpleMessage, adminRoom: MatrixRoom) {
         req.log.info("Handling admin command from %s", event.sender);
         const parseResult = parseCommandFromEvent(event);
-        if (!parseResult) {
-            return new MatrixAction(ActionType.Notice,
-                "The command was not recognised. Available commands are listed by !help");
-        }
-        const { cmd, args } = parseResult;
-
         let response: MatrixAction|void;
-        try {
-            response = await this.handleCommand(cmd, args, req, event);
-        }
-        catch (err) {
-            if (err instanceof ServerRequiredError) {
-                response = err.notice;
+        if (parseResult) {
+            const { cmd, args } = parseResult;
+
+            try {
+                response = await this.handleCommand(cmd, args, req, event);
             }
-            else {
-                req.log.error("Exception while handling command %s from %s: %s", cmd, event.sender, err);
-                response = new MatrixAction(ActionType.Notice, "An unknown error happened while handling your command");
+            catch (err) {
+                if (err instanceof ServerRequiredError) {
+                    response = err.notice;
+                }
+                else {
+                    req.log.error("Exception while handling command %s from %s: %s", cmd, event.sender, err);
+                    response = new MatrixAction(ActionType.Notice, "An unknown error happened while handling your command");
+                }
             }
+        } else {
+            response = new MatrixAction(ActionType.Notice,
+                "The command was not recognised. Available commands are listed by !help");
         }
 
         if (response) {
