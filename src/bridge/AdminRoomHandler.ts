@@ -108,7 +108,7 @@ const COMMANDS: {[command: string]: Command|Heading} = {
                 "connections to all networks.",
     },
     "active": {
-        example: "active",
+        example: "!active",
         summary: "Mark yourself as active, which will exclude you from any idleness kicks."
     },
     'Authentication': { heading: true },
@@ -143,13 +143,13 @@ const COMMANDS: {[command: string]: Command|Heading} = {
                 "return information about that user's IRC connection.",
     },
     'Management': { heading: true },
-    '!plumb': {
+    "plumb": {
         example: `!plumb !room:example.com irc.example.net #foobar`,
         summary: "Plumb an IRC channel into a Matrix room.",
         requiresPermission: CommandPermission.Admin,
     },
-    '!unlink': {
-        example: "unlink !room:example.com irc.example.net #foobar",
+    "unlink": {
+        example: "!unlink !room:example.com irc.example.net #foobar",
         summary: "Unlink an IRC channel from a Matrix room. " +
                 "You need to be a moderator of the Matrix room or an administrator of this bridge.",
     },
