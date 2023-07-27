@@ -34,7 +34,7 @@ describe("AdminRoomHandler", function() {
             expect(result?.args).toEqual(['hello']);
         });
         it('should ignore messages with an invalid body', () => {
-            for (const body of [false, true, [], ['!foo'], 1, -1, 0, '','!', undefined, null, NaN]) {
+            for (const body of [false, true, [], ['!foo'], 1, -1, 0, '', '!', undefined, null, NaN]) {
                 expect(
                     parseCommandFromEvent({content: {body}})
                 ).toBeNull();

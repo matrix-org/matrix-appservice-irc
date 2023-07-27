@@ -871,7 +871,6 @@ export class Provisioner extends ProvisioningApi {
         const ircDomain = body.remote_room_server;
         const ircChannel = body.remote_room_channel;
 
-
         const roomId = body.matrix_room_id;
         const mappingLogId = `${roomId} <-/-> ${ircDomain}/${ircChannel}`;
 
