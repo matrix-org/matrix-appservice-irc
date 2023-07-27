@@ -16,7 +16,7 @@ import { BridgedClient } from "../irc/BridgedClient";
 import { IrcServer } from "../irc/IrcServer";
 import { IrcAction } from "../models/IrcAction";
 import { toIrcLowerCase } from "../irc/formatting";
-import { AdminRoomHandler } from "./AdminRoomHandler";
+import { AdminRoomHandler, parseCommandFromEvent } from "./AdminRoomHandler";
 import { trackChannelAndCreateRoom } from "./RoomCreation";
 import { renderTemplate } from "../util/Template";
 import { trimString } from "../util/TrimString";
@@ -810,12 +810,13 @@ export class MatrixHandler {
     }
 
     private async onCommand(req: BridgeRequest, event: MatrixMessageEvent): Promise<BridgeRequestErr|null> {
-        req.log.info(`Handling command from ${event.sender}`);
-        if (!event.content.body) {
-            throw Error('Cannot handle command with no text');
+        req.log.info(`Handling in-room command from ${event.sender}`);
+        const parseResult = parseCommandFromEvent(event, "!irc ");
+        if (!parseResult) {
+            throw Error('Cannot handle malformed command');
         }
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
-        const [command, ...args] = event.content.body.trim().substring("!irc ".length).split(" ");
+        const { cmd: command, args } = parseResult;
         // We currently only check the first room.
         const [targetRoom] = await this.ircBridge.getStore().getIrcChannelsForRoomId(event.room_id);
         if (command === "nick") {
@@ -873,6 +874,7 @@ export class MatrixHandler {
         if (event.content.body) {
             req.log.debug("Message body: %s", event.content.body);
         }
+
         const mxAction = MatrixAction.fromEvent(
             event, this.mediaUrl
         );
@@ -924,7 +926,7 @@ export class MatrixHandler {
         if (ircRooms.length === 0 && event.content && event.content.msgtype === "m.text") {
             // This is used to ensure type safety.
             const body = event.content.body;
-            if (body === undefined) {
+            if (!body?.trim().length) {
                 return BridgeRequestErr.ERR_DROPPED;
             }
             // could be an Admin room, so check.

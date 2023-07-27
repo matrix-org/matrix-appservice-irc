@@ -60,7 +60,6 @@ export class E2ETestMatrixClient extends MatrixClient {
                 const sortOrder = value !== null && typeof value === "object" ? Object.keys(value).sort() : undefined;
                 const jsonLeft = JSON.stringify(evValue, sortOrder);
                 const jsonRight = JSON.stringify(value, sortOrder);
-                console.log(jsonLeft, "---", jsonRight);
                 if (jsonLeft !== jsonRight) {
                     return undefined;
                 }
@@ -301,7 +300,9 @@ export class IrcBridgeE2ETest {
             }
             }),
         }, registration);
-        return new IrcBridgeE2ETest(homeserver, ircBridge, registration, postgresDb, ircTest, redisPool, traceStream)
+        return new IrcBridgeE2ETest(
+            homeserver, ircBridge, registration, postgresDb, ircTest, opts, redisPool, traceStream
+        );
     }
 
     private constructor(
@@ -310,6 +311,7 @@ export class IrcBridgeE2ETest {
         public readonly registration: AppServiceRegistration,
         readonly postgresDb: string,
         public readonly ircTest: TestIrcServer,
+        public readonly opts: Opts,
         public readonly pool?: IrcConnectionPool,
         private traceLog?: WriteStream,
     ) {
@@ -357,9 +359,6 @@ export class IrcBridgeE2ETest {
     }
 
     public async tearDown(): Promise<void> {
-        if (this.traceLog) {
-            this.traceLog.close();
-        }
         await Promise.allSettled([
             this.ircBridge?.kill(),
             this.ircTest.tearDown(),
@@ -368,6 +367,9 @@ export class IrcBridgeE2ETest {
             this.dropDatabase(),
         ]);
         await this.pool?.close();
+        if (this.traceLog) {
+            this.traceLog.close();
+        }
     }
 
     public async createAdminRoomHelper(client: E2ETestMatrixClient): Promise<string> {

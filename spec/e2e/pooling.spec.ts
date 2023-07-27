@@ -10,7 +10,7 @@ describeif('Connection pooling', () => {
     beforeEach(async () => {
         // Initial run of the bridge to setup a testing environment
         testEnv = await IrcBridgeE2ETest.createTestEnv({
-            matrixLocalparts: ['alice'],
+            matrixLocalparts: [TestIrcServer.generateUniqueNick('alice')],
             ircNicks: ['bob'],
             config: {
                 connectionPool: {

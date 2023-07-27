@@ -8,7 +8,8 @@ import { ClientId, ConnectionCreateArgs, HEARTBEAT_EVERY_MS,
     PROTOCOL_VERSION,
     READ_BUFFER_MAGIC_BYTES,
     REDIS_IRC_POOL_COMMAND_IN_STREAM, REDIS_IRC_POOL_COMMAND_OUT_STREAM,
-    REDIS_IRC_POOL_CONNECTIONS, REDIS_IRC_POOL_HEARTBEAT_KEY, REDIS_IRC_POOL_VERSION_KEY } from "./types";
+    REDIS_IRC_POOL_CONNECTIONS, REDIS_IRC_POOL_HEARTBEAT_KEY, REDIS_IRC_POOL_VERSION_KEY,
+    REDIS_IRC_POOL_COMMAND_OUT_STREAM_LAST_READ } from "./types";
 
 import { Logger } from 'matrix-appservice-bridge';
 import { EventEmitter } from "stream";
@@ -18,6 +19,7 @@ const log = new Logger('IrcPoolClient');
 
 const CONNECTION_TIMEOUT = 40000;
 const MAX_MISSED_HEARTBEATS = 5;
+const COMMAND_BLOCK_TIMEOUT = HEARTBEAT_EVERY_MS * 2;
 
 type Events = {
     lostConnection: () => void,
@@ -43,6 +45,13 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         this.cmdReader = new Redis(url, {
             lazyConnect: true,
         });
+    }
+
+    public updateLastRead(msgId: string) {
+        this.commandStreamId = msgId;
+        this.redis.set(REDIS_IRC_POOL_COMMAND_OUT_STREAM_LAST_READ, msgId).catch((ex) => {
+            log.error(`Failed to update last-read to ${msgId}`, ex);
+        })
     }
 
     public async sendCommand<T extends InCommandType>(type: T, payload: InCommandPayload[T]) {
@@ -200,38 +209,56 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
     }
 
     public async handleIncomingCommand() {
-        const newCmd = await this.cmdReader.xread(
-            "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_OUT_STREAM, this.commandStreamId
+        const newCmds = await this.cmdReader.xread(
+            "BLOCK", COMMAND_BLOCK_TIMEOUT, "STREAMS", REDIS_IRC_POOL_COMMAND_OUT_STREAM, this.commandStreamId
         ).catch(ex => {
             log.warn(`Failed to read new command:`, ex);
             return null;
         });
-        if (newCmd === null) {
-            // Unexpected, this is blocking.
+        if (newCmds === null) {
+            // Implies we might be listening for stale messages.
+            this.commandStreamId = '$';
             return;
         }
-        const [msgId, [cmdType, payload]] = newCmd[0][1][0];
-        this.commandStreamId = msgId;
+        for (const [msgId, [cmdType, payload]] of newCmds[0][1]) {
+            const commandType = cmdType as OutCommandType|ClientId;
+            let commandData: IrcConnectionPoolCommandOut|Buffer;
+            if (typeof payload === 'string' && payload[0] === '{') {
+                commandData = JSON.parse(payload) as IrcConnectionPoolCommandOut;
+            }
+            else {
+                commandData = Buffer.from(payload).subarray(READ_BUFFER_MAGIC_BYTES.length);
+            }
+            setImmediate(
+                () => this.handleCommand(commandType, commandData)
+                    .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
+                    ),
+            );
+            this.updateLastRead(msgId);
+        }
+    }
 
-        const commandType = cmdType as OutCommandType|ClientId;
-        let commandData: IrcConnectionPoolCommandOut|Buffer;
-        if (typeof payload === 'string' && payload[0] === '{') {
-            commandData = JSON.parse(payload) as IrcConnectionPoolCommandOut;
+    private async trimCommandStream() {
+        if (this.commandStreamId === '$') {
+            // At the head of the queue, don't trim.
+            return;
         }
-        else {
-            commandData = Buffer.from(payload).subarray(READ_BUFFER_MAGIC_BYTES.length);
+        try {
+            const trimCount = await this.redis.xtrim(
+                REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MINID", this.commandStreamId
+            );
+            log.debug(`Trimmed ${trimCount} commands from the OUT stream`);
         }
-        setImmediate(
-            () => this.handleCommand(commandType, commandData)
-                .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
-                ),
-        );
+        catch (ex) {
+            log.warn(`Failed to trim commands from the OUT stream`, ex);
+        }
     }
 
     private async checkHeartbeat() {
         const lastHeartbeat = parseInt(await this.redis.get(REDIS_IRC_POOL_HEARTBEAT_KEY) ?? '0');
         if (lastHeartbeat + HEARTBEAT_EVERY_MS + 1000 > Date.now()) {
             this.missedHeartbeats = 0;
+            void this.trimCommandStream();
             return;
         }
 

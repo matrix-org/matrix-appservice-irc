@@ -7,8 +7,9 @@ describe('Basic bridge usage', () => {
     let testEnv: IrcBridgeE2ETest;
     beforeEach(async () => {
         testEnv = await IrcBridgeE2ETest.createTestEnv({
-            matrixLocalparts: ['alice'],
+            matrixLocalparts: [TestIrcServer.generateUniqueNick("alice")],
             ircNicks: ['bob'],
+            traceToFile: true,
         });
         await testEnv.setUp();
     });
