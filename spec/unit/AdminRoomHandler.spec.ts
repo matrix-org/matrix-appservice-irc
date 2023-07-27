@@ -1,7 +1,7 @@
 import { parseCommandFromEvent } from '../../lib/bridge/AdminRoomHandler';
 
 
-fdescribe("AdminRoomHandler", function() {
+describe("AdminRoomHandler", function() {
     describe("parseCommandFromEvent", function() {
         it('should be able to parse a command', () => {
             const result = parseCommandFromEvent({
