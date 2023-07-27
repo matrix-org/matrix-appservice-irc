@@ -54,6 +54,10 @@ export function parseCommandFromEvent(event: { content?: { body?: unknown }}, pr
     }
     // Assumes all commands have the form "!wxyz [irc.server] [args...]"
     const [cmd, ...args] = body.slice(prefix.length).split(" ");
+    if (cmd === '') {
+        // Command must have length.
+        return null;
+    }
     return { cmd, args };
 }
 
