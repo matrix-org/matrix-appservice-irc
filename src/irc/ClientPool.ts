@@ -137,16 +137,26 @@ export class ClientPool {
             return;
         }
 
+        // XXX: This is a safe assumption *for now* but when the proxy supports multiple
+        // servers this will break!
+        const server = this.ircBridge.getServers()[0];
         for await (const connection of this.redisPool.getPreviouslyConnectedClients()) {
             if (connection.clientId === 'bot') {
                 // The bot will be connected via the usual process.
                 continue;
             }
-            // XXX: This is a safe assumption *for now* but when the proxy supports multiple
-            // servers this will break!
-            const server = this.ircBridge.getServers()[0];
+            const mxUser = new MatrixUser(connection.clientId) ;
+            if (this.getBridgedClientByUserId(server, mxUser.userId)) {
+                continue;
+            }
+
             try {
-                await this.getBridgedClient(server, connection.clientId);
+                const config = (await this.store.getIrcClientConfig(mxUser.userId, server.domain)) ||
+                    IrcClientConfig.newConfig(
+                        mxUser, server.domain
+                    );
+                const bridgeClient = await this.createIrcClient(config, mxUser, false, false);
+                await bridgeClient.connect();
                 log.info(`Connected previously connected user ${connection.clientId}`);
             }
             catch (ex) {
@@ -280,7 +290,9 @@ export class ClientPool {
         }
     }
 
-    private createBridgedClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean) {
+    private createBridgedClient(
+        ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean, checkConditions = true
+    ) {
         const server = this.ircBridge.getServer(ircClientConfig.getDomain());
         if (server === null) {
             throw Error(
@@ -289,7 +301,7 @@ export class ClientPool {
             );
         }
 
-        if (matrixUser) { // Don't bother with the bot user
+        if (matrixUser && checkConditions) { // Don't bother with the bot user
             const excluded = server.isExcludedUser(matrixUser.userId);
             if (excluded) {
                 throw Error("Cannot create bridged client - user is excluded from bridging");
@@ -315,9 +327,11 @@ export class ClientPool {
         );
     }
 
-    public createIrcClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean) {
+    private createIrcClient(
+        ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean, checkConditions = true
+    ) {
         const bridgedClient = this.createBridgedClient(
-            ircClientConfig, matrixUser, isBot
+            ircClientConfig, matrixUser, isBot, checkConditions
         );
         const server = bridgedClient.server;
 

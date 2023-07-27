@@ -30,11 +30,14 @@ interface MPolicyContent {
 }
 
 function eventTypeToBanEntityType(eventType: string): BanEntityType|null {
+    // `m.room.*` variants were in use until https://github.com/matrix-org/mjolnir/pull/336 by Mjolnir. For compatibilty we accept it.
     switch (eventType) {
         case "m.policy.rule.user":
+        case "m.room.rule.user":
         case "org.matrix.mjolnir.rule.user":
             return BanEntityType.User;
         case "m.policy.rule.server":
+        case "m.room.rule.server":
         case "org.matrix.mjolnir.rule.server":
             return BanEntityType.Server
         default:
