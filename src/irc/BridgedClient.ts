@@ -252,6 +252,7 @@ export class BridgedClient extends EventEmitter {
                 localAddress: (
                     this.server.getIpv6Prefix() ? this.clientConfig.getIpv6Address() : undefined
                 ),
+                certificate: this.clientConfig.certificate,
                 useRedisPool: this.redisPool,
                 encodingFallback: this.encodingFallback,
             },
