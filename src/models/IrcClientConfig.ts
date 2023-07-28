@@ -19,6 +19,10 @@ import { MatrixUser } from "matrix-appservice-bridge";
 export interface IrcClientConfigSeralized {
     username?: string;
     password?: string;
+    certificate?: {
+        key: string;
+        cert: string;
+    };
     nick?: string;
     ipv6?: string;
 }
@@ -64,6 +68,14 @@ export class IrcClientConfig {
 
     public getPassword(): string|undefined {
         return this.config.password;
+    }
+
+    public setCertificate(certificate: {cert: string, key: string}) {
+        this.config.certificate = certificate;
+    }
+
+    public get certificate(): {cert: string, key: string}|undefined {
+        return this.config.certificate;
     }
 
     public setDesiredNick(nick: string) {

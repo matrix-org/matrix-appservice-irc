@@ -57,7 +57,7 @@ interface RoomRecord {
 export class PgDataStore implements DataStore, ProvisioningStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 9;
+    public static readonly LATEST_SCHEMA = 10;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -505,7 +505,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
 
     public async getIrcClientConfig(userId: string, domain: string): Promise<IrcClientConfig | null> {
         const res = await this.pgPool.query(
-            "SELECT config, password FROM client_config WHERE user_id = $1 and domain = $2",
+            "SELECT config, password, cert, key FROM client_config WHERE user_id = $1 and domain = $2",
             [
                 userId,
                 domain
@@ -524,6 +524,23 @@ export class PgDataStore implements DataStore, ProvisioningStore {
                 log.warn(`Failed to decrypt password for ${userId} ${domain}`, ex);
             }
         }
+        config.certificate = {
+            cert: row.cert,
+            key: row.key,
+        };
+        // TODO: Testing
+        if (row.cert && row.key && this.cryptoStore) {
+            // NOT fatal, but really worrying.
+            try {
+                config.certificate = {
+                    cert: this.cryptoStore.decrypt(row.cert),
+                    key:  this.cryptoStore.decrypt(row.key)
+                };
+            }
+            catch (ex) {
+                log.warn(`Failed to decrypt certificate for ${userId} ${domain}`, ex);
+            }
+        }
         return new IrcClientConfig(userId, domain, config);
     }
 
@@ -536,14 +553,23 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         // We need to make sure we have a matrix user in the store.
         await this.pgPool.query("INSERT INTO matrix_users VALUES ($1, NULL) ON CONFLICT DO NOTHING", [userId]);
         let password = config.getPassword();
+        const cert: {cert?: string, key?: string} = { };
+
+        // This implies without a cryptostore these will be stored plain.
         if (password && this.cryptoStore) {
             password = this.cryptoStore.encrypt(password);
+        }
+        if (config.certificate && this.cryptoStore) {
+            cert.cert = this.cryptoStore.encrypt(config.certificate.cert);
+            cert.key = this.cryptoStore.encrypt(config.certificate.key);
         }
         const parameters = {
             user_id: userId,
             domain: config.getDomain(),
             // either use the decrypted password, or whatever is stored already.
             password,
+            cert: cert?.cert,
+            key: cert?.key,
             config: JSON.stringify(config.serialize(true)),
         };
         const statement = PgDataStore.BuildUpsertStatement(
