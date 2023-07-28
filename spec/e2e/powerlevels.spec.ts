@@ -46,6 +46,6 @@ describe('Ensure powerlevels are appropriately applied', () => {
 
         await charlieJoinPromise;
         await bob.send('MODE', channel, '+o', charlie.nick);
-        await plEvent;
+        expect(await plEvent).toBeDefined();
     });
 });

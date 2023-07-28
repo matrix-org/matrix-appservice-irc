@@ -10,8 +10,7 @@
   },
   "env": {
     "node": true,
-    "es6": true,
-    "jasmine": true
+    "es6": true
   },
   "extends": [
     "eslint:recommended",
@@ -102,6 +101,11 @@
       "files": [
         "spec/**/*.js"
       ],
+      "env": {
+        "node": true,
+        "es6": true,
+        "jasmine": true
+      },
       "rules": {
         "@typescript-eslint/no-this-alias": "off", // I'm unsure if we should disallow this.
         "@typescript-eslint/no-empty-function": "off",
@@ -112,6 +116,15 @@
         "indent": "off",
         "prefer-const": "off",
         "no-var": "off",
+      }
+    },
+    {
+      "extends": ["plugin:jest/recommended"],
+      "files": [
+        "spec/e2e/*.spec.ts"
+      ],
+      "rules": {
+        "jest/expect-expect": "off" // E2E tests don't always assert
       }
     }
   ],
