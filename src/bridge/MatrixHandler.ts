@@ -119,16 +119,17 @@ interface CachedEvent {
 }
 
 export class MatrixHandler {
-    private readonly processingInvitesForRooms: {
-        [roomIdUserId: string]: Promise<unknown>;
-    } = {};
     // maintain a list of room IDs which are being processed invite-wise. This is
     // required because invites are processed asyncly, so you could get invite->msg
     // and the message is processed before the room is created.
+    private readonly processingInvitesForRooms: {
+        [roomIdUserId: string]: Promise<unknown>;
+    } = {};
+    // Map of `roomId-eventId` -> cached event
     private readonly eventCache: Map<string, CachedEvent> = new Map();
     private readonly metrics: {[domain: string]: {
-        [metricName: string]: number;
-    };} = {};
+            [metricName: string]: number;
+        };} = {};
     private readonly mediaUrl: string;
     private memberTracker?: StateLookup;
     private adminHandler: AdminRoomHandler;
@@ -1048,7 +1049,7 @@ export class MatrixHandler {
         // special handling for edits
         if (event.content["m.relates_to"]?.rel_type === "m.replace") {
             const originalEventId = event.content["m.relates_to"].event_id;
-            let originalBody = this.getCachedEvent(originalEventId)?.body;
+            let originalBody = this.getCachedEvent(event.room_id, originalEventId)?.body;
             if (!originalBody) {
                 try {
                     // FIXME: this will return the new event rather than the original one
@@ -1087,11 +1088,15 @@ export class MatrixHandler {
             body = body.substring(0, nextNewLine);
         }
         // Cache events in here so we can refer to them for replies.
-        this.cacheEvent(event.event_id, {
-            body: cacheBody,
-            sender: event.sender,
-            timestamp: event.origin_server_ts,
-        });
+        this.cacheEvent(
+            event.room_id,
+            event.event_id,
+            {
+                body: cacheBody,
+                sender: event.sender,
+                timestamp: event.origin_server_ts,
+            },
+        );
 
         // The client might still be connected, for abundance of safety let's wait.
         await ircClient.waitForConnected();
@@ -1268,7 +1273,6 @@ export class MatrixHandler {
         };
 
         const REPLY_NAME_MAX_LENGTH = 12;
-        const eventId = replyEventId;
         if (!event.content.body) {
             return null;
         }
@@ -1276,12 +1280,13 @@ export class MatrixHandler {
         const rplText = replyText(event.content.body);
         let rplName: string;
         let rplSource: string;
-        let cachedEvent = this.getCachedEvent(eventId);
+        // Reply must be in the same room as the original event.
+        let cachedEvent = this.getCachedEvent(event.room_id, replyEventId);
         if (!cachedEvent) {
             // Fallback to fetching from the homeserver.
             try {
                 const eventContent = await this.ircBridge.getAppServiceBridge().getIntent().getEvent(
-                    event.room_id, eventId
+                    event.room_id, replyEventId
                 );
                 rplName = eventContent.sender;
                 if (typeof(eventContent.content.body) !== "string") {
@@ -1296,7 +1301,7 @@ export class MatrixHandler {
                     rplSource = eventContent.content.body;
                 }
                 cachedEvent = {sender: rplName, body: rplSource, timestamp: eventContent.origin_server_ts};
-                this.cacheEvent(eventId, cachedEvent);
+                this.cacheEvent(eventContent.room_id, eventContent.event_id, cachedEvent);
             }
             catch (err) {
                 // If we couldn't find the event, then frankly we can't
@@ -1375,8 +1380,9 @@ export class MatrixHandler {
         this.metrics[serverDomain] = metricSet;
     }
 
-    private cacheEvent(id: string, event: CachedEvent) {
-        this.eventCache.set(id, event);
+    private cacheEvent(roomId: string, eventId: string, event: CachedEvent) {
+        const cacheKey = `${roomId}-${eventId}`;
+        this.eventCache.set(cacheKey, event);
 
         if (this.eventCache.size > this.config.eventCacheSize) {
             const delKey = this.eventCache.entries().next().value[0];
@@ -1384,8 +1390,9 @@ export class MatrixHandler {
         }
     }
 
-    private getCachedEvent(id: string): CachedEvent|undefined {
-        return this.eventCache.get(id);
+    private getCachedEvent(roomId: string, eventId: string): CachedEvent|undefined {
+        const cacheKey = `${roomId}-${eventId}`;
+        return this.eventCache.get(cacheKey);
     }
 
     // EXPORTS
