@@ -136,6 +136,7 @@ export class ClientPool {
         if (!this.redisPool) {
             return;
         }
+        log.info(`Discovering connected pool clients`);
 
         // XXX: This is a safe assumption *for now* but when the proxy supports multiple
         // servers this will break!
@@ -145,7 +146,8 @@ export class ClientPool {
                 // The bot will be connected via the usual process.
                 continue;
             }
-            const mxUser = new MatrixUser(connection.clientId) ;
+            log.info(`Discovered ${connection.clientId}`);
+            const mxUser = new MatrixUser(connection.clientId);
             if (this.getBridgedClientByUserId(server, mxUser.userId)) {
                 continue;
             }
@@ -156,8 +158,11 @@ export class ClientPool {
                         mxUser, server.domain
                     );
                 const bridgeClient = await this.createIrcClient(config, mxUser, false, false);
-                await bridgeClient.connect();
-                log.info(`Connected previously connected user ${connection.clientId}`);
+                bridgeClient.connect().then(() => {
+                    log.info(`Connected previously connected user ${connection.clientId}`);
+                }).catch((ex) => {
+                    log.warning(`Connected previously connected user ${connection.clientId}`, ex);
+                });
             }
             catch (ex) {
                 log.warn(`Failed to connect ${connection.clientId}, who is connected through the proxy`, ex);
