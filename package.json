@@ -43,7 +43,7 @@
     "he": "^1.2.0",
     "ioredis": "^5.3.1",
     "logform": "^2.4.2",
-    "matrix-appservice-bridge": "^9.0.0",
+    "matrix-appservice-bridge": "^9.0.1",
     "matrix-bot-sdk": "npm:@vector-im/matrix-bot-sdk@^0.6.6-element.1",
     "matrix-org-irc": "^2.1.0",
     "matrix-widget-api": "^1.4.0",
