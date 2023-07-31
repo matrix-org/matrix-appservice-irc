@@ -797,13 +797,20 @@ export class IrcBridge {
                 }
             );
             memberlistPromises.push(
+                (async () => {
+                    try {
+                        await syncer.sync();
+                        await discoveringClientsPromise;
+                    }
+                    catch (ex) {
+                        log.warn(`Failed to handle memberlist sync`, ex);
+                    }
+                    finally {
+                        await syncer.joinMatrixUsersToChannels()
+                    }
+                })()
                 // Before we can actually join Matrix users to channels, we need to ensure we've discovered
                 // all the clients already connected to avoid races.
-                syncer.sync().then(() =>
-                    discoveringClientsPromise
-                ).finally(() =>
-                    syncer.joinMatrixUsersToChannels()
-                )
             );
         });
 
