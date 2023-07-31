@@ -4245,10 +4245,10 @@ makeerror@1.0.12:
   dependencies:
     tmpl "1.0.5"
 
-matrix-appservice-bridge@^9.0.0:
-  version "9.0.0"
-  resolved "https://registry.yarnpkg.com/matrix-appservice-bridge/-/matrix-appservice-bridge-9.0.0.tgz#99a63c3a30e06ce03ae1db80dec47da4044aed81"
-  integrity sha512-BQ3XqbFasWJQH/R3gIqPt5ERDF9TzBi+qcLqIpf140ac2vFG3dJ/c0RHhAVFoFhuu2R0keBnN6Z2GJBoETkhSw==
+matrix-appservice-bridge@^9.0.1:
+  version "9.0.1"
+  resolved "https://registry.yarnpkg.com/matrix-appservice-bridge/-/matrix-appservice-bridge-9.0.1.tgz#01db1c821cdecc3f27844fa2452c9dd72a3a75da"
+  integrity sha512-gmR5hoN51ZFBk4LA1iFW1umxKRy6Iz7UAo32NOh7eJQRmyl6aAM5RWFFiBTHhw1KfBvR/FwKS/sxerbmgmHiXw==
   dependencies:
     "@alloc/quick-lru" "^5.2.0"
     axios "^0.27.2"
