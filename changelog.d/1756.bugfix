@@ -1,1 +1,0 @@
-Refactor the command parser for admin and room commands, ensuring we correctly trim the command.

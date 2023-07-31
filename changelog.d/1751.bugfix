@@ -1,1 +1,0 @@
-Improve processing speed of commands sent to and from the proxy when the bridge is configured in pooling mode.

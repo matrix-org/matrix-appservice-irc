@@ -1,3 +1,31 @@
+1.0.1 (2023-07-31)
+==================
+
+It is **strongly** reccomended you upgrade your bridge, as this release contains security fixes.
+
+🔒 Security
+-----------
+
+- Fixes for GHSA-vc7j-h8xg-fv5x.
+- Fixes for GHSA-3pmj-jqqp-2mj3.
+- Fixes for GHSA-c7hh-3v6c-fj4q
+
+Bugfixes
+--------
+
+- Improve processing speed of commands sent to and from the proxy when the bridge is configured in pooling mode. ([\#1751](https://github.com/matrix-org/matrix-appservice-irc/issues/1751))
+- Ensure QUIT messages are always sent. ([\#1752](https://github.com/matrix-org/matrix-appservice-irc/issues/1752))
+- Ensure we don't bloat irc supported state. ([\#1753](https://github.com/matrix-org/matrix-appservice-irc/issues/1753))
+- Fix a case where the bridge would not listen for and apply bans for legacy/unspec'd `m.room.rule.*` types in use by Mjolnir. ([\#1755](https://github.com/matrix-org/matrix-appservice-irc/issues/1755), [\#1759](https://github.com/matrix-org/matrix-appservice-irc/issues/1759))
+- Refactor the command parser for admin and room commands, ensuring we correctly trim the command. ([\#1756](https://github.com/matrix-org/matrix-appservice-irc/issues/1756))
+
+
+Internal Changes
+----------------
+
+- Update matrix-appservice-bridge to 9.0.1. ([\#1760](https://github.com/matrix-org/matrix-appservice-irc/issues/1760))
+
+
 1.0.0 (2023-06-09)
 ==================
 
