@@ -161,7 +161,7 @@ export class ClientPool {
                 bridgeClient.connect().then(() => {
                     log.info(`Connected previously connected user ${connection.clientId}`);
                 }).catch((ex) => {
-                    log.warning(`Connected previously connected user ${connection.clientId}`, ex);
+                    log.warn(`Failed to connect previously connected user ${connection.clientId}`, ex);
                 });
             }
             catch (ex) {
