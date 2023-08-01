@@ -57,16 +57,26 @@ export class RedisCommandReader {
     }
 
     public async getSupported() {
-        const serverLines = (await
-        this.redis.info("Server")).split('\n').filter(v => !v.startsWith('#')).map(v => v.split(':', 2)
-        ) as [string, string][];
-        const options = new Map(serverLines);
+        let options: Map<string, string>;
+        try {
+            // Fetch the "Server" info block and parse out the various lines.
+            const serverLines = (
+                await this.redis.info("Server")
+            ).split('\n').filter(v => !v.startsWith('#')).map(v => v.split(':', 2)) as [string, string][];
+            options = new Map(serverLines);
+        }
+        catch (ex) {
+            log.error("Failed to fetch server info from Redis", ex);
+            // Treat it as if we got zero useful options back.
+            options = new Map();
+        }
         const version = options.get('redis_version');
         if (!version) {
-            log.warn(`Unable to identify Redis version, assuming unsupported version`);
+            log.warn(`Unable to identify Redis version, assuming unsupported version.`);
             this.supportsMinId = false;
             return;
         }
+        // We did get a server version back but we know it's unsupported.
         if (semver.lt(version, '5.0.0')) {
             throw new Error('Redis version is unsupported. The minimum required version is 5.0.0');
         }
