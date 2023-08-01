@@ -247,6 +247,11 @@ export class IrcBridgeE2ETest {
                             displayName: "$NICK",
                             joinAttempts: 3,
                         },
+                        ircClients: {
+                            ...IrcServer.DEFAULT_CONFIG.ircClients,
+                            // Set a sensibly high max.
+                            maxClients: 100_000,
+                        },
                         dynamicChannels: {
                             enabled: true,
                             createAlias: true,
