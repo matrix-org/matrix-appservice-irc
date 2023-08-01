@@ -1,5 +1,4 @@
 import { Redis } from "ioredis";
-import { READ_BUFFER_MAGIC_BYTES } from "./types";
 import semver from "semver";
 import { Logger } from "matrix-appservice-bridge";
 
@@ -9,7 +8,7 @@ const TRIM_MAXLEN_COUNT = 100_000;
 
 const log = new Logger('RedisCommandReader');
 
-export class RedisCommandReader<CommandType, PayloadType> {
+export class RedisCommandReader {
 
     private shouldRun = true;
     private commandStreamId = "$"
@@ -19,7 +18,7 @@ export class RedisCommandReader<CommandType, PayloadType> {
     constructor(
         private readonly redis: Redis,
         private readonly streamName: string,
-        private readonly onCommand: (cmdType: CommandType, cmdPayload: PayloadType) => Promise<void>) {
+        private readonly onCommand: (cmdType: string, cmdPayload: string) => Promise<void>) {
 
     }
 
@@ -49,17 +48,9 @@ export class RedisCommandReader<CommandType, PayloadType> {
         for (const [msgId, [cmdType, payload]] of newCmds[0][1]) {
             // If we crash, we don't want to get stuck on this msg.
             this.updateLastRead(msgId);
-            const commandType = cmdType as CommandType;
-            let commandData: PayloadType|Buffer;
-            if (typeof payload === 'string' && payload[0] === '{') {
-                commandData = JSON.parse(payload) as PayloadType;
-            }
-            else {
-                commandData = Buffer.from(payload).subarray(READ_BUFFER_MAGIC_BYTES.length);
-            }
             setImmediate(
-                () => this.onCommand(commandType, commandData)
-                    .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
+                () => this.onCommand(cmdType, payload)
+                    .catch(ex => log.warn(`Failed to handle msg ${msgId} (${cmdType}, ${payload})`, ex)
                     ),
             );
         }
@@ -94,10 +85,10 @@ export class RedisCommandReader<CommandType, PayloadType> {
                     this.streamName, "MAXLEN", TRIM_MAXLEN_COUNT
                 );
             }
-            log.debug(`Trimmed ${trimCount} commands from the OUT stream`);
+            log.debug(`Trimmed ${trimCount} commands from the stream`);
         }
         catch (ex) {
-            log.warn(`Failed to trim commands from the OUT stream`, ex);
+            log.warn(`Failed to trim commands from the stream`, ex);
         }
     }
 

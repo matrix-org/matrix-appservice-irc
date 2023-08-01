@@ -8,8 +8,7 @@ import { ClientId, ConnectionCreateArgs, HEARTBEAT_EVERY_MS,
     PROTOCOL_VERSION,
     READ_BUFFER_MAGIC_BYTES,
     REDIS_IRC_POOL_COMMAND_IN_STREAM, REDIS_IRC_POOL_COMMAND_OUT_STREAM,
-    REDIS_IRC_POOL_CONNECTIONS, REDIS_IRC_POOL_HEARTBEAT_KEY, REDIS_IRC_POOL_VERSION_KEY,
-    REDIS_IRC_POOL_COMMAND_OUT_STREAM_LAST_READ } from "./types";
+    REDIS_IRC_POOL_CONNECTIONS, REDIS_IRC_POOL_HEARTBEAT_KEY, REDIS_IRC_POOL_VERSION_KEY } from "./types";
 
 import { Logger } from 'matrix-appservice-bridge';
 import { EventEmitter } from "stream";
@@ -20,7 +19,6 @@ const log = new Logger('IrcPoolClient');
 
 const CONNECTION_TIMEOUT = 40000;
 const MAX_MISSED_HEARTBEATS = 5;
-const COMMAND_BLOCK_TIMEOUT = HEARTBEAT_EVERY_MS * 2;
 
 type Events = {
     lostConnection: () => void,
@@ -30,10 +28,9 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
     private readonly redis: Redis;
     private readonly connections = new Map<ClientId, Promise<RedisIrcConnection>>();
     public shouldRun = true;
-    private commandStreamId = "$";
     private missedHeartbeats = 0;
     private heartbeatInterval?: NodeJS.Timer;
-    private commandReader: RedisCommandReader<OutCommandType|ClientId, InCommandPayload>;
+    private commandReader: RedisCommandReader;
     cmdReader: Redis;
 
     constructor(url: string) {
@@ -48,15 +45,8 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
             lazyConnect: true,
         });
         this.commandReader = new RedisCommandReader(
-            this.cmdReader, REDIS_IRC_POOL_COMMAND_OUT_STREAM, this.handleCommand
+            this.cmdReader, REDIS_IRC_POOL_COMMAND_OUT_STREAM, this.handleStreamCommand.bind(this)
         );
-    }
-
-    public updateLastRead(msgId: string) {
-        this.commandStreamId = msgId;
-        this.redis.set(REDIS_IRC_POOL_COMMAND_OUT_STREAM_LAST_READ, msgId).catch((ex) => {
-            log.error(`Failed to update last-read to ${msgId}`, ex);
-        })
     }
 
     public async sendCommand<T extends InCommandType>(type: T, payload: InCommandPayload[T]) {
@@ -146,6 +136,18 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         }
     }
 
+    private async handleStreamCommand(cmdType: string, payload: string) {
+        const commandType = cmdType as OutCommandType|ClientId;
+        let commandData: IrcConnectionPoolCommandOut|Buffer;
+        if (typeof payload === 'string' && payload[0] === '{') {
+            commandData = JSON.parse(payload) as IrcConnectionPoolCommandOut;
+        }
+        else {
+            commandData = Buffer.from(payload).subarray(READ_BUFFER_MAGIC_BYTES.length);
+        }
+        return this.handleCommand(commandType, commandData);
+    }
+
     private async handleCommand<T extends OutCommandType>(
         commandTypeOrClientId: T|ClientId, commandData: IrcConnectionPoolCommandOut<T>|Buffer) {
         // I apologise about this insanity.
@@ -197,6 +199,7 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
     }
 
     public async close() {
+        this.commandReader.stop();
         if (!this.shouldRun) {
             // Already killed, just exit.
             log.warn("close called, but pool client is not running");
@@ -213,57 +216,10 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         this.shouldRun = false;
     }
 
-    public async handleIncomingCommand() {
-        const newCmds = await this.cmdReader.xread(
-            "BLOCK", COMMAND_BLOCK_TIMEOUT, "STREAMS", REDIS_IRC_POOL_COMMAND_OUT_STREAM, this.commandStreamId
-        ).catch(ex => {
-            log.warn(`Failed to read new command:`, ex);
-            return null;
-        });
-        if (newCmds === null) {
-            // Implies we might be listening for stale messages.
-            this.commandStreamId = '$';
-            return;
-        }
-        for (const [msgId, [cmdType, payload]] of newCmds[0][1]) {
-            const commandType = cmdType as OutCommandType|ClientId;
-            let commandData: IrcConnectionPoolCommandOut|Buffer;
-            if (typeof payload === 'string' && payload[0] === '{') {
-                commandData = JSON.parse(payload) as IrcConnectionPoolCommandOut;
-            }
-            else {
-                commandData = Buffer.from(payload).subarray(READ_BUFFER_MAGIC_BYTES.length);
-            }
-            setImmediate(
-                () => this.handleCommand(commandType, commandData)
-                    .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
-                    ),
-            );
-            this.updateLastRead(msgId);
-        }
-    }
-
-    private async trimCommandStream() {
-        if (this.commandStreamId === '$') {
-            // At the head of the queue, don't trim.
-            return;
-        }
-        try {
-            const trimCount = await this.redis.xtrim(
-                REDIS_IRC_POOL_COMMAND_OUT_STREAM, "MINID", this.commandStreamId
-            );
-            log.debug(`Trimmed ${trimCount} commands from the OUT stream`);
-        }
-        catch (ex) {
-            log.warn(`Failed to trim commands from the OUT stream`, ex);
-        }
-    }
-
     private async checkHeartbeat() {
         const lastHeartbeat = parseInt(await this.redis.get(REDIS_IRC_POOL_HEARTBEAT_KEY) ?? '0');
         if (lastHeartbeat + HEARTBEAT_EVERY_MS + 1000 > Date.now()) {
             this.missedHeartbeats = 0;
-            void this.trimCommandStream();
             return;
         }
 
@@ -279,7 +235,6 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
 
     public async listen() {
         log.info(`Listening for new commands`);
-        let loopCommandCheck: () => void;
 
         await this.cmdReader.connect();
         await this.redis.connect();
@@ -301,18 +256,6 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         }
 
         this.heartbeatInterval = setInterval(this.checkHeartbeat.bind(this), HEARTBEAT_EVERY_MS);
-
-        // eslint-disable-next-line prefer-const
-        loopCommandCheck = () => {
-            if (!this.shouldRun) {
-                log.info(`Finished`);
-                return;
-            }
-            this.handleIncomingCommand().finally(() => {
-                return loopCommandCheck();
-            });
-        }
-
-        loopCommandCheck();
+        await this.commandReader.start();
     }
 }
