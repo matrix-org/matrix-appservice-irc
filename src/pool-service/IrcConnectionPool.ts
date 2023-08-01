@@ -337,6 +337,7 @@ export class IrcConnectionPool {
             return;
         }
         try {
+            log.debug(`Trimming up to ${this.commandStreamId}`);
             const trimCount = await this.cmdWriter.xtrim(
                 REDIS_IRC_POOL_COMMAND_IN_STREAM, "MINID", this.commandStreamId
             );

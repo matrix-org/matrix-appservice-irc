@@ -14,6 +14,7 @@ import { ClientId, ConnectionCreateArgs, HEARTBEAT_EVERY_MS,
 import { Logger } from 'matrix-appservice-bridge';
 import { EventEmitter } from "stream";
 import TypedEmitter from "typed-emitter";
+import { RedisCommandReader } from "./CommandReader";
 
 const log = new Logger('IrcPoolClient');
 
@@ -32,6 +33,7 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
     private commandStreamId = "$";
     private missedHeartbeats = 0;
     private heartbeatInterval?: NodeJS.Timer;
+    private commandReader: RedisCommandReader<OutCommandType|ClientId, InCommandPayload>;
     cmdReader: Redis;
 
     constructor(url: string) {
@@ -45,6 +47,9 @@ export class IrcPoolClient extends (EventEmitter as unknown as new () => TypedEm
         this.cmdReader = new Redis(url, {
             lazyConnect: true,
         });
+        this.commandReader = new RedisCommandReader(
+            this.cmdReader, REDIS_IRC_POOL_COMMAND_OUT_STREAM, this.handleCommand
+        );
     }
 
     public updateLastRead(msgId: string) {
