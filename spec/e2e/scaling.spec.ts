@@ -53,6 +53,7 @@ describe('Bridge scaling test', () => {
         bob.say(channel, "Hi alice!");
         await bobMsg;
 
+        // Track all the joins that we see.
         const ircJoins: {channel: string, nick: string}[] = [];
         bob.on('join', (joinChannel, nick) => ircJoins.push({channel: joinChannel, nick}));
 
@@ -61,9 +62,12 @@ describe('Bridge scaling test', () => {
         for (const mxUser of usersToJoin) {
             await mxUser.client.joinRoom(cRoomId);
         }
+
+        // We now need to wait for all the expected joins on the IRC side.
         while (ircJoins.length < usersToJoin.length) {
             await delay(2000);
         }
+
         // Now check that all the users joined.
         for (const mxUser of usersToJoin) {
             expect(ircJoins).toContainEqual({ channel, nick: `M-${mxUser.localpart}`});
