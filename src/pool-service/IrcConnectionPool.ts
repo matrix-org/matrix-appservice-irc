@@ -67,10 +67,6 @@ export class IrcConnectionPool {
         );
     }
 
-    private updateLastRead(lastRead: string) {
-        this.commandStreamId = lastRead;
-    }
-
     private async sendCommandOut<T extends OutCommandType>(type: T, payload: OutCommandPayload[T]) {
         await this.cmdWriter.xadd(REDIS_IRC_POOL_COMMAND_OUT_STREAM, "*", type, JSON.stringify({
             info: payload,

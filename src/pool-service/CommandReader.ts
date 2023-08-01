@@ -63,7 +63,15 @@ export class RedisCommandReader {
         ) as [string, string][];
         const options = new Map(serverLines);
         const version = options.get('redis_version');
-        this.supportsMinId = !!(version && semver.satisfies(version, '>=6.2'));
+        if (!version) {
+            log.warn(`Unable to identify Redis version, assuming unsupported version`);
+            this.supportsMinId = false;
+            return;
+        }
+        if (semver.lt(version, '5.0.0')) {
+            throw new Error('Redis version is unsupported. The minimum required version is 5.0.0');
+        }
+        this.supportsMinId = !!semver.satisfies(version, '>=6.2');
     }
 
     private async trimCommandStream() {
