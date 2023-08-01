@@ -9,7 +9,6 @@ const TRIM_MAXLEN_COUNT = 100_000;
 const log = new Logger('RedisCommandReader');
 
 export class RedisCommandReader {
-
     private shouldRun = true;
     private commandStreamId = "$"
     private supportsMinId = false;
