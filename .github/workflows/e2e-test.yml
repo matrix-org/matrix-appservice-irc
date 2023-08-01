@@ -178,6 +178,10 @@ jobs:
           - 6379:6379
       ircd:
         image: ghcr.io/ergochat/ergo:stable
+        env:
+          ERGO__SERVER__IP_LIMITS_COUNT: "false"
+          ERGO__SERVER__IP_LIMITS_THROTTLE: "false"
+          ERGO__SERVER__IP_LIMITS_MAX_CONNECTIONS_PER_WINDOW: "32000"
         ports:
           - 6667:6667
     steps:
