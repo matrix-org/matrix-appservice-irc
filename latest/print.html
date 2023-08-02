@@ -768,7 +768,9 @@ Connection pooling is a new feature and may not be 100% stable. While extensive 
 <p>The IRC bridge can be configured to run it's IRC connections through a seperate process from the main bridge,
 allowing you to restart and update (in most cases) the main process while keeping connections alive. This in 
 effect allows you to have a bridge that <em>appears</em> to not restart (sometimes nicknamed eternal bridges).</p>
-<p>To configure the bridge in this mode you will need to setup a <a href="https://redis.io/">Redis</a> instance.</p>
+<p>To configure the bridge in this mode you will need to setup a <a href="https://redis.io/">Redis</a> instance. Ideally, you
+<strong>should</strong> run the bridge with Redis <code>6.2.0</code> or greater as it is more efficent when used with streams. The bridge
+requires Redis <code>5.0.0</code> or greater to run.</p>
 <p>In your bridge, configure the following:</p>
 <pre><code class="language-yaml">connectionPool:
   # The Redis URI to connect to 
