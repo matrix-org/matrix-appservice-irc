@@ -20,6 +20,7 @@ import { OutCommandType,
 import { parseMessage } from 'matrix-org-irc';
 import { collectDefaultMetrics, register, Gauge } from 'prom-client';
 import { createServer, Server } from 'http';
+import { RedisCommandReader } from './CommandReader';
 
 collectDefaultMetrics();
 
@@ -52,6 +53,7 @@ export class IrcConnectionPool {
     private metricsServer?: Server;
     private shouldRun = true;
     private heartbeatTimer?: NodeJS.Timer;
+    private readonly commandReader: RedisCommandReader;
 
     constructor(private readonly config: typeof Config) {
         this.shouldRun = false;
@@ -60,10 +62,9 @@ export class IrcConnectionPool {
         this.cmdWriter.on('connecting', () => {
             log.debug('Connecting to', config.redisUri);
         });
-    }
-
-    private updateLastRead(lastRead: string) {
-        this.commandStreamId = lastRead;
+        this.commandReader = new RedisCommandReader(
+            this.cmdReader, REDIS_IRC_POOL_COMMAND_IN_STREAM, this.handleStreamCommand.bind(this)
+        );
     }
 
     private async sendCommandOut<T extends OutCommandType>(type: T, payload: OutCommandPayload[T]) {
@@ -307,6 +308,12 @@ export class IrcConnectionPool {
         }
     }
 
+    private async handleStreamCommand(cmdType: string, payload: string) {
+        const commandType = cmdType as InCommandType;
+        const commandData = JSON.parse(payload) as IrcConnectionPoolCommandIn<InCommandType>;
+        return this.handleCommand(commandType, commandData);
+    }
+
     public async handleInternalPing({ info }: IrcConnectionPoolCommandIn<InCommandType.ConnectionPing>) {
         const { clientId } = info;
         const conn = this.connections.get(clientId);
@@ -337,6 +344,7 @@ export class IrcConnectionPool {
             return;
         }
         try {
+            log.debug(`Trimming up to ${this.commandStreamId}`);
             const trimCount = await this.cmdWriter.xtrim(
                 REDIS_IRC_POOL_COMMAND_IN_STREAM, "MINID", this.commandStreamId
             );
@@ -410,38 +418,11 @@ export class IrcConnectionPool {
             void this.trimCommandStream();
         }, HEARTBEAT_EVERY_MS);
 
-
-        log.info(`Listening for new commands`);
-        setImmediate(async () => {
-            while (this.shouldRun) {
-                const newCmds = await this.cmdReader.xread(
-                    "BLOCK", 0, "STREAMS", REDIS_IRC_POOL_COMMAND_IN_STREAM, this.commandStreamId
-                ).catch(ex => {
-                    log.warn(`Failed to read new command:`, ex);
-                    return null;
-                });
-                if (newCmds === null) {
-                    // Unexpected, this is blocking.
-                    continue;
-                }
-                // This is a list of keys, containing a list of commands, hence needing to deeply extract the values.
-                for (const [msgId, [cmdType, payload]] of newCmds[0][1]) {
-                    const commandType = cmdType as InCommandType;
-
-                    // If we crash, we don't want to get stuck on this msg.
-                    await this.updateLastRead(msgId);
-                    const commandData = JSON.parse(payload) as IrcConnectionPoolCommandIn<InCommandType>;
-                    setImmediate(
-                        () => this.handleCommand(commandType, commandData)
-                            .catch(ex => log.warn(`Failed to handle msg ${msgId} (${commandType}, ${payload})`, ex)
-                            ),
-                    );
-                }
-            }
-        });
+        return this.commandReader.start();
     }
 
     public async close() {
+        this.commandReader.stop();
         if (this.heartbeatTimer) {
             clearInterval(this.heartbeatTimer)
         }

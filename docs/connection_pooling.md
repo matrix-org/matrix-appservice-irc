@@ -9,7 +9,9 @@ The IRC bridge can be configured to run it's IRC connections through a seperate 
 allowing you to restart and update (in most cases) the main process while keeping connections alive. This in 
 effect allows you to have a bridge that *appears* to not restart (sometimes nicknamed eternal bridges).
 
-To configure the bridge in this mode you will need to setup a [Redis](https://redis.io/) instance.
+To configure the bridge in this mode you will need to setup a [Redis](https://redis.io/) instance. Ideally, you
+**should** run the bridge with Redis `6.2.0` or greater as it is more efficent when used with streams. The bridge
+requires Redis `5.0.0` or greater to run.
 
 In your bridge, configure the following:
 
