@@ -74,6 +74,42 @@ describe('Connection pooling', () => {
         await bobMsg;
     });
 
+    it('should kick an excluded user if the bridge has permission', async () => {
+        const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
+
+        const { homeserver } = testEnv;
+        const alice = homeserver.users[0].client;
+        const bannedUser = homeserver.users[1].client;
+        const { bob } = testEnv.ircTest.clients;
+
+        // Create the channel
+        await bob.join(channel);
+
+        const adminRoomId = await testEnv.createAdminRoomHelper(alice);
+        const cRoomId = await testEnv.createProvisionedRoom(alice, adminRoomId, channel, true);
+
+        // And finally wait for bob to appear.
+        const bobUserId = `@irc_${bob.nick}:${homeserver.domain}`;
+        await alice.waitForRoomEvent(
+            {eventType: 'm.room.member', sender: bobUserId, stateKey: bobUserId, roomId: cRoomId}
+        );
+        const aliceMsg = bob.waitForEvent('message', 10000);
+        alice.sendText(cRoomId, "Hello bob!");
+        await aliceMsg;
+
+        // Note, the bridge can't kick bannedUser due to lacking perms.
+        const kick = alice.waitForRoomEvent({
+            eventType: 'm.room.member',
+            sender: testEnv.ircBridge.appServiceUserId,
+            roomId: cRoomId,
+            stateKey: homeserver.users[1].userId,
+        });
+        await bannedUser.joinRoom(cRoomId);
+        const kickContent = (await kick).data;
+        expect(kickContent.content.reason).toEqual('Test kick');
+        expect(kickContent.content.membership).toEqual('leave');
+    });
+
     it('should not bridge messages with an excluded user', async () => {
         const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
 
@@ -121,7 +157,7 @@ describe('Connection pooling', () => {
         expect(connectionEventData.content.blocked).toBe(true);
     });
 
-    fit('should unblock a blocked channel if all excluded users leave', async () => {
+    it('should unblock a blocked channel if all excluded users leave', async () => {
         const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
 
         const { homeserver } = testEnv;
