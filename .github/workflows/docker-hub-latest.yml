@@ -11,7 +11,8 @@ env:
   DOCKER_NAMESPACE: matrixdotorg
   PLATFORMS: linux/amd64
   # Only push if this is develop, otherwise we just want to build
-  PUSH: ${{ github.ref == 'refs/heads/develop' }}
+  # On a PR github.ref is the target branch, so don't push for that either
+  PUSH: ${{ github.ref == 'refs/heads/develop' && github.event_name != 'pull_request' }}
 
 jobs:
   docker-latest:
