@@ -46,7 +46,7 @@
     "matrix-org-irc": "^2.1.0",
     "nopt": "^6.0.0",
     "p-queue": "^6.6.2",
-    "pg": "^8.8.0",
+    "pg": "^8.11.0",
     "quick-lru": "^5.1.1",
     "sanitize-html": "^2.7.2",
     "semver": "^7.5.4",
