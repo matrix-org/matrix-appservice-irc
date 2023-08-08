@@ -506,9 +506,9 @@ export class PgDataStore implements DataStore, ProvisioningStore {
     public async getIrcClientConfig(userId: string, domain: string): Promise<IrcClientConfig | null> {
         const res = await this.pgPool.query<{
             config: IrcClientConfigSeralized,
-            password: string,
-            cert: string,
-            key: string,
+            password?: string,
+            cert?: string,
+            key?: string,
         }>(
             "SELECT config, password, cert, key FROM client_config WHERE user_id = $1 and domain = $2",
             [
@@ -529,12 +529,12 @@ export class PgDataStore implements DataStore, ProvisioningStore {
                 log.warn(`Failed to decrypt password for ${userId} ${domain}`, ex);
             }
         }
-        config.certificate = {
+        config.certificate = row.cert && row.key ? {
             cert: row.cert,
-            key: row.key,
-        };
+            key: '',
+        } : undefined;
         const cryptoStore = this.cryptoStore;
-        if (row.key && cryptoStore) {
+        if (config.certificate && row.key && cryptoStore) {
             try {
                 const keyParts = row.key.split(',').map(v => cryptoStore.decrypt(v));
                 config.certificate.key = `-----BEGIN PRIVATE KEY-----\n${keyParts.join('')}-----END PRIVATE KEY-----\n`;
