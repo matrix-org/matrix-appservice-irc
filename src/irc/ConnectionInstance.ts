@@ -444,8 +444,6 @@ export class ConnectionInstance {
             debug: true,
         };
 
-        console.log(connectionOpts);
-
 
         // Returns: A promise which resolves to a ConnectionInstance
         const retryConnection = async () => {
