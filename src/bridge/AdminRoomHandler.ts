@@ -28,6 +28,7 @@ import { getBridgeVersion } from "matrix-appservice-bridge";
 import { Provisioner } from "../provisioning/Provisioner";
 import { IrcProvisioningError } from "../provisioning/Schema";
 import { validateChannelName } from "../models/IrcRoom";
+import { X509Certificate, createPrivateKey } from "node:crypto";
 
 const log = logging("AdminRoomHandler");
 
@@ -61,6 +62,33 @@ export function parseCommandFromEvent(event: { content?: { body?: unknown }}, pr
     return { cmd, args };
 }
 
+
+
+export function getKeyPairFromString(keypairString: string) {
+    const keyStart = keypairString.indexOf('-----BEGIN PRIVATE KEY-----');
+    const keyEnd = keypairString.indexOf('-----END PRIVATE KEY-----');
+    const certStart = keypairString.indexOf('-----BEGIN CERTIFICATE-----');
+    const certEnd = keypairString.indexOf('-----END CERTIFICATE-----');
+    if (certStart === -1) {
+        throw Error('Missing BEGIN CERTIFICATE');
+    }
+    if (certEnd === -1) {
+        throw Error('Missing END CERTIFICATE');
+    }
+    if (keyStart === -1) {
+        throw Error('Missing BEGIN PRIVATE KEY');
+    }
+    if (keyEnd === -1) {
+        throw Error('Missing END PRIVATE KEY');
+    }
+    const certStr = keypairString.slice(certStart, certEnd + '-----END CERTIFICATE-----'.length);
+    const privateKeyStr = keypairString.slice(keyStart, keyEnd + '-----END CERTIFICATE-----'.length);
+    const privateKey = createPrivateKey(privateKeyStr);
+    const cert = new X509Certificate(certStr);
+    return { cert, privateKey };
+
+}
+
 // This is just a length to avoid silly long usernames
 const SANE_USERNAME_LENGTH = 64;
 
@@ -75,6 +103,8 @@ const SANE_USERNAME_LENGTH = 64;
 // (0x00 to 0x1F, plus DEL (0x7F)), as they are most likely mistakes.
 const SASL_USERNAME_INVALID_CHARS_PATTERN = /[\x00-\x20\x7F]+/; // eslint-disable-line
 
+const CERT_FP_TIMEOUT_MS = 90 * 1000;
+
 interface Command {
     example: string;
     summary: string;
@@ -87,6 +117,10 @@ interface Heading {
 
 const COMMANDS: {[command: string]: Command|Heading} = {
     'Actions': { heading: true },
+    "certfp": {
+        example: `!certfp [irc.example.net]`,
+        summary: `Store a certificate for authenticating with the remote network`,
+    },
     "cmd": {
         example: `!cmd [irc.example.net] COMMAND [arg0 [arg1 [...]]]`,
         summary: "Issue a raw IRC command. These will not produce a reply." +
@@ -166,19 +200,28 @@ class ServerRequiredError extends Error {
 const USER_FEATURES = ["mentions"];
 export class AdminRoomHandler {
     private readonly botUser: MatrixUser;
+    private readonly roomIdsExpectingCertFp = new Map<string, (certificate: string) => void>();
     constructor(private ircBridge: IrcBridge, private matrixHandler: MatrixHandler) {
         this.botUser = new MatrixUser(ircBridge.appServiceUserId, undefined, false);
     }
 
     public async onAdminMessage(req: BridgeRequest, event: MatrixSimpleMessage, adminRoom: MatrixRoom) {
         req.log.info("Handling admin command from %s", event.sender);
+
+        const certFpFunction = this.roomIdsExpectingCertFp.get(adminRoom.roomId);
+        if (certFpFunction) {
+            this.roomIdsExpectingCertFp.delete(adminRoom.roomId);
+            certFpFunction(event.content.body);
+            return;
+        }
+
         const parseResult = parseCommandFromEvent(event);
         let response: MatrixAction|void;
         if (parseResult) {
             const { cmd, args } = parseResult;
 
             try {
-                response = await this.handleCommand(cmd, args, req, event);
+                response = await this.handleCommand(cmd, args, req, event, adminRoom);
             }
             catch (err) {
                 if (err instanceof ServerRequiredError) {
@@ -203,7 +246,9 @@ export class AdminRoomHandler {
         }
     }
 
-    private async handleCommand(cmd: string, args: string[], req: BridgeRequest, event: MatrixSimpleMessage) {
+    private async handleCommand(
+        cmd: string, args: string[], req: BridgeRequest, event: MatrixSimpleMessage, adminRoom: MatrixRoom
+    ) {
         const userPermission = this.getUserPermission(event.sender);
         const requiredPermission = (COMMANDS[cmd] as Command|undefined)?.requiresPermission;
         if (requiredPermission && requiredPermission > userPermission) {
@@ -216,6 +261,8 @@ export class AdminRoomHandler {
                 return new MatrixAction(ActionType.Notice, "You have been marked as active by the bridge");
             case "join":
                 return await this.handleJoin(req, args, event.sender);
+            case "certfp":
+                return await this.handleCertfp(req, args, event.sender, adminRoom);
             case "cmd":
                 return await this.handleCmd(req, args, event.sender);
             case "whois":
@@ -250,6 +297,106 @@ export class AdminRoomHandler {
                     "The command was not recognised. Available commands are listed by !help");
             }
         }
+    }
+
+    private async getOrCreateClientConfig(userId: string, server: IrcServer) {
+        const store = this.ircBridge.getStore();
+        const config = await store.getIrcClientConfig(userId, server.domain);
+        if (config) {
+            return config;
+        }
+        return IrcClientConfig.newConfig(
+            new MatrixUser(userId), server.domain
+        );
+    }
+
+    private async handleCertfp(
+        req: BridgeRequest, args: string[], sender: string, adminRoom: MatrixRoom): Promise<MatrixAction> {
+        const server = this.extractServerFromArgs(args);
+        req.log.info(`${sender} is attempting to store a cert for ${server.domain}`);
+        await this.ircBridge.sendMatrixAction(
+            adminRoom, this.botUser, new MatrixAction(
+                ActionType.Notice, `Please enter your certificate and private key (without formatting) for ${server.getReadableName()}.`
+            )
+        );
+        let certfp: string;
+        try {
+            certfp = await new Promise<string>((res, reject) => {
+                this.roomIdsExpectingCertFp.set(adminRoom.roomId, res)
+                setTimeout(() => {
+                    reject(new Error('Timeout'));
+                }, CERT_FP_TIMEOUT_MS);
+            });
+        }
+        catch (ex) {
+            return new MatrixAction(
+                ActionType.Notice, 'Timed out waiting for certificate',
+            );
+        }
+        finally {
+            this.roomIdsExpectingCertFp.delete(adminRoom.roomId);
+        }
+        let privateKey, cert;
+        try {
+            const pair = getKeyPairFromString(certfp);
+            privateKey = pair.privateKey;
+            cert = pair.cert;
+        }
+        catch (ex) {
+            return new MatrixAction(
+                ActionType.Notice, `Could not parse keypair: ${ex.message}`,
+            );
+        }
+        if (!cert.checkPrivateKey(privateKey)) {
+            return new MatrixAction(
+                ActionType.Notice, 'Public cert does not belong to private key.',
+            );
+        }
+        const now = new Date();
+        try {
+            const validFrom = new Date(cert.validFrom);
+            const validTo = new Date(cert.validTo);
+
+            if (isNaN(validFrom.getTime())) {
+                return new MatrixAction(
+                    ActionType.Notice, 'Certificate validFrom was invalid.',
+                );
+            }
+            if (isNaN(validTo.getTime())) {
+                return new MatrixAction(
+                    ActionType.Notice, 'Certificate validFrom was invalid.',
+                );
+            }
+
+            if (validFrom > now) {
+                return new MatrixAction(
+                    ActionType.Notice, 'Certificate is not valid yet.',
+                );
+            }
+            if (now > validTo) {
+                return new MatrixAction(
+                    ActionType.Notice, 'Certificate has expired.',
+                );
+            }
+        }
+        catch (ex) {
+            return new MatrixAction(
+                ActionType.Notice, 'Could not parse validFrom / validTo dates.',
+            );
+        }
+
+        const clientConfig = await this.getOrCreateClientConfig(sender, server);
+        clientConfig.setCertificate({
+            cert: cert.toString(),
+            key: privateKey.export({type: 'pkcs8', format: 'pem'}).toString(),
+        });
+        await this.ircBridge.getStore().storeIrcClientConfig(clientConfig);
+
+
+        return new MatrixAction(
+            ActionType.Notice,
+            `Successfully stored certificate for ${server.domain}. Use !reconnect to use this cert.`
+        );
     }
 
     private async handlePlumb(args: string[], sender: string) {
@@ -557,12 +704,7 @@ export class AdminRoomHandler {
                 );
             }
             else {
-                let config = await store.getIrcClientConfig(userId, server.domain);
-                if (!config) {
-                    config = IrcClientConfig.newConfig(
-                        new MatrixUser(userId), server.domain
-                    );
-                }
+                const config = await this.getOrCreateClientConfig(userId, server);
                 config.setUsername(username);
                 await this.ircBridge.getStore().storeIrcClientConfig(config);
                 notice = new MatrixAction(

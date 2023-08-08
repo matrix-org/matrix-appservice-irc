@@ -30,7 +30,7 @@ import {
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
 import { MatrixDirectoryVisibility } from "../../bridge/IrcHandler";
 import { IrcRoom } from "../../models/IrcRoom";
-import { IrcClientConfig } from "../../models/IrcClientConfig";
+import { IrcClientConfig, IrcClientConfigSeralized } from "../../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../../irc/IrcServer";
 
 import { getLogger } from "../../logging";
@@ -504,7 +504,12 @@ export class PgDataStore implements DataStore, ProvisioningStore {
     }
 
     public async getIrcClientConfig(userId: string, domain: string): Promise<IrcClientConfig | null> {
-        const res = await this.pgPool.query(
+        const res = await this.pgPool.query<{
+            config: IrcClientConfigSeralized,
+            password: string,
+            cert: string,
+            key: string,
+        }>(
             "SELECT config, password, cert, key FROM client_config WHERE user_id = $1 and domain = $2",
             [
                 userId,
@@ -528,17 +533,15 @@ export class PgDataStore implements DataStore, ProvisioningStore {
             cert: row.cert,
             key: row.key,
         };
-        // TODO: Testing
-        if (row.cert && row.key && this.cryptoStore) {
-            // NOT fatal, but really worrying.
+        const cryptoStore = this.cryptoStore;
+        if (row.key && cryptoStore) {
             try {
-                config.certificate = {
-                    cert: this.cryptoStore.decrypt(row.cert),
-                    key:  this.cryptoStore.decrypt(row.key)
-                };
+                const keyParts = row.key.split(',').map(v => cryptoStore.decrypt(v));
+                config.certificate.key = `-----BEGIN PRIVATE KEY-----\n${keyParts.join('')}-----END PRIVATE KEY-----\n`;
+                console.log(keyParts);
             }
             catch (ex) {
-                log.warn(`Failed to decrypt certificate for ${userId} ${domain}`, ex);
+                log.warn(`Failed to decrypt TLS key for ${userId} ${domain}`, ex);
             }
         }
         return new IrcClientConfig(userId, domain, config);
@@ -553,23 +556,36 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         // We need to make sure we have a matrix user in the store.
         await this.pgPool.query("INSERT INTO matrix_users VALUES ($1, NULL) ON CONFLICT DO NOTHING", [userId]);
         let password = config.getPassword();
-        const cert: {cert?: string, key?: string} = { };
+        const keypair: {cert?: string, key?: string} = { };
 
         // This implies without a cryptostore these will be stored plain.
         if (password && this.cryptoStore) {
             password = this.cryptoStore.encrypt(password);
         }
+
+
         if (config.certificate && this.cryptoStore) {
-            cert.cert = this.cryptoStore.encrypt(config.certificate.cert);
-            cert.key = this.cryptoStore.encrypt(config.certificate.key);
+            keypair.cert = config.certificate.cert;
+            const cryptoParts = [];
+            let key = config.certificate.key;
+            // We can't store these as our encryption system doesn't support spaces.
+            key = key.replace('-----BEGIN PRIVATE KEY-----\n', '').replace('-----END PRIVATE KEY-----\n', '');
+            while (key.length > 0) {
+                const part = key.slice(0, 64);
+                console.log(part);
+                cryptoParts.push(this.cryptoStore.encrypt(part));
+                key = key.slice(64);
+            }
+            keypair.key = cryptoParts.join(',');
+            console.log(cryptoParts);
         }
         const parameters = {
             user_id: userId,
             domain: config.getDomain(),
             // either use the decrypted password, or whatever is stored already.
             password,
-            cert: cert?.cert,
-            key: cert?.key,
+            cert: keypair.cert,
+            key: keypair.key,
             config: JSON.stringify(config.serialize(true)),
         };
         const statement = PgDataStore.BuildUpsertStatement(

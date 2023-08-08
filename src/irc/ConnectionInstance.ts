@@ -422,8 +422,6 @@ export class ConnectionInstance {
             saslType = "EXTERNAL";
         }
 
-        console.log("secure:", secure, saslType);
-
         const connectionOpts: IrcClientOpts = {
             userName: opts.username,
             realName: opts.realname,
@@ -439,11 +437,14 @@ export class ConnectionInstance {
             retryCount: 0,
             family: (server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null) as 6|null,
             bustRfc3484: true,
-            sasl: opts.password ? server.useSasl() : false,
+            sasl: saslType ? server.useSasl() : false,
             saslType: saslType,
             secure: secure,
             encodingFallback: opts.encodingFallback,
+            debug: true,
         };
+
+        console.log(connectionOpts);
 
 
         // Returns: A promise which resolves to a ConnectionInstance
