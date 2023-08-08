@@ -538,7 +538,6 @@ export class PgDataStore implements DataStore, ProvisioningStore {
             try {
                 const keyParts = row.key.split(',').map(v => cryptoStore.decrypt(v));
                 config.certificate.key = `-----BEGIN PRIVATE KEY-----\n${keyParts.join('')}-----END PRIVATE KEY-----\n`;
-                console.log(keyParts);
             }
             catch (ex) {
                 log.warn(`Failed to decrypt TLS key for ${userId} ${domain}`, ex);
@@ -572,12 +571,10 @@ export class PgDataStore implements DataStore, ProvisioningStore {
             key = key.replace('-----BEGIN PRIVATE KEY-----\n', '').replace('-----END PRIVATE KEY-----\n', '');
             while (key.length > 0) {
                 const part = key.slice(0, 64);
-                console.log(part);
                 cryptoParts.push(this.cryptoStore.encrypt(part));
                 key = key.slice(64);
             }
             keypair.key = cryptoParts.join(',');
-            console.log(cryptoParts);
         }
         const parameters = {
             user_id: userId,
