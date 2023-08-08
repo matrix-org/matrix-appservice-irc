@@ -200,7 +200,7 @@ class ServerRequiredError extends Error {
 const USER_FEATURES = ["mentions"];
 export class AdminRoomHandler {
     private readonly botUser: MatrixUser;
-    private readonly roomIdsExpectingCertFp = new Map<string, (certificate: string) => void>();
+    private readonly roomIdsExpectingCertFp: Map<string, (certificate: string) => void> = new Map();
     constructor(private ircBridge: IrcBridge, private matrixHandler: MatrixHandler) {
         this.botUser = new MatrixUser(ircBridge.appServiceUserId, undefined, false);
     }
@@ -316,7 +316,8 @@ export class AdminRoomHandler {
         req.log.info(`${sender} is attempting to store a cert for ${server.domain}`);
         await this.ircBridge.sendMatrixAction(
             adminRoom, this.botUser, new MatrixAction(
-                ActionType.Notice, `Please enter your certificate and private key (without formatting) for ${server.getReadableName()}.`
+                ActionType.Notice,
+                `Please enter your certificate and private key (without formatting) for ${server.getReadableName()}.`
             )
         );
         let certfp: string;
@@ -676,7 +677,6 @@ export class AdminRoomHandler {
         const server = this.extractServerFromArgs(args);
 
         const domain = server.domain;
-        const store = this.ircBridge.getStore();
         let notice;
 
         try {
