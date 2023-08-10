@@ -536,7 +536,6 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         const cryptoStore = this.cryptoStore;
         if (config.certificate && row.key && cryptoStore) {
             try {
-                console.log(row);
                 config.certificate.key = await cryptoStore.decryptLargeString(row.key);
             }
             catch (ex) {
@@ -562,7 +561,6 @@ export class PgDataStore implements DataStore, ProvisioningStore {
             password = this.cryptoStore.encrypt(password);
         }
 
-        console.log(config.certificate);
         if (config.certificate && this.cryptoStore) {
             keypair.cert = config.certificate.cert;
             keypair.key = await this.cryptoStore.encryptLargeString(config.certificate.key);
@@ -578,7 +576,6 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         };
         const statement = PgDataStore.BuildUpsertStatement(
             "client_config", "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
-        console.log(statement, parameters);
         await this.pgPool.query(statement, Object.values(parameters));
     }
 

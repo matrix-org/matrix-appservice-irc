@@ -423,7 +423,6 @@ export class ConnectionInstance {
         }
 
         log.debug(saslType ? `Connecting using ${saslType} auth` : 'Connecting without authentication');
-        console.log(secure);
 
         const connectionOpts: IrcClientOpts = {
             userName: opts.username,

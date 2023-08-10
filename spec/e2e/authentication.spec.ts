@@ -93,11 +93,11 @@ describe('Authentication tests', () => {
         await testEnv.joinChannelHelper(alice, adminRoomId, channel);
         const bridgedClient = await ircBridge.getBridgedClientsForUserId(aliceUserId)[0];
         const aliceIrcClient = await bridgedClient.waitForConnected().then(() => bridgedClient.assertConnected());
+
         // Slight gut wrenching to get the fingerprint out.
         const getCertResponse = await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timed out getting cert response')), 5000);
             aliceIrcClient.on('raw', (msg) => {
-                console.log(msg);
                 if (msg.rawCommand === '276') {
                     clearTimeout(timeout);
                     resolve(msg);
@@ -105,6 +105,6 @@ describe('Authentication tests', () => {
             });
         })
         bridgedClient.whois(bridgedClient.nick);
-        console.log(await getCertResponse);
+        await getCertResponse;
     });
 });
