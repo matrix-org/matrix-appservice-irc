@@ -72,7 +72,7 @@ export class IrcClientConfig {
         return this.config.password;
     }
 
-    public setCertificate(keypair: IrcClientCertKeypair) {
+    public setCertificate(keypair?: IrcClientCertKeypair) {
         this.config.certificate = keypair;
     }
 
