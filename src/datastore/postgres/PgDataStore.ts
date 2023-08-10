@@ -536,8 +536,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         const cryptoStore = this.cryptoStore;
         if (config.certificate && row.key && cryptoStore) {
             try {
-                const keyParts = row.key.split(',').map(v => cryptoStore.decrypt(v));
-                config.certificate.key = `-----BEGIN PRIVATE KEY-----\n${keyParts.join('')}-----END PRIVATE KEY-----\n`;
+                config.certificate.key = cryptoStore.decryptLargeString(row.key);
             }
             catch (ex) {
                 log.warn(`Failed to decrypt TLS key for ${userId} ${domain}`, ex);
@@ -565,16 +564,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
 
         if (config.certificate && this.cryptoStore) {
             keypair.cert = config.certificate.cert;
-            const cryptoParts = [];
-            let key = config.certificate.key;
-            // We can't store these as our encryption system doesn't support spaces.
-            key = key.replace('-----BEGIN PRIVATE KEY-----\n', '').replace('-----END PRIVATE KEY-----\n', '');
-            while (key.length > 0) {
-                const part = key.slice(0, 64);
-                cryptoParts.push(this.cryptoStore.encrypt(part));
-                key = key.slice(64);
-            }
-            keypair.key = cryptoParts.join(',');
+            keypair.key = this.cryptoStore.encryptLargeString(config.certificate.key);
         }
         const parameters = {
             user_id: userId,
@@ -676,6 +666,12 @@ export class PgDataStore implements DataStore, ProvisioningStore {
 
     public async removePass(userId: string, domain: string): Promise<void> {
         await this.pgPool.query("UPDATE client_config SET password = NULL WHERE user_id = $1 AND domain = $2",
+            [userId, domain]);
+    }
+
+    public async removeClientCert(userId: string, domain: string): Promise<void> {
+        await this.pgPool.query(
+            "UPDATE client_config SET cert = NULL AND key = NULL WHERE user_id = $1 AND domain = $2",
             [userId, domain]);
     }
 

@@ -175,6 +175,8 @@ export interface DataStore extends ProvisioningStore {
 
     removePass(userId: string, domain: string): Promise<void>;
 
+    removeClientCert(userId: string, domain: string): Promise<void>;
+
     getMatrixUserByUsername(domain: string, username: string): Promise<MatrixUser|undefined>;
 
     getCountForUsernamePrefix(domain: string, usernamePrefix: string): Promise<number>;

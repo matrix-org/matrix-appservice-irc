@@ -48,6 +48,9 @@ export class StringCrypto {
     }
 
     public encrypt(plaintext: string): string {
+        if (plaintext.includes(' ')) {
+            throw Error('Cannot encode spaces')
+        }
         const salt = crypto.randomBytes(16).toString('base64');
         return crypto.publicEncrypt(
             this.privateKey,
@@ -55,12 +58,31 @@ export class StringCrypto {
         ).toString('base64');
     }
 
+    public encryptLargeString(plaintext: string): string {
+        const cryptoParts = [];
+        while (plaintext.length > 0) {
+            const part = plaintext.slice(0, 64);
+            cryptoParts.push(this.encrypt(part));
+            plaintext = plaintext.slice(64);
+        }
+        return 'lg:' + cryptoParts.join(',');
+    }
+
+
     public decrypt(encryptedString: string): string {
         const decryptedPass = crypto.privateDecrypt(
             this.privateKey,
             Buffer.from(encryptedString, 'base64')
         ).toString();
         // Extract the password by removing the prefixed salt and seperating space
-        return decryptedPass.split(' ')[1];
+        return decryptedPass.slice(17)[1];
+    }
+
+    public decryptLargeString(encryptedString: string): string {
+        if (encryptedString !== 'lg:') {
+            throw Error('Not a large string');
+        }
+        encryptedString = encryptedString.slice(3);
+        return encryptedString.split(',').map(v => this.decrypt(v)).join('');
     }
 }
