@@ -263,6 +263,8 @@ export class AdminRoomHandler {
                 return await this.handleJoin(req, args, event.sender);
             case "certfp":
                 return await this.handleCertfp(req, args, event.sender, adminRoom);
+            case "removecertfp":
+                return await this.handleRemoveCertfp(args, event.sender);
             case "cmd":
                 return await this.handleCmd(req, args, event.sender);
             case "whois":
@@ -413,6 +415,24 @@ export class AdminRoomHandler {
             ActionType.Notice,
             `Successfully stored certificate for ${server.domain}. Use !reconnect to use this cert.`
         );
+    }
+
+    private async handleRemoveCertfp(args: string[], userId: string) {
+        const ircServer = this.extractServerFromArgs(args);
+
+        const domain = ircServer.domain;
+
+        try {
+            await this.ircBridge.getStore().removePass(userId, domain);
+            return new MatrixAction(
+                ActionType.Notice, `Successfully removed password.`
+            );
+        }
+        catch (err) {
+            return new MatrixAction(
+                ActionType.Notice, `Failed to remove password: ${err.message}`
+            );
+        }
     }
 
     private async handlePlumb(args: string[], sender: string) {
