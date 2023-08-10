@@ -536,12 +536,14 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         const cryptoStore = this.cryptoStore;
         if (config.certificate && row.key && cryptoStore) {
             try {
-                config.certificate.key = cryptoStore.decryptLargeString(row.key);
+                console.log(row);
+                config.certificate.key = await cryptoStore.decryptLargeString(row.key);
             }
             catch (ex) {
                 log.warn(`Failed to decrypt TLS key for ${userId} ${domain}`, ex);
             }
         }
+        console.log(config);
         return new IrcClientConfig(userId, domain, config);
     }
 
@@ -561,10 +563,10 @@ export class PgDataStore implements DataStore, ProvisioningStore {
             password = this.cryptoStore.encrypt(password);
         }
 
-
+        console.log(config.certificate);
         if (config.certificate && this.cryptoStore) {
             keypair.cert = config.certificate.cert;
-            keypair.key = this.cryptoStore.encryptLargeString(config.certificate.key);
+            keypair.key = await this.cryptoStore.encryptLargeString(config.certificate.key);
         }
         const parameters = {
             user_id: userId,
@@ -577,6 +579,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         };
         const statement = PgDataStore.BuildUpsertStatement(
             "client_config", "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
+        console.log(statement, parameters);
         await this.pgPool.query(statement, Object.values(parameters));
     }
 

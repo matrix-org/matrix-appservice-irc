@@ -582,7 +582,7 @@ export class NeDBDataStore implements DataStore {
             try {
                 clientConfig.setCertificate({
                     cert: configData.certificate.cert,
-                    key: this.cryptoStore.decryptLargeString(configData.certificate.key),
+                    key: await this.cryptoStore.decryptLargeString(configData.certificate.key),
                 })
             }
             catch (ex) {
@@ -628,7 +628,7 @@ export class NeDBDataStore implements DataStore {
             try {
                 domainCfg.certificate = {
                     cert: config.certificate.cert,
-                    key: this.cryptoStore.encryptLargeString(config.certificate.key),
+                    key: await this.cryptoStore.encryptLargeString(config.certificate.key),
                 };
             }
             catch (ex) {

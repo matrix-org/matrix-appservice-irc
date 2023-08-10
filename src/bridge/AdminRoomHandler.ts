@@ -315,12 +315,18 @@ export class AdminRoomHandler {
     private async handleCertfp(
         req: BridgeRequest, args: string[], sender: string, adminRoom: MatrixRoom): Promise<MatrixAction> {
         const server = this.extractServerFromArgs(args);
+        if (!server.useSasl()) {
+            return new MatrixAction(
+                ActionType.Notice,
+                'This bridge does not support SASL authentication, so you cannot store a certificate.',
+            );
+        }
         req.log.info(`${sender} is attempting to store a cert for ${server.domain}`);
         await this.ircBridge.sendMatrixAction(
             adminRoom, this.botUser, new MatrixAction(
                 ActionType.Notice,
-                `Please enter your certificate and private key (without formatting) for ${server.getReadableName()}.' +
-                ' Say 'cancel' to cancel.`
+                `Please enter your certificate and private key (without formatting) for ${server.domain}.` +
+                " Say 'cancel' to cancel.",
             )
         );
         let certfp: string;
@@ -423,14 +429,14 @@ export class AdminRoomHandler {
         const domain = ircServer.domain;
 
         try {
-            await this.ircBridge.getStore().removePass(userId, domain);
+            await this.ircBridge.getStore().removeClientCert(userId, domain);
             return new MatrixAction(
-                ActionType.Notice, `Successfully removed password.`
+                ActionType.Notice, `Successfully removed certfp.`
             );
         }
         catch (err) {
             return new MatrixAction(
-                ActionType.Notice, `Failed to remove password: ${err.message}`
+                ActionType.Notice, `Failed to remove certfp: ${err.message}`
             );
         }
     }

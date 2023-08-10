@@ -14,11 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import * as crypto from "crypto";
+import { createCipheriv, createDecipheriv, privateDecrypt, publicEncrypt, scrypt as scryptCb } from "node:crypto";
 import * as fs from "fs";
 import { getLogger } from "../logging";
+import { randomBytes } from "node:crypto";
+import { promisify } from "node:util";
+
+const scrypt = promisify(scryptCb);
 
 const log = getLogger("CryptoStore");
+const algorithm = 'aes-256-cbc';
 
 export class StringCrypto {
     private privateKey!: string;
@@ -29,7 +34,7 @@ export class StringCrypto {
 
             // Test whether key is a valid PEM key (publicEncrypt does internal validation)
             try {
-                crypto.publicEncrypt(
+                publicEncrypt(
                     this.privateKey,
                     Buffer.from("This is a test!")
                 );
@@ -48,41 +53,59 @@ export class StringCrypto {
     }
 
     public encrypt(plaintext: string): string {
-        if (plaintext.includes(' ')) {
-            throw Error('Cannot encode spaces')
-        }
-        const salt = crypto.randomBytes(16).toString('base64');
-        return crypto.publicEncrypt(
+        const salt = randomBytes(16).toString('base64');
+        return publicEncrypt(
             this.privateKey,
             Buffer.from(salt + ' ' + plaintext)
         ).toString('base64');
     }
 
-    public encryptLargeString(plaintext: string): string {
-        const cryptoParts = [];
-        while (plaintext.length > 0) {
-            const part = plaintext.slice(0, 64);
-            cryptoParts.push(this.encrypt(part));
-            plaintext = plaintext.slice(64);
-        }
-        return 'lg:' + cryptoParts.join(',');
-    }
-
-
     public decrypt(encryptedString: string): string {
-        const decryptedPass = crypto.privateDecrypt(
+        const decryptedPass = privateDecrypt(
             this.privateKey,
             Buffer.from(encryptedString, 'base64')
         ).toString();
         // Extract the password by removing the prefixed salt and seperating space
-        return decryptedPass.slice(17)[1];
+        return decryptedPass.slice(25);
     }
 
-    public decryptLargeString(encryptedString: string): string {
-        if (encryptedString !== 'lg:') {
+    public async encryptLargeString(plaintext: string): Promise<string> {
+        const password = randomBytes(32).toString('base64');
+        const key = await scrypt(password, 'salt', 32) as Buffer;
+        const iv = randomBytes(16);
+        const cipher = createCipheriv(algorithm, key, iv);
+        cipher.setEncoding('base64');
+        let encrypted = '';
+        const secret = this.encrypt(`${key.toString('base64')}_${iv.toString('base64')}`);
+        const streamPromise = new Promise<string>((resolve, reject) => {
+            cipher.on('error', (err) => reject(err));
+            cipher.on('end', () => resolve(
+                `lg:${secret}:${encrypted}`
+            ));
+        });
+        cipher.on('data', (chunk) => { encrypted += chunk });
+        cipher.write(plaintext);
+        cipher.end();
+        return streamPromise;
+    }
+
+    public async decryptLargeString(encryptedString: string): Promise<string> {
+        if (!encryptedString.startsWith('lg:')) {
             throw Error('Not a large string');
         }
-        encryptedString = encryptedString.slice(3);
-        return encryptedString.split(',').map(v => this.decrypt(v)).join('');
+        const [, keyPlusIvEnc, data] = encryptedString.split(':', 3);
+        const [keyB64, ivB64] = this.decrypt(keyPlusIvEnc).split('_');
+        const iv = Buffer.from(ivB64, "base64");
+        const key = Buffer.from(keyB64, "base64");
+        const decipher = createDecipheriv(algorithm, key, iv);
+        let decrypted = '';
+        decipher.on('data', (chunk) => { decrypted += chunk });
+        const streamPromise = new Promise<string>((resolve, reject) => {
+            decipher.on('error', (err) => reject(err));
+            decipher.on('end', () => resolve(decrypted));
+        });
+        decipher.write(Buffer.from(data, 'base64'));
+        decipher.end();
+        return streamPromise;
     }
 }
