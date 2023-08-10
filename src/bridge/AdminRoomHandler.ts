@@ -317,7 +317,8 @@ export class AdminRoomHandler {
         await this.ircBridge.sendMatrixAction(
             adminRoom, this.botUser, new MatrixAction(
                 ActionType.Notice,
-                `Please enter your certificate and private key (without formatting) for ${server.getReadableName()}.`
+                `Please enter your certificate and private key (without formatting) for ${server.getReadableName()}.' +
+                ' Say 'cancel' to cancel.`
             )
         );
         let certfp: string;
@@ -336,6 +337,11 @@ export class AdminRoomHandler {
         }
         finally {
             this.roomIdsExpectingCertFp.delete(adminRoom.roomId);
+        }
+        if (certfp.trim() === 'cancel') {
+            return new MatrixAction(
+                ActionType.Notice, `Request canceled.`,
+            );
         }
         let privateKey, cert;
         try {
@@ -386,12 +392,21 @@ export class AdminRoomHandler {
             );
         }
 
-        const clientConfig = await this.getOrCreateClientConfig(sender, server);
-        clientConfig.setCertificate({
-            cert: cert.toString(),
-            key: privateKey.export({type: 'pkcs8', format: 'pem'}).toString(),
-        });
-        await this.ircBridge.getStore().storeIrcClientConfig(clientConfig);
+
+        try {
+            const clientConfig = await this.getOrCreateClientConfig(sender, server);
+            clientConfig.setCertificate({
+                cert: cert.toString(),
+                key: privateKey.export({type: 'pkcs8', format: 'pem'}).toString(),
+            });
+            await this.ircBridge.getStore().storeIrcClientConfig(clientConfig);
+        }
+        catch (ex) {
+            req.log.error('Unable to store certificate for user', ex);
+            return new MatrixAction(
+                ActionType.Notice, 'Error occured storing certificate. Unable to continue',
+            );
+        }
 
 
         return new MatrixAction(
