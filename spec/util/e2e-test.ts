@@ -18,7 +18,8 @@ dns.setDefaultResultOrder('ipv4first');
 
 const WAIT_EVENT_TIMEOUT = 10000;
 
-const DEFAULT_PORT = parseInt(process.env.IRC_TEST_PORT ?? '6667', 10);
+const IRC_SECURE = process.env.IRC_SECURE === "false";
+const DEFAULT_PORT = parseInt(process.env.IRC_TEST_PORT ?? IRC_SECURE ? "6697" : "6667", 10);
 const DEFAULT_ADDRESS = process.env.IRC_TEST_ADDRESS ?? "127.0.0.1";
 const IRCBRIDGE_TEST_REDIS_URL = process.env.IRCBRIDGE_TEST_REDIS_URL;
 
@@ -182,7 +183,11 @@ export class IrcBridgeE2ETest {
 
         const workerID = parseInt(process.env.JEST_WORKER_ID ?? '0');
         const { matrixLocalparts, config } = opts;
-        const ircTest = new TestIrcServer();
+        const ircTest = new TestIrcServer(undefined, undefined, {
+            secure: IRC_SECURE,
+            port: DEFAULT_PORT,
+            selfSigned: true,
+        });
         const [postgresDb, homeserver] = await Promise.all([
             this.createDatabase(),
             createHS(["ircbridge_bot", ...matrixLocalparts || []], workerID),
@@ -241,6 +246,9 @@ export class IrcBridgeE2ETest {
                         port: DEFAULT_PORT,
                         additionalAddresses: [DEFAULT_ADDRESS],
                         onlyAdditionalAddresses: true,
+                        sasl: true,
+                        ssl: IRC_SECURE,
+                        sslselfsign: IRC_SECURE,
                         matrixClients: {
                             userTemplate: "@irc_$NICK",
                             displayName: "$NICK",
@@ -290,7 +298,8 @@ export class IrcBridgeE2ETest {
                 debugApi: {
                     enabled: false,
                     port: 0,
-                }
+                },
+                passwordEncryptionKeyPath: './spec/support/passkey.pem',
             },
             ...config,
             ...(redisUri && { connectionPool: {

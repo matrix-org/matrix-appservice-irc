@@ -543,7 +543,6 @@ export class PgDataStore implements DataStore, ProvisioningStore {
                 log.warn(`Failed to decrypt TLS key for ${userId} ${domain}`, ex);
             }
         }
-        console.log(config);
         return new IrcClientConfig(userId, domain, config);
     }
 
