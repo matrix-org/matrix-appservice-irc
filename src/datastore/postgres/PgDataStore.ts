@@ -75,8 +75,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
             log.error("Postgres Error: %s", err);
         });
         if (pkeyPath) {
-            this.cryptoStore = new StringCrypto();
-            this.cryptoStore.load(pkeyPath);
+            this.cryptoStore = StringCrypto.fromFile(pkeyPath);
         }
         process.on("beforeExit", () => {
             if (this.hasEnded) {

@@ -82,8 +82,7 @@ export class NeDBDataStore implements DataStore {
         }, errLog("user id"));
 
         if (pkeyPath) {
-            this.cryptoStore = new StringCrypto();
-            this.cryptoStore.load(pkeyPath);
+            this.cryptoStore = StringCrypto.fromFile(pkeyPath);
         }
     }
 
