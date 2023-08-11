@@ -402,12 +402,11 @@ export class AdminRoomHandler {
 
 
         try {
-            const clientConfig = await this.getOrCreateClientConfig(sender, server);
-            clientConfig.setCertificate({
+            const keypair = {
                 cert: cert.toString(),
                 key: privateKey.export({type: 'pkcs8', format: 'pem'}).toString(),
-            });
-            await this.ircBridge.getStore().storeIrcClientConfig(clientConfig);
+            };
+            await this.ircBridge.getStore().storeClientCert(sender, server.domain, keypair);
         }
         catch (ex) {
             req.log.error('Unable to store certificate for user', ex);

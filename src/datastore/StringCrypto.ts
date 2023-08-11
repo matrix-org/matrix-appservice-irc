@@ -86,9 +86,13 @@ export class StringCrypto {
         const password = randomBytes(32).toString(ENCRYPTED_ENCODING);
         const key = await scrypt(password, 'salt', 32) as Buffer;
         const iv = randomBytes(16);
+
         const cipher = createCipheriv(algorithm, key, iv);
         cipher.setEncoding(ENCRYPTED_ENCODING);
         let encrypted = '';
+
+        // Large strings are encrypted as 'lg:encrypt($key_$iv):$encrypted_block' where the key_iv is further
+        // encrypted by the root private key.
         const secret = this.encrypt(`${key.toString(ENCRYPTED_ENCODING)}_${iv.toString(ENCRYPTED_ENCODING)}`);
         const streamPromise = new Promise<string>((resolve, reject) => {
             cipher.on('error', (err) => reject(err));
@@ -96,6 +100,7 @@ export class StringCrypto {
                 `lg:${secret}:${encrypted}`
             ));
         });
+
         cipher.on('data', (chunk) => { encrypted += chunk });
         cipher.write(plaintext);
         cipher.end();
@@ -110,6 +115,7 @@ export class StringCrypto {
         const [keyB64, ivB64] = this.decrypt(keyPlusIvEnc).split('_');
         const iv = Buffer.from(ivB64, ENCRYPTED_ENCODING);
         const key = Buffer.from(keyB64, ENCRYPTED_ENCODING);
+
         const decipher = createDecipheriv(algorithm, key, iv);
         let decrypted = '';
         decipher.on('data', (chunk) => { decrypted += chunk });
@@ -117,6 +123,7 @@ export class StringCrypto {
             decipher.on('error', (err) => reject(err));
             decipher.on('end', () => resolve(decrypted));
         });
+
         decipher.write(Buffer.from(data, ENCRYPTED_ENCODING));
         decipher.end();
         return streamPromise;

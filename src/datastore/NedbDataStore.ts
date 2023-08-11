@@ -16,7 +16,7 @@ limitations under the License.
 
 import { MatrixDirectoryVisibility } from "../bridge/IrcHandler";
 import { IrcRoom } from "../models/IrcRoom";
-import { IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
+import { IrcClientCertKeypair, IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
 import { getLogger } from "../logging";
 
 import {
@@ -699,6 +699,15 @@ export class NeDBDataStore implements DataStore {
             config.setPassword();
             await this.storeIrcClientConfig(config);
         }
+    }
+
+    public async storeClientCert(userId: string, domain: string, keypair: IrcClientCertKeypair): Promise<void> {
+        const config = await this.getIrcClientConfig(userId, domain);
+        if (!config) {
+            throw new Error(`${userId} does not have an IRC client configured for ${domain}`);
+        }
+        config.setCertificate(keypair);
+        await this.storeIrcClientConfig(config);
     }
 
     public async removeClientCert(userId: string, domain: string): Promise<void> {

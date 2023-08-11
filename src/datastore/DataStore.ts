@@ -24,7 +24,7 @@ import {
 } from "matrix-appservice-bridge";
 import { MatrixDirectoryVisibility } from "../bridge/IrcHandler";
 import { IrcRoom } from "../models/IrcRoom";
-import { IrcClientConfig } from "../models/IrcClientConfig";
+import { IrcClientCertKeypair, IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
 
 export type RoomOrigin = "config"|"provision"|"alias"|"join";
@@ -174,6 +174,8 @@ export interface DataStore extends ProvisioningStore {
     storePass(userId: string, domain: string, pass: string): Promise<void>;
 
     removePass(userId: string, domain: string): Promise<void>;
+
+    storeClientCert(userId: string, domain: string, keypair: IrcClientCertKeypair): Promise<void>;
 
     removeClientCert(userId: string, domain: string): Promise<void>;
 
