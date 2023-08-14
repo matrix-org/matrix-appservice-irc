@@ -202,12 +202,6 @@ ircService:
         # join_rules will be set to 'invite' until these modes are removed.
         # Default: "public".
         joinRule: public
-        # This will set the m.room.related_groups state event in newly created rooms
-        # with the given groupId. This means flares will show up on IRC users in those rooms.
-        # This should be set to the same thing as namespaces.users.group_id in irc_registration.
-        # This does not alter existing rooms.
-        # Leaving this option empty will not set the event.
-        groupId: +myircnetwork:localhost
         # Should created Matrix rooms be federated? If false, only users on the
         # HS attached to this AS will be able to interact with this room.
         # Default: true.
