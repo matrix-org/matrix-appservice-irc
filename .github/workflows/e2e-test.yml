@@ -104,6 +104,7 @@ jobs:
         image: ghcr.io/ergochat/ergo:stable
         ports:
           - 6667:6667
+          - 6697:6697
     steps:
       - name: Install Complement Dependencies
         run: |
@@ -182,6 +183,7 @@ jobs:
         image: ghcr.io/ergochat/ergo:stable
         ports:
           - 6667:6667
+          - 6697:6697
     steps:
       - name: Install Complement Dependencies
         run: |
