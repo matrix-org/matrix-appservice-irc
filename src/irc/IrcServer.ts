@@ -20,7 +20,6 @@ import { IrcClientConfig } from "../models/IrcClientConfig";
 import { renderTemplate } from "../util/Template";
 
 const log = getLogger("IrcServer");
-const GROUP_ID_REGEX = /^\+\S+:\S+$/
 
 export type MembershipSyncKind = "incremental"|"initial";
 
@@ -51,7 +50,6 @@ export interface IrcServerConfig {
         whitelist?: string[];
         exclude?: string[];
         roomVersion?: string;
-        groupId?: string;
     };
     quitDebounce: {
         enabled: boolean;
@@ -161,7 +159,6 @@ const IRC_DEFAULT_SECURE_PORT = 6697;
  */
 export class IrcServer {
     private addresses: string[] = [];
-    private groupIdValid = false;
     private excludedUsers: { regex: RegExp; kickReason?: string }[] = [];
     private idleUsersStartupExcludeRegex?: RegExp;
     private enforceReconnectInterval = true;
@@ -300,13 +297,6 @@ export class IrcServer {
         return this.config.dynamicChannels.joinRule;
     }
 
-    public areGroupsEnabled() {
-        return this.groupIdValid;
-    }
-
-    public getGroupId() {
-        return this.config.dynamicChannels.groupId;
-    }
 
     public shouldFederatePMs() {
         return this.config.privateMessages.federate;
@@ -836,18 +826,6 @@ export class IrcServer {
             }
         });
 
-        if (config.dynamicChannels.groupId !== undefined &&
-            config.dynamicChannels.groupId.trim() !== "") {
-            this.groupIdValid = GROUP_ID_REGEX.test(config.dynamicChannels.groupId);
-            if (!this.groupIdValid) {
-                log.warn(
-                    `${this.domain} has an incorrectly configured groupId for dynamicChannels and will not set groups.`
-                );
-            }
-        }
-        else {
-            this.groupIdValid = false;
-        }
         this.idleUsersStartupExcludeRegex =
             this.config.membershipLists.ignoreIdleOnStartup?.exclude ?
                 new RegExp(this.config.membershipLists.ignoreIdleOnStartup.exclude)
