@@ -664,7 +664,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         if (!this.cryptoStore) {
             throw Error("Password encryption is not configured.")
         }
-        const key = this.cryptoStore.encrypt(keypair.key);
+        const key = await this.cryptoStore.encryptLargeString(keypair.key);
         const parameters = {
             user_id: userId,
             domain,
