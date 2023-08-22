@@ -59,7 +59,6 @@ describe('Authentication tests', () => {
     });
     it('should be able to add a client certificate with the !certfp command', async () => {
         const { homeserver, ircBridge } = testEnv
-        const aliceUserId = homeserver.users[0].userId;
         const alice = homeserver.users[0].client;
         const { bob_authtest: bob } = testEnv.ircTest.clients;
         const nickServMsgs: string[] = [];
@@ -91,20 +90,12 @@ describe('Authentication tests', () => {
         );
 
         await testEnv.joinChannelHelper(alice, adminRoomId, channel);
-        const bridgedClient = await ircBridge.getBridgedClientsForUserId(aliceUserId)[0];
-        const aliceIrcClient = await bridgedClient.waitForConnected().then(() => bridgedClient.assertConnected());
+        await alice.waitForRoomEvent({
+            eventType: 'm.room.message',
+            roomId: adminRoomId,
+            sender: ircBridge.appServiceUserId,
+            body: `SASL authentication successful: You are now logged in as ${bob.nick}`
+        });
 
-        // Slight gut wrenching to get the fingerprint out.
-        const getCertResponse = await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Timed out getting cert response')), 5000);
-            aliceIrcClient.on('raw', (msg) => {
-                if (msg.rawCommand === '276') {
-                    clearTimeout(timeout);
-                    resolve(msg);
-                }
-            });
-        })
-        bridgedClient.whois(bridgedClient.nick);
-        await getCertResponse;
     });
 });

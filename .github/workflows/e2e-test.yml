@@ -86,6 +86,7 @@ jobs:
         ports:
           - 5432:5432
         env:
+          IRC_TEST_SECURE: true
           POSTGRES_DB: postgres
           POSTGRES_PASSWORD: postgres_password
           POSTGRES_PORT: 5432
@@ -153,6 +154,7 @@ jobs:
       - build-synapse
       - build-homerunner
     env:
+      IRC_TEST_SECURE: true
       IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
       IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
       IRCBRIDGE_TEST_ENABLEPG: "yes"

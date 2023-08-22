@@ -410,12 +410,9 @@ export class ConnectionInstance {
         if (server.useSasl() && opts.password) {
             saslType = "PLAIN";
         }
-        else if (server.useSasl() && opts.certificate) {
-            saslType = "EXTERNAL";
-        }
 
         const secure = server.useSsl() ? server.getSecureOptions() : undefined;
-        if (secure && opts.certificate) {
+        if (secure && opts.certificate && server.useSasl()) {
             secure.requestCert = true;
             secure.cert = opts.certificate.cert;
             secure.key = opts.certificate.key;
