@@ -18,7 +18,7 @@ describe('Ensure powerlevels are appropriately applied', () => {
         return testEnv?.tearDown();
     });
     it('should update powerlevel of IRC user when OPed by an IRC user', async () => {
-        const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
+        const channel = TestIrcServer.generateUniqueChannel("test");
         const { homeserver } = testEnv;
         const alice = homeserver.users[0].client;
         const { bob, charlie } = testEnv.ircTest.clients;
@@ -28,11 +28,15 @@ describe('Ensure powerlevels are appropriately applied', () => {
         // Create the channel
         await bob.join(channel);
 
+        const aliceJoinPromise = bob.waitForEvent('join');
         const cRoomId = await testEnv.joinChannelHelper(alice, await testEnv.createAdminRoomHelper(alice), channel);
+        await aliceJoinPromise;
 
         // Now have charlie join and be opped.
         const charlieJoinPromise = bob.waitForEvent('join');
         await charlie.join(channel);
+        await charlieJoinPromise;
+
         const operatorPL = testEnv.ircBridge.config.ircService.servers.localhost.modePowerMap!.o;
         const plEvent = alice.waitForPowerLevel(
             cRoomId, {
@@ -44,7 +48,7 @@ describe('Ensure powerlevels are appropriately applied', () => {
             },
         );
 
-        await charlieJoinPromise;
+
         await bob.send('MODE', channel, '+o', charlie.nick);
         expect(await plEvent).toBeDefined();
     });
