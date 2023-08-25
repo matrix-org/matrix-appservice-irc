@@ -77,6 +77,7 @@ jobs:
       - build-synapse
       - build-homerunner
     env:
+      GITHUB_ACTIONS: true
       IRC_TEST_SECURE: true
       IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
       IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
@@ -155,6 +156,7 @@ jobs:
       - build-synapse
       - build-homerunner
     env:
+      GITHUB_ACTIONS: true
       IRC_TEST_SECURE: true
       IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
       IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
