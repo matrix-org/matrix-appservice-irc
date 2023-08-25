@@ -334,7 +334,17 @@ export class IrcBridgeE2ETest {
                     traceLog.write(
                         `${Date.now() - startTime}ms [IRC:${clientId}] ${JSON.stringify(msg)} \n`
                     );
-                })
+                });
+                client.on('connect', () => {
+                    traceLog.write(
+                        `${Date.now() - startTime}ms [IRC:${clientId}] connected \n`
+                    );
+                });
+                client.on('error', (err) => {
+                    traceLog.write(
+                        `${Date.now() - startTime}ms [IRC:${clientId}] error ${err} \n`
+                    );
+                });
             }
             for (const {client, userId} of Object.values(homeserver.users)) {
                 client.on('room.event', (roomId, eventData) => {
