@@ -285,7 +285,7 @@ export class MatrixHandler {
             ((
                 this.memberTracker?.getState(adminRoom.getId(), FUNCTIONAL_MEMBERS_EVENT, "") as StateLookupEvent|null
             )?.content as FunctionalMembersEventContent)?.service_members || [];
-        
+
         if (!Array.isArray(functionalMembers)) {
             // Guard against invalid types.
             functionalMembers = [];
