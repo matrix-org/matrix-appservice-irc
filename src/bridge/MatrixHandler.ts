@@ -281,11 +281,15 @@ export class MatrixHandler {
             (m.content as {membership: string}).membership === "join"
         );
 
-        const functionalMembers = this.config.ignoreFunctionalMembersInAdminRooms &&
+        let functionalMembers = this.config.ignoreFunctionalMembersInAdminRooms &&
             ((
                 this.memberTracker?.getState(adminRoom.getId(), FUNCTIONAL_MEMBERS_EVENT, "") as StateLookupEvent|null
-            )?.content as FunctionalMembersEventContent).service_members || [];
+            )?.content as FunctionalMembersEventContent)?.service_members || [];
         
+        if (!Array.isArray(functionalMembers)) {
+            // Guard against invalid types.
+            functionalMembers = [];
+        }
 
         // If an admin room has more than 2 people in it, kick the bot out
         if (members.filter(m => !functionalMembers.includes(m.state_key)).length > 2) {
