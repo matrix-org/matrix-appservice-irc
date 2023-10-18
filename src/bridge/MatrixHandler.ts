@@ -37,6 +37,12 @@ async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>|void
 const MSG_PMS_DISABLED = "[Bridge] Sorry, PMs are disabled on this bridge.";
 const MSG_PMS_DISABLED_FEDERATION = "[Bridge] Sorry, PMs are disabled on this bridge over federation.";
 
+const FUNCTIONAL_MEMBERS_EVENT = "io.element.functional_members";
+
+interface FunctionalMembersEventContent {
+    service_members: string[];
+}
+
 export interface MatrixHandlerConfig {
     /* Number of events to store in memory for use in replies. */
     eventCacheSize: number;
@@ -50,7 +56,11 @@ export interface MatrixHandlerConfig {
     longReplyTemplate: string;
     // Format of the text explaining why a message is truncated and pastebinned
     truncatedMessageTemplate: string;
+    // Ignore io.element.functional_members members joining admin rooms.
+    // See https://github.com/vector-im/element-meta/blob/develop/spec/functional_members.md
+    ignoreFunctionalMembersInAdminRooms: boolean;
 }
+
 
 const DEFAULTS: MatrixHandlerConfig = {
     eventCacheSize: 4096,
@@ -59,6 +69,7 @@ const DEFAULTS: MatrixHandlerConfig = {
     shortReplyTemplate: "$NICK: $REPLY",
     longReplyTemplate: "<$NICK> \"$ORIGINAL\" <- $REPLY",
     truncatedMessageTemplate: "(full message at <$URL>)",
+    ignoreFunctionalMembersInAdminRooms: false,
 };
 
 export interface MatrixEventInvite {
@@ -270,8 +281,14 @@ export class MatrixHandler {
             (m.content as {membership: string}).membership === "join"
         );
 
+        const functionalMembers = this.config.ignoreFunctionalMembersInAdminRooms &&
+            ((
+                this.memberTracker?.getState(adminRoom.getId(), FUNCTIONAL_MEMBERS_EVENT, "") as StateLookupEvent|null
+            )?.content as FunctionalMembersEventContent).service_members || [];
+        
+
         // If an admin room has more than 2 people in it, kick the bot out
-        if (members.length > 2) {
+        if (members.filter(m => !functionalMembers.includes(m.state_key)).length > 2) {
             req.log.error(
                 `onAdminMessage: admin room has ${members.length}` +
                 ` users instead of just 2; bot will leave`
