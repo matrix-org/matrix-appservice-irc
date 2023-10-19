@@ -604,6 +604,8 @@ ircService:
     longReplyTemplate: "<$NICK> \"$ORIGINAL\" <- $REPLY"
     # how much time needs to pass between the reply and the original message to switch to the long format
     shortReplyTresholdSeconds: 300
+    # Ignore users mentioned in a io.element.functional_members state event when checking admin room membership
+    ignoreFunctionalMembersInAdminRooms: false
 
   # Maximum number of montly active users, beyond which the bridge gets blocked (both ways)
   # RMAUlimit: 100
