@@ -535,9 +535,15 @@ export class IrcServer {
     public getUserLocalpart(nick: string): string {
         // the template is just a literal string with special vars; so find/replace
         // the vars and strip the @
+
+        // https://spec.matrix.org/v1.8/appendices/#mapping-from-other-character-sets
+        const escaped = nick.replaceAll(/[A-Z_]/g, (c) => "_" + c.toLowerCase());
+        const escaped2 = escaped.replaceAll(/[^a-z0-9\.\_\-\/+]/g,
+            (c) => "=" + c.charCodeAt(0).toString(16).padStart(2, '0'));
+
         return renderTemplate(this.config.matrixClients.userTemplate, {
             server: this.domain,
-            nick,
+            nick: escaped2,
         }).substring(1); // the first character is guaranteed by config schema to be '@'
     }
 
@@ -572,13 +578,18 @@ export class IrcServer {
         if (!match) {
             return null;
         }
-        return match[1];
+
+        // https://spec.matrix.org/v1.8/appendices/#mapping-from-other-character-sets
+        const unescaped = match[1].replaceAll(/=([0-9a-f][0-9a-f])/g,
+            (_m, g1) => String.fromCharCode(parseInt(g1, 16)));
+
+        const unescaped2 = unescaped.replaceAll(/_([a-z_])/g, (m, g1) => g1.toUppercase());
+
+        return unescaped2;
     }
 
     public getUserIdFromNick(nick: string): string {
-        const template = this.config.matrixClients.userTemplate;
-        return template.replace(/\$NICK/g, nick).replace(/\$SERVER/g, this.domain) +
-            ":" + this.homeserverDomain;
+        return "@" + this.getUserLocalpart(nick) + ":" + this.homeserverDomain;
     }
 
     public getDisplayNameFromNick(nick: string): string {
