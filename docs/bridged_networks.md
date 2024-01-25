@@ -12,7 +12,6 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 | Tweakers.net | `#_tweakers_#channame:irc.snt.utwente.nl` | [`@tweakers:irc.snt.utwente.nl`]   | [`#tweakers-irc:utwente.io`]   | [SNT]                                     |
 | irchighway   | `#irchighway_#channame:eggy.cc`           | [`@appservice-irc:eggy.cc`]        | [`#eggster:eggy.cc`]           | [Eggy](http://eggy.cc/)                   |
 | W3C          | `#_w3c_#channame:matrix.org`              | [`@w3c-irc:matrix.org`]            | [`#irc:matrix.org`]            | [Matrix.org]                              |
-| libera.chat  | `#channame:libera.chat`                   | [`@appservice:libera.chat`]        | [`#libera-matrix:libera.chat`] | [Matrix.org]                              |
 | LibertaCasa  | `#channame:liberta.casa`                  | [`@lunatic:liberta.casa`]          | [`#help:liberta.casa`]         | [LibertaCasa](https://liberta.casa)
 | hackint      | `#channame:hackint.org`                   | [`@appservice-irc:hackint.org`]    | [`#hackint:hackint.org`]       | [hackint](https://hackint.org/)
 
@@ -27,7 +26,6 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 [`@tweakers:irc.snt.utwente.nl`]: https://matrix.to/#/@tweakers:irc.snt.utwente.nl
 [`@appservice-irc:eggy.cc`]: https://matrix.to/#/@appservice-irc:eggy.cc
 [`@w3c-irc:matrix.org`]: https://matrix.to/#/@w3c-irc:matrix.org
-[`@appservice:libera.chat`]: https://matrix.to/#/@appservice:libera.chat
 [`@lunatic:liberta.casa`]: https://matrix.to/#/@lunatic:liberta.casa
 [`@appservice-irc:hackint.org`]: https://matrix.to/#/@appservice-irc:hackint.org
 
@@ -37,7 +35,6 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 [`#diasp.in:diasp.in`]: https://matrix.to/#/%23diasp.in:diasp.in
 [`#tweakers-irc:utwente.io`]: https://matrix.to/#/%23tweakers-irc:utwente.io
 [`#eggster:eggy.cc`]: https://matrix.to/#/%23eggster:eggy.cc
-[`#libera-matrix:libera.chat`]: https://matrix.to/#/%23libera-matrix:libera.chat
 [`#help:liberta.casa`]: https://matrix.to/#/%23help:liberta.casa
 [`#hackint:hackint.org`]: https://matrix.to/#/%23hackint:hackint.org
 
@@ -50,6 +47,7 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 * The Espernet bridge was shut down after the 2019 matrix.org network breach.
 * The Moznet IRC network has been shut down. They now run their own Matrix homeserver at [chat.mozilla.org](https://chat.mozilla.org/) 🎉.
 * The freenode IRC bridge offically was shut down on 2021-12-20.
+* Since 31/07/2023, LiberaChat is not bridging with matrix anymore more information here : [matrix side](https://matrix.org/blog/2023/07/deportalling-libera-chat/) and [liberaChat side](https://libera.chat/news/matrix-deportalling)
 
 ### Footnotes
 
