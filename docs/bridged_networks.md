@@ -49,7 +49,7 @@ A wishlist of IRC networks to be bridged is being collected [in a github issue](
 * The Espernet bridge was shut down after the 2019 matrix.org network breach.
 * The Moznet IRC network has been shut down. They now run their own Matrix homeserver at [chat.mozilla.org](https://chat.mozilla.org/) 🎉.
 * The freenode IRC bridge offically was shut down on 2021-12-20.
-* The Libera Chat IRC bridge was shut down on 2023-08-04.
+* The Libera Chat IRC bridge [was shut down on 2023-11-28](https://matrix.org/blog/2023/11/28/shutting-down-bridge-to-libera-chat/).
 
 ### Footnotes
 
