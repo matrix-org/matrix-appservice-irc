@@ -58,7 +58,27 @@ before you can authenticate.
 
 To authenticate with your new settings, use [`!reconnect`](#reconnect).
 
+### `!certfp`
 
+`!certfp [irc.example.net]`
+
+Store a certificate / private key pair for use with SASL / authenticating with the server. You will be prompted to enter a certificate
+after entering this command. [libera.chat have a useful guide on how to set this up](https://libera.chat/guides/certfp)
+
+**This action will store your private key in encrypted form on the IRC bridge**, so be sure to use a unique cert for the IRC service.
+
+When prompted, enter your certicate and private key in one block, e.g:
+
+```
+-----BEGIN CERTIFICATE-----
+...your cert
+-----END CERTIFICATE-----
+-----BEGIN PRIVATE KEY-----
+...your key
+-----END PRIVATE KEY-----
+```
+
+To authenticate with your new settings, use [`!reconnect`](#reconnect).
 ### `!reconnect`
 
 `!reconnect [irc.example.net]`

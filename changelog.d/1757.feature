@@ -1,0 +1,1 @@
+Add support for authenticating via CertFP ([RFC4422](https://datatracker.ietf.org/doc/html/rfc4422#appendix-A)).

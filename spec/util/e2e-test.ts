@@ -18,7 +18,8 @@ dns.setDefaultResultOrder('ipv4first');
 
 const WAIT_EVENT_TIMEOUT = 10000;
 
-const DEFAULT_PORT = parseInt(process.env.IRC_TEST_PORT ?? '6667', 10);
+const IRC_SECURE = process.env.IRC_TEST_SECURE === "true";
+const DEFAULT_PORT = parseInt(process.env.IRC_TEST_PORT ?? IRC_SECURE ? "6697" : "6667", 10);
 const DEFAULT_ADDRESS = process.env.IRC_TEST_ADDRESS ?? "127.0.0.1";
 const IRCBRIDGE_TEST_REDIS_URL = process.env.IRCBRIDGE_TEST_REDIS_URL;
 
@@ -74,7 +75,7 @@ export class E2ETestMatrixClient extends MatrixClient {
     }
 
     public async waitForRoomEvent<T extends object = Record<string, unknown>>(
-        opts: {eventType: string, sender: string, roomId?: string, stateKey?: string}
+        opts: {eventType: string, sender: string, roomId?: string, stateKey?: string, body?: string}
     ): Promise<{roomId: string, data: {
         sender: string, type: string, state_key?: string, content: T, event_id: string,
     }}> {
@@ -95,6 +96,9 @@ export class E2ETestMatrixClient extends MatrixClient {
                 return undefined;
             }
             const body = 'body' in eventData.content && eventData.content.body;
+            if (opts.body && body !== opts.body) {
+                return undefined;
+            }
             console.info(
                 // eslint-disable-next-line max-len
                 `${eventRoomId} ${eventData.event_id} ${eventData.type} ${eventData.sender} ${eventData.state_key ?? body ?? ''}`
@@ -182,7 +186,11 @@ export class IrcBridgeE2ETest {
 
         const workerID = parseInt(process.env.JEST_WORKER_ID ?? '0');
         const { matrixLocalparts, config } = opts;
-        const ircTest = new TestIrcServer();
+        const ircTest = new TestIrcServer(undefined, undefined, {
+            secure: IRC_SECURE,
+            port: DEFAULT_PORT,
+            selfSigned: true,
+        });
         const [postgresDb, homeserver] = await Promise.all([
             this.createDatabase(),
             createHS(["ircbridge_bot", ...matrixLocalparts || []], workerID),
@@ -241,6 +249,9 @@ export class IrcBridgeE2ETest {
                         port: DEFAULT_PORT,
                         additionalAddresses: [DEFAULT_ADDRESS],
                         onlyAdditionalAddresses: true,
+                        sasl: true,
+                        ssl: IRC_SECURE,
+                        sslselfsign: IRC_SECURE,
                         matrixClients: {
                             userTemplate: "@irc_$NICK",
                             displayName: "$NICK",
@@ -290,7 +301,8 @@ export class IrcBridgeE2ETest {
                 debugApi: {
                     enabled: false,
                     port: 0,
-                }
+                },
+                passwordEncryptionKeyPath: './spec/support/passkey.pem',
             },
             ...config,
             ...(redisUri && { connectionPool: {
@@ -322,7 +334,17 @@ export class IrcBridgeE2ETest {
                     traceLog.write(
                         `${Date.now() - startTime}ms [IRC:${clientId}] ${JSON.stringify(msg)} \n`
                     );
-                })
+                });
+                client.on('connect', () => {
+                    traceLog.write(
+                        `${Date.now() - startTime}ms [IRC:${clientId}] connected \n`
+                    );
+                });
+                client.on('error', (err) => {
+                    traceLog.write(
+                        `${Date.now() - startTime}ms [IRC:${clientId}] error ${err} \n`
+                    );
+                });
             }
             for (const {client, userId} of Object.values(homeserver.users)) {
                 client.on('room.event', (roomId, eventData) => {

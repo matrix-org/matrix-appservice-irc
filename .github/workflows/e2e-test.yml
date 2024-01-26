@@ -77,6 +77,8 @@ jobs:
       - build-synapse
       - build-homerunner
     env:
+      GITHUB_ACTIONS: true
+      IRC_TEST_SECURE: true
       IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
       IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
       IRCBRIDGE_TEST_ENABLEPG: "yes"
@@ -103,6 +105,7 @@ jobs:
         image: ghcr.io/ergochat/ergo:stable
         ports:
           - 6667:6667
+          - 6697:6697
     steps:
       - name: Install Complement Dependencies
         run: |
@@ -153,6 +156,8 @@ jobs:
       - build-synapse
       - build-homerunner
     env:
+      GITHUB_ACTIONS: true
+      IRC_TEST_SECURE: true
       IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
       IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
       IRCBRIDGE_TEST_ENABLEPG: "yes"
@@ -180,6 +185,7 @@ jobs:
         image: ghcr.io/ergochat/ergo:stable
         ports:
           - 6667:6667
+          - 6697:6697
     steps:
       - name: Install Complement Dependencies
         run: |

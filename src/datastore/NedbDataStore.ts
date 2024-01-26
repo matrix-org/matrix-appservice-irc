@@ -16,7 +16,7 @@ limitations under the License.
 
 import { MatrixDirectoryVisibility } from "../bridge/IrcHandler";
 import { IrcRoom } from "../models/IrcRoom";
-import { IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
+import { IrcClientCertKeypair, IrcClientConfig, IrcClientConfigSeralized } from "../models/IrcClientConfig"
 import { getLogger } from "../logging";
 
 import {
@@ -82,11 +82,9 @@ export class NeDBDataStore implements DataStore {
         }, errLog("user id"));
 
         if (pkeyPath) {
-            this.cryptoStore = new StringCrypto();
-            this.cryptoStore.load(pkeyPath);
+            this.cryptoStore = StringCrypto.fromFile(pkeyPath);
         }
     }
-
 
     public async runMigrations() {
         const config = await this.userStore.getRemoteUser("config");
@@ -579,6 +577,17 @@ export class NeDBDataStore implements DataStore {
                 log.warn(`Failed to decrypt password for ${userId} ${domain}`, ex);
             }
         }
+        if (configData.certificate && this.cryptoStore) {
+            try {
+                clientConfig.setCertificate({
+                    cert: configData.certificate.cert,
+                    key: await this.cryptoStore.decryptLargeString(configData.certificate.key),
+                })
+            }
+            catch (ex) {
+                log.warn(`Failed to decrypt TLS key for ${userId} ${domain}`, ex);
+            }
+        }
         return clientConfig;
     }
 
@@ -608,7 +617,24 @@ export class NeDBDataStore implements DataStore {
             // Store the encrypted password, ready for the db
             config.setPassword(encryptedPass);
         }
-        userConfig[config.getDomain().replace(/\./g, "_")] = config.serialize();
+        const domainCfg = userConfig[config.getDomain().replace(/\./g, "_")] = config.serialize();
+        if (config.certificate) {
+            if (!this.cryptoStore) {
+                throw new Error(
+                    'Cannot store certificate'
+                );
+            }
+            try {
+                domainCfg.certificate = {
+                    cert: config.certificate.cert,
+                    key: await this.cryptoStore.encryptLargeString(config.certificate.key),
+                };
+            }
+            catch (ex) {
+                log.warn(`Failed to encrypt TLS key for ${userId} ${config.getDomain()}`, ex);
+            }
+        }
+
         user.set("client_config", userConfig);
         await this.userStore.setMatrixUser(user);
     }
@@ -671,6 +697,23 @@ export class NeDBDataStore implements DataStore {
         const config = await this.getIrcClientConfig(userId, domain);
         if (config) {
             config.setPassword();
+            await this.storeIrcClientConfig(config);
+        }
+    }
+
+    public async storeClientCert(userId: string, domain: string, keypair: IrcClientCertKeypair): Promise<void> {
+        const config = await this.getIrcClientConfig(userId, domain);
+        if (!config) {
+            throw new Error(`${userId} does not have an IRC client configured for ${domain}`);
+        }
+        config.setCertificate(keypair);
+        await this.storeIrcClientConfig(config);
+    }
+
+    public async removeClientCert(userId: string, domain: string): Promise<void> {
+        const config = await this.getIrcClientConfig(userId, domain);
+        if (config) {
+            config.setCertificate();
             await this.storeIrcClientConfig(config);
         }
     }

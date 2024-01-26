@@ -30,7 +30,7 @@ import {
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
 import { MatrixDirectoryVisibility } from "../../bridge/IrcHandler";
 import { IrcRoom } from "../../models/IrcRoom";
-import { IrcClientConfig } from "../../models/IrcClientConfig";
+import { IrcClientCertKeypair, IrcClientConfig, IrcClientConfigSeralized } from "../../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../../irc/IrcServer";
 
 import { getLogger } from "../../logging";
@@ -57,7 +57,7 @@ interface RoomRecord {
 export class PgDataStore implements DataStore, ProvisioningStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 9;
+    public static readonly LATEST_SCHEMA = 10;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -75,8 +75,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
             log.error("Postgres Error: %s", err);
         });
         if (pkeyPath) {
-            this.cryptoStore = new StringCrypto();
-            this.cryptoStore.load(pkeyPath);
+            this.cryptoStore = StringCrypto.fromFile(pkeyPath);
         }
         process.on("beforeExit", () => {
             if (this.hasEnded) {
@@ -504,8 +503,13 @@ export class PgDataStore implements DataStore, ProvisioningStore {
     }
 
     public async getIrcClientConfig(userId: string, domain: string): Promise<IrcClientConfig | null> {
-        const res = await this.pgPool.query(
-            "SELECT config, password FROM client_config WHERE user_id = $1 and domain = $2",
+        const res = await this.pgPool.query<{
+            config: IrcClientConfigSeralized,
+            password?: string,
+            cert?: string,
+            key?: string,
+        }>(
+            "SELECT config, password, cert, key FROM client_config WHERE user_id = $1 and domain = $2",
             [
                 userId,
                 domain
@@ -524,6 +528,19 @@ export class PgDataStore implements DataStore, ProvisioningStore {
                 log.warn(`Failed to decrypt password for ${userId} ${domain}`, ex);
             }
         }
+        config.certificate = row.cert && row.key ? {
+            cert: row.cert,
+            key: '',
+        } : undefined;
+        const cryptoStore = this.cryptoStore;
+        if (config.certificate && row.key && cryptoStore) {
+            try {
+                config.certificate.key = await cryptoStore.decryptLargeString(row.key);
+            }
+            catch (ex) {
+                log.warn(`Failed to decrypt TLS key for ${userId} ${domain}`, ex);
+            }
+        }
         return new IrcClientConfig(userId, domain, config);
     }
 
@@ -536,9 +553,12 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         // We need to make sure we have a matrix user in the store.
         await this.pgPool.query("INSERT INTO matrix_users VALUES ($1, NULL) ON CONFLICT DO NOTHING", [userId]);
         let password = config.getPassword();
+
+        // This implies without a cryptostore these will be stored plain.
         if (password && this.cryptoStore) {
             password = this.cryptoStore.encrypt(password);
         }
+
         const parameters = {
             user_id: userId,
             domain: config.getDomain(),
@@ -637,6 +657,28 @@ export class PgDataStore implements DataStore, ProvisioningStore {
 
     public async removePass(userId: string, domain: string): Promise<void> {
         await this.pgPool.query("UPDATE client_config SET password = NULL WHERE user_id = $1 AND domain = $2",
+            [userId, domain]);
+    }
+
+    public async storeClientCert(userId: string, domain: string, keypair: IrcClientCertKeypair): Promise<void> {
+        if (!this.cryptoStore) {
+            throw Error("Password encryption is not configured.")
+        }
+        const key = await this.cryptoStore.encryptLargeString(keypair.key);
+        const parameters = {
+            user_id: userId,
+            domain,
+            cert: keypair.cert,
+            key,
+        };
+        const statement = PgDataStore.BuildUpsertStatement("client_config",
+            "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
+        await this.pgPool.query(statement, Object.values(parameters));
+    }
+
+    public async removeClientCert(userId: string, domain: string): Promise<void> {
+        await this.pgPool.query(
+            "UPDATE client_config SET cert = NULL AND key = NULL WHERE user_id = $1 AND domain = $2",
             [userId, domain]);
     }
 

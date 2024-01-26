@@ -61,6 +61,7 @@ function logError(err: Error) {
 export interface ConnectionOpts {
     localAddress?: string;
     password?: string;
+    certificate?: { cert: string, key: string};
     realname: string;
     username?: string;
     nick: string;
@@ -404,6 +405,22 @@ export class ConnectionInstance {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
         }
+
+        let saslType: undefined|"PLAIN"|"EXTERNAL";
+        if (server.useSasl() && opts.password) {
+            saslType = "PLAIN";
+        }
+
+        const secure = server.useSsl() ? server.getSecureOptions() : undefined;
+        if (secure && opts.certificate && server.useSasl()) {
+            secure.requestCert = true;
+            secure.cert = opts.certificate.cert;
+            secure.key = opts.certificate.key;
+            saslType = "EXTERNAL";
+        }
+
+        log.debug(saslType ? `Connecting using ${saslType} auth` : 'Connecting without authentication');
+
         const connectionOpts: IrcClientOpts = {
             userName: opts.username,
             realName: opts.realname,
@@ -419,9 +436,11 @@ export class ConnectionInstance {
             retryCount: 0,
             family: (server.getIpv6Prefix() || server.getIpv6Only() ? 6 : null) as 6|null,
             bustRfc3484: true,
-            sasl: opts.password ? server.useSasl() : false,
-            secure: server.useSsl() ? server.getSecureOptions() : undefined,
+            sasl: saslType ? server.useSasl() : false,
+            saslType: saslType,
+            secure: secure,
             encodingFallback: opts.encodingFallback,
+            debug: true,
         };
 
 

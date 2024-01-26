@@ -16,9 +16,15 @@ limitations under the License.
 
 import { MatrixUser } from "matrix-appservice-bridge";
 
+export interface IrcClientCertKeypair {
+    cert: string;
+    key: string;
+}
+
 export interface IrcClientConfigSeralized {
     username?: string;
     password?: string;
+    certificate?: IrcClientCertKeypair;
     nick?: string;
     ipv6?: string;
 }
@@ -66,6 +72,14 @@ export class IrcClientConfig {
         return this.config.password;
     }
 
+    public setCertificate(keypair?: IrcClientCertKeypair) {
+        this.config.certificate = keypair;
+    }
+
+    public get certificate(): IrcClientCertKeypair|undefined {
+        return this.config.certificate;
+    }
+
     public setDesiredNick(nick: string) {
         this.config.nick = nick;
     }
@@ -82,10 +96,11 @@ export class IrcClientConfig {
         return this.config.ipv6;
     }
 
-    public serialize(removePassword = false) {
+    public serialize(removePassword = false): IrcClientConfigSeralized {
         if (removePassword) {
-            const clone = JSON.parse(JSON.stringify(this.config));
+            const clone: IrcClientConfigSeralized = JSON.parse(JSON.stringify(this.config));
             delete clone.password;
+            delete clone.certificate;
             return clone;
         }
         return this.config;

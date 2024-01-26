@@ -72,7 +72,6 @@ describe("IrcClientRedisState", () => {
         expect(state.loggedIn).toBeTrue();
         expect(state.registered).toBeTrue();
         expect(state.chans.size).toBe(1);
-        console.log(state);
     });
     it('should be able to repair previously buggy state', async () => {
         const existingState = {
