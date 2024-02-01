@@ -171,6 +171,8 @@ properties:
                         type: "string"
                     shortReplyTresholdSeconds:
                         type: "integer"
+                    ignoreFunctionalMembersInAdminRooms:
+                        type: "boolean"
             ircHandler:
                 type: "object"
                 properties:

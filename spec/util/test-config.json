@@ -43,6 +43,9 @@
         "ircHandler": {
             "powerLevelGracePeriodMs": 500
         },
+        "matrixHandler": {
+            "ignoreFunctionalMembersInAdminRooms": true
+        },
         "servers": {
             "irc.example": {
                 "port": 6667,
