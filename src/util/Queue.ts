@@ -108,7 +108,9 @@ export class Queue<T> {
             item: thing,
             defer: defer
         });
-        if (!this.intervalMs) {
+
+        // If we are not currently processing anything, consume immediately.
+        if (!this.intervalMs || this.processing === null) {
             // always process stuff asyncly, never syncly.
             process.nextTick(() => {
                 this.consume();

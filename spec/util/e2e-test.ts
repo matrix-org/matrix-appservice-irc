@@ -24,6 +24,7 @@ const IRCBRIDGE_TEST_REDIS_URL = process.env.IRCBRIDGE_TEST_REDIS_URL;
 
 interface Opts {
     matrixLocalparts?: string[];
+    matrixSynclessLocalparts?: string[];
     ircNicks?: string[];
     timeout?: number;
     config?: Partial<BridgeConfig>,
@@ -181,11 +182,11 @@ export class IrcBridgeE2ETest {
         }
 
         const workerID = parseInt(process.env.JEST_WORKER_ID ?? '0');
-        const { matrixLocalparts, config } = opts;
+        const { matrixLocalparts, matrixSynclessLocalparts, config } = opts;
         const ircTest = new TestIrcServer();
         const [postgresDb, homeserver] = await Promise.all([
             this.createDatabase(),
-            createHS(["ircbridge_bot", ...matrixLocalparts || []], workerID),
+            createHS(["ircbridge_bot", ...matrixLocalparts || []], workerID, matrixSynclessLocalparts),
             ircTest.setUp(opts.ircNicks),
         ]);
         const redisUri = IRCBRIDGE_TEST_REDIS_URL && `${IRCBRIDGE_TEST_REDIS_URL}/${workerID}`;
@@ -246,6 +247,11 @@ export class IrcBridgeE2ETest {
                             displayName: "$NICK",
                             joinAttempts: 3,
                         },
+                        ircClients: {
+                            ...IrcServer.DEFAULT_CONFIG.ircClients,
+                            // Set a sensibly high max.
+                            maxClients: 100_000,
+                        },
                         dynamicChannels: {
                             enabled: true,
                             createAlias: true,
@@ -256,7 +262,7 @@ export class IrcBridgeE2ETest {
                         },
                         membershipLists: {
                             enabled: true,
-                            floodDelayMs: 100,
+                            floodDelayMs: 0,
                             global: {
                                 ircToMatrix: {
                                     incremental: true,

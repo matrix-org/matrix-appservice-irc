@@ -22,7 +22,7 @@ export interface ComplementHomeServer {
         hsToken: string;
         senderLocalpart: string;
     };
-    users: {userId: string, accessToken: string, deviceId: string, client: E2ETestMatrixClient}[]
+    users: {userId: string, localpart: string, accessToken: string, deviceId: string, client: E2ETestMatrixClient}[]
 }
 
 // Ensure we don't clash with other tests.
@@ -50,7 +50,9 @@ async function waitForHomerunner() {
     }
 }
 
-export async function createHS(localparts: string[] = [], workerId: number): Promise<ComplementHomeServer> {
+export async function createHS(
+    localparts: string[], workerId: number, localpartsNoSync: string[] = []
+): Promise<ComplementHomeServer> {
     const appPort = 49152 + workerId;
     await waitForHomerunner();
     // Ensure we never use the same port twice.
@@ -80,20 +82,24 @@ export async function createHS(localparts: string[] = [], workerId: number): Pro
                     ...asRegistration,
                     URL: `http://host.docker.internal:${AppserviceConfig.port}`,
                 }],
-                Users: localparts.map(localpart => ({Localpart: localpart, DisplayName: localpart})),
+                Users: [
+                    ...localparts,
+                    ...localpartsNoSync
+                ].map(localpart => ({Localpart: localpart, DisplayName: localpart})),
             }],
         }
     });
     const [homeserverName, homeserver] = Object.entries(blueprintResponse.homeservers)[0];
     const users = Object.entries(homeserver.AccessTokens).map(([userId, accessToken]) => ({
         userId: userId,
+        localpart: userId.slice(1).split(':', 2)[0],
         accessToken,
         deviceId: homeserver.DeviceIDs[userId],
         client: new E2ETestMatrixClient(homeserver.BaseURL, accessToken),
     }));
 
     // Start syncing proactively.
-    await Promise.all(users.map(u => u.client.start()));
+    await Promise.all(users.filter(u => localparts.includes(u.localpart)).map(u => u.client.start()));
     return {
         users,
         id: blueprint,
