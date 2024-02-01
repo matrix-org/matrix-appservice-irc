@@ -3,7 +3,7 @@ import { BridgeConfig } from "../../src/config/BridgeConfig";
 import { Client as PgClient } from "pg";
 import { ComplementHomeServer, createHS, destroyHS } from "./homerunner";
 import { IrcBridge } from '../../src/bridge/IrcBridge';
-import { IrcServer } from "../../src/irc/IrcServer";
+import { IrcServer, IrcServerConfig } from "../../src/irc/IrcServer";
 import { MatrixClient } from "matrix-bot-sdk";
 import { TestIrcServer } from "matrix-org-irc";
 import { IrcConnectionPool } from "../../src/pool-service/IrcConnectionPool";
@@ -11,6 +11,7 @@ import { expect } from "@jest/globals";
 import dns from 'node:dns';
 import fs from "node:fs/promises";
 import { WriteStream, createWriteStream } from "node:fs";
+
 // Needed to make tests work on GitHub actions. Node 17+ defaults
 // to IPv6, and the homerunner domain resolves to IPv6, but the
 // runtime doesn't actually support IPv6 🤦
@@ -27,6 +28,7 @@ interface Opts {
     ircNicks?: string[];
     timeout?: number;
     config?: Partial<BridgeConfig>,
+    ircServerConfig?: Partial<IrcServerConfig>,
     traceToFile?: boolean,
 }
 
@@ -268,7 +270,8 @@ export class IrcBridgeE2ETest {
                                     initial: true,
                                 }
                             }
-                        }
+                        },
+                        ...opts.ircServerConfig,
                     }
                 },
                 provisioning: {
@@ -290,6 +293,9 @@ export class IrcBridgeE2ETest {
                 debugApi: {
                     enabled: false,
                     port: 0,
+                },
+                permissions: {
+                    [homeserver.users[0].userId]: "admin",
                 }
             },
             ...config,
@@ -391,5 +397,25 @@ export class IrcBridgeE2ETest {
         const cRoomId = invite.roomId;
         await client.joinRoom(cRoomId);
         return cRoomId;
+    }
+
+    public async createProvisionedRoom(
+        client: E2ETestMatrixClient, adminRoomId: string, channel: string, setPl = true
+    ): Promise<string> {
+        const plumbedRoomId = await client.createRoom({
+            name: `Plumbed room for ${channel}`,
+            preset: "public_chat",
+            invite: [this.ircBridge.appServiceUserId],
+            power_level_content_override: {
+                users: {
+                    [this.ircBridge.appServiceUserId]: setPl ? 100 : 50,
+                    [await client.getUserId()]: 100,
+                },
+                kick: 75,
+                state_default: 50
+            }
+        });
+        await client.sendText(adminRoomId, `!plumb ${plumbedRoomId} localhost ${channel}`);
+        return plumbedRoomId;
     }
 }
