@@ -52,7 +52,7 @@ export interface MatrixHandlerConfig {
     truncatedMessageTemplate: string;
 }
 
-const DEFAULTS: MatrixHandlerConfig = {
+export const DEFAULTS: MatrixHandlerConfig = {
     eventCacheSize: 4096,
     replySourceMaxLength: 32,
     shortReplyTresholdSeconds: 5 * 60,
