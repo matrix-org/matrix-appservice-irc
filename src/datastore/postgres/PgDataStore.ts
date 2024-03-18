@@ -650,7 +650,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         if (res.rowCount === 0) {
             return undefined;
         }
-        else if (res.rowCount > 1) {
+        else if (res.rowCount! > 1) {
             log.error("getMatrixUserByUsername returned %s results for %s on %s", res.rowCount, username, domain);
         }
         return new MatrixUser(res.rows[0].user_id, res.rows[0].data);
@@ -711,7 +711,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
 
     public async isUserDeactivated(userId: string): Promise<boolean> {
         const res = await this.pgPool.query(`SELECT user_id FROM deactivated_users WHERE user_id = $1`, [userId]);
-        return res.rowCount > 0;
+        return res.rowCount! > 0;
     }
 
     public async deactivateUser(userId: string) {
