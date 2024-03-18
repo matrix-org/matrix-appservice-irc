@@ -30,6 +30,7 @@ interface Opts {
     timeout?: number;
     config?: Partial<BridgeConfig>,
     traceToFile?: boolean,
+    shortReplyTresholdSeconds?: number,
 }
 
 const traceFilePath = '.e2e-traces';
@@ -239,7 +240,7 @@ export class IrcBridgeE2ETest {
                 },
                 matrixHandler: {
                     ...MatrixHandlerDefaults,
-                    shortReplyTresholdSeconds: 0,
+                    shortReplyTresholdSeconds: opts.shortReplyTresholdSeconds ?? 0,
                 },
                 servers: {
                     localhost: {
