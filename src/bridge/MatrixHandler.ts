@@ -21,6 +21,7 @@ import { trackChannelAndCreateRoom } from "./RoomCreation";
 import { renderTemplate } from "../util/Template";
 import { trimString } from "../util/TrimString";
 import { messageDiff } from "../util/MessageDiff";
+import QuickLRU = require("quick-lru");
 
 async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>|void) {
     try {
@@ -52,7 +53,7 @@ export interface MatrixHandlerConfig {
     truncatedMessageTemplate: string;
 }
 
-const DEFAULTS: MatrixHandlerConfig = {
+export const DEFAULTS: MatrixHandlerConfig = {
     eventCacheSize: 4096,
     replySourceMaxLength: 32,
     shortReplyTresholdSeconds: 5 * 60,
@@ -106,6 +107,7 @@ export interface OnMemberEventData {
     state_key: string;
     type: string;
     event_id: string;
+    origin_server_ts?: number;
     content: {
         displayname?: string;
         membership: string;
@@ -134,6 +136,9 @@ export class MatrixHandler {
     private memberTracker?: StateLookup;
     private adminHandler: AdminRoomHandler;
     private config: MatrixHandlerConfig = DEFAULTS;
+    private memberJoinTs = new QuickLRU<string, number>({
+        maxSize: 8192,
+    });
 
     constructor(
         private readonly ircBridge: IrcBridge,
@@ -260,7 +265,7 @@ export class MatrixHandler {
         req.log.info("Received admin message from %s", event.sender);
 
         const botUser = new MatrixUser(this.ircBridge.appServiceUserId, undefined, false);
-
+        
         // First call begins tracking, subsequent calls do nothing
         await this.memberTracker?.trackRoom(adminRoom.getId());
         const members = ((this.memberTracker?.getState(
@@ -386,6 +391,10 @@ export class MatrixHandler {
      * @param {Object} event : The Matrix member event.
      */
     private _onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {
+        console.log('Tracking member', event);
+        if (event.origin_server_ts) {
+            this.memberJoinTs.set(`${event.room_id}/${event.state_key}`, event.origin_server_ts);
+        }
         this.memberTracker?.onEvent(event);
     }
 
@@ -1039,7 +1048,7 @@ export class MatrixHandler {
         // special handling for replies (and threads)
         if (event.content["m.relates_to"] && event.content["m.relates_to"]["m.in_reply_to"]) {
             const eventId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
-            const reply = await this.textForReplyEvent(event, eventId, ircRoom);
+            const reply = await this.textForReplyEvent(req, event, eventId, ircRoom);
             if (reply !== null) {
                 ircAction.text = reply.formatted;
                 cacheBody = reply.reply;
@@ -1260,8 +1269,9 @@ export class MatrixHandler {
         await this.ircBridge.getMatrixUser(ircUser);
     }
 
-    private async textForReplyEvent(event: MatrixMessageEvent, replyEventId: string, ircRoom: IrcRoom):
+    private async textForReplyEvent(req: BridgeRequest, event: MatrixMessageEvent, replyEventId: string, ircRoom: IrcRoom):
     Promise<{formatted: string; reply: string}|null> {
+        const bridgeIntent = this.ircBridge.getAppServiceBridge().getIntent();
         // strips out the quotation of the original message, if needed
         const replyText = (body: string): string => {
             const REPLY_REGEX = /> <(.*?)>(.*?)\n\n([\s\S]*)/;
@@ -1277,15 +1287,17 @@ export class MatrixHandler {
             return null;
         }
 
+        // TODO: Fix hack
         const rplText = replyText(event.content.body);
         let rplName: string;
         let rplSource: string;
         // Reply must be in the same room as the original event.
         let cachedEvent = this.getCachedEvent(event.room_id, replyEventId);
         if (!cachedEvent) {
+            console.log('textForReplyEvent: no cached event');
             // Fallback to fetching from the homeserver.
             try {
-                const eventContent = await this.ircBridge.getAppServiceBridge().getIntent().getEvent(
+                const eventContent = await bridgeIntent.getEvent(
                     event.room_id, replyEventId
                 );
                 rplName = eventContent.sender;
@@ -1304,6 +1316,7 @@ export class MatrixHandler {
                 this.cacheEvent(eventContent.room_id, eventContent.event_id, cachedEvent);
             }
             catch (err) {
+                console.log('textForReplyEvent: failed to get event');
                 // If we couldn't find the event, then frankly we can't
                 // trust it and we won't treat it as a reply.
                 return {
@@ -1313,8 +1326,20 @@ export class MatrixHandler {
             }
         }
         else {
+            console.log('textForReplyEvent: got cached event');
             rplName = cachedEvent.sender;
             rplSource = cachedEvent.body;
+        }
+
+        const senderJoinTs = this.memberJoinTs.get(`${event.room_id}/${event.sender}`);
+        if (!senderJoinTs || senderJoinTs > cachedEvent.timestamp) {
+            // User joined AFTER the event was sent (or left and joined, but we can't distinguish that).
+            // Do not treat as a reply.
+            req.log.warn(`User ${event.sender} attempted to reply to an event before they were joined`);
+            return {
+                formatted: rplText,
+                reply: rplText,
+            };
         }
 
         // Get the first non-blank line from the source.
@@ -1347,8 +1372,8 @@ export class MatrixHandler {
         }
 
         let replyTemplate: string;
-        const tresholdMs = (this.config.shortReplyTresholdSeconds) * 1000;
-        if (rplSource && event.origin_server_ts - cachedEvent.timestamp > tresholdMs) {
+        const thresholdMs = (this.config.shortReplyTresholdSeconds) * 1000;
+        if (rplSource && event.origin_server_ts - cachedEvent.timestamp > thresholdMs) {
             replyTemplate = this.config.longReplyTemplate;
         }
         else {
