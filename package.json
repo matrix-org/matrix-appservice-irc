@@ -84,7 +84,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "homerunner-client": "^0.0.6",
     "jasmine": "^3.99.0",
-    "jest": "29.1.1",
+    "jest": "29.7.0",
     "matrix-widget-api": "^1.4.0",
     "node-mocks-http": "^1.12.1",
     "nyc": "^15.1.0",
