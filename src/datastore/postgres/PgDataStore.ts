@@ -453,6 +453,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
                     "server"
                 ],
             ),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             [counter, homeserver || "*", server.domain] as any[],
         );
     }
@@ -548,6 +549,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
         };
         const statement = PgDataStore.BuildUpsertStatement(
             "client_config", "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await this.pgPool.query(statement, Object.values(parameters) as any[]);
     }
 
@@ -673,6 +675,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
             "user_id",
             "ts",
         ]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await this.pgPool.query(statement, [userId, Date.now()] as any[]);
     }
 
@@ -705,6 +708,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
             "room_id",
             "visibility",
         ]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await this.pgPool.query(statement, [roomId, visibility === "public"] as any[]);
         log.info(`setRoomVisibility ${roomId} => ${visibility}`);
     }
@@ -715,6 +719,7 @@ export class PgDataStore implements DataStore, ProvisioningStore {
     }
 
     public async deactivateUser(userId: string) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await this.pgPool.query("INSERT INTO deactivated_users VALUES ($1, $2)", [userId, Date.now()] as any[]);
     }
 
