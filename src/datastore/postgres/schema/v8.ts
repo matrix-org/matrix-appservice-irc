@@ -49,8 +49,8 @@ export async function runSchema(connection: PoolClient) {
         // (owing to a bug where we treated the counter as global across all networks), this assumes
         // that both networks start from the same counter value.
         const [statement, values] = domainSetToValues(serverConfigsRes.rows.map(d => d.domain), existingCounter);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await connection.query(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             `INSERT INTO ipv6_counter (count, homeserver, server) VALUES ${statement}`, values as any[]
         );
     }
