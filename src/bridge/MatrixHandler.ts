@@ -393,8 +393,10 @@ export class MatrixHandler {
      * @param {Object} event : The Matrix member event.
      */
     private _onMemberEvent(req: BridgeRequest, event: OnMemberEventData) {
-        if (event.origin_server_ts) {
-            this.memberJoinTs.set(`${event.room_id}/${event.state_key}`, event.origin_server_ts);
+        if (event.content.membership === 'join') {
+            this.memberJoinTs.set(`${event.room_id}/${event.state_key}`, event.origin_server_ts ?? Date.now());
+        } else {
+            this.memberJoinTs.delete(`${event.room_id}/${event.state_key}`);
         }
         this.memberTracker?.onEvent(event);
     }

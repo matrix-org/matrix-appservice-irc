@@ -135,4 +135,53 @@ describe('Reply handling', () => {
         const postRestartCharlieMsgBody = (await postRestartCharlieMsg)[2];
         expect(postRestartCharlieMsgBody).toContain(postRestartAliceMsgBody);
     });
+
+    it('should not leak the contents of messages to leavers', async () => {
+        await setupTestEnv(0);
+
+        const channel = `#${TestIrcServer.generateUniqueNick("test")}`;
+        const { homeserver, ircBridge } = testEnv;
+        const [alice, charlie] = homeserver.users.map(u => u.client);
+        const { bob } = testEnv.ircTest.clients;
+
+        // Create the channel
+        await bob.join(channel);
+
+        const adminRoomId = await testEnv.createAdminRoomHelper(alice);
+        const cRoomId = await testEnv.joinChannelHelper(alice, adminRoomId, channel);
+        const roomName = await alice.getRoomStateEvent(cRoomId, 'm.room.name', '');
+        expect(roomName.name).toEqual(channel);
+
+        const bobUserId = `@irc_${bob.nick}:${homeserver.domain}`;
+        await alice.waitForRoomEvent(
+            {eventType: 'm.room.member', sender: bobUserId, stateKey: bobUserId, roomId: cRoomId}
+        );
+
+        await charlie.joinRoom(cRoomId);
+        await charlie.leaveRoom(cRoomId);
+
+        // Send some messages
+        const aliceMsg = bob.waitForEvent('message', 10000);
+        const bobMsg = alice.waitForRoomEvent(
+            {eventType: 'm.room.message', sender: bobUserId, roomId: cRoomId}
+        );
+        const aliceMsgBody = "Hello bib!";
+        const aliceEventId = alice.sendText(cRoomId, aliceMsgBody);
+        await aliceMsg;
+        bob.say(channel, "Hi alice!");
+        await bobMsg;
+
+        // Now charlie joins and tries to reply to alice.
+        await charlie.joinRoom(cRoomId);
+        const charlieMsgIrcPromise = bob.waitForEvent('message', 10000);
+        await charlie.replyText(cRoomId, {
+            event_id: await aliceEventId,
+        }, "Sneaky reply to a message I have not seen");
+
+        // Safety check to ensure that we're using the long form reply format.
+        expect(ircBridge.config.ircService.matrixHandler?.shortReplyTresholdSeconds).toBe(0);
+        // The long form reply format should not contain alice's message.
+        const charlieIrcMessage = (await charlieMsgIrcPromise)[2];
+        expect(charlieIrcMessage).not.toContain(aliceMsgBody);
+    });
 });
