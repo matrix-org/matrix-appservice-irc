@@ -909,13 +909,17 @@ export class BridgedClient extends EventEmitter {
     }
 
     private async setTopic(room: IrcRoom, topic: string): Promise<void> {
+        // replace newline "\n" with a pipe "|" to follow IRC conventions
+        const sanitized_topic = topic.replace(/\n/g, " | ").replace(/\r/g, "")
+
         if (this.state.status !== BridgedClientStatus.CONNECTED) {
             throw Error("unsafeClient not ready yet");
         }
         // join the room if we haven't already
         await this.joinChannel(room.channel);
-        this.log.info("Setting topic to %s in channel %s", topic, room.channel);
-        return this.state.client.send("TOPIC", room.channel, topic);
+
+        this.log.info("Setting topic to %s in channel %s", sanitized_topic, room.channel);
+        return this.state.client.send("TOPIC", room.channel, sanitized_topic);
     }
 
     private async sendMessage(room: IrcRoom, msgType: string, text: string, expiryTs: number) {
