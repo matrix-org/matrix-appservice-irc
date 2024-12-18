@@ -762,14 +762,14 @@ describe("Matrix-to-IRC message bridging", function() {
     });
 
     it("should bridge matrix topics as IRC topics", function(done) {
-        const testTopic = "Topics are amazingz";
+        const testTopic = "Topics are amazingz\neven with multiple lines!";
 
         env.ircMock._whenClient(roomMapping.server, testUser.nick, "send", (client, command, channel, data) => {
             expect(client.nick).toEqual(testUser.nick);
             expect(client.addr).toEqual(roomMapping.server);
             expect(command).toEqual("TOPIC");
             expect(channel).toEqual(roomMapping.channel);
-            expect(data).toEqual(testTopic);
+            expect(data).toEqual(testTopic.replace('\n', ' | '));
             done();
         });
 
