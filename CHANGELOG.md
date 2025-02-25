@@ -1,3 +1,9 @@
+# 3.0.5 (2025-02-25)
+
+### Internal Changes
+
+- Fix node-irc API breakage
+
 # 3.0.4 (2025-02-25)
 
 ### Security
