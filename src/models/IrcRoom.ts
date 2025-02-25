@@ -26,7 +26,8 @@ import { IrcServer } from "../irc/IrcServer";
  */
 export function validateChannelName(channel: string) {
     // According to https://www.rfc-editor.org/rfc/rfc1459#section-1.3
-    return /^#([^\s\cG,]){1,199}$/.test(channel);
+    // eslint-disable-next-line no-control-regex
+    return /^#([^:\x00-\x1F\s,]){1,199}$/.test(channel);
 }
 
 export class IrcRoom extends RemoteRoom {

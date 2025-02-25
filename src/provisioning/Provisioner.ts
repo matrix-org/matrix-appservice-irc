@@ -665,7 +665,7 @@ export class Provisioner extends ProvisioningApi {
         const server = this.ircBridge.getServer(ircDomain);
 
         if (!server) {
-            throw new Error(`Server not found ${ircDomain}`);
+            throw new ApiError(`Server not found: '${ircDomain}'`, ErrCode.NotFound);
         }
 
         const botClient = await this.ircBridge.getBotClient(server);
@@ -687,6 +687,11 @@ export class Provisioner extends ProvisioningApi {
             );
         }
         catch (err) {
+            if (err.message === 'err_inviteonlychan') {
+                throw new ApiError(
+                    `Failed to get operators for channel ${ircChannel}: channel is invite-only`, undefined, 403
+                );
+            }
             req.log.error(err.stack);
             throw new Error(`Failed to get operators for channel ${ircChannel} (${err.message})`);
         }

@@ -1,3 +1,16 @@
+# 3.0.3 (2024-11-14)
+====================
+
+### Security
+
+- Fix for ([GHSA-c3hj-hg7p-rrq5](https://github.com/matrix-org/matrix-appservice-irc/security/advisories/GHSA-c3hj-hg7p-rrq5)).
+- Disallow control characters in channel names sent via Provisioning API.
+- Wrap some internal server errors in provisioning API.
+
+# 3.0.2 (2024-09-18)
+====================
+- Make sure MediaProxy can connect to the homeserver over https. ([\#1826](https://github.com/matrix-org/matrix-appservice-irc/issues/1826))
+
 # 3.0.1 (2024-09-05)
 ====================
 
