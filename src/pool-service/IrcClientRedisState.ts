@@ -60,6 +60,7 @@ export class IrcClientRedisState implements IrcClientState {
             chans.set(channelName, {
                 ...chanData,
                 users: new Map(!isBuggyState ? chanData.users : []),
+                tmpUsers: new Map([]),
                 modeParams: new Map(!isBuggyState ? chanData.modeParams : []),
             })
         });
