@@ -1,3 +1,19 @@
+# 3.0.4 (2025-02-25)
+
+No significant changes.
+
+### Security
+
+- Fix for [GHSA-5mvm-89c9-9gm5](https://github.com/matrix-org/matrix-appservice-irc/security/advisories/GHSA-5mvm-89c9-9gm5)/[CVE-2025-27146](https://www.cve.org/CVERecord?id=CVE-2025-27146)
+
+### Bugfixes
+
+- Bridge multiline Matrix topic to IRC correctly ([74f02c](https://github.com/matrix-org/matrix-appservice-irc/commit/74f02c8e11f16ed1b355700092c1aa9c036a11bd))
+
+### Internal Changes
+
+- Update to matrix-org-irc [3.1.0](https://github.com/matrix-org/node-irc/releases/tag/3.1.0)
+
 # 3.0.3 (2024-11-14)
 ====================
 
