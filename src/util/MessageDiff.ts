@@ -25,8 +25,12 @@ function formatChanges(diff: Diff.Change[]): string[] {
     while (i < diff.length - 1) {
         if (diff[i].removed) {
             let replacement: string;
+            let replaced: string = diff[i].value.trim();
             if (diff[i+1].added) {
                 replacement = diff[i+1].value;
+                if (i+1 == diff.length-1) {
+                    replaced += '$';
+                }
             }
             else if (noChanges(diff[i+1])) {
                 replacement = '';
@@ -35,7 +39,7 @@ function formatChanges(diff: Diff.Change[]): string[] {
                 i++;
                 continue;
             }
-            substitutions.push([diff[i].value.trim(), replacement]);
+            substitutions.push([replaced, replacement]);
         }
         i++;
     }
