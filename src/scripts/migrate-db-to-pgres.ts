@@ -8,6 +8,7 @@ import { PgDataStore } from "../datastore/postgres/PgDataStore";
 import { IrcRoom } from "../models/IrcRoom";
 import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import { IrcClientConfig } from "../models/IrcClientConfig";
+import { IrcServer } from "../irc/IrcServer";
 
 const log = simpleLogger();
 
@@ -48,12 +49,23 @@ async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgS
 
     const migrateCounter = async () => {
         log.info(`Migrating ipv6 counter`);
-        const counterEntry = await usersFind({ "type": "remote", "id": "config" });
-        if (counterEntry.length && counterEntry[0].data && counterEntry[0].data.ipv6_counter) {
-            await pgStore.setIpv6Counter(counterEntry[0].data.ipv6_counter);
-        }
-        else {
-            log.info("No ipv6 counter found");
+        const counterEntry: {
+            [key: string]: {
+                [key: string]: number,
+            }
+        }[] = await usersFind({ "type": "matrix", "id": "config" });
+        for (const [key, serverCounter] of Object.entries(counterEntry?.[0]?.data || {})) {
+            if (!key.startsWith('ipv6_counter_')) {
+                continue;
+            }
+            const networkName = key.substring('ipv6_counter_'.length).replace(/_/g, '.');
+            for (const [homeserver, counter] of Object.entries(serverCounter)) {
+                await pgStore.setIpv6Counter(
+                    counter,
+                    new IrcServer(networkName, IrcServer.DEFAULT_CONFIG, ''),
+                    homeserver === '*' ? null : homeserver,
+                );
+            }
         }
         log.info("Migrated ipv6 counter");
     }

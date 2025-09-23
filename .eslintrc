@@ -1,4 +1,5 @@
 {
+  "root": true,
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
   "parserOptions": {
@@ -9,8 +10,7 @@
   },
   "env": {
     "node": true,
-    "es6": true,
-    "jasmine": true
+    "es6": true
   },
   "extends": [
     "eslint:recommended",
@@ -18,7 +18,7 @@
   ],
   "rules": {
     "camelcase": 0, // Rule is bugged atm
-    "consistent-return": 2,
+    "consistent-return": 0,
     "curly": 1,
     "default-case": 2,
     "guard-for-in": 2,
@@ -65,7 +65,9 @@
     "use-isnan": 2,
     "valid-typeof": 2,
     "array-bracket-spacing": [1, "never"],
-    "max-len": [1, 120],
+    "max-len": [1, 120, {
+      "ignoreComments": true
+    }],
     "brace-style": [1, "stroustrup", { "allowSingleLine": true }],
     "comma-spacing": [1, {"before": false, "after": true}],
     "comma-style": [1, "last"],
@@ -99,6 +101,11 @@
       "files": [
         "spec/**/*.js"
       ],
+      "env": {
+        "node": true,
+        "es6": true,
+        "jasmine": true
+      },
       "rules": {
         "@typescript-eslint/no-this-alias": "off", // I'm unsure if we should disallow this.
         "@typescript-eslint/no-empty-function": "off",
@@ -110,6 +117,16 @@
         "prefer-const": "off",
         "no-var": "off",
       }
+    },
+    {
+      "extends": ["plugin:jest/recommended"],
+      "files": [
+        "spec/e2e/*.spec.ts"
+      ],
+      "rules": {
+        "jest/expect-expect": "off" // E2E tests don't always assert
+      }
     }
-  ]
+  ],
+  "ignorePatterns": ["widget/**/*"]
 }

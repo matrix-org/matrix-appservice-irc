@@ -1,7 +1,6 @@
 // Controls the logic for determining which membership lists should be synced and
 // handles the sequence of events until the lists are in sync.
 
-import Bluebird from "bluebird";
 import { IrcBridge } from "./IrcBridge";
 import { AppServiceBot, MembershipQueue } from "matrix-appservice-bridge";
 import { IrcServer } from "../irc/IrcServer";
@@ -35,8 +34,15 @@ interface LeaveQueueItem {
     userIds: string[];
 }
 
+interface MemberJoinEntry {
+    roomId: string;
+    displayName: string;
+    userId: string;
+    frontier: boolean
+}
+
 type InjectJoinFn = (roomId: string, joiningUserId: string,
-                     displayName: string, isFrontier: boolean) => PromiseLike<unknown>;
+                     displayName: string, isFrontier: boolean) => PromiseLike<boolean>;
 
 export class MemberListSyncer {
     private syncableRoomsPromise: Promise<RoomInfo[]>|null = null;
@@ -45,10 +51,9 @@ export class MemberListSyncer {
     private memberLists: {
         irc: {[channel: string]: string[]};
         matrix: {[roomId: string]: RoomInfo};
-    } = {
-        irc: {},
-        matrix: {},
-    }
+    } = { irc: {}, matrix: {} };
+    private memberEntriesToSync?: MemberJoinEntry[];
+
     constructor(private ircBridge: IrcBridge, private memberQueue: MembershipQueue,
                 private appServiceBot: AppServiceBot, private server: IrcServer,
                 private appServiceUserId: string, private injectJoinFn: InjectJoinFn) {
@@ -66,9 +71,9 @@ export class MemberListSyncer {
         log.info("Found %s syncable rooms (%sms)", rooms.length, Date.now() - start);
         this.leaveIrcUsersFromRooms(rooms);
         start = Date.now();
-        log.info("Joining Matrix users to IRC channels...");
-        await this.joinMatrixUsersToChannels(rooms, this.injectJoinFn);
-        log.info("Joined Matrix users to IRC channels. (%sms)", Date.now() - start);
+        log.info("Collecting all Matrix users in all channel rooms...");
+        await this.collectMatrixUsersToJoinToChannels(rooms);
+        log.info("Collected all Matrix users in all channel rooms. (%sms)", Date.now() - start);
         // NB: We do not need to explicitly join IRC users to Matrix rooms
         // because we get all of the NAMEs/JOINs as events when we connect to
         // the IRC server. This effectively "injects" the list for us.
@@ -138,7 +143,7 @@ export class MemberListSyncer {
         for (let i = 0; i < matrixRooms.length; i++) {
             const roomId = matrixRooms[i].getId();
             req.log.debug("checkBotPartRoom: Querying room state in room %s", roomId);
-            const res = await this.appServiceBot.getClient().roomState(roomId);
+            const res = await this.appServiceBot.getClient().getRoomState(roomId);
             const data = MemberListSyncer.getRoomMemberData(ircRoom.server, roomId, res, this.appServiceUserId);
             req.log.debug(
                 "checkBotPartRoom: %s Matrix users are in room %s", data.reals.length, roomId
@@ -165,6 +170,7 @@ export class MemberListSyncer {
             log.debug("Returning existing getSyncableRooms Promise");
             return this.syncableRoomsPromise;
         }
+        const client = this.ircBridge.getAppServiceBridge().getIntent().matrixClient;
 
         const fetchRooms = async () => {
             const roomInfoList: RoomInfo[] = [];
@@ -178,18 +184,18 @@ export class MemberListSyncer {
             // fetch joined members allowing 50 in-flight reqs at a time
             const pool = new QueuePool(50, async (_roomId) => {
                 const roomId = _roomId as string;
-                let userMap: Record<string, {display_name: string}>|undefined;
+                let userMap: Record<string, {display_name?: string}>|undefined;
                 while (!userMap) {
                     try {
-                        userMap = await this.appServiceBot.getJoinedMembers(roomId);
+                        userMap = await client.getJoinedRoomMembersWithProfiles(roomId);
                     }
                     catch (err) {
                         log.error(`Failed to getJoinedMembers in room ${roomId}: ${err}`);
-                        if (err.data?.errcode === "M_FORBIDDEN") {
+                        if (err.body?.errcode === "M_FORBIDDEN") {
                             // If we're not allowed to, just give up.
                             return;
                         }
-                        await Bluebird.delay(3000); // wait a bit before retrying
+                        await promiseutil.delay(3000); // wait a bit before retrying
                     }
                 }
                 const roomInfo: RoomInfo = {
@@ -198,9 +204,7 @@ export class MemberListSyncer {
                     realJoinedUsers: [], // user IDs
                     remoteJoinedUsers: [], // user IDs
                 };
-                const userIds = Object.keys(userMap);
-                for (let j = 0; j < userIds.length; j++) {
-                    const userId = userIds[j];
+                for (const [userId, {display_name}] of Object.entries(userMap)) {
                     if (this.appServiceUserId === userId) {
                         continue;
                     }
@@ -211,8 +215,8 @@ export class MemberListSyncer {
                         roomInfo.realJoinedUsers.push(userId);
                     }
 
-                    if (userMap[userId].display_name) {
-                        roomInfo.displayNames[userId] = userMap[userId].display_name as string;
+                    if (display_name) {
+                        roomInfo.displayNames[userId] = display_name;
                     }
                 }
                 roomInfoList.push(roomInfo);
@@ -237,8 +241,7 @@ export class MemberListSyncer {
         return this.syncableRoomsPromise;
     }
 
-    private async joinMatrixUsersToChannels(rooms: RoomInfo[], injectJoinFn: InjectJoinFn) {
-
+    private async collectMatrixUsersToJoinToChannels(rooms: RoomInfo[]) {
         // filter out rooms listed in the rules
         const filteredRooms: RoomInfo[] = [];
         rooms.forEach((roomInfo) => {
@@ -263,10 +266,15 @@ export class MemberListSyncer {
 
         // map the filtered rooms to a list of users to join
         // [Room:{reals:[uid,uid]}, ...] => [{uid,roomid}, ...]
-        const entries: { roomId: string; displayName: string; userId: string; frontier: boolean}[] = [];
+        const entries: MemberJoinEntry[] = [];
         const idleRegex = this.server.ignoreIdleUsersOnStartupExcludeRegex;
         for (const roomInfo of filteredRooms) {
             for (const uid of roomInfo.realJoinedUsers) {
+                const banReason = this.ircBridge.matrixBanSyncer?.isUserBanned(uid);
+                if (banReason) {
+                    log.debug(`Not syncing ${uid} - user banned (${banReason})`)
+                    continue;
+                }
                 if (this.server.ignoreIdleUsersOnStartup) {
                     const idle = await this.ircBridge.activityTracker?.isUserOnline(
                         uid, this.server.ignoreIdleUsersOnStartupAfterMs, false
@@ -298,37 +306,52 @@ export class MemberListSyncer {
         });
 
         log.debug("Got %s matrix join events to inject.", entries.length);
+        this.memberEntriesToSync = entries;
+    }
+
+    public async joinMatrixUsersToChannels() {
+        const start = Date.now();
+        log.info("Joining all Matrix users in all channel rooms");
+        const entries = this.memberEntriesToSync;
+        if (entries === undefined) {
+            // Can be expected if syncing is off.
+            log.info(`joinMatrixUsersToChannels: No entries collected for joining`);
+            return;
+        }
         this.usersToJoin = entries.length;
-        const d = promiseutil.defer();
-        // take the first entry and inject a join event
-        const joinNextUser = () => {
-            const entry = entries.shift();
-            if (!entry) {
-                d.resolve();
-                return;
-            }
+
+        let entry: MemberJoinEntry|undefined;
+        const floodDelayMs = this.server.getMemberListFloodDelayMs();
+        // eslint-disable-next-line no-cond-assign
+        while (entry = entries.shift()) {
             this.usersToJoin--;
             if (entry.userId.startsWith("@-")) {
-                joinNextUser();
-                return;
+                // Ignore guest users.
+                continue;
             }
             log.debug(
                 "Injecting join event for %s in %s (%s left) is_frontier=%s",
                 entry.userId, entry.roomId, entries.length, entry.frontier
             );
-            Bluebird.cast(injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier)).timeout(
-                this.server.getMemberListFloodDelayMs()
-            ).then(() => {
-                joinNextUser();
-            }).catch(() => {
-                // discard error, this will be due to timeouts which we don't want to log
-                joinNextUser();
-            })
+            try {
+                // Inject a join to connect the user. We wait up til the delay time,
+                // and then just connect the next user.
+                // If the user connects *faster* than the delay time, then we need
+                // to delay for the remainder.
+                const delayPromise = promiseutil.delay(floodDelayMs);
+                await Promise.race([
+                    delayPromise,
+                    this.injectJoinFn(entry.roomId, entry.userId, entry.displayName, entry.frontier),
+                ]);
+                await delayPromise;
+            }
+            catch (ex) {
+                // injectJoinFn may fail due to failure to get a client (user may be banned)
+                // or any other reason, we should continue to iterate regardless
+                log.debug(`Failed to inject join for ${entry.userId} ${entry.roomId}`, ex);
+            }
         }
-
-        joinNextUser();
-
-        return d.promise;
+        log.info("Joining all Matrix users in all channel rooms. (%sms)", Date.now() - start);
     }
 
     public leaveIrcUsersFromRooms(rooms: RoomInfo[]) {
@@ -361,22 +384,20 @@ export class MemberListSyncer {
     // Update the MemberListSyncer with the IRC NAMES_RPL that has been received for channel.
     // This will leave any matrix users that do not have their associated IRC nick in the list
     // of names for this channel.
-    public async updateIrcMemberList(channel: string, names: {[nick: string]: unknown}) {
+    public async updateIrcMemberList(channel: string, names: Map<string, unknown>) {
         if (this.memberLists.irc[channel] !== undefined ||
                 !this.server.shouldSyncMembershipToMatrix("initial", channel)) {
             return;
         }
-        this.memberLists.irc[channel] = Object.keys(names);
+        const nickList = [...names.keys()];
+        this.memberLists.irc[channel] = nickList;
 
         log.info(
-            `updateIrcMemberList: Updating IRC member list for ${channel} with ` +
-            `${this.memberLists.irc[channel].length} IRC nicks`
+            `updateIrcMemberList: Updating IRC member list for ${channel} with ${nickList.length} IRC nicks`
         );
 
         // Convert the IRC channels nicks to userIds
-        const ircUserIds = this.memberLists.irc[channel].map(
-            (nick) => this.server.getUserIdFromNick(nick)
-        );
+        const ircUserIds = nickList.map(nick => this.server.getUserIdFromNick(nick));
 
         // For all bridged rooms, leave users from matrix that are not in the channel
         const roomsForChannel = await this.ircBridge.getStore().getMatrixRoomsForChannel(

@@ -1,0 +1,71 @@
+name: Tests
+
+on:
+  push:
+    branches: ["develop", "release-*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  changelog:
+    if: ${{ github.base_ref == 'develop'  || contains(github.base_ref, 'release-') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v2
+      - run: pip install towncrier>=22
+      - run: scripts/check-newsfragment
+        env:
+          PULL_REQUEST_NUMBER: ${{ github.event.number }}
+
+  lint:
+    runs-on: ubuntu-20.04
+    container: node:20
+    steps:
+      - uses: actions/checkout@v3
+      - run: yarn --strict-semver --frozen-lockfile
+      - run: yarn lint
+
+  test:
+    strategy:
+      matrix:
+        node-version: [20]
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "${{ matrix.node-version }}"
+      - run: yarn --strict-semver --frozen-lockfile
+      - run: yarn test
+
+  test-postgres:
+    runs-on: ubuntu-20.04
+    container: node:20
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres_password
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres_user
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - run: yarn --strict-semver --frozen-lockfile
+      - run: yarn test
+        env:
+          IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
+          IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@postgres"
+          IRCBRIDGE_TEST_ENABLEPG: "yes"

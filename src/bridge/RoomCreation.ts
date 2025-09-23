@@ -40,15 +40,6 @@ export async function trackChannelAndCreateRoom(ircBridge: IrcBridge, req: Bridg
             }
         }
     ];
-    if (server.areGroupsEnabled()) {
-        initialState.push({
-            type: "m.room.related_groups",
-            state_key: "",
-            content: {
-                groups: [server.getGroupId()],
-            }
-        });
-    }
     if (ircBridge.stateSyncer) {
         initialState.push(
             // RoomId isn't used by this bridge

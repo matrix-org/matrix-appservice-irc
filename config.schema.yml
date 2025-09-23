@@ -21,6 +21,15 @@ properties:
                 type: "string"
             serverName:
                 type: "string"
+    connectionPool:
+        type: "object"
+        required: ["redisUrl"]
+        properties:
+            redisUrl:
+                type: "string"
+                pattern: "^redis:\\/\\/(user:password@)?.+(:\\d+)?\/?\\d*$"
+            persistConnectionsOnShutdown:
+                type: "boolean"
     database:
         type: "object"
         required: ["engine", "connectionString"]
@@ -34,8 +43,6 @@ properties:
         type: "object"
         properties:
             url:
-                type: "string"
-            media_url:
                 type: "string"
             domain:
                 type: "string"
@@ -106,16 +113,51 @@ properties:
                 properties:
                     enabled:
                         type: "boolean"
+                    widget:
+                        type: "boolean"
                     requestTimeoutSeconds:
                         type: "number"
-                    ruleFile:
-                        type: "string"
-                    enableReload:
-                        type: "boolean"
+                    rules:
+                        type: "object"
+                        properties:
+                            userIds:
+                                type: "object"
+                                properties:
+                                    exempt:
+                                        type: "array"
+                                        items:
+                                            type: "string"
+                                    conflict:
+                                        type: "array"
+                                        items:
+                                            type: "string"
                     roomLimit:
                         type: "number"
+                    secret:
+                        type: "string"
+                    apiPrefix:
+                        type: "string"
+                    ratelimit:
+                        type: "boolean"
+                    openIdDisallowedIpRanges:
+                        type: ["array", "null"]
+                        items:
+                            type: "string"
+                    openIdOverrides:
+                        type: ["object"]
+                        additionalProperties:
+                            type: "string"
             passwordEncryptionKeyPath:
                 type: "string"
+            RMAUlimit:
+                type: "integer"
+            userActivity:
+                type: "object"
+                properties:
+                    minUserActiveDays:
+                        type: "number"
+                    inactiveAfterDays:
+                        type: "number"
             matrixHandler:
                 type: "object"
                 properties:
@@ -127,6 +169,20 @@ properties:
                         type: "string"
                     shortReplyTresholdSeconds:
                         type: "integer"
+                    ignoreFunctionalMembersInAdminRooms:
+                        type: "boolean"
+            mediaProxy:
+                type: "object"
+                properties:
+                    signingKeyPath:
+                        type: "string"
+                    ttlSeconds:
+                        type: "integer"
+                    bindPort:
+                        type: "integer"
+                    publicUrl:
+                        type: "string"
+                required: ["signingKeyPath", "ttlSeconds", "bindPort", "publicUrl"]
             ircHandler:
                 type: "object"
                 properties:
@@ -154,6 +210,13 @@ properties:
                         type: "number"
                     allowUnconnectedMatrixUsers:
                         type: "boolean"
+            banLists:
+                type: "object"
+                properties:
+                    rooms:
+                        type: "array"
+                        items:
+                            pattern: "^(!|#).+:.+"
             servers:
                 type: "object"
                 # all properties must follow the following
@@ -318,8 +381,6 @@ properties:
                                     type: "boolean"
                                 createAlias:
                                     type: "boolean"
-                                groupId:
-                                    type: "string"
                                 joinRule:
                                     type: "string"
                                     enum: ["invite", "public"]
@@ -400,6 +461,15 @@ properties:
                                             pattern: "[ABCDEFabcdef0123456789:]+"
                                         only:
                                             type: "boolean"
+                                        blocks:
+                                            type: "array"
+                                            properties:
+                                                startFrom:
+                                                    type: "string"
+                                                    pattern: "(?:[0-9a-f]{1,4}:)*[0-9a-f]{1,4}"
+                                                homeserver:
+                                                    type: "string"
+                                            required: ["startFrom", "homeserver"]
                                 lineLimit:
                                     type: "integer"
                                 userModes:
@@ -425,4 +495,4 @@ properties:
                                 kickReason:
                                     type: "string"
                             required: ["regex"]
-        required: ["servers"]
+        required: ["servers", "mediaProxy"]

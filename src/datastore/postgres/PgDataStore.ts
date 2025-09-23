@@ -21,9 +21,14 @@ import {
     MatrixRoom,
     RemoteRoom,
     RoomBridgeStoreEntry as Entry,
-    MatrixRoomData
+    MatrixRoomData,
+    ProvisionSession,
+    ProvisioningStore,
+    UserActivitySet,
+    UserActivity,
 } from "matrix-appservice-bridge";
 import { DataStore, RoomOrigin, ChannelMappings, UserFeatures } from "../DataStore";
+import { MatrixDirectoryVisibility } from "../../bridge/IrcHandler";
 import { IrcRoom } from "../../models/IrcRoom";
 import { IrcClientConfig } from "../../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../../irc/IrcServer";
@@ -49,10 +54,10 @@ interface RoomRecord {
     origin: RoomOrigin;
 }
 
-export class PgDataStore implements DataStore {
+export class PgDataStore implements DataStore, ProvisioningStore {
     private serverMappings: {[domain: string]: IrcServer} = {};
 
-    public static readonly LATEST_SCHEMA = 6;
+    public static readonly LATEST_SCHEMA = 9;
     private pgPool: Pool;
     private hasEnded = false;
     private cryptoStore?: StringCrypto;
@@ -215,10 +220,11 @@ export class PgDataStore implements DataStore {
         ])).then((result) => result.rows).map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
-    public getProvisionedMappings(roomId: string): Bluebird<Entry[]> {
-        return Bluebird.cast(this.pgPool.query("SELECT * FROM rooms WHERE room_id = $1 AND origin = 'provision'", [
+    public async getProvisionedMappings(roomId: string): Promise<Entry[]> {
+        const res = await this.pgPool.query("SELECT * FROM rooms WHERE room_id = $1 AND origin = 'provision'", [
             roomId
-        ])).then((result) => result.rows).map((e) => PgDataStore.pgToRoomEntry(e));
+        ]).then((result) => result.rows);
+        return res.map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
     public async removeRoom(roomId: string, ircDomain: string, ircChannel: string, origin?: RoomOrigin): Promise<void> {
@@ -249,7 +255,7 @@ export class PgDataStore implements DataStore {
 
     public async getIrcChannelsForRoomIds(roomIds: string[]): Promise<{ [roomId: string]: IrcRoom[] }> {
         const entries = await this.pgPool.query(
-            "SELECT room_id, irc_domain, irc_channel FROM rooms WHERE room_id IN $1",
+            "SELECT room_id, irc_domain, irc_channel FROM rooms WHERE room_id = ANY($1)",
             [roomIds]
         );
         const mapping: { [roomId: string]: IrcRoom[] } = {};
@@ -286,14 +292,14 @@ export class PgDataStore implements DataStore {
         if (!Array.isArray(origin)) {
             origin = [origin];
         }
-        const inStatement = origin.map((_, i) => `\$${i + 3}`).join(", ");
         const entries = await this.pgPool.query<RoomRecord>(
-            `SELECT * FROM rooms WHERE irc_domain = $1 AND irc_channel = $2 AND origin IN (${inStatement})`,
+            "SELECT * FROM rooms WHERE irc_domain = $1 AND irc_channel = $2 AND origin = ANY($3)",
             [
                 server.domain,
                 // Channels must be lowercase
                 toIrcLowerCase(channel),
-            ].concat(origin));
+                origin,
+            ]);
         return entries.rows.map((e) => PgDataStore.pgToRoomEntry(e));
     }
 
@@ -428,13 +434,28 @@ export class PgDataStore implements DataStore {
         await this.pgPool.query("DELETE FROM rooms WHERE origin = 'config'");
     }
 
-    public async getIpv6Counter(): Promise<number> {
-        const res = await this.pgPool.query("SELECT count FROM ipv6_counter");
-        return res ? parseInt(res.rows[0].count, 10) : 0;
+    public async getIpv6Counter(server: IrcServer, homeserver: string|null): Promise<number> {
+        homeserver = homeserver || "*";
+        const res = await this.pgPool.query(
+            "SELECT count FROM ipv6_counter WHERE server = $1 AND homeserver = $2",
+            [server.domain, homeserver]
+        );
+        return res.rows[0]?.count !== undefined ? parseInt(res.rows[0].count, 10) : 0;
     }
 
-    public async setIpv6Counter(counter: number): Promise<void> {
-        await this.pgPool.query("UPDATE ipv6_counter SET count = $1", [counter]);
+    public async setIpv6Counter(counter: number, server: IrcServer, homeserver: string|null): Promise<void> {
+        await this.pgPool.query(
+            PgDataStore.BuildUpsertStatement(
+                "ipv6_counter",
+                "ON CONSTRAINT cons_ipv6_counter_unique", [
+                    "count",
+                    "homeserver",
+                    "server"
+                ],
+            ),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            [counter, homeserver || "*", server.domain] as any[],
+        );
     }
 
     public async upsertMatrixRoom(room: MatrixRoom): Promise<void> {
@@ -496,7 +517,13 @@ export class PgDataStore implements DataStore {
         const row = res.rows[0];
         const config = row.config || {}; // This may not be defined.
         if (row.password && this.cryptoStore) {
-            config.password = this.cryptoStore.decrypt(row.password);
+            // NOT fatal, but really worrying.
+            try {
+                config.password = this.cryptoStore.decrypt(row.password);
+            }
+            catch (ex) {
+                log.warn(`Failed to decrypt password for ${userId} ${domain}`, ex);
+            }
         }
         return new IrcClientConfig(userId, domain, config);
     }
@@ -522,7 +549,26 @@ export class PgDataStore implements DataStore {
         };
         const statement = PgDataStore.BuildUpsertStatement(
             "client_config", "ON CONSTRAINT cons_client_config_unique", Object.keys(parameters));
-        await this.pgPool.query(statement, Object.values(parameters));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await this.pgPool.query(statement, Object.values(parameters) as any[]);
+    }
+
+
+    public async ensurePasskeyCanDecrypt(): Promise<void> {
+        if (!this.cryptoStore) {
+            return;
+        }
+        const res = await this.pgPool.query<{password: string, user_id: string, domain: string}>(
+            "SELECT password, user_id, domain FROM client_config WHERE password IS NOT NULL");
+        for (const { password, user_id, domain } of res.rows) {
+            try {
+                this.cryptoStore.decrypt(password);
+            }
+            catch (ex) {
+                log.error(`Failed to decrypt password for ${user_id} on ${domain}`, ex);
+                throw Error('Cannot decrypt user password, refusing to continue', { cause: ex });
+            }
+        }
     }
 
     public async getMatrixUserByLocalpart(localpart: string): Promise<MatrixUser|null> {
@@ -553,6 +599,24 @@ export class PgDataStore implements DataStore {
             "features",
         ]);
         await this.pgPool.query(statement, [userId, JSON.stringify(features)]);
+    }
+
+    public async getUserActivity(): Promise<UserActivitySet> {
+        const res = await this.pgPool.query('SELECT * FROM user_activity');
+        const activity = new Map<string, UserActivity>();
+        for (const row of res.rows) {
+            activity.set(row['user_id'], row['data']);
+        }
+        return activity;
+    }
+
+    public async storeUserActivity(userId: string, activity: UserActivity) {
+        const stmt = PgDataStore.BuildUpsertStatement(
+            'user_activity',
+            '(user_id)',
+            ['user_id', 'data'],
+        );
+        await this.pgPool.query(stmt, [userId, JSON.stringify(activity)]);
     }
 
     public async storePass(userId: string, domain: string, pass: string, encrypt = true): Promise<void> {
@@ -588,7 +652,7 @@ export class PgDataStore implements DataStore {
         if (res.rowCount === 0) {
             return undefined;
         }
-        else if (res.rowCount > 1) {
+        else if (res.rowCount! > 1) {
             log.error("getMatrixUserByUsername returned %s results for %s on %s", res.rowCount, username, domain);
         }
         return new MatrixUser(res.rows[0].user_id, res.rows[0].data);
@@ -611,7 +675,8 @@ export class PgDataStore implements DataStore {
             "user_id",
             "ts",
         ]);
-        await this.pgPool.query(statement, [userId, Date.now()]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await this.pgPool.query(statement, [userId, Date.now()] as any[]);
     }
 
     public async getLastSeenTimeForUsers(): Promise<{ user_id: string; ts: number }[]> {
@@ -624,32 +689,38 @@ export class PgDataStore implements DataStore {
         return res.rows.map((u) => u.user_id);
     }
 
-    public async getRoomsVisibility(roomIds: string[]) {
-        const map: {[roomId: string]: "public"|"private"} = {};
-        const list = `('${roomIds.join("','")}')`;
-        const res = await this.pgPool.query(`SELECT room_id, visibility FROM room_visibility WHERE room_id IN ${list}`);
+    public async getRoomsVisibility(roomIds: string[]): Promise<Map<string, MatrixDirectoryVisibility>> {
+        const map: Map<string, MatrixDirectoryVisibility> = new Map(
+            roomIds.map(r => [r, 'private'])
+        );
+        const res = await this.pgPool.query(
+            "SELECT room_id, visibility FROM room_visibility WHERE room_id = ANY($1)",
+            [roomIds]
+        );
         for (const row of res.rows) {
-            map[row.room_id] = row.visibility ? "public" : "private";
+            map.set(row.room_id, row.visibility ? "public" : "private");
         }
         return map;
     }
 
-    public async setRoomVisibility(roomId: string, visibility: "public"|"private") {
+    public async setRoomVisibility(roomId: string, visibility: MatrixDirectoryVisibility) {
         const statement = PgDataStore.BuildUpsertStatement("room_visibility", "(room_id)", [
             "room_id",
             "visibility",
         ]);
-        await this.pgPool.query(statement, [roomId, visibility === "public"]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await this.pgPool.query(statement, [roomId, visibility === "public"] as any[]);
         log.info(`setRoomVisibility ${roomId} => ${visibility}`);
     }
 
     public async isUserDeactivated(userId: string): Promise<boolean> {
         const res = await this.pgPool.query(`SELECT user_id FROM deactivated_users WHERE user_id = $1`, [userId]);
-        return res.rowCount > 0;
+        return res.rowCount! > 0;
     }
 
     public async deactivateUser(userId: string) {
-        await this.pgPool.query("INSERT INTO deactivated_users VALUES ($1, $2)", [userId, Date.now()]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await this.pgPool.query("INSERT INTO deactivated_users VALUES ($1, $2)", [userId, Date.now()] as any[]);
     }
 
     public async ensureSchema() {
@@ -673,8 +744,38 @@ export class PgDataStore implements DataStore {
     }
 
     public async getRoomCount(): Promise<number> {
-        const res = await this.pgPool.query(`SELECT COUNT(*) FROM rooms`);
-        return res.rows[0];
+        const res = await this.pgPool.query<{count: string}>(`SELECT COUNT(*) FROM rooms`);
+        return parseInt(res.rows[0]?.count || "0", 10);
+    }
+
+    public async getSessionForToken(token: string): Promise<ProvisionSession | null> {
+        const result = await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "SELECT user_id, expires_ts FROM provisioner_sessions WHERE token = $1", [token]
+        );
+        const row = result.rows[0];
+        return row ? {
+            userId: row.user_id,
+            token,
+            expiresTs: row.expires_ts,
+        } : null;
+    }
+
+    public async createSession(session: ProvisionSession) {
+        await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "INSERT INTO provisioner_sessions VALUES ($1, $2, $3)", [session.userId, session.token, session.expiresTs]
+        );
+    }
+
+    public async deleteSession(token: string) {
+        await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "DELETE FROM provisioner_sessions WHERE token = $1", [token]
+        );
+    }
+
+    public async deleteAllSessions(userId: string) {
+        await this.pgPool.query<{user_id: string, expires_ts: number}>(
+            "DELETE FROM provisioner_sessions WHERE user_id = $1", [userId]
+        );
     }
 
     public async destroy() {

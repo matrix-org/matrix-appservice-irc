@@ -17,26 +17,68 @@ limitations under the License.
 import { BridgeRequest } from "../models/BridgeRequest";
 import { MatrixRoom, MatrixUser } from "matrix-appservice-bridge";
 import { IrcBridge } from "./IrcBridge";
-import { MatrixAction } from "../models/MatrixAction";
+import { ActionType, MatrixAction } from "../models/MatrixAction";
 import { IrcServer } from "../irc/IrcServer";
 import { BridgedClient } from "../irc/BridgedClient";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { MatrixHandler, MatrixSimpleMessage } from "./MatrixHandler";
 import logging from "../logging";
 import * as RoomCreation from "./RoomCreation";
-import { getBridgeVersion } from "../util/PackageInfo";
-import { ProvisionRequest } from "../provisioning/ProvisionRequest";
-import { IdentGenerator } from "../irc/IdentGenerator";
+import { getBridgeVersion } from "matrix-appservice-bridge";
+import { Provisioner } from "../provisioning/Provisioner";
+import { IrcProvisioningError } from "../provisioning/Schema";
+import { validateChannelName } from "../models/IrcRoom";
 
 const log = logging("AdminRoomHandler");
+
+enum CommandPermission {
+    User,
+    Admin,
+}
+
+/**
+ * For a given input event, try to parse out a command. This assumes
+ * the event may be malformed.
+ * @param event A matrix message event.
+ * @param prefix The prefix for the message.
+ * @returns A cmd (without prefix) and args
+ */
+export function parseCommandFromEvent(event: { content?: { body?: unknown }}, prefix = "!") {
+    if (typeof event.content?.body !== "string") {
+        return null;
+    }
+    // First line only
+    const body = event.content.body.trim().split(/\n|\000/)[0];
+    if (!body.startsWith(prefix)) {
+        return null;
+    }
+    // Assumes all commands have the form "!wxyz [irc.server] [args...]"
+    const [cmd, ...args] = body.slice(prefix.length).split(" ");
+    if (cmd === '') {
+        // Command must have length.
+        return null;
+    }
+    return { cmd, args };
+}
 
 // This is just a length to avoid silly long usernames
 const SANE_USERNAME_LENGTH = 64;
 
+// Technically, anything but \0 is allowed as username (aka. authcid and authzid):
+// https://www.rfc-editor.org/rfc/rfc4616#section-2
+//
+// However, IRC services are very unlikely to allow the username to contain CR (0x0A)
+// or LF (0x0D) because they would not fit in the wire format or spaces (0x20) because
+// usernames are usually followed by passwords in "PRIVMSG NickServ :REGISTER" commands
+// and IRCv3 draft/account-registration.
+// Since we are at it, we might as well ban other non-printable ASCII characters
+// (0x00 to 0x1F, plus DEL (0x7F)), as they are most likely mistakes.
+const SASL_USERNAME_INVALID_CHARS_PATTERN = /[\x00-\x20\x7F]+/; // eslint-disable-line
+
 interface Command {
     example: string;
     summary: string;
-    requiresPermission?: string;
+    requiresPermission?: CommandPermission;
 }
 
 interface Heading {
@@ -45,68 +87,72 @@ interface Heading {
 
 const COMMANDS: {[command: string]: Command|Heading} = {
     'Actions': { heading: true },
-    "!cmd": {
+    "cmd": {
         example: `!cmd [irc.example.net] COMMAND [arg0 [arg1 [...]]]`,
         summary: "Issue a raw IRC command. These will not produce a reply." +
                 "(Note that the command must be all uppercase.)",
     },
-    "!feature": {
+    "feature": {
         example: `!feature feature-name [true/false/default]`,
         summary: `Enable, disable or default a feature's status for your account.` +
                 `Will display the current feature status if true/false/default not given.`,
     },
-    "!join": {
+    "join": {
         example: `!join [irc.example.net] #channel [key]`,
         summary: `Join a channel (with optional channel key)`,
     },
-    "!nick": {
+    "nick": {
         example: `!nick [irc.example.net] DesiredNick`,
         summary: "Change your nick. If no arguments are supplied, " +
                 "your current nick is shown.",
     },
-    "!quit": {
+    "quit": {
         example: `!quit`,
         summary: "Leave all bridged channels, on all networks, and remove your " +
                 "connections to all networks.",
     },
+    "active": {
+        example: "!active",
+        summary: "Mark yourself as active, which will exclude you from any idleness kicks."
+    },
     'Authentication': { heading: true },
-    "!storepass": {
+    "storepass": {
         example: `!storepass [irc.example.net] passw0rd`,
         summary: `Store a NickServ OR SASL password (server password)`,
     },
-    "!reconnect": {
+    "reconnect": {
         example: `!reconnect [irc.example.net]`,
         summary: "Reconnect to an IRC network.",
     },
-    "!removepass": {
+    "removepass": {
         example: `!removepass [irc.example.net]`,
         summary: `Remove a previously stored NickServ password`,
     },
-    "!username": {
+    "username": {
         example: `!username [irc.example.net] username`,
         summary: "Store a username to use for future connections.",
     },
     'Info': { heading: true},
-    "!bridgeversion": {
+    "bridgeversion": {
         example: `!bridgeversion`,
         summary: "Return the version from matrix-appservice-irc bridge.",
     },
-    "!listrooms": {
+    "listrooms": {
         example: `!listrooms [irc.example.net]`,
         summary: "List all of your joined channels, and the rooms they are bridged into.",
     },
-    "!whois": {
+    "whois": {
         example: `!whois [irc.example.net] NickName|@alice:matrix.org`,
         summary: "Do a /whois lookup. If a Matrix User ID is supplied, " +
                 "return information about that user's IRC connection.",
     },
     'Management': { heading: true },
-    '!plumb': {
+    "plumb": {
         example: `!plumb !room:example.com irc.example.net #foobar`,
         summary: "Plumb an IRC channel into a Matrix room.",
-        requiresPermission: 'admin'
+        requiresPermission: CommandPermission.Admin,
     },
-    '!unlink': {
+    "unlink": {
         example: "!unlink !room:example.com irc.example.net #foobar",
         summary: "Unlink an IRC channel from a Matrix room. " +
                 "You need to be a moderator of the Matrix room or an administrator of this bridge.",
@@ -114,7 +160,7 @@ const COMMANDS: {[command: string]: Command|Heading} = {
 };
 
 class ServerRequiredError extends Error {
-    notice = new MatrixAction("notice", "A server address must be specified.");
+    notice = new MatrixAction(ActionType.Notice, "A server address must be specified.");
 }
 
 const USER_FEATURES = ["mentions"];
@@ -125,23 +171,30 @@ export class AdminRoomHandler {
     }
 
     public async onAdminMessage(req: BridgeRequest, event: MatrixSimpleMessage, adminRoom: MatrixRoom) {
-        req.log.info("Handling command from %s", event.sender);
-        // Assumes all commands have the form "!wxyz [irc.server] [args...]"
-        const segments = event.content.body.split(" ");
-        const [cmd, ...args] = segments;
-
+        req.log.info("Handling admin command from %s", event.sender);
+        const parseResult = parseCommandFromEvent(event);
         let response: MatrixAction|void;
-        try {
-            response = await this.handleCommand(cmd, args, req, event);
+        if (parseResult) {
+            const { cmd, args } = parseResult;
+
+            try {
+                response = await this.handleCommand(cmd, args, req, event);
+            }
+            catch (err) {
+                if (err instanceof ServerRequiredError) {
+                    response = err.notice;
+                }
+                else {
+                    req.log.error("Exception while handling command %s from %s: %s", cmd, event.sender, err);
+                    response = new MatrixAction(
+                        ActionType.Notice, "An unknown error happened while handling your command"
+                    );
+                }
+            }
         }
-        catch (err) {
-            if (err instanceof ServerRequiredError) {
-                response = err.notice;
-            }
-            else {
-                req.log.error("Exception while handling command %s from %s: %s", cmd, event.sender, err);
-                response = new MatrixAction("notice", "An unknown error happened while handling your command");
-            }
+        else {
+            response = new MatrixAction(ActionType.Notice,
+                "The command was not recognised. Available commands are listed by !help");
         }
 
         if (response) {
@@ -151,57 +204,63 @@ export class AdminRoomHandler {
     }
 
     private async handleCommand(cmd: string, args: string[], req: BridgeRequest, event: MatrixSimpleMessage) {
+        const userPermission = this.getUserPermission(event.sender);
+        const requiredPermission = (COMMANDS[cmd] as Command|undefined)?.requiresPermission;
+        if (requiredPermission && requiredPermission > userPermission) {
+            return new MatrixAction(ActionType.Notice, "You do not have permission to use this command");
+        }
         switch (cmd) {
-            case "!join":
+            case "active":
+                // The bridge treats ANY message appearing over the network as an idleness reset,
+                // so the act of running this commmand resets that timer.
+                return new MatrixAction(ActionType.Notice, "You have been marked as active by the bridge");
+            case "join":
                 return await this.handleJoin(req, args, event.sender);
-            case "!cmd":
+            case "cmd":
                 return await this.handleCmd(req, args, event.sender);
-            case "!whois":
+            case "whois":
                 return await this.handleWhois(req, args, event.sender);
-            case "!reconnect":
+            case "reconnect":
                 return await this.handleReconnect(req, args, event.sender);
-            case "!username":
+            case "username":
                 return await this.handleUsername(req, args, event.sender)
-            case "!storepass":
+            case "storepass":
                 return await this.handleStorePass(req, args, event.sender);
-            case "!removepass":
+            case "removepass":
                 return await this.handleRemovePass(args, event.sender);
-            case "!listrooms":
+            case "listrooms":
                 return await this.handleListRooms(args, event.sender);
-            case "!quit":
+            case "quit":
                 return await this.handleQuit(req, event.sender, args);
-            case "!nick":
+            case "nick":
                 return await this.handleNick(req, args, event.sender);
-            case "!feature":
+            case "feature":
                 return await this.handleFeature(args, event.sender);
-            case "!bridgeversion":
+            case "bridgeversion":
                 return this.showBridgeVersion();
-            case "!plumb":
+            case "plumb":
                 return await this.handlePlumb(args, event.sender)
-            case "!unlink":
-            case "!unplumb": // alias for convinience
+            case "unlink":
+            case "unplumb": // alias for convinience
                 return await this.handleUnlink(args, event.sender)
-            case "!help":
+            case "help":
                 return this.showHelp(event.sender);
             default: {
-                return new MatrixAction("notice",
+                return new MatrixAction(ActionType.Notice,
                     "The command was not recognised. Available commands are listed by !help");
             }
         }
     }
 
     private async handlePlumb(args: string[], sender: string) {
-        const userPermission = this.getUserPermission(sender);
-        if (userPermission !== 'admin') {
-            return new MatrixAction("notice", "You must be an admin to use this command");
-        }
         const [matrixRoomId, serverDomain, ircChannel] = args;
         const server = serverDomain && this.ircBridge.getServer(serverDomain);
         if (!server) {
-            return new MatrixAction("notice", "The server provided is not configured on this bridge");
+            return new MatrixAction(ActionType.Notice, "The server provided is not configured on this bridge");
         }
-        if (!ircChannel || !ircChannel.startsWith("#")) {
-            return new MatrixAction("notice", "The channel name must start with a #");
+
+        if (!ircChannel || !validateChannelName(ircChannel) || !ircChannel.startsWith("#")) {
+            return new MatrixAction(ActionType.Notice, "The channel name must be valid and start with a #");
         }
         // Check if the room exists and the user is invited.
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
@@ -210,11 +269,12 @@ export class AdminRoomHandler {
         }
         catch (ex) {
             log.error(`Could not join the target room of a !plumb command`, ex);
-            return new MatrixAction("notice", "Could not join the target room, you may need to invite the bot");
+            return new MatrixAction(
+                ActionType.Notice, "Could not join the target room, you may need to invite the bot");
         }
         try {
             await this.ircBridge.getProvisioner().doLink(
-                ProvisionRequest.createFake("adminCommand", log),
+                Provisioner.createFakeRequest("plumb", sender),
                 server,
                 ircChannel,
                 undefined,
@@ -224,9 +284,12 @@ export class AdminRoomHandler {
         }
         catch (ex) {
             log.error(`Failed to handle !plumb command:`, ex);
-            return new MatrixAction("notice", "Failed to plumb room. Check the logs for details.");
+            if (ex instanceof IrcProvisioningError) {
+                return new MatrixAction(ActionType.Notice, `Failed to plumb room. ${ex.message}`);
+            }
+            return new MatrixAction(ActionType.Notice, "Failed to plumb room. Check the logs for details.");
         }
-        return new MatrixAction("notice", "Room plumbed.");
+        return new MatrixAction(ActionType.Notice, "Room plumbed.");
     }
 
     private async handleUnlink(args: string[], sender: string) {
@@ -234,14 +297,17 @@ export class AdminRoomHandler {
         const [matrixRoomId, serverDomain, ircChannel] = args;
         const server = serverDomain && this.ircBridge.getServer(serverDomain);
         if (!server) {
-            return new MatrixAction("notice", "The server provided is not configured on this bridge");
+            return new MatrixAction(ActionType.Notice, "The server provided is not configured on this bridge");
         }
         if (!ircChannel || !ircChannel.startsWith("#")) {
-            return new MatrixAction("notice", "The channel name must start with a #");
+            return new MatrixAction(ActionType.Notice, "The channel name must start with a #");
         }
         try {
             await this.ircBridge.getProvisioner().unlink(
-                ProvisionRequest.createFake("adminCommand", log,
+                Provisioner.createFakeRequest(
+                    "unplumb",
+                    sender,
+                    { },
                     {
                         remote_room_server: serverDomain,
                         remote_room_channel: ircChannel,
@@ -249,14 +315,17 @@ export class AdminRoomHandler {
                         user_id: sender,
                     },
                 ),
-                userPermission === "admin"
+                userPermission === CommandPermission.Admin
             );
         }
         catch (ex) {
             log.error(`Failed to handle !unlink command:`, ex);
-            return new MatrixAction("notice", "Failed to unlink room. Check the logs for details.");
+            if (ex instanceof IrcProvisioningError) {
+                return new MatrixAction(ActionType.Notice, `Failed to plumb room. ${ex.message}`);
+            }
+            return new MatrixAction(ActionType.Notice, "Failed to unlink room. Check the logs for details.");
         }
-        return new MatrixAction("notice", "Room unlinked.");
+        return new MatrixAction(ActionType.Notice, "Room unlinked.");
     }
 
     private async handleJoin(req: BridgeRequest, args: string[], sender: string) {
@@ -264,16 +333,17 @@ export class AdminRoomHandler {
         // check that the server exists and that the user_id is on the whitelist
         const ircChannel = args[0];
         const key = args[1]; // keys can't have spaces in them, so we can just do this.
-        let errText = null;
-        if (!ircChannel || !ircChannel.startsWith("#")) {
-            errText = "Format: '!join irc.example.com #channel [key]'";
-        }
-        else if (!server.canJoinRooms(sender)) {
+        let errText: string|null = null;
+
+        if (!server.canJoinRooms(sender)) {
             errText = "You are not authorised to join channels on this server.";
+        }
+        else if (!ircChannel || !validateChannelName(ircChannel) || !ircChannel.startsWith("#")) {
+            errText = "Format: '!join irc.example.com #channel [key]'";
         }
 
         if (errText) {
-            return new MatrixAction("notice", errText);
+            return new MatrixAction(ActionType.Notice, errText);
         }
         req.log.info("%s wants to join the channel %s on %s", sender, ircChannel, server.domain);
 
@@ -383,7 +453,7 @@ export class AdminRoomHandler {
             bridgedClient.sendCommands(...sendArgs);
         }
         catch (err) {
-            return new MatrixAction("notice", `${err}\n` );
+            return new MatrixAction(ActionType.Notice, `${err}\n` );
         }
         return undefined;
     }
@@ -394,7 +464,7 @@ export class AdminRoomHandler {
         // Format is: "!whois <nick>"
         const whoisNick = args.length === 1 ? args[0] : null; // ensure 1 arg
         if (!whoisNick) {
-            return new MatrixAction("notice", "Format: '!whois nick|mxid'");
+            return new MatrixAction(ActionType.Notice, "Format: '!whois nick|mxid'");
         }
 
         if (whoisNick[0] === "@") {
@@ -403,7 +473,7 @@ export class AdminRoomHandler {
             const whoisClient = this.ircBridge.getIrcUserFromCache(server, whoisNick);
             try {
                 return new MatrixAction(
-                    "notice",
+                    ActionType.Notice,
                     whoisClient ?
                         `${whoisNick} is connected to ${server.domain} as '${whoisClient.nick}'.` :
                         `${whoisNick} has no IRC connection via this bridge.`);
@@ -412,7 +482,7 @@ export class AdminRoomHandler {
                 if (err.stack) {
                     req.log.error(err);
                 }
-                return new MatrixAction("notice", "Failed to perform whois query.");
+                return new MatrixAction(ActionType.Notice, "Failed to perform whois query.");
             }
         }
 
@@ -421,13 +491,13 @@ export class AdminRoomHandler {
         const bridgedClient = await this.ircBridge.getBridgedClient(server, sender);
         try {
             const response = await bridgedClient.whois(whoisNick);
-            return new MatrixAction("notice", response?.msg || "User not found");
+            return new MatrixAction(ActionType.Notice, response?.msg || "User not found");
         }
         catch (err) {
             if (err.stack) {
                 req.log.error(err);
             }
-            return new MatrixAction("notice", err.message);
+            return new MatrixAction(ActionType.Notice, err.message);
         }
     }
 
@@ -440,17 +510,17 @@ export class AdminRoomHandler {
             if (client) {
                 await client.disconnect("iwanttoreconnect", "Reconnecting", false);
                 return new MatrixAction(
-                    "notice", `Reconnecting to network...`
+                    ActionType.Notice, `Reconnecting to network...`
                 );
             }
             return new MatrixAction(
-                "notice", `No clients connected to this network, not reconnecting`
+                ActionType.Notice, `No clients connected to this network, not reconnecting`
             );
         }
         catch (err) {
             req.log.error(err.stack);
             return new MatrixAction(
-                "notice", `Failed to reconnect`
+                ActionType.Notice, `Failed to reconnect`
             );
         }
     }
@@ -465,23 +535,25 @@ export class AdminRoomHandler {
         try {
             // Allow passwords with spaces
             const username = args[0]?.trim();
+            const invalidChars = SASL_USERNAME_INVALID_CHARS_PATTERN.exec(username);
             if (!username) {
                 notice = new MatrixAction(
-                    "notice",
+                    ActionType.Notice,
                     "Format: '!username username' " +
                     "or '!username irc.server.name username'\n"
                 );
             }
             else if (username.length > SANE_USERNAME_LENGTH) {
                 notice = new MatrixAction(
-                    "notice",
+                    ActionType.Notice,
                     `Username is longer than the maximum permitted by the bridge (${SANE_USERNAME_LENGTH}).`
                 );
             }
-            else if (IdentGenerator.sanitiseUsername(username) !== username) {
+            else if (invalidChars !== null) {
                 notice = new MatrixAction(
-                    "notice",
-                    `Username contained invalid characters not supported by IRC.`
+                    ActionType.Notice,
+                    "Username contained invalid characters not supported by IRC " +
+                    `(${JSON.stringify(invalidChars.join(""))}).`
                 );
             }
             else {
@@ -494,14 +566,15 @@ export class AdminRoomHandler {
                 config.setUsername(username);
                 await this.ircBridge.getStore().storeIrcClientConfig(config);
                 notice = new MatrixAction(
-                    "notice", `Successfully stored username for ${domain}. Use !reconnect to use this username now.`
+                    ActionType.Notice,
+                    `Successfully stored username for ${domain}. Use !reconnect to use this username now.`
                 );
             }
         }
         catch (err) {
             req.log.error(err.stack);
             return new MatrixAction(
-                "notice", `Failed to store username: ${err.message}`
+                ActionType.Notice, `Failed to store username: ${err.message}`
             );
         }
         return notice;
@@ -519,21 +592,22 @@ export class AdminRoomHandler {
             const pass = args.join(' ');
             if (pass.length === 0) {
                 notice = new MatrixAction(
-                    "notice",
+                    ActionType.Notice,
                     "Format: '!storepass password' or '!storepass irc.server.name password'\n"
                 );
             }
             else {
                 await this.ircBridge.getStore().storePass(userId, domain, pass);
                 notice = new MatrixAction(
-                    "notice", `Successfully stored password for ${domain}. Use !reconnect to use this password now.`
+                    ActionType.Notice,
+                    `Successfully stored password for ${domain}. Use !reconnect to use this password now.`
                 );
             }
         }
         catch (err) {
             req.log.error(err.stack);
             return new MatrixAction(
-                "notice", `Failed to store password: ${err.message}`
+                ActionType.Notice, `Failed to store password: ${err.message}`
             );
         }
         return notice;
@@ -547,12 +621,12 @@ export class AdminRoomHandler {
         try {
             await this.ircBridge.getStore().removePass(userId, domain);
             return new MatrixAction(
-                "notice", `Successfully removed password.`
+                ActionType.Notice, `Successfully removed password.`
             );
         }
         catch (err) {
             return new MatrixAction(
-                "notice", `Failed to remove password: ${err.message}`
+                ActionType.Notice, `Failed to remove password: ${err.message}`
             );
         }
     }
@@ -563,18 +637,18 @@ export class AdminRoomHandler {
         const client = this.ircBridge.getIrcUserFromCache(server, sender);
         if (!client || client.isDead()) {
             return new MatrixAction(
-                "notice", "You are not currently connected to this irc network"
+                ActionType.Notice, "You are not currently connected to this irc network"
             );
         }
         if (client.chanList.size === 0) {
             return new MatrixAction(
-                "notice", "You are connected, but not joined to any channels."
+                ActionType.Notice, "You are connected, but not joined to any channels."
             );
         }
 
         let chanList = `You are joined to ${client.chanList.size} rooms: \n\n`;
         let chanListHTML = `<p>You are joined to <code>${client.chanList.size}</code> rooms:</p><ul>`;
-        for (const channel of client.chanList) {
+        for (const channel of [...client.chanList].sort()) {
             const rooms = await this.ircBridge.getStore().getMatrixRoomsForChannel(server, channel);
             chanList += `- \`${channel}\` which is bridged to ${rooms.map((r) => r.getId()).join(", ")}`;
             const roomMentions = rooms
@@ -585,7 +659,7 @@ export class AdminRoomHandler {
         chanListHTML += "</ul>"
 
         return new MatrixAction(
-            "notice", chanList, chanListHTML
+            ActionType.Notice, chanList, chanListHTML
         );
     }
 
@@ -595,7 +669,7 @@ export class AdminRoomHandler {
         const msgText = await this.matrixHandler.quitUser(
             req, sender, clients, server, "issued !quit command"
         );
-        return msgText ? new MatrixAction("notice", msgText) : undefined;
+        return msgText ? new MatrixAction(ActionType.Notice, msgText) : undefined;
     }
 
     private async handleNick(req: BridgeRequest, args: string[], sender: string) {
@@ -604,7 +678,7 @@ export class AdminRoomHandler {
 
         // Format is: "!nick irc.example.com NewNick"
         if (!ircServer.allowsNickChanges()) {
-            return new MatrixAction("notice",
+            return new MatrixAction(ActionType.Notice,
                 "Server " + ircServer.domain + " does not allow nick changes."
             );
         }
@@ -625,7 +699,7 @@ export class AdminRoomHandler {
                         " as " + clientList[i].nick + "\n";
                 }
             }
-            return new MatrixAction("notice",
+            return new MatrixAction(ActionType.Notice,
                 "Format: '!nick DesiredNick' or '!nick irc.server.name DesiredNick'\n" +
                 connectedNetworksStr
             );
@@ -644,7 +718,7 @@ export class AdminRoomHandler {
         try {
             if (bridgedClient) {
                 const response = await bridgedClient.changeNick(nick, true);
-                notice = new MatrixAction("notice", response);
+                notice = new MatrixAction(ActionType.Notice, response);
             }
             // persist this desired nick
             let config = await this.ircBridge.getStore().getIrcClientConfig(
@@ -662,14 +736,14 @@ export class AdminRoomHandler {
             if (err.stack) {
                 req.log.error(err);
             }
-            return new MatrixAction("notice", err.message);
+            return new MatrixAction(ActionType.Notice, err.message);
         }
         return notice;
     }
 
     private async handleFeature(args: string[], sender: string) {
         if (args.length === 0 || !USER_FEATURES.includes(args[0].toLowerCase())) {
-            return new MatrixAction("notice",
+            return new MatrixAction(ActionType.Notice,
                 "Missing or unknown feature flag. Must be one of: " + USER_FEATURES.join(", ")
             );
         }
@@ -687,10 +761,10 @@ export class AdminRoomHandler {
             else {
                 msg += "set to the default value.";
             }
-            return new MatrixAction("notice", msg);
+            return new MatrixAction(ActionType.Notice, msg);
         }
         if (!["true", "false", "default"].includes(args[1].toLowerCase())) {
-            return new MatrixAction("notice",
+            return new MatrixAction(ActionType.Notice,
                 "Parameter must be either true, false or default."
             );
         }
@@ -705,16 +779,17 @@ export class AdminRoomHandler {
                 note = " This bridge has disabled mentions, so this flag will do nothing.";
             }
         }
-        return new MatrixAction("notice",
+        return new MatrixAction(ActionType.Notice,
             `Set ${featureFlag} to ${features[featureFlag]}.${note}`
         );
     }
 
     private showBridgeVersion() {
-        return new MatrixAction("notice", `BridgeVersion: ${getBridgeVersion()}`);
+        return new MatrixAction(ActionType.Notice, `BridgeVersion: ${getBridgeVersion()}`);
     }
 
-    private showHelp(userPermission: string|undefined): MatrixAction {
+    private showHelp(sender: string): MatrixAction {
+        const userPermission = this.getUserPermission(sender);
         let body = "This is an IRC admin room for controlling your IRC connection and sending " +
         "commands directly to IRC.<br/>" +
         "See the <a href=\"https://matrix-org.github.io/matrix-appservice-irc/latest/usage.html\">" +
@@ -729,7 +804,7 @@ export class AdminRoomHandler {
                 body += `<li><strong>${command.example}</strong> : ${command.summary}</li>\n\t`;
             }
         }
-        return new MatrixAction("notice", null, body + "</ul>");
+        return new MatrixAction(ActionType.Notice, null, body + "</ul>");
     }
 
     // will mutate args if sucessful
@@ -753,12 +828,18 @@ export class AdminRoomHandler {
         return this.ircBridge.getBridgedClientsForUserId(userId);
     }
 
-    private getUserPermission(userId: string): string|undefined {
+    private getUserPermission(userId: string): CommandPermission {
         const userDomain = userId.split(':')[1];
 
-        return this.ircBridge.config.ircService.permissions &&
+        const permissionString = this.ircBridge.config.ircService.permissions &&
                (this.ircBridge.config.ircService.permissions[userId] || // This takes priority
                this.ircBridge.config.ircService.permissions[userDomain] || // Then the domain
                this.ircBridge.config.ircService.permissions['*']); // Finally wildcard.
+        switch (permissionString) {
+            case "admin":
+                return CommandPermission.Admin;
+            default:
+                return CommandPermission.User;
+        }
     }
 }

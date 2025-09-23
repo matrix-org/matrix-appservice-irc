@@ -3,6 +3,8 @@ import { LoggerConfig } from "../logging";
 import { IrcHandlerConfig } from "../bridge/IrcHandler";
 import { RoomConfigConfig } from "../bridge/RoomConfig";
 import { MatrixHandlerConfig } from "../bridge/MatrixHandler";
+import { ProvisionerConfig } from "../provisioning/Provisioner";
+import { MatrixBanSyncConfig } from "../bridge/MatrixBanSync";
 
 export interface BridgeConfig {
     database: {
@@ -11,24 +13,23 @@ export interface BridgeConfig {
     };
     homeserver: {
         url: string;
-        media_url?: string;
         domain: string;
         enablePresence?: boolean;
         dropMatrixMessagesAfterSecs?: number;
-        bindHostname: string|undefined;
-        bindPort: number|undefined;
+        bindHostname?: string;
+        bindPort?: number;
     };
     ircService: {
         servers: {[domain: string]: IrcServerConfig};
         matrixHandler?: MatrixHandlerConfig;
-        ircHandler?: IrcHandlerConfig;
-        provisioning: {
-            enabled: boolean;
-            requestTimeoutSeconds: number;
-            ruleFile: string;
-            enableReload: boolean;
-            roomLimit?: number;
+        mediaProxy: {
+            signingKeyPath: string;
+            ttlSeconds: number;
+            bindPort: number;
+            publicUrl: string;
         };
+        ircHandler?: IrcHandlerConfig;
+        provisioning: ProvisionerConfig;
         logging: LoggerConfig;
         debugApi: {
             enabled: boolean;
@@ -53,11 +54,17 @@ export interface BridgeConfig {
             enabled: boolean;
             initial: boolean;
         };
-        encodingFallback: string;
+        encodingFallback?: string;
         permissions?: {
             [userIdOrDomain: string]: "admin";
         };
         perRoomConfig?: RoomConfigConfig;
+        RMAUlimit?: number;
+        userActivity?: {
+            minUserActiveDays?: number;
+            inactiveAfterDays?: number;
+        };
+        banLists?: MatrixBanSyncConfig;
     };
     sentry?: {
         enabled: boolean;
@@ -69,4 +76,8 @@ export interface BridgeConfig {
         maxHttpSockets: number;
         maxTxnSize?: number;
     };
+    connectionPool?: {
+        redisUrl: string;
+        persistConnectionsOnShutdown?: boolean;
+    }
 }

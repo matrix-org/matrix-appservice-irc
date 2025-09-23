@@ -58,7 +58,7 @@ export class RoomConfig {
         // We don't want to spend too long trying to fetch the state, so return null.
         return Promise.race([
             internalFunc(),
-            new Promise<null>(res => setTimeout(res, STATE_TIMEOUT_MS)),
+            new Promise<null>(res => setTimeout(() => res(null), STATE_TIMEOUT_MS)),
         // We *never* want this function to throw, as it's critical for the bridging of messages.
         // Instead we return null for any errors.
         ]).catch(ex => {

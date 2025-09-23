@@ -14,24 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Client } from "matrix-org-irc";
+import { Client, ClientEvents, IrcClientOpts, Message } from "matrix-org-irc";
 import * as promiseutil from "../promiseutil";
 import Scheduler from "./Scheduler";
 import * as logging from "../logging";
-import Bluebird from "bluebird";
 import { Defer } from "../promiseutil";
 import { IrcServer } from "./IrcServer";
+import { getBridgeVersion } from "matrix-appservice-bridge";
+import { IrcPoolClient } from "../pool-service/IrcPoolClient";
+import { RedisIrcConnection } from "../pool-service/RedisIrcConnection";
 
 const log = logging.get("client-connection");
 
-export interface IrcMessage {
-    command?: string;
-    args: string[];
-    rawCommand: string;
-    prefix: string;
-}
-
-// The time we're willing to wait for a connect callback when connecting to IRC.
+/**
+ * The time we're willing to wait for a connect callback when connecting to IRC.
+ *
+ * This is also the time we will wait before assuming a disconnect has gone through.
+ */
 const CONNECT_TIMEOUT_MS = 30 * 1000; // 30s
 // The delay between messages when there are >1 messages to send.
 const FLOOD_PROTECTION_DELAY_MS = 700;
@@ -42,7 +41,8 @@ const FLOOD_PROTECTION_DELAY_MS = 700;
 const THROTTLE_WAIT_MS = 20 * 1000;
 
 // String reply of any CTCP Version requests
-const CTCP_VERSION = 'matrix-appservice-irc, part of the Matrix.org Network';
+const CTCP_VERSION =
+    (homeserverName: string) => `matrix-appservice-irc ${getBridgeVersion()} bridged via ${homeserverName}`;
 
 const CONN_LIMIT_MESSAGES = [
     "too many host connections", // ircd-seven
@@ -67,33 +67,51 @@ export interface ConnectionOpts {
     secure?: {
         ca?: string;
     };
-    encodingFallback: string;
+    encodingFallback?: string;
+    useRedisPool?: IrcPoolClient,
 }
 
 export type InstanceDisconnectReason = "throttled"|"irc_error"|"net_error"|"timeout"|"raw_error"|
                                        "toomanyconns"|"banned"|"killed"|"idle"|"limit_reached"|
                                        "iwanttoreconnect";
 
+
+export enum IRCConnectionErrorCode {
+    Unknown = 0,
+    Banned = 1,
+    ILine = 2,
+}
+
+export class IRCConnectionError extends Error {
+    constructor(public readonly code: IRCConnectionErrorCode, message: string) {
+        super(message);
+    }
+}
+
 export class ConnectionInstance {
     public dead = false;
     private state: "created"|"connecting"|"connected" = "created";
-    private pingRateTimerId: NodeJS.Timer|null = null;
-    private clientSidePingTimeoutTimerId: NodeJS.Timer|null = null;
+    private pingRateTimerId: NodeJS.Timeout|null = null;
+    private clientSidePingTimeoutTimerId: NodeJS.Timeout|null = null;
+    // eslint-disable-next-line no-use-before-define
     private connectDefer: Defer<ConnectionInstance>;
     public onDisconnect?: (reason: string) => void;
+
     /**
-     * Create an IRC connection instance. Wraps the node-irc library to handle
+     * Create an IRC connection instance. Wraps the matrix-org-irc library to handle
      * connections correctly.
      * @constructor
-     * @param {IrcClient} ircClient The new IRC client.
-     * @param {string} domain The domain (for logging purposes)
-     * @param {string} nick The nick (for logging purposes)
+     * @param client The new IRC client.
+     * @param domain The domain (for logging purposes)
+     * @param nick The nick (for logging purposes)
+     * @param pingOpts Options for automatic pings to the IRCd.
+     * @param homeserverDomain The homeserver's domain, for the CTCP version string.
      */
     constructor (public readonly client: Client, private readonly domain: string, private nick: string,
         private pingOpts: {
         pingRateMs: number;
         pingTimeoutMs: number;
-    }) {
+    }, private readonly homeserverDomain: string, private readonly redisConn?: RedisIrcConnection) {
         this.listenForErrors();
         this.listenForPings();
         this.listenForCTCPVersions();
@@ -135,9 +153,9 @@ export class ConnectionInstance {
      * @param {string} reason - Reason to reject with. One of:
      * throttled|irc_error|net_error|timeout|raw_error|toomanyconns|banned
      */
-    public disconnect(reason: InstanceDisconnectReason, ircReason?: string) {
+    public async disconnect(reason: InstanceDisconnectReason, ircReason?: string): Promise<void> {
         if (this.dead) {
-            return Bluebird.resolve();
+            return;
         }
         ircReason = ircReason || reason;
         log.info(
@@ -145,38 +163,50 @@ export class ConnectionInstance {
         );
         this.dead = true;
 
-        return new Bluebird((resolve) => {
-            // close the connection
-            this.client.disconnect(ircReason, () => { /* This is needed for tests */ });
-            // remove timers
-            if (this.pingRateTimerId) {
-                clearTimeout(this.pingRateTimerId);
-                this.pingRateTimerId = null;
-            }
-            if (this.clientSidePingTimeoutTimerId) {
-                clearTimeout(this.clientSidePingTimeoutTimerId);
-                this.clientSidePingTimeoutTimerId = null;
-            }
-            if (this.state !== "connected") {
-                // we never resolved this defer, so reject it.
-                this.connectDefer.reject(new Error(reason));
-            }
-            if (this.state === "connected" && this.onDisconnect) {
-                // we only invoke onDisconnect once we've had a successful connect.
-                // Connection *attempts* are managed by the create() function so if we
-                // call this now it would potentially invoke this 3 times (once per
-                // connection instance!). Each time would have dead=false as they are
-                // separate objects.
-                this.onDisconnect(reason);
-            }
-            resolve();
+        // It's imperative we wait for the disconnect, as the IrcConnectionPool
+        // doesn't allow us to create new connections for a given user
+        // while a previous one is active.
+        // close the connection
+        await new Promise<void>((resolveDc) => {
+            // Forcibly ignore the DC if it takes any longer.
+            const timeout = setTimeout(() => {
+                log.warn(`Waited for 'end' that never came`);
+                resolveDc();
+            }, CONNECT_TIMEOUT_MS);
+            this.client.disconnect(ircReason, () => {
+                log.debug("Server responded to our disconnect");
+                clearTimeout(timeout);
+                resolveDc();
+            });
         });
+
+        // remove timers
+        if (this.pingRateTimerId) {
+            clearTimeout(this.pingRateTimerId);
+            this.pingRateTimerId = null;
+        }
+        if (this.clientSidePingTimeoutTimerId) {
+            clearTimeout(this.clientSidePingTimeoutTimerId);
+            this.clientSidePingTimeoutTimerId = null;
+        }
+        if (this.state !== "connected") {
+            // we never resolved this defer, so reject it.
+            this.connectDefer.reject(new Error(reason));
+        }
+        if (this.state === "connected" && this.onDisconnect) {
+            // we only invoke onDisconnect once we've had a successful connect.
+            // Connection *attempts* are managed by the create() function so if we
+            // call this now it would potentially invoke this 3 times (once per
+            // connection instance!). Each time would have dead=false as they are
+            // separate objects.
+            this.onDisconnect(reason);
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public addListener(eventName: string, fn: (...args: Array<any>) => void) {
+    public addListener<T extends keyof ClientEvents>(eventName: T, fn: ClientEvents[T]) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.client.addListener(eventName, (...args: unknown[]) => {
+        this.client.addListener(eventName, (...args: any[]) => {
             if (this.dead) {
                 log.error(
                     "%s@%s RECV a %s event for a dead connection",
@@ -184,15 +214,19 @@ export class ConnectionInstance {
                 );
                 return;
             }
+            // This is fine, we're checking the types above and passing them through
+            // TypeScript doesn't handle us passing in typed arguments to an apply
+            // function all that well.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const typelessFn = fn as (...params: any[]) => void;
             // do the callback
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            fn.apply(fn, args as any);
+            typelessFn.apply(fn, args as any);
         });
     }
 
     private listenForErrors() {
-        this.client.addListener("error", (err?: IrcMessage) => {
-            log.error("Server: %s (%s) Error: %s", this.domain, this.nick, JSON.stringify(err));
+        this.client.addListener("error", (err?: Message) => {
             // We should disconnect the client for some but not all error codes. This
             // list is a list of codes which we will NOT disconnect the client for.
             const failCodes = [
@@ -210,19 +244,22 @@ export class ConnectionInstance {
             ];
             if (err && err.command) {
                 if (failCodes.includes(err.command)) {
+                    // Don't log these so loudly
+                    log.info("Server: %s (%s) %s", this.domain, this.nick, JSON.stringify(err));
                     return; // don't disconnect for these error codes.
                 }
             }
+            log.error("Server: %s (%s) Error: %s", this.domain, this.nick, JSON.stringify(err));
             if (err && err.command === "err_yourebannedcreep") {
                 this.disconnect("banned").catch(logError);
                 return;
             }
             this.disconnect("irc_error").catch(logError);
         });
-        this.client.addListener("netError", (err: unknown) => {
+        this.client.addListener("netError", (err) => {
             log.error(
                 "Server: %s (%s) Network Error: %s", this.domain, this.nick,
-                JSON.stringify(err, undefined, 2)
+                err instanceof Error ? err.message : JSON.stringify(err, undefined, 2)
             );
             this.disconnect("net_error").catch(logError);
         });
@@ -232,7 +269,7 @@ export class ConnectionInstance {
             );
             this.disconnect("net_error").catch(logError);
         });
-        this.client.addListener("raw", (msg?: {command?: string; rawCommand: string; args?: string[]}) => {
+        this.client.addListener("raw", (msg?: Message) => {
             if (logging.isVerbose()) {
                 log.debug(
                     "%s@%s: %s", this.nick, this.domain, JSON.stringify(msg)
@@ -306,9 +343,7 @@ export class ConnectionInstance {
                     this.domain, this.nick,
                 );
                 // Just emit an netError which clients need to handle anyway.
-                this.client.emit("netError", {
-                    msg: "Client-side ping timeout"
-                });
+                this.client.emit("netError", new Error(`Client-side ping timeout`));
             }, this.pingOpts.pingTimeoutMs);
         }
         this.client.on("ping", (svr: string) => {
@@ -317,7 +352,6 @@ export class ConnectionInstance {
         });
         // decorate client.send to refresh the timer
         const realSend = this.client.send;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.client.send = (...args: string[]) => {
             keepAlivePing();
             this.resetPingSendTimer(); // sending a message counts as a ping
@@ -328,7 +362,7 @@ export class ConnectionInstance {
     private listenForCTCPVersions() {
         this.client.addListener("ctcp-version", (from: string) => {
             if (from) { // Ensure the sender is valid before we try to respond
-                this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION}`);
+                this.client.ctcp(from, 'reply', `VERSION ${CTCP_VERSION(this.homeserverDomain)}`);
             }
         });
     }
@@ -358,15 +392,19 @@ export class ConnectionInstance {
      * @param {string} opts.realname The real name of the user.
      * @param {string} opts.password The password to give NickServ.
      * @param {string} opts.localAddress The local address to bind to when connecting.
+     * @param {string} homeserverDomain Domain of the homeserver bridging requests.
      * @param {Function} onCreatedCallback Called with the client when created.
      * @return {Promise} Resolves to an ConnectionInstance or rejects.
      */
-    public static async create (server: IrcServer, opts: ConnectionOpts,
+    public static async create (server: IrcServer,
+                                opts: ConnectionOpts,
+                                homeserverDomain: string,
+                                ident: string,
                                 onCreatedCallback?: (inst: ConnectionInstance) => void): Promise<ConnectionInstance> {
         if (!opts.nick || !server) {
             throw new Error("Bad inputs. Nick: " + opts.nick);
         }
-        const connectionOpts = {
+        const connectionOpts: IrcClientOpts = {
             userName: opts.username,
             realName: opts.realname,
             password: opts.password,
@@ -383,22 +421,39 @@ export class ConnectionInstance {
             bustRfc3484: true,
             sasl: opts.password ? server.useSasl() : false,
             secure: server.useSsl() ? server.getSecureOptions() : undefined,
-            encodingFallback: opts.encodingFallback
+            encodingFallback: opts.encodingFallback,
         };
 
+
         // Returns: A promise which resolves to a ConnectionInstance
-        const retryConnection = () => {
+        const retryConnection = async () => {
+            const domain = server.randomDomain();
+            const redisConn = opts.useRedisPool && await opts.useRedisPool.createOrGetIrcSocket(ident, {
+                ...connectionOpts,
+                clientId: ident,
+                port: connectionOpts.port ?? 6667,
+                localAddress: connectionOpts.localAddress ?? undefined,
+                localPort: connectionOpts.localPort ?? undefined,
+                family: connectionOpts.family ?? undefined,
+                host: domain,
+            });
+
             const nodeClient = new Client(
-                server.randomDomain(), opts.nick, connectionOpts
+                domain, opts.nick, connectionOpts, redisConn?.state, redisConn,
             );
             const inst = new ConnectionInstance(
                 nodeClient, server.domain, opts.nick, {
                     pingRateMs: server.pingRateMs,
                     pingTimeoutMs: server.pingTimeout,
-                }
+                },
+                homeserverDomain,
+                redisConn,
             );
             if (onCreatedCallback) {
                 onCreatedCallback(inst);
+            }
+            if (redisConn) {
+                log.debug(`Calling connect for ${redisConn?.clientId}`);
             }
             return inst.connect();
         };
@@ -429,10 +484,9 @@ export class ConnectionInstance {
 
                 if (err.message === "banned") {
                     log.error(
-                        `${opts.nick} is banned from ${server.domain}, ` +
-                        `throwing`
+                        `${opts.nick} is banned from ${server.domain}, throwing`
                     );
-                    throw new Error("User is banned from the network.");
+                    throw new IRCConnectionError(IRCConnectionErrorCode.Banned, "User is banned from the network.");
                     // If the user is banned, we should part them from any rooms.
                 }
 
@@ -440,7 +494,10 @@ export class ConnectionInstance {
                     log.error(
                         `User ${opts.nick} was ILINED. This may be the network limiting us!`
                     );
-                    throw new Error("Connection was ILINED. We cannot retry this.");
+                    throw new IRCConnectionError(
+                        IRCConnectionErrorCode.ILine,
+                        "Connection was ILINED. We cannot retry this."
+                    );
                 }
 
                 // always set a staggered delay here to avoid thundering herd
@@ -449,7 +506,7 @@ export class ConnectionInstance {
                         Math.round((connAttempts * 1000) * Math.random());
                 log.info(`Retrying connection for ${opts.nick} on ${server.domain} `+
                         `in ${delay}ms (attempts ${connAttempts})`);
-                await Bluebird.delay(delay);
+                await promiseutil.delay(delay);
             }
         }
     }

@@ -36,8 +36,11 @@ export function defer<T>(): Defer<T> {
     };
 }
 
-export function allSettled(promises: Bluebird<unknown>[]) {
-    return Bluebird.all(promises.map(function(p) {
-        return p.reflect();
-    }));
+/**
+ * A Promise that delays the execution by a number of milliseconds.
+ * This is a suitable replacement for Bluebird.delay().
+ * @param ms The duration in milliseconds
+ */
+export function delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }

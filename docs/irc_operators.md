@@ -12,7 +12,7 @@ on the number of Matrix users they'd expect to use the bridge.
 When a Matrix room is bridged to IRC, all users (by default) on the Matrix side will be provided with a connection
 to the room and will show up in the user list on IRC. The IRC users will also appear as "ghosts" on the Matrix side,
 bearing a Matrix ID like `@irc_alice:matrix.org`. This allows a "native" feeling so that users do not have to worry
-about the complexities of the protocols. 
+about the complexities of the protocols.
 
 However as with all bridges, the native feeling can catch IRC or Matrix users unaware when things do not bridge well
 (such as replies/threading or reactions).
@@ -47,15 +47,15 @@ A Matrix room can be connected to a IRC network in one of two ways:
   hold power over this room and grant moderator status (half-power) to any IRC operators or Matrix users
   with IRC ops in the room.
 - A plumbed room (also known as provisioning). A Matrix user may create a room ahead of time for their
-  community and later on decide to "plumb in" IRC users to that room. They can do this via an interative
-  UI in Element, via the `!plumb` command or even via a HTTP endpoint. If done interatively, the bridge
+  community and later on decide to "plumb in" IRC users to that room. They can do this via an interactive
+  UI in Element, via the `!plumb` command or even via a HTTP endpoint. If done interactively, the bridge
   has a verification process to ensure the user on the Matrix side has the blessing of the IRC ops first.
   However, it's possible for the IRC bot to lack kick abilities in the room so kicks and bans may not be
   bridged both ways.
 
-(This is explained in more depth at [matrix.org](https://matrix.org/docs/guides/types-of-bridging#types-of-rooms))
+(This is explained in more depth at [matrix.org](https://matrix.org/docs/guides/types-of-bridging#types-of-rooms).)
 
-Additionally, a channel may be connected to one portal and multiple plumbed rooms without issue as the 
+Additionally, a channel may be connected to one portal and multiple plumbed rooms without issue as the
 messages from Matrix users are replicated to the other rooms for them. We typically do not recommend
 multiple points of entry to the channel due to the obvious confusion this causes.
 
@@ -81,12 +81,12 @@ at the discretion of the bridge admin.
 ### History protection
 
 Matrix is naturally history preserving, so that any message sent to a Matrix room is sent to all
-participating users/servers. They will be able to read these messsages for as long as they
+participating users/servers. They will be able to read these messages for as long as they
 are joined to the room.
 
 Bridged IRC rooms do not share history to Matrix users from before they have joined by default,
 but history visibility can be changed by users with the correct power level on Matrix.
 
 The bridge can also be configured to stop bridging all traffic from a channel to Matrix if it
-cannot garuntee that a Matrix user is joined to the IRC channel, which is usually a step of last
+cannot guarantee that a Matrix user is joined to the IRC channel, which is usually a step of last
 resort should the bridge have failed to connect them. See the [administrators guide](administrators_guide.md#enforcing-matrix-users-to-be-connected-to-irc).

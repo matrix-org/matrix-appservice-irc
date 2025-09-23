@@ -50,6 +50,12 @@ export class ProcessedDict {
         };
     }
 
+    public stopCleaner() {
+        if (this.timeoutObj) {
+            clearTimeout(this.timeoutObj);
+        }
+    }
+
     public startCleaner (parentLog: Logger) {
         const expiredList: {[domain: string]: string[] } = { };
         this.timeoutObj = setTimeout(() => {

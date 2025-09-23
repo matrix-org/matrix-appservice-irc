@@ -21,9 +21,9 @@ describe("MatrixAction", function() {
 
     it("should not highlight mentions to text without mentions", () => {
         const action = new MatrixAction("message", "Some text");
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "Some Person": "@foobar:localhost"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("Some text");
             expect(action.htmlText).toBeNull();
         });
@@ -36,9 +36,9 @@ describe("MatrixAction", function() {
             "JCDenton, it's a bomb!",
             null
         );
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "JCDenton": "@jc.denton:unatco.gov"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("TheJCDenton, it's a bomb!");
             expect(action.htmlText).toEqual(
                 "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
@@ -53,9 +53,9 @@ describe("MatrixAction", function() {
             "Did you get JCDenton's report?",
             null
         );
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "JCDenton": "@jc.denton:unatco.gov"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("Did you get TheJCDenton's report?");
             expect(action.htmlText).toEqual(
                 "Did you get <a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
@@ -70,9 +70,9 @@ describe("MatrixAction", function() {
             "Hey, you missed: &lt;JCDenton&gt; it's a bomb!",
             null
         );
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "JCDenton": "@jc.denton:unatco.gov"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("Hey, you missed: <TheJCDenton> it's a bomb!");
             expect(action.htmlText).toEqual(
                 "Hey, you missed: &lt;<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
@@ -87,9 +87,9 @@ describe("MatrixAction", function() {
             "JCDenton, it's a bomb!",
             null
         );
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "jcdenton": "@jc.denton:unatco.gov"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("TheJCDenton, it's a bomb!");
             expect(action.htmlText).toEqual(
                 "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
@@ -100,9 +100,9 @@ describe("MatrixAction", function() {
     });
     it("should highlight a user, with plain text", () => {
         const action = new MatrixAction("message", "JCDenton, it's a bomb!");
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "JCDenton": "@jc.denton:unatco.gov"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("TheJCDenton, it's a bomb!");
             expect(action.htmlText).toEqual(
                 "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
@@ -112,9 +112,9 @@ describe("MatrixAction", function() {
     });
     it("should highlight a user, with weird characters", () => {
         const action = new MatrixAction("message", "`||JCDenton[m], it's a bomb!");
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "`||JCDenton[m]": "@jc.denton:unatco.gov"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("TheJCDenton, it's a bomb!");
             expect(action.htmlText).toEqual(
                 "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">"+
@@ -129,10 +129,10 @@ describe("MatrixAction", function() {
             "JCDenton is sent to assassinate PaulDenton",
             null
         );
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "JCDenton": "@jc.denton:unatco.gov",
             "PaulDenton": "@paul.denton:unatco.gov"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("TheJCDenton is sent to assassinate ThePaulDenton");
             expect(action.htmlText).toEqual(
                 "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">TheJCDenton</a> is sent" +
@@ -148,9 +148,9 @@ describe("MatrixAction", function() {
             "JCDenton, meet JCDenton",
             null
         );
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "JCDenton": "@jc.denton:unatco.gov"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("TheJCDenton, meet TheJCDenton");
             expect(action.htmlText).toEqual(
                 "<a href=\"https://matrix.to/#/@jc.denton:unatco.gov\">TheJCDenton</a>," +
@@ -165,9 +165,9 @@ describe("MatrixAction", function() {
             "Go to <a href='http://www.JCDenton.com'>my website</a>",
             null
         );
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "JCDenton": "@jc.denton:unatco.gov"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("Go to http://www.JCDenton.com");
             expect(action.htmlText).toEqual(
                 "Go to <a href='http://www.JCDenton.com'>my website</a>"
@@ -181,9 +181,9 @@ describe("MatrixAction", function() {
             "Go to <a href='http://JCDenton.com'>my website</a>",
             null
         );
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "JCDenton": "@jc.denton:unatco.gov"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("Go to http://JCDenton.com");
             expect(action.htmlText).toEqual(
                 "Go to <a href='http://JCDenton.com'>my website</a>"
@@ -197,9 +197,9 @@ describe("MatrixAction", function() {
             "AnnaNavarre: The machine would not make a mistake!",
             null
         );
-        return action.formatMentions({
+        return action.formatMentions(new Map(Object.entries({
             "AnnaNavarre": "@anna.navarre:unatco.gov"
-        }, FakeIntent).then(() => {
+        })), FakeIntent).then(() => {
             expect(action.text).toEqual("anna.navarre: The machine would not make a mistake!");
             expect(action.htmlText).toEqual(
                 "<a href=\"https://matrix.to/#/@anna.navarre:unatco.gov\">"+

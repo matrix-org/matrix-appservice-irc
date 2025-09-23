@@ -4,19 +4,17 @@
 
 const envBundle = require("../util/env-bundle");
 
-describe("Initialisation", function() {
+describe("Initialisation", () => {
     const {env, roomMapping, test} = envBundle();
     const ircAddr = roomMapping.server;
     const ircNick = roomMapping.botNick;
     const ircChannel = roomMapping.channel;
 
-    beforeEach(test.coroutine(function*() {
-        yield test.beforeEach(env);
-    }));
+    beforeEach(async () => {
+        await test.beforeEach(env);
+    });
 
-    afterEach(test.coroutine(function*() {
-        yield test.afterEach(env);
-    }));
+    afterEach(async () => test.afterEach(env));
 
     it("should connect to the IRC network and channel in the config", (done) => {
         let clientConnected = false;

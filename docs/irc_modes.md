@@ -1,7 +1,7 @@
 IRC Modes
 =========
 
-This chapter explains how various IRC channel modes are interpteted by the bridge, and how you can best configure your
+This chapter explains how various IRC channel modes are interpreted by the bridge, and how you can best configure your
 channels to work well with the bridge.
 
 Note: While the bridge tries to follow the RFCs where possible, due to the somewhat fragmented nature of IRC the bridge is
@@ -12,7 +12,7 @@ designed for maximum compatibility with [Libera's IRCd](https://github.com/solan
 User modes are mapped to certain power levels on Matrix. For those unaware, Matrix power levels typically range between
 0-100 where zero represents a user that may only speak and 100 is an admin of the room (although these are modifiable).
 
-By default the bridge maps users like so
+By default the bridge maps users like so:
 
 ```yaml
 # taken from config.sample.yaml
@@ -33,7 +33,7 @@ Below are some common channel modes that prevent bridged users from joining. The
 given are for Libera.Chat, other IRCds may have different mode letters or not have the capability at all, so consult the
 help documentation of channel for other networks to find out what they support.
 
-If a user is not able to join the IRC channel, they will be kicked from the Matrix room. The reason is given in the 
+If a user is not able to join the IRC channel, they will be kicked from the Matrix room. The reason is given in the
 Matrix kick message, and a more verbose error is given in the user's admin room.
 
 ### Ban (`+b`)
@@ -52,11 +52,11 @@ or, if the Matrix user is identified to services, using the `$a` extban syntax:
 ```
 
 Note that exempting a user means that user will not be affected by bans or quiets,
-so be sure you trust the user before giving them an exemption
+so be sure you trust the user before giving them an exemption.
 
 ### Invite only (`+i`)
 
-Some communties prefer to keep their channels invite only but allow the bridge to access the channel. An IRC channel
+Some communities prefer to keep their channels invite only but allow the bridge to access the channel. An IRC channel
 operator can set an invite exemption (`+I`) mask for the whole bridge:
 
 ```
@@ -67,11 +67,11 @@ This will also work on other IRC networks that support IPv6 and do not automatic
 the IP address range will be different. Running `/whois` on a Matrix user nick will give you the IPv6 /64 range to use.
 
 Adding an invite exemption for a single Matrix user is done the same way as the ban exemption methods above, replacing `+e`
-with `+I`
+with `+I`.
 
 ### Registered only (`+r`)
 
-If `+r` is set on a channel, Matrix users not identified to services cannot join. 
+If `+r` is set on a channel, Matrix users not identified to services cannot join.
 
 ### Key protected (`+k`)
 
@@ -86,7 +86,7 @@ for information and updates.
 
 ## Other important channel modes
 
-These channel modes do not prevent a user from joining, but they still affect various properties of the room
+These channel modes do not prevent a user from joining, but they still affect various properties of the room.
 
 ### Secret (`+s`)
 

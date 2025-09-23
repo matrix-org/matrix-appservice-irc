@@ -1,4 +1,521 @@
- 0.30.0 (2021-08-18)
+# 3.0.5 (2025-02-25)
+
+### Internal Changes
+
+- Fix node-irc API breakage
+
+# 3.0.4 (2025-02-25)
+
+### Security
+
+- Fix for [GHSA-5mvm-89c9-9gm5](https://github.com/matrix-org/matrix-appservice-irc/security/advisories/GHSA-5mvm-89c9-9gm5)/[CVE-2025-27146](https://www.cve.org/CVERecord?id=CVE-2025-27146)
+
+### Bugfixes
+
+- Bridge multiline Matrix topic to IRC correctly ([74f02c](https://github.com/matrix-org/matrix-appservice-irc/commit/74f02c8e11f16ed1b355700092c1aa9c036a11bd))
+
+### Internal Changes
+
+- Update to matrix-org-irc [3.1.0](https://github.com/matrix-org/node-irc/releases/tag/3.1.0)
+
+# 3.0.3 (2024-11-14)
+====================
+
+### Security
+
+- Fix for ([GHSA-c3hj-hg7p-rrq5](https://github.com/matrix-org/matrix-appservice-irc/security/advisories/GHSA-c3hj-hg7p-rrq5)).
+- Disallow control characters in channel names sent via Provisioning API.
+- Wrap some internal server errors in provisioning API.
+
+# 3.0.2 (2024-09-18)
+====================
+- Make sure MediaProxy can connect to the homeserver over https. ([\#1826](https://github.com/matrix-org/matrix-appservice-irc/issues/1826))
+
+# 3.0.1 (2024-09-05)
+====================
+
+### Bugfixes
+
+- Make sure mediaproxy gracefully handles errors and uses authenticated endpoints. ([\#1817](https://github.com/matrix-org/matrix-appservice-irc/issues/1817))
+
+
+# 3.0.0 (2024-09-04)
+====================
+
+No changes since 3.0.0-rc1.
+
+**Note**: With version 3.0.0, the bridge takes over the serving of Matrix media, which until now was the responsibility of the homeserver.
+
+To allow that, a Media Proxy needs to be configured and accessible from the internet. Please refer to the `mediaProxy` section in the config for details on how to configure it.
+
+### Features
+
+- Use MediaProxy to serve authenticated Matrix media. ([\#1805](https://github.com/matrix-org/matrix-appservice-irc/issues/1805))
+- Add strikethrough formatting support ([\#1809](https://github.com/matrix-org/matrix-appservice-irc/issues/1809))
+
+### Bugfixes
+
+- Fix spelling of ignoreIdleUsersOnStartup in IrcServer config. ([\#1810](https://github.com/matrix-org/matrix-appservice-irc/issues/1810))
+- Comment out tlsOptions property in sample config. ([\#1812](https://github.com/matrix-org/matrix-appservice-irc/issues/1812))
+
+### Internal Changes
+
+- Fix towncrier failing for wrong reasons. ([\#1813](https://github.com/matrix-org/matrix-appservice-irc/issues/1813))
+
+
+# 3.0.0-rc1 (2024-09-02)
+========================
+
+**Note**: With version 3.0.0, the bridge takes over the serving of Matrix media, which until now was the responsibility of the homeserver.
+
+To allow that, a Media Proxy needs to be configured and accessible from the internet. Please refer to the `mediaProxy` section in the config for details on how to configure it.
+
+### Features
+
+- Use MediaProxy to serve authenticated Matrix media. ([\#1805](https://github.com/matrix-org/matrix-appservice-irc/issues/1805))
+- Add strikethrough formatting support ([\#1809](https://github.com/matrix-org/matrix-appservice-irc/issues/1809))
+
+### Bugfixes
+
+- Fix spelling of ignoreIdleUsersOnStartup in IrcServer config. ([\#1810](https://github.com/matrix-org/matrix-appservice-irc/issues/1810))
+- Comment out tlsOptions property in sample config. ([\#1812](https://github.com/matrix-org/matrix-appservice-irc/issues/1812))
+
+### Internal Changes
+
+- Fix towncrier failing for wrong reasons. ([\#1813](https://github.com/matrix-org/matrix-appservice-irc/issues/1813))
+
+
+2.0.1 (2024-07-04)
+==================
+
+### Internal Changes
+
+- Move to ESM for widgets. ([\#1800](https://github.com/matrix-org/matrix-appservice-irc/issues/1800))
+- Improve e2e test reliability. ([\#1803](https://github.com/matrix-org/matrix-appservice-irc/issues/1803))
+- Don't use origin_server_ts when tracking joins, use bridge-time instead. ([\#1804](https://github.com/matrix-org/matrix-appservice-irc/issues/1804))
+
+
+2.0.0 (2024-04-08)
+==================
+
+**Note**: This release drops support for Node 18. The minimum required version is now 20+.
+
+Bugfixes
+--------
+
+- Fix Redis <=6.2 failing to clear the command queue in pooling mode. ([\#1763](https://github.com/matrix-org/matrix-appservice-irc/issues/1763))
+- Fix GitHub CI docker builds failing for community PRs. ([\#1767](https://github.com/matrix-org/matrix-appservice-irc/issues/1767))
+
+
+Improved Documentation
+----------------------
+
+- Mention that the libera.chat bridge has since been shut down. ([\#1784](https://github.com/matrix-org/matrix-appservice-irc/issues/1784))
+
+
+Deprecations and Removals
+-------------------------
+
+- Drop `dynamicChannels.groupId` config option. Groups were unstable and are no longer supported by any Matrix implementations. ([\#1772](https://github.com/matrix-org/matrix-appservice-irc/issues/1772))
+
+
+Internal Changes
+----------------
+
+- Remove some build-time dependencies from the runtime dependency list. ([\#1758](https://github.com/matrix-org/matrix-appservice-irc/issues/1758))
+- Add option to ignore "functional members" when checking if an admin room contains two users. ([\#1782](https://github.com/matrix-org/matrix-appservice-irc/issues/1782))
+- Fixup types for Timers so the bridge works with newer node versions. ([\#1788](https://github.com/matrix-org/matrix-appservice-irc/issues/1788))
+- Update dependencies. ([\#1798](https://github.com/matrix-org/matrix-appservice-irc/issues/1798))
+- Add tests for various forms of rich replies. ([\#1799](https://github.com/matrix-org/matrix-appservice-irc/issues/1799))
+
+
+1.0.1 (2023-07-31)
+==================
+
+It is **strongly** reccomended you upgrade your bridge, as this release contains security fixes.
+
+🔒 Security
+-----------
+
+- Fixes for GHSA-vc7j-h8xg-fv5x.
+- Fixes for GHSA-3pmj-jqqp-2mj3.
+- Fixes for GHSA-c7hh-3v6c-fj4q
+
+Bugfixes
+--------
+
+- Improve processing speed of commands sent to and from the proxy when the bridge is configured in pooling mode. ([\#1751](https://github.com/matrix-org/matrix-appservice-irc/issues/1751))
+- Ensure QUIT messages are always sent. ([\#1752](https://github.com/matrix-org/matrix-appservice-irc/issues/1752))
+- Ensure we don't bloat irc supported state. ([\#1753](https://github.com/matrix-org/matrix-appservice-irc/issues/1753))
+- Fix a case where the bridge would not listen for and apply bans for legacy/unspec'd `m.room.rule.*` types in use by Mjolnir. ([\#1755](https://github.com/matrix-org/matrix-appservice-irc/issues/1755), [\#1759](https://github.com/matrix-org/matrix-appservice-irc/issues/1759))
+- Refactor the command parser for admin and room commands, ensuring we correctly trim the command. ([\#1756](https://github.com/matrix-org/matrix-appservice-irc/issues/1756))
+
+
+Internal Changes
+----------------
+
+- Update matrix-appservice-bridge to 9.0.1. ([\#1760](https://github.com/matrix-org/matrix-appservice-irc/issues/1760))
+
+
+1.0.0 (2023-06-09)
+==================
+
+**Note**: This release drops support for Node 16. The minimum required version is now 18+.
+
+Several changes were made since the previous RC, mostly fixes around our incoming [connection pooling](https://matrix-org.github.io/matrix-appservice-irc/latest/connection_pooling.html) feature. The feature is
+*still* considered unstable for the time being, so please be careful when trying it out.
+
+Features
+--------
+
+-  New PM rooms are configured to disable calls, reactions, redactions, and stickers;
+    as they could not be bridged anyway. ([\#1663](https://github.com/matrix-org/matrix-appservice-irc/issues/1663))
+- The bridge now logs the user performing plumb/unplumb operations for easy auditing. ([\#1738](https://github.com/matrix-org/matrix-appservice-irc/issues/1738))
+
+
+Bugfixes
+--------
+
+- Fix the bridge pooling so it supports TLS. ([\#1709](https://github.com/matrix-org/matrix-appservice-irc/issues/1709))
+- Fix setup widget failing to authenticate. ([\#1711](https://github.com/matrix-org/matrix-appservice-irc/issues/1711))
+- Sort the list of channels in !listrooms output. ([\#1715](https://github.com/matrix-org/matrix-appservice-irc/issues/1715))
+- Fix cases where the IRC bridge may erronously believe a user is not joined to a channel in pooling mode. ([\#1717](https://github.com/matrix-org/matrix-appservice-irc/issues/1717))
+- Allow usernames to include more characters when using the `!username` command. ([\#1719](https://github.com/matrix-org/matrix-appservice-irc/issues/1719))
+- Ensure that all passwords can be decrypted on startup, to detect any issues with the provided passkey. ([\#1720](https://github.com/matrix-org/matrix-appservice-irc/issues/1720))
+- Fixes cases where powerlevel changes may not be correctly applied upon mode change. ([\#1732](https://github.com/matrix-org/matrix-appservice-irc/issues/1732))
+- Fix a case where a proxied client connection may get missed until they use the bridge on startup, leading to missed
+  messages and logspam. ([\#1737](https://github.com/matrix-org/matrix-appservice-irc/issues/1737))
+
+
+1.0.0-rc1 (2023-04-28)
+======================
+
+**Note**: This release drops support for Node 16. The minimum required version is now 18+.
+
+Features
+--------
+
+- IRC connections can now be run via an external process using "connection pooling", allowing the bridge to be restarted without IRC connection loss. ([\#1669](https://github.com/matrix-org/matrix-appservice-irc/issues/1669))
+- Make bridgeInfoState configuration reloadable. ([\#1681](https://github.com/matrix-org/matrix-appservice-irc/issues/1681))
+- Bridge logging can now be hot-reloaded. ([\#1704](https://github.com/matrix-org/matrix-appservice-irc/issues/1704))
+
+
+Bugfixes
+--------
+
+- Fix not handling thread fallbacks as replies. ([\#1697](https://github.com/matrix-org/matrix-appservice-irc/issues/1697))
+- Show a helpful error for !link/!unlink admin failures, rather than "Check the logs for details", in more cases. ([\#1702](https://github.com/matrix-org/matrix-appservice-irc/issues/1702))
+- Fix documentation not being built and uploaded to GitHub pages on release. ([\#1703](https://github.com/matrix-org/matrix-appservice-irc/issues/1703))
+- Fix linking rooms from setup widget when a `networkId` is configured. ([\#1706](https://github.com/matrix-org/matrix-appservice-irc/issues/1706))
+
+
+Deprecations and Removals
+-------------------------
+
+- Add support for Node 20, and drop support for Node 16. ([\#1701](https://github.com/matrix-org/matrix-appservice-irc/issues/1701))
+
+
+Internal Changes
+----------------
+
+- Rename internal variable infoMapping to initialEvent. ([\#1672](https://github.com/matrix-org/matrix-appservice-irc/issues/1672))
+
+
+0.38.0 (2023-04-12)
+===================
+
+Bugfixes
+--------
+
+- Fix leak of secret channels (name, topic, and member count) to the public room directory due to a regressive refactor in a previous release. ([\#1660](https://github.com/matrix-org/matrix-appservice-irc/issues/1660), [\#1698](https://github.com/matrix-org/matrix-appservice-irc/issues/1698))
+- Fix unlink command showing an error. ([\#1692](https://github.com/matrix-org/matrix-appservice-irc/issues/1692))
+
+
+Internal Changes
+----------------
+
+- RoomAccessSyncer: Await processing of cached channel modes that changed. ([\#1620](https://github.com/matrix-org/matrix-appservice-irc/issues/1620))
+- Fix tests when running with 'yarnpkg link matrix-appservice-bridge'. ([\#1679](https://github.com/matrix-org/matrix-appservice-irc/issues/1679))
+- Add tests that cover publicity syncing behaviour. ([\#1698](https://github.com/matrix-org/matrix-appservice-irc/issues/1698))
+
+
+0.37.1 (2023-03-07)
+====================
+
+Bugfixes
+--------
+
+- Fix provisioning API base URL in setup widgets. ([\#1677](https://github.com/matrix-org/matrix-appservice-irc/issues/1677))
+
+
+Internal Changes
+----------------
+
+- Update matrix-appservice-bridge to `8.1.1`. ([\#1676](https://github.com/matrix-org/matrix-appservice-irc/issues/1676))
+
+0.37.0 (2023-02-08)
+===================
+
+Features
+--------
+
+- Add support for Node.JS 19. ([\#1646](https://github.com/matrix-org/matrix-appservice-irc/issues/1646))
+- Refactor provisioning API to use `matrix-appservice-bridge`, adding support for OpenID token auth among other improvements. ([\#1655](https://github.com/matrix-org/matrix-appservice-irc/issues/1655))
+- Add a UI in the form of a Matrix widget for linking and unlinking channels from a Matrix room. ([\#1656](https://github.com/matrix-org/matrix-appservice-irc/issues/1656))
+
+
+Bugfixes
+--------
+
+- Document 8090 to be the default port, to match the code's behaviour. ([\#1427](https://github.com/matrix-org/matrix-appservice-irc/issues/1427))
+- Fix the configured bind port being overridden in Docker. ([\#1654](https://github.com/matrix-org/matrix-appservice-irc/issues/1654))
+
+
+Internal Changes
+----------------
+
+- Update builder image for Freebind from Stretch (EOL) to Buster. ([\#1653](https://github.com/matrix-org/matrix-appservice-irc/issues/1653))
+
+0.36.0 (2022-10-25)
+===================
+
+Features
+--------
+
+* Support monospace formatting. ([\#1555](https://github.com/matrix-org/matrix-appservice-irc/issues/1555))
+
+
+Bugfixes
+--------
+
+- Disable metrics by default. ([\#1596](https://github.com/matrix-org/matrix-appservice-irc/issues/1596))
+- Fix distribution of IrcServer.randomDomain() which tended to pick domains with a lower index when there are a lot of addresses for a server. ([\#1612](https://github.com/matrix-org/matrix-appservice-irc/issues/1612))
+- Prevent runtime errors by provisisioning a room with a specific roomID. ([\#1614](https://github.com/matrix-org/matrix-appservice-irc/issues/1614))
+
+
+Improved Documentation
+----------------------
+
+- Fix typos in the documentation. ([\#1599](https://github.com/matrix-org/matrix-appservice-irc/issues/1599))
+- Update bridged networks doc to point towards GitHub issue [#1483](https://github.com/matrix-org/matrix-appservice-irc/issues/1483). ([\#1626](https://github.com/matrix-org/matrix-appservice-irc/issues/1626))
+
+
+Deprecations and Removals
+-------------------------
+
+- Breaking change: Raises the required NodeJS version to 16.
+  Fixes Room visibility setting being broken for appservice directories. ([\#1616](https://github.com/matrix-org/matrix-appservice-irc/issues/1616))
+- User activity tracking is now disabled by default, unless `userActivity` is enabled in the config. ([\#1638](https://github.com/matrix-org/matrix-appservice-irc/issues/1638))
+
+
+Internal Changes
+----------------
+
+- docker: prune dev dependencies from node_modules. ([\#1541](https://github.com/matrix-org/matrix-appservice-irc/issues/1541))
+- Logging: Use Map instead of object. ([\#1608](https://github.com/matrix-org/matrix-appservice-irc/issues/1608))
+- Refactor Logging: Increase explicit TypeScript types and safer loops. ([\#1609](https://github.com/matrix-org/matrix-appservice-irc/issues/1609))
+- Refactors: Reduce use of Bluebird, increase explicit types, use safer loops. ([\#1611](https://github.com/matrix-org/matrix-appservice-irc/issues/1611))
+- Replace uses of the deprecated String.prototype.substr(). ([\#1615](https://github.com/matrix-org/matrix-appservice-irc/issues/1615))
+- Add support for running tests against a real IRCd and Matrix homeserver in CI. ([\#1622](https://github.com/matrix-org/matrix-appservice-irc/issues/1622))
+- Update to matrix-appservice-bridge 6.0.0. ([\#1631](https://github.com/matrix-org/matrix-appservice-irc/issues/1631))
+
+
+0.35.1 (2022-09-26)
+===================
+
+Bugfixes
+--------
+
+- Prevent possible attack by provisisioning a room with a specific roomID. ([\#1619](https://github.com/matrix-org/matrix-appservice-irc/issues/1619))
+
+0.35.0 (2022-09-13)
+===================
+
+Features
+--------
+
+- Add new Debug API `/warnReapUsers` which allows bridges to send a warning to users when they are going to be idle reaped. ([\#1571](https://github.com/matrix-org/matrix-appservice-irc/issues/1571))
+
+
+Bugfixes
+--------
+
+- Truncated messages now default to wrapping URLs in angle brackets. ([\#1573](https://github.com/matrix-org/matrix-appservice-irc/issues/1573))
+
+
+Internal Changes
+----------------
+
+- Include the bridge version and homeserver in the `CTCP VERSION` response body. ([\#1559](https://github.com/matrix-org/matrix-appservice-irc/issues/1559))
+- BREAKING: Remove (IRC) as a default displayName suffix. ([\#1567](https://github.com/matrix-org/matrix-appservice-irc/issues/1567))
+- Update CONTRIBUTING.md ([\#1570](https://github.com/matrix-org/matrix-appservice-irc/issues/1570))
+- Add new CI workflow to check for signoffs. ([\#1585](https://github.com/matrix-org/matrix-appservice-irc/issues/1585))
+- Strongly type emitted events from the IRC client. ([\#1604](https://github.com/matrix-org/matrix-appservice-irc/issues/1604))
+
+
+0.34.0 (2022-05-04)
+===================
+
+This release fixes a High severity security vulnerability. See [the matrix blog](https://matrix.org/blog/2022/05/04/0-34-0-security-release-for-matrix-appservice-irc-high-severity) for more details.
+
+Internal Changes
+----------------
+
+- Updated node-irc to 1.2.1
+
+0.33.1 (2022-03-30)
+===================
+
+This release fixes a critical bug which would cause bans across the bridge when using the new ban list feature.
+
+Bugfixes
+--------
+
+- Fix an issue where synchronising a ban list would cause all users to get banned. ([\#1551](https://github.com/matrix-org/matrix-appservice-irc/issues/1551))
+
+
+Deprecations and Removals
+-------------------------
+
+- Remove several scripts in `scripts/` which were unmaintained and obsolete. ([\#1531](https://github.com/matrix-org/matrix-appservice-irc/issues/1531))
+
+
+Internal Changes
+----------------
+
+- Fix towncrier script for summarising the newsfiles. ([\#1549](https://github.com/matrix-org/matrix-appservice-irc/issues/1549))
+
+0.33.0 (2022-03-02)
+===================
+
+No significant changes.
+
+
+0.33.0-rc2 (2022-02-18)
+=======================
+
+Bugfixes
+--------
+
+- Fix a duplicate metric that would prevent the bridge from starting. ([\#1534](https://github.com/matrix-org/matrix-appservice-irc/issues/1534))
+
+
+0.33.0-rc1 (2022-02-17)
+=======================
+
+Features
+--------
+
+- Support splitting users from different homeservers into different IPv6 blocks. ([\#1514](https://github.com/matrix-org/matrix-appservice-irc/issues/1514))
+- Added a new metric `clientpool_by_homeserver` which lists the states of IRC clients, by the top 25 homeservers. ([\#1517](https://github.com/matrix-org/matrix-appservice-irc/issues/1517))
+- Add support for subscribing to moderation policy. See http://matrix-org.github.io/matrix-appservice-irc/administrators_guide.html#subscribing-to-moderation-policies for more information. ([\#1532](https://github.com/matrix-org/matrix-appservice-irc/issues/1532))
+
+
+Bugfixes
+--------
+
+- Matrix message edits no longer bridge as a diff if it's longer than the new message ([\#1477](https://github.com/matrix-org/matrix-appservice-irc/issues/1477))
+
+
+Improved Documentation
+----------------------
+
+- Update the list of bridged networks after hackint started offering a bridge once again. ([\#1501](https://github.com/matrix-org/matrix-appservice-irc/issues/1501))
+- Removed freenode from bridged networks. ([\#1523](https://github.com/matrix-org/matrix-appservice-irc/issues/1523))
+
+
+Deprecations and Removals
+-------------------------
+
+- The bridge will no longer treat invites without a `is_direct: true` as DM invites (and will henceforth reject group room invites). This may break some Matrix
+  clients that do not supply this metadata when creating a room. ([\#1506](https://github.com/matrix-org/matrix-appservice-irc/issues/1506))
+- **Minimum required Node version is now 14**. Users on Node 12 are advised to update to newer versions. ([\#1515](https://github.com/matrix-org/matrix-appservice-irc/issues/1515))
+
+
+Internal Changes
+----------------
+
+- Check changelog.d entries in CI. ([\#1527](https://github.com/matrix-org/matrix-appservice-irc/issues/1527))
+- Update various packages that were out of date. ([\#1530](https://github.com/matrix-org/matrix-appservice-irc/issues/1530))
+
+
+0.32.1 (2021-10-25)
+====================
+
+Bugfixes
+--------
+
+- Fix a regression that prevented the bridge to run for multiple networks ([\#1491](https://github.com/matrix-org/matrix-appservice-irc/issues/1491))
+
+
+0.32.0 (2021-10-18)
+====================
+
+No significant changes.
+
+
+0.32.0-rc2 (2021-10-15)
+========================
+
+Bugfixes
+--------
+
+- Fix an issue where the bridge would excessively log state event content ([\#1487](https://github.com/matrix-org/matrix-appservice-irc/issues/1487))
+
+
+0.32.0-rc1 (2021-10-08)
+========================
+
+Features
+--------
+
+- Add optional bridge blocking upon exceeding a monthly active user limit ([\#1472](https://github.com/matrix-org/matrix-appservice-irc/issues/1472))
+- **Breaking**: Upgrade to `matrix-appservice-bridge` 3.1.0.
+
+  This change removes the `ruleFile` option from the config, and replaces it with `rules`. See `config.sample.yaml` for an example. ([\#1485](https://github.com/matrix-org/matrix-appservice-irc/issues/1485))
+
+
+0.31.0 (2021-09-20)
+========================
+
+Bugfixes
+--------
+
+- Fixed an issue where bridges using the NEdB datastore would still erroneously require IRC usernames to be unique. ([\#1471](https://github.com/matrix-org/matrix-appservice-irc/issues/1471))
+- Fixed a bug where `!help` in an admin room would not show admin commands. ([\#1478](https://github.com/matrix-org/matrix-appservice-irc/issues/1478))
+- Fix an edgecase where an nickname was not always set right for matrix users in PMs ([\#1479](https://github.com/matrix-org/matrix-appservice-irc/issues/1479))
+
+
+0.31.0-rc1 (2021-08-23)
+========================
+
+Features
+--------
+
+- Render Matrix message edits as sed-like diff statements, falling back to asterisk formatted messages ([\#1465](https://github.com/matrix-org/matrix-appservice-irc/issues/1465))
+
+
+Bugfixes
+--------
+
+- Make sure we don't exceed the line limit when trimming long messages ([\#1459](https://github.com/matrix-org/matrix-appservice-irc/issues/1459))
+- Make sure Matrix notice messages are also pastebinned when they exceed the line limit for IRC. ([\#1461](https://github.com/matrix-org/matrix-appservice-irc/issues/1461))
+- Fallback to sending an invite as a bot if the regular invite fails ([\#1467](https://github.com/matrix-org/matrix-appservice-irc/issues/1467))
+
+
+Improved Documentation
+----------------------
+
+- Replace HOWTO.md with a link to our hosted documentation, and generally improve documentation wording. ([\#1458](https://github.com/matrix-org/matrix-appservice-irc/issues/1458))
+
+
+Internal Changes
+----------------
+
+- Remove extra `encodingFallback` from sample config. ([\#1468](https://github.com/matrix-org/matrix-appservice-irc/issues/1468))
+
+
+0.30.0 (2021-08-18)
 ====================
 
 No significant changes.

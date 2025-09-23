@@ -14,8 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MatrixRoom, MatrixUser, RoomBridgeStoreEntry as Entry} from "matrix-appservice-bridge";
-import Bluebird from "bluebird";
+import {
+    MatrixRoom,
+    MatrixUser,
+    ProvisioningStore,
+    RoomBridgeStoreEntry as Entry,
+    UserActivity,
+    UserActivitySet,
+} from "matrix-appservice-bridge";
+import { MatrixDirectoryVisibility } from "../bridge/IrcHandler";
 import { IrcRoom } from "../models/IrcRoom";
 import { IrcClientConfig } from "../models/IrcClientConfig";
 import { IrcServer, IrcServerConfig } from "../irc/IrcServer";
@@ -31,7 +38,7 @@ export interface UserFeatures {
     [name: string]: boolean|undefined;
 }
 
-export interface DataStore {
+export interface DataStore extends ProvisioningStore {
     setServerFromConfig(server: IrcServer, serverConfig: IrcServerConfig): Promise<void>;
 
     /**
@@ -71,7 +78,7 @@ export interface DataStore {
      * @return {Promise} A promise which resolves to a list
      * of entries.
      */
-    getProvisionedMappings(roomId: string): Bluebird<Entry[]>;
+    getProvisionedMappings(roomId: string): Promise<Entry[]>;
 
     /**
      * Remove an IRC <--> Matrix room mapping from the database.
@@ -132,9 +139,9 @@ export interface DataStore {
 
     removeConfigMappings(): Promise<void>;
 
-    getIpv6Counter(): Promise<number>;
+    getIpv6Counter(server: IrcServer, homeserver: string|null): Promise<number>;
 
-    setIpv6Counter(counter: number): Promise<void>;
+    setIpv6Counter(counter: number, server: IrcServer, homeserver: string|null): Promise<void>;
 
     getAdminRoomById(roomId: string): Promise<MatrixRoom|null>;
 
@@ -152,11 +159,17 @@ export interface DataStore {
 
     storeIrcClientConfig(config: IrcClientConfig): Promise<void>;
 
+    ensurePasskeyCanDecrypt(): Promise<void>;
+
     getMatrixUserByLocalpart(localpart: string): Promise<MatrixUser|null>;
 
     getUserFeatures(userId: string): Promise<UserFeatures>;
 
     storeUserFeatures(userId: string, features: UserFeatures): Promise<void>;
+
+    getUserActivity(): Promise<UserActivitySet>;
+
+    storeUserActivity(userId: string, activity: UserActivity): Promise<void>;
 
     storePass(userId: string, domain: string, pass: string): Promise<void>;
 
@@ -174,7 +187,7 @@ export interface DataStore {
 
     getAllUserIds(): Promise<string[]>;
 
-    getRoomsVisibility(roomIds: string[]): Promise<{[roomId: string]: "public"|"private"}>;
+    getRoomsVisibility(roomIds: string[]): Promise<Map<string, MatrixDirectoryVisibility>>;
 
     setRoomVisibility(roomId: string, vis: "public"|"private"): Promise<void>;
 

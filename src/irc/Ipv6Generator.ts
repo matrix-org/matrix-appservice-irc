@@ -18,24 +18,33 @@ import { Queue } from "../util/Queue";
 import { getLogger } from "../logging";
 import { DataStore } from "../datastore/DataStore";
 import { IrcClientConfig } from "../models/IrcClientConfig";
+import { IrcServer } from "./IrcServer";
+import { MatrixUser } from "matrix-appservice-bridge";
 
 const log = getLogger("Ipv6Generator");
 
 export class Ipv6Generator {
-    private counter = -1;
-    private queue: Queue<{prefix: string; ircClientConfig: IrcClientConfig}>;
+    private counter = new Map<string, number>();
+    private queue: Queue<{prefix: string; ircClientConfig: IrcClientConfig, server: IrcServer}>;
     constructor (private readonly dataStore: DataStore) {
         // Queue of ipv6 generation requests.
         // We need to queue them because otherwise 2 clashing user_ids could be assigned
         // the same ipv6 value (won't be in the database yet)
         this.queue = new Queue((item) => {
-            return this.process(item.prefix, item.ircClientConfig);
+            return this.process(item.prefix, item.ircClientConfig, item.server);
         });
     }
 
-    // debugging: util.inspect()
-    public inspect () {
-        return `IPv6Counter=${this.counter},Queue.length=${this.queue.size}`;
+    public getCounterKey(userId: string|null, server: IrcServer) {
+        if (!userId) {
+            // Bot uses the global pool.
+            return server.domain;
+        }
+        const homeserver = new MatrixUser(userId).host;
+        if (server.getIpv6BlockForHomeserver(homeserver)) {
+            return `${server.domain}/${homeserver}`;
+        }
+        return server.domain;
     }
 
     /**
@@ -45,45 +54,63 @@ export class Ipv6Generator {
      * @return {Promise} Resolves to the IPv6 address generated; the IPv6 address will
      * already be set on the given config.
      */
-    public async generate (prefix: string, ircClientConfig: IrcClientConfig): Promise<string> {
+    public async generate (prefix: string, ircClientConfig: IrcClientConfig, server: IrcServer): Promise<string> {
         const existingAddress = ircClientConfig.getIpv6Address();
+        const userId = ircClientConfig.getUserId();
         if (existingAddress) {
-            log.info(
+            log.debug(
                 "Using existing IPv6 address %s for %s",
                 existingAddress,
-                ircClientConfig.getUserId()
+                userId,
             );
             return existingAddress;
         }
-        if (this.counter === -1) {
-            log.info("Retrieving counter...");
-            this.counter = await this.dataStore.getIpv6Counter();
-        }
-
         // the bot user will not have a user ID
         const id = ircClientConfig.getUserId() || ircClientConfig.getUsername();
         if (!id) {
             throw Error("Neither a userId or username were provided to generate.");
         }
-        log.info("Enqueueing IPv6 generation request for %s", id);
+        log.debug("Enqueueing IPv6 generation request for %s", id);
         return (await this.queue.enqueue(id, {
             prefix: prefix,
-            ircClientConfig: ircClientConfig
+            ircClientConfig: ircClientConfig,
+            server: server,
         })) as string;
     }
 
-    public async process (prefix: string, ircClientConfig: IrcClientConfig) {
-        this.counter += 1;
+    public async process (prefix: string, ircClientConfig: IrcClientConfig, server: IrcServer) {
+        const userId = ircClientConfig.getUserId();
+        const homeserver = userId && new MatrixUser(userId).host;
+        const counterKey = this.getCounterKey(userId, server);
+        const isInBlock = !!(homeserver && server.getIpv6BlockForHomeserver(homeserver));
+        let counter = this.counter.get(counterKey);
+        // This function should never be called asyncronously, as it's backed by a queue.
+        // We should be safe to pull out counter values here.
+        if (typeof counter !== "number") {
+            log.debug(`Retrieving counter ${counterKey}`);
+            counter = await this.dataStore.getIpv6Counter(server, isInBlock ? homeserver : null);
+            this.counter.set(counterKey, counter);
+        }
+        counter += 1;
+        this.counter.set(counterKey, counter);
+        let ipv6CounterSuffix: number = counter;
+        if (homeserver) {
+            // If this homeserver has been put in a special block, append
+            // the start range to the counter.
+            const block = server.getIpv6BlockForHomeserver(homeserver);
+            if (block) {
+                ipv6CounterSuffix = counter + parseInt(block.replace(/:/g, ''), 16);
+            }
+        }
 
         // insert : every 4 characters from the end of the string going to the start
         // e.g. 1a2b3c4d5e6 => 1a2:b3c4:d5e6
-        const suffix = this.counter.toString(16).replace(/\B(?=(.{4})+(?!.))/g, ':');
+        const suffix = ipv6CounterSuffix.toString(16).replace(/\B(?=(.{4})+(?!.))/g, ':');
         const address = prefix + suffix;
 
         let config = ircClientConfig;
         config.setIpv6Address(address);
 
-        const userId = ircClientConfig.getUserId();
         // we only want to persist the IPv6 address for real matrix users
         if (userId) {
             const existingConfig = await this.dataStore.getIrcClientConfig(
@@ -98,7 +125,7 @@ export class Ipv6Generator {
             await this.dataStore.storeIrcClientConfig(config);
         }
 
-        await this.dataStore.setIpv6Counter(this.counter);
+        await this.dataStore.setIpv6Counter(counter, server, isInBlock ? homeserver : null);
         return config.getIpv6Address();
     }
 }
