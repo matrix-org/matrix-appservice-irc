@@ -9,6 +9,7 @@ import logging from "../logging";
 import { IrcRoom } from "../models/IrcRoom";
 import * as promiseutil from "../promiseutil";
 import { BridgeRequest } from "../models/BridgeRequest";
+import { APIRoomStateEvent } from "@vector-im/matrix-bot-sdk";
 
 const log = logging("MemberListSyncer");
 const LEAVE_TTL_MS = 30 * 60 * 1000; // 30 mins

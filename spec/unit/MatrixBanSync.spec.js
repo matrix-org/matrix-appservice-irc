@@ -1,4 +1,4 @@
-const { MatrixGlob } = require("matrix-bot-sdk");
+const { MatrixGlob } = require("@vector-im/matrix-bot-sdk");
 const { MatrixBanSync } = require("../../lib/bridge/MatrixBanSync");
 
 const BANNED_USER_STATE_EVENT = {

@@ -32,6 +32,7 @@ import {
     isValidUnlinkBody,
 } from "./Schema";
 import { IrcBridge } from "../bridge/IrcBridge";
+import { APIRoomStateEvent } from "@vector-im/matrix-bot-sdk";
 
 const log = logging("Provisioner");
 

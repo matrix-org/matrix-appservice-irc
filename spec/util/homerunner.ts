@@ -1,4 +1,4 @@
-import { MatrixClient } from "matrix-bot-sdk";
+import { MatrixClient } from "@vector-im/matrix-bot-sdk";
 import { createHash, createHmac } from "crypto";
 import { Homerunner } from "homerunner-client";
 import { default as crossFetch } from 'cross-fetch';

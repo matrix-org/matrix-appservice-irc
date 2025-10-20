@@ -806,14 +806,6 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@matrix-org/matrix-sdk-crypto-nodejs@0.1.0-beta.11":
-  version "0.1.0-beta.11"
-  resolved "https://registry.yarnpkg.com/@matrix-org/matrix-sdk-crypto-nodejs/-/matrix-sdk-crypto-nodejs-0.1.0-beta.11.tgz#537cd7a7bbce1d9745b812a5a7ffa9a5944e146c"
-  integrity sha512-z5adcQo4o0UAry4zs6JHGxbTDlYTUMKUfpOpigmso65ETBDumbeTSQCWRw8UeUV7aCAyVoHARqDTol9SrauEFA==
-  dependencies:
-    https-proxy-agent "^5.0.1"
-    node-downloader-helper "^2.1.5"
-
 "@matrix-org/matrix-sdk-crypto-nodejs@0.4.0-beta.1":
   version "0.4.0-beta.1"
   resolved "https://registry.yarnpkg.com/@matrix-org/matrix-sdk-crypto-nodejs/-/matrix-sdk-crypto-nodejs-0.4.0-beta.1.tgz#2f467de06779010d45ed616cd02f2ae50cfc2646"
@@ -1098,16 +1090,6 @@
   version "4.17.21"
   resolved "https://registry.yarnpkg.com/@types/express/-/express-4.17.21.tgz#c26d4a151e60efe0084b23dc3369ebc631ed192d"
   integrity sha512-ejlPM315qwLpaQlQDTjPdsUFSc6ZsP4AN6AlWnogPjQ7CVi7PYF3YVz+CY3jE2pwYf7E/7HlDAN0rV2GxTG0HQ==
-  dependencies:
-    "@types/body-parser" "*"
-    "@types/express-serve-static-core" "^4.17.33"
-    "@types/qs" "*"
-    "@types/serve-static" "*"
-
-"@types/express@^4.17.20":
-  version "4.17.23"
-  resolved "https://registry.yarnpkg.com/@types/express/-/express-4.17.23.tgz#35af3193c640bfd4d7fe77191cd0ed411a433bef"
-  integrity sha512-Crp6WY9aTYP3qPi2wGDo9iUe/rceX01UMhnF1jmwDcKCFM6cx7YhGP/Mpr3y9AASpfHixIG0E6azCcL5OcDHsQ==
   dependencies:
     "@types/body-parser" "*"
     "@types/express-serve-static-core" "^4.17.33"
@@ -1431,7 +1413,7 @@
   resolved "https://registry.yarnpkg.com/@ungap/structured-clone/-/structured-clone-1.2.0.tgz#756641adb587851b5ccb3e095daf27ae581c8406"
   integrity sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==
 
-"@vector-im/matrix-bot-sdk@^0.7.1-element.11":
+"@vector-im/matrix-bot-sdk@0.7.1-element.15":
   version "0.7.1-element.15"
   resolved "https://registry.yarnpkg.com/@vector-im/matrix-bot-sdk/-/matrix-bot-sdk-0.7.1-element.15.tgz#328b53bc994710a01258290f0c45ee72a5df9982"
   integrity sha512-tuHAL6kiO6R9V2IaGz+C/g1R+ptJ9At+zZjnod+DQdyLRjFaZeDzuH0f6fij7Zq3idUzLJ5jS3JBxMmTblsiZw==
@@ -1498,13 +1480,6 @@ acorn@^8.4.1, acorn@^8.9.0:
   version "8.11.3"
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.11.3.tgz#71e0b14e13a4ec160724b38fb7b0f233b1b81d7a"
   integrity sha512-Y9rRfJG5jcKOE0CLisYbojUjIrIEE7AGMzA/Sm4BslANhbS+cDMpgBdcPT91oJ7OuJ9hYJBx59RjbhxVnrF8Xg==
-
-agent-base@6:
-  version "6.0.2"
-  resolved "https://registry.yarnpkg.com/agent-base/-/agent-base-6.0.2.tgz#49fff58577cfee3f37176feab4c22e00f86d7f77"
-  integrity sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==
-  dependencies:
-    debug "4"
 
 agent-base@^7.1.2:
   version "7.1.4"
@@ -3018,43 +2993,6 @@ express-rate-limit@^7.1.5:
   resolved "https://registry.yarnpkg.com/express-rate-limit/-/express-rate-limit-7.2.0.tgz#06ce387dd5388f429cab8263c514fc07bf90a445"
   integrity sha512-T7nul1t4TNyfZMJ7pKRKkdeVJWa2CqB8NA1P8BwYaoDI5QSBZARv5oMS43J7b7I5P+4asjVXjb7ONuwDKucahg==
 
-express@^4.18.1, express@^4.21.2:
-  version "4.21.2"
-  resolved "https://registry.yarnpkg.com/express/-/express-4.21.2.tgz#cf250e48362174ead6cea4a566abef0162c1ec32"
-  integrity sha512-28HqgMZAmih1Czt9ny7qr6ek2qddF4FclbMzwhCREB6OFfH+rXAnuNCwo1/wFvrtbgsQDb4kSbX9de9lFbrXnA==
-  dependencies:
-    accepts "~1.3.8"
-    array-flatten "1.1.1"
-    body-parser "1.20.3"
-    content-disposition "0.5.4"
-    content-type "~1.0.4"
-    cookie "0.7.1"
-    cookie-signature "1.0.6"
-    debug "2.6.9"
-    depd "2.0.0"
-    encodeurl "~2.0.0"
-    escape-html "~1.0.3"
-    etag "~1.8.1"
-    finalhandler "1.3.1"
-    fresh "0.5.2"
-    http-errors "2.0.0"
-    merge-descriptors "1.0.3"
-    methods "~1.1.2"
-    on-finished "2.4.1"
-    parseurl "~1.3.3"
-    path-to-regexp "0.1.12"
-    proxy-addr "~2.0.7"
-    qs "6.13.0"
-    range-parser "~1.2.1"
-    safe-buffer "5.2.1"
-    send "0.19.0"
-    serve-static "1.16.2"
-    setprototypeof "1.2.0"
-    statuses "2.0.1"
-    type-is "~1.6.18"
-    utils-merge "1.0.1"
-    vary "~1.1.2"
-
 express@^4.18.2:
   version "4.19.2"
   resolved "https://registry.yarnpkg.com/express/-/express-4.19.2.tgz#e25437827a3aa7f2a827bc8171bbbb664a356465"
@@ -3086,6 +3024,43 @@ express@^4.18.2:
     safe-buffer "5.2.1"
     send "0.18.0"
     serve-static "1.15.0"
+    setprototypeof "1.2.0"
+    statuses "2.0.1"
+    type-is "~1.6.18"
+    utils-merge "1.0.1"
+    vary "~1.1.2"
+
+express@^4.21.2:
+  version "4.21.2"
+  resolved "https://registry.yarnpkg.com/express/-/express-4.21.2.tgz#cf250e48362174ead6cea4a566abef0162c1ec32"
+  integrity sha512-28HqgMZAmih1Czt9ny7qr6ek2qddF4FclbMzwhCREB6OFfH+rXAnuNCwo1/wFvrtbgsQDb4kSbX9de9lFbrXnA==
+  dependencies:
+    accepts "~1.3.8"
+    array-flatten "1.1.1"
+    body-parser "1.20.3"
+    content-disposition "0.5.4"
+    content-type "~1.0.4"
+    cookie "0.7.1"
+    cookie-signature "1.0.6"
+    debug "2.6.9"
+    depd "2.0.0"
+    encodeurl "~2.0.0"
+    escape-html "~1.0.3"
+    etag "~1.8.1"
+    finalhandler "1.3.1"
+    fresh "0.5.2"
+    http-errors "2.0.0"
+    merge-descriptors "1.0.3"
+    methods "~1.1.2"
+    on-finished "2.4.1"
+    parseurl "~1.3.3"
+    path-to-regexp "0.1.12"
+    proxy-addr "~2.0.7"
+    qs "6.13.0"
+    range-parser "~1.2.1"
+    safe-buffer "5.2.1"
+    send "0.19.0"
+    serve-static "1.16.2"
     setprototypeof "1.2.0"
     statuses "2.0.1"
     type-is "~1.6.18"
@@ -3660,14 +3635,6 @@ http-signature@~1.2.0:
     assert-plus "^1.0.0"
     jsprim "^1.2.2"
     sshpk "^1.7.0"
-
-https-proxy-agent@^5.0.1:
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/https-proxy-agent/-/https-proxy-agent-5.0.1.tgz#c59ef224a04fe8b754f3db0063a25ea30d0005d6"
-  integrity sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==
-  dependencies:
-    agent-base "6"
-    debug "4"
 
 https-proxy-agent@^7.0.5:
   version "7.0.6"
@@ -4557,7 +4524,7 @@ js-yaml@^3.13.1:
     argparse "^1.0.7"
     esprima "^4.0.0"
 
-js-yaml@^4.0.0, js-yaml@^4.1.0:
+js-yaml@^4.1.0:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-4.1.0.tgz#c1fb65f8f5017901cdd2c951864ba18458a10602"
   integrity sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==
@@ -4832,22 +4799,22 @@ math-intrinsics@^1.1.0:
   resolved "https://registry.yarnpkg.com/math-intrinsics/-/math-intrinsics-1.1.0.tgz#a0dd74be81e2aa5c2f27e65ce283605ee4e2b7f9"
   integrity sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==
 
-matrix-appservice-bridge@^10.2.2:
-  version "10.3.3"
-  resolved "https://registry.yarnpkg.com/matrix-appservice-bridge/-/matrix-appservice-bridge-10.3.3.tgz#7957cedee6b4e70b02ce837fdd8164b7ebbe8fd4"
-  integrity sha512-zgrCvc6ZJhtQQZQ5N8MJPQ3tatYkTqQXWo9KIQndtmOFTFaFPHHbP0bGnL96YPsc+5nI6HU6npCyoHzJtEfN1g==
+matrix-appservice-bridge@^11.1.0:
+  version "11.1.0"
+  resolved "https://registry.yarnpkg.com/matrix-appservice-bridge/-/matrix-appservice-bridge-11.1.0.tgz#d823e6a0c2bac9256593068be3653dc1698a7423"
+  integrity sha512-tcE9prPEOLjT1bpcCBRXBfrLMCa2mJZ3HgN4nPySQitisQoyQvqkLt371SfuWmHRIwp3dYg0ILgC0efXjikbVw==
   dependencies:
     "@alloc/quick-lru" "^5.2.0"
     "@types/nedb" "^1.8.16"
-    "@vector-im/matrix-bot-sdk" "^0.7.1-element.11"
+    "@vector-im/matrix-bot-sdk" "0.7.1-element.15"
     chalk "^4.1.0"
     express "^4.18.2"
     express-rate-limit "^7.1.5"
     extend "^3.0.2"
     ip-cidr "^3.0.0"
     is-my-json-valid "^2.20.5"
-    js-yaml "^4.0.0"
-    matrix-appservice "^2.0.0"
+    js-yaml "^4.1.0"
+    matrix-appservice "^3.0.0"
     nopt "^5.0.0"
     p-queue "^6.6.2"
     pkginfo "^0.4.1"
@@ -4856,39 +4823,15 @@ matrix-appservice-bridge@^10.2.2:
     winston "^3.11.0"
     winston-daily-rotate-file "^4.5.1"
 
-matrix-appservice@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/matrix-appservice/-/matrix-appservice-2.0.0.tgz#74b58e27477b4c1359da7c61878b7d18c6075261"
-  integrity sha512-HCIuJ5i0YuO8b0dMyGe5dqlsE4f3RzHU0MuMg/2gGAZ4HL3r7aSWOFbyIWStSSUrk1qCa9Eml0i4EnEi0pOtdA==
+matrix-appservice@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/matrix-appservice/-/matrix-appservice-3.0.0.tgz#cd5a68fb1f8b88780a829f752d1c20df5514c3f8"
+  integrity sha512-E5NMb4jtDnuXtPIHnLZ9RciLPPROzt94yPzuDsCXPKCRHhKpUQh6Ik6mPYM3fOMIGZ4sHxUtKdyJwP3Y+HVCVg==
   dependencies:
     body-parser "^1.19.0"
-    express "^4.18.1"
+    express "^4.18.2"
     js-yaml "^4.1.0"
     morgan "^1.10.0"
-
-"matrix-bot-sdk@npm:@vector-im/matrix-bot-sdk@^0.7.0-element.1":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@vector-im/matrix-bot-sdk/-/matrix-bot-sdk-0.7.0.tgz#7164a889202deae0fe9ee84c011e0e069d6720e6"
-  integrity sha512-+stzb0xnxjY7mxG3wkSP2944rXacFYAcg2Enb/TAz9p+mwjI9ffDnFRkSkwq4+MeQC0W4GcwOl+5wcr/9v+oTQ==
-  dependencies:
-    "@matrix-org/matrix-sdk-crypto-nodejs" "0.1.0-beta.11"
-    "@types/express" "^4.17.20"
-    another-json "^0.2.0"
-    async-lock "^1.4.0"
-    chalk "4"
-    express "^4.18.2"
-    glob-to-regexp "^0.4.1"
-    hash.js "^1.1.7"
-    html-to-text "^9.0.5"
-    htmlencode "^0.0.4"
-    lowdb "1"
-    lru-cache "^10.0.1"
-    mkdirp "^3.0.1"
-    morgan "^1.10.0"
-    postgres "^3.4.1"
-    request "^2.88.2"
-    request-promise "^4.2.6"
-    sanitize-html "^2.11.0"
 
 matrix-org-irc@^3.1.0:
   version "3.1.0"
@@ -5092,7 +5035,7 @@ negotiator@0.6.3:
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.3.tgz#58e323a72fedc0d6f9cd4d31fe49f51479590ccd"
   integrity sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==
 
-node-downloader-helper@^2.1.5, node-downloader-helper@^2.1.9:
+node-downloader-helper@^2.1.9:
   version "2.1.9"
   resolved "https://registry.yarnpkg.com/node-downloader-helper/-/node-downloader-helper-2.1.9.tgz#a59ee7276b2bf708bbac2cc5872ad28fc7cd1b0e"
   integrity sha512-FSvAol2Z8UP191sZtsUZwHIN0eGoGue3uEXGdWIH5228e9KH1YHXT7fN8Oa33UGf+FbqGTQg3sJfrRGzmVCaJA==
