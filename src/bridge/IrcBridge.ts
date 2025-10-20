@@ -1582,20 +1582,20 @@ export class IrcBridge {
                 // We may not have permissions to do so, which means we are basically stuffed.
                 log.warn(`Could not send m.room.bridging event to new room: ${ex}`);
             }
-        }
-        if (bridgeInfoEvent) {
-            try {
-                await this.bridge.getIntent().sendStateEvent(
-                    newRoomId,
-                    bridgeInfoEvent.type,
-                    bridgingEvent.state_key,
-                    bridgingEvent.content
-                );
-                log.info("Bridge info event copied to new room");
-            }
-            catch (ex) {
-                // We may not have permissions to do so, which means we are basically stuffed.
-                log.warn(`Could not send bridge info event to new room: ${ex}`);
+            if (bridgeInfoEvent) {
+                try {
+                    await this.bridge.getIntent().sendStateEvent(
+                        newRoomId,
+                        bridgeInfoEvent.type,
+                        bridgingEvent.state_key,
+                        bridgingEvent.content
+                    );
+                    log.info("Bridge info event copied to new room");
+                }
+                catch (ex) {
+                    // We may not have permissions to do so, which means we are basically stuffed.
+                    log.warn(`Could not send bridge info event to new room: ${ex}`);
+                }
             }
         }
         log.info("Migrating ghosts");

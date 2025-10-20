@@ -1021,7 +1021,7 @@ export class Provisioner extends ProvisioningApi {
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         const asBot = this.ircBridge.getAppServiceBridge().getBot();
         for (let i = 0; i < matrixRooms.length; i++) {
-            let stateEvents = [];
+            let stateEvents: APIRoomStateEvent[] = [];
             try {
                 stateEvents = await intent.matrixClient.getRoomState(matrixRooms[i].getId());
             }
