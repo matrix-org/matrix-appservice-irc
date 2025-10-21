@@ -22,7 +22,7 @@ jobs:
           PULL_REQUEST_NUMBER: ${{ github.event.number }}
 
   lint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container: node:22
     steps:
       - uses: actions/checkout@v3
@@ -30,7 +30,7 @@ jobs:
       - run: yarn lint
 
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js
@@ -41,7 +41,7 @@ jobs:
       - run: yarn test
 
   test-postgres:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container: node:22
     services:
       postgres:
