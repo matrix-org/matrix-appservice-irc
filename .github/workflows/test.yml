@@ -23,26 +23,37 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
-    container: node:22
+    strategy:
+      matrix:
+        node_version: [ 22, 24 ]
     steps:
       - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node_version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node_version }}
       - run: yarn --strict-semver --frozen-lockfile
       - run: yarn lint
 
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node_version: [ 22, 24 ]
     steps:
       - uses: actions/checkout@v3
-      - name: Use Node.js
+      - name: Use Node.js ${{ matrix.node_version }}
         uses: actions/setup-node@v3
         with:
-          node-version-file: .node-version
+          node-version: ${{ matrix.node_version }}
       - run: yarn --strict-semver --frozen-lockfile
       - run: yarn test
 
   test-postgres:
     runs-on: ubuntu-latest
-    container: node:22
+    strategy:
+      matrix:
+        node_version: [ 22, 24 ]
     services:
       postgres:
         image: postgres:latest
@@ -60,9 +71,13 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node_version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node_version }}
       - run: yarn --strict-semver --frozen-lockfile
       - run: yarn test
         env:
           IRCBRIDGE_TEST_PGDB: "ircbridge_integtest"
-          IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@postgres"
+          IRCBRIDGE_TEST_PGURL: "postgresql://postgres_user:postgres_password@localhost"
           IRCBRIDGE_TEST_ENABLEPG: "yes"
