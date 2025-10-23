@@ -1,6 +1,7 @@
 "use strict";
-const { IrcServer } = require("../../lib/irc/IrcServer");
-const extend = require("extend");
+import { IrcServer } from "../../lib/irc/IrcServer";
+import extend from "extend";
+
 describe("IrcServer", function() {
     describe("getQuitDebounceDelay", () => {
         it("should get a random period between min and max", () => {

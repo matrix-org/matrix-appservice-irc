@@ -1,4 +1,4 @@
-const envBundle = require("../util/env-bundle");
+import envBundle from "../util/env-bundle";
 
 describe("Creating admin rooms", () => {
     const {env, roomMapping, botUserId, test} = envBundle();

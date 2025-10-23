@@ -1,5 +1,5 @@
 "use strict";
-const { BridgedClient, BridgedClientStatus } = require("../../lib/irc/BridgedClient.js");
+import { BridgedClient, BridgedClientStatus } from "../../lib/irc/BridgedClient.js";
 
 const STATE_DISC = {
     status: BridgedClientStatus.DISCONNECTED

@@ -1,5 +1,5 @@
 "use strict";
-const { messageDiff } = require("../../lib/util/MessageDiff.js");
+import { messageDiff } from "../../lib/util/MessageDiff.js";
 
 describe('messageDiff', function() {
     [

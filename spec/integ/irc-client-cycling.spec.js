@@ -2,7 +2,7 @@
  * Tests client-cycling options work correctly.
  */
 "use strict";
-const envBundle = require("../util/env-bundle");
+import envBundle from "../util/env-bundle";
 
 
 describe("IRC client cycling", () => {

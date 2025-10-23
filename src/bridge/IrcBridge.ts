@@ -1103,7 +1103,7 @@ export class IrcBridge {
                 await client.joinChannel(ircRoom.channel);
                 await new Promise(r => setTimeout(r, ircRoom.server.getMemberListFloodDelayMs()));
             }
-            catch (ex) {
+            catch {
                 if (!kickFailures) {
                     req.log.warn(`Failed to sync ${userId} to IRC channel`);
                     continue;
@@ -1138,7 +1138,7 @@ export class IrcBridge {
                 return matrixUser;
             }
         }
-        catch (e) {
+        catch {
             // user does not exist. Fall through.
         }
 
@@ -1490,7 +1490,7 @@ export class IrcBridge {
         try {
             await client.joinChannel(ircRoom.channel);
         }
-        catch (ex) {
+        catch {
             log.error("Bot failed to join channel %s", ircRoom.channel);
         }
     }

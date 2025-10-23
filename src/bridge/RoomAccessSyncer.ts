@@ -80,7 +80,7 @@ export class RoomAccessSyncer {
             this.powerLevelsForRoom[roomId] = state;
             return state;
         }
-        catch (ex) {
+        catch {
             log.warn("Failed to get power levels for ", roomId);
             return null;
         }

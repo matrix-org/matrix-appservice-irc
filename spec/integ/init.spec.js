@@ -2,7 +2,7 @@
  * Contains integration tests for all Startup-initiated events.
  */
 
-const envBundle = require("../util/env-bundle");
+import envBundle from "../util/env-bundle";
 
 describe("Initialisation", () => {
     const {env, roomMapping, test} = envBundle();

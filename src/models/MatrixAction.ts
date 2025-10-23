@@ -16,7 +16,7 @@ limitations under the License.
 
 import { IrcAction } from "./IrcAction";
 
-import ircFormatting = require("../irc/formatting");
+import * as ircFormatting from "../irc/formatting";
 import { Intent, MediaProxy } from "matrix-appservice-bridge";
 import escapeStringRegexp from "escape-string-regexp";
 import logging from "../logging";
@@ -164,7 +164,7 @@ export class MatrixAction {
             try {
                 identifier = (await intent.getProfileInfo(userId, 'displayname', true)).displayname || undefined;
             }
-            catch (e) {
+            catch {
                 // This shouldn't happen, but let's not fail to match if so.
             }
 

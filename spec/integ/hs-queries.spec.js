@@ -1,4 +1,4 @@
-const envBundle = require("../util/env-bundle");
+import envBundle from "../util/env-bundle";
 
 describe("Homeserver user queries", () => {
     const {env, config, roomMapping, test} = envBundle();

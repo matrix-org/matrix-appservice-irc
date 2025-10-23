@@ -1,8 +1,7 @@
 /*
  * Contains integration tests for IRC mode events.
  */
-const envBundle = require("../util/env-bundle");
-
+import envBundle from "../util/env-bundle";
 
 describe("IRC-to-Matrix mode bridging", () => {
 

@@ -1,5 +1,5 @@
 "use strict";
-const { trimString } = require("../../lib/util/TrimString.js");
+import { trimString } from "../../lib/util/TrimString.js";
 
 describe("trimString", function() {
     it("should not cut unicode characters in half", () => {

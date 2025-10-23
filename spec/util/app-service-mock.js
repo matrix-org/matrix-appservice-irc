@@ -1,8 +1,9 @@
 "use strict";
-const EventEmitter = require("events");
-const util = require("util");
-const { createRequest, createResponse } = require("node-mocks-http");
-const config = require("./test-config.json");
+import EventEmitter from "events";
+import util from "util";
+import { createRequest, createResponse } from "node-mocks-http";
+import config from "./test-config.json";
+
 var instance = null;
 
 function MockAppService() {
@@ -137,4 +138,4 @@ MockAppServiceProxy.resetInstance = function() {
     instance = null;
 };
 
-module.exports = MockAppServiceProxy;
+export default MockAppServiceProxy;

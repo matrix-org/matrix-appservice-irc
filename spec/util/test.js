@@ -1,15 +1,18 @@
 // common tasks performed in tests
-const extend = require("extend");
-const proxyquire = require("proxyquire");
-const { Client } = require("pg");
-const Promise = require("bluebird");
-const { AppServiceRegistration, Intent } = require("matrix-appservice-bridge");
-const clientMock = require("./bot-sdk-mock");
+import extend from "extend";
+import proxyquire from "proxyquire";
+import { Client } from "pg";
+import Promise from "bluebird";
+import { AppServiceRegistration, Intent } from "matrix-appservice-bridge";
+import * as clientMock from "./bot-sdk-mock";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const ircMock = require("./irc-client-mock");
-const MockAppService = require("./app-service-mock");
+import MockAppService from "./app-service-mock";
+import testConfig from "../util/test-config.json";
 
 const USING_PG = process.env.IRCBRIDGE_TEST_ENABLEPG === "yes";
 
+// eslint-disable-next-line no-import-assign
 clientMock["@global"] = true;
 ircMock["@global"] = true;
 const main = proxyquire("../../lib/main.js", {
@@ -139,28 +142,28 @@ class TestEnv {
  * Construct a new test environment with mock modules.
  * @return {Object} containing a set of mock modules.
  */
-module.exports.mkEnv = function() {
-    const config = extend(true, {}, require("../util/test-config.json"));
+export function mkEnv() {
+    const config = extend(true, {}, testConfig);
     return new TestEnv(
         config,
         null // reset each test
     );
-};
+}
 
 
-module.exports.initEnv = (env, customConfig) => {
+export function initEnv(env, customConfig) {
     return env.init(customConfig);
-};
+}
 
-module.exports.afterEach = function(env) {
+export function afterEach(env) {
     return env.afterEach();
-};
+}
 
 /**
  * Reset the test environment for a new test case. This resets all mocks.
  * @param {Object} env : The pre-initialised test environment.
  */
-module.exports.beforeEach = async (env) => {
+export function beforeEach(env) {
     MockAppService.resetInstance();
     if (env) {
         return env.beforeEach();
@@ -188,7 +191,7 @@ module.exports.beforeEach = async (env) => {
  * @param {Function} generatorFn The generator function to wrap e.g
  * @return {Function} A jasmine async test function.
  */
-module.exports.coroutine = function(generatorFn) {
+export function coroutine(generatorFn) {
     return function(done) {
         var fn = Promise.coroutine(generatorFn);
         fn.apply(this).then(function() { // eslint-disable-line no-invalid-this
@@ -198,4 +201,4 @@ module.exports.coroutine = function(generatorFn) {
             done();
         })
     };
-};
+}

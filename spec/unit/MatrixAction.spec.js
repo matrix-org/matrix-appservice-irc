@@ -1,5 +1,5 @@
 "use strict";
-const { MatrixAction } = require("../../lib/models/MatrixAction");
+import { MatrixAction } from "../../lib/models/MatrixAction";
 
 const FakeIntent = {
     getProfileInfo: (userId) => {

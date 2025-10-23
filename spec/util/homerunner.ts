@@ -42,7 +42,7 @@ async function waitForHomerunner() {
             await homerunner.health();
             break;
         }
-        catch (ex) {
+        catch {
             await new Promise(r => setTimeout(r, 1000));
         }
     } while (attempts < 100)

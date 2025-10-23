@@ -208,7 +208,7 @@ export class Provisioner extends ProvisioningApi {
                 status,
             } as MRoomBridgingContent);
         }
-        catch (err) {
+        catch {
             throw new Error(`Could not update m.room.bridging state in ${roomId}`);
         }
     }

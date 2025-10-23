@@ -21,7 +21,7 @@ import { trackChannelAndCreateRoom } from "./RoomCreation";
 import { renderTemplate } from "../util/Template";
 import { trimString } from "../util/TrimString";
 import { messageDiff } from "../util/MessageDiff";
-import QuickLRU = require("quick-lru");
+import QuickLRU from "quick-lru";
 
 async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>|void) {
     try {
@@ -390,7 +390,7 @@ export class MatrixHandler {
                     try {
                         state = await intent.getStateEvent(roomId, "m.room.member", userId);
                     }
-                    catch (ex) {
+                    catch {
                         state = {};
                     }
                     try {
@@ -1116,7 +1116,7 @@ export class MatrixHandler {
                     );
                     originalBody = eventContent.content.body as string;
                 }
-                catch (_err) {
+                catch {
                     req.log.warn("Couldn't find an event being edited, using fallback text");
                 }
             }
@@ -1352,7 +1352,7 @@ export class MatrixHandler {
                 cachedEvent = {sender: rplName, body: rplSource, timestamp: eventContent.origin_server_ts};
                 this.cacheEvent(eventContent.room_id, eventContent.event_id, cachedEvent);
             }
-            catch (err) {
+            catch {
                 // If we couldn't find the event, then frankly we can't
                 // trust it and we won't treat it as a reply.
                 return {
