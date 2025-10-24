@@ -617,7 +617,7 @@ export class ClientPool {
                         await client.kill('User was banned');
                     }
                 }
-                catch (ex) {
+                catch {
                     log.warn(`Failed to kill connection for ${userId}`);
                 }
             }
@@ -743,7 +743,7 @@ export class ClientPool {
         try {
             await cliChan.cli.reconnect(cliChan.chanList);
         }
-        catch (ex) {
+        catch {
             log.error(
                 "Failed to reconnect %s@%s", cliChan.cli.nick, cliChan.cli.server.domain
             );

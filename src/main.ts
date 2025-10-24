@@ -104,9 +104,9 @@ export async function runBridge(
     }
 
     const maxSockets = config.advanced?.maxHttpSockets ?? 1000;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-var-requires,@typescript-eslint/no-require-imports
     require("http").globalAgent.maxSockets = maxSockets;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-var-requires,@typescript-eslint/no-require-imports
     require("https").globalAgent.maxSockets = maxSockets;
 
     // run the bridge

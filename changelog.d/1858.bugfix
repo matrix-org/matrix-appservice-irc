@@ -1,0 +1,1 @@
+Update `matrix-appservice-bridge` to fix `IO.ELEMENT.MSC4190.M_APPSERVICE_LOGIN_UNSUPPORTED` error with MSC4190 enabled homeservers.

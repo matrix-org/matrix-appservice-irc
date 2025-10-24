@@ -32,6 +32,7 @@ import {
     isValidUnlinkBody,
 } from "./Schema";
 import { IrcBridge } from "../bridge/IrcBridge";
+import { APIRoomStateEvent } from "@vector-im/matrix-bot-sdk";
 
 const log = logging("Provisioner");
 
@@ -207,7 +208,7 @@ export class Provisioner extends ProvisioningApi {
                 status,
             } as MRoomBridgingContent);
         }
-        catch (err) {
+        catch {
             throw new Error(`Could not update m.room.bridging state in ${roomId}`);
         }
     }
@@ -1021,7 +1022,7 @@ export class Provisioner extends ProvisioningApi {
         const intent = this.ircBridge.getAppServiceBridge().getIntent();
         const asBot = this.ircBridge.getAppServiceBridge().getBot();
         for (let i = 0; i < matrixRooms.length; i++) {
-            let stateEvents = [];
+            let stateEvents: APIRoomStateEvent[] = [];
             try {
                 stateEvents = await intent.matrixClient.getRoomState(matrixRooms[i].getId());
             }

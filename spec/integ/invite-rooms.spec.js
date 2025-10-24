@@ -1,4 +1,4 @@
-const envBundle = require("../util/env-bundle");
+import envBundle from "../util/env-bundle";
 
 describe("Invite-only rooms", () => {
     const {env, config, roomMapping, botUserId, test} = envBundle();

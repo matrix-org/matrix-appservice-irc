@@ -10,6 +10,7 @@ module.exports = {
         'plugin:react/recommended',
         'plugin:react-hooks/recommended',
     ],
+    plugins: ["@stylistic"],
     parser: '@typescript-eslint/parser',
     parserOptions: {
         ecmaVersion: 'latest',
@@ -25,7 +26,7 @@ module.exports = {
     rules: {
         'no-console': 'off',
         '@typescript-eslint/no-shadow': 'off',
-        '@typescript-eslint/quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
+        '@stylistic/quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
         // False positives when using React.ComponentProps
         'react/prop-types': 'off',
     },

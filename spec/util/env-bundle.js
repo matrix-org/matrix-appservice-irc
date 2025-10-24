@@ -1,6 +1,6 @@
-const test = require("../util/test");
+import * as test from "../util/test";
 
-module.exports = function() {
+export default function() {
     // set up integration testing mocks
     const env = test.mkEnv();
 
@@ -15,4 +15,4 @@ module.exports = function() {
     const botUserId = config._botUserId;
 
     return {env, config, roomMapping, botUserId, test};
-};
+}

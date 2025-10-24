@@ -791,7 +791,7 @@ export class IrcHandler {
                         room.getId(), matrixUserKickee.getId(), req, false, reason, matrixUserKicker.getId(),
                     );
                 }
-                catch (ex) {
+                catch {
                     const formattedReason = `Kicked by ${kicker.nick} ${reason ? ": " + reason : ""}`;
                     // We failed to show a real kick, so just leave.
                     await this.membershipQueue.leave(
@@ -802,7 +802,7 @@ export class IrcHandler {
                 try {
                     await this.roomAccessSyncer.setPowerLevel(room.getId(), matrixUserKickee.getId(), null, req);
                 }
-                catch (ex) {
+                catch {
                     // This is non-critical but annoying.
                     req.log.warn("Failed to remove power levels for leaving user.");
                 }

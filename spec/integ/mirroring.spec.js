@@ -1,4 +1,4 @@
-const envBundle = require("../util/env-bundle");
+import envBundle from "../util/env-bundle";
 
 describe("Mirroring", () => {
     const {env, config, roomMapping, test} = envBundle();

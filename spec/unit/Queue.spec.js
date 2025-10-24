@@ -1,7 +1,7 @@
 "use strict";
-const Promise = require("bluebird");
-const { Queue } = require("../../lib/util/Queue.js");
-const test = require("../util/test");
+import Promise from "bluebird";
+import { Queue } from "../../lib/util/Queue.js";
+import * as test from "../util/test";
 
 describe("Queue", function() {
     let queue;

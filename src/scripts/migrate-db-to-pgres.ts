@@ -145,7 +145,7 @@ async function migrate(roomsFind: promisfiedFind, usersFind: promisfiedFind, pgS
                     entry.data.virtual_user_id,
                 );
             }
-            catch (ex) {
+            catch {
                 log.warn("Not migrating %s", entry.matrix_id);
             }
         }

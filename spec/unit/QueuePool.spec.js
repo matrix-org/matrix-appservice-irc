@@ -1,5 +1,5 @@
-const { QueuePool } = require("../../lib/util/QueuePool");
-const promiseutil = require("../../lib/promiseutil");
+import { QueuePool } from "../../lib/util/QueuePool";
+import { defer } from "../../lib/promiseutil";
 
 async function nextTick(ticks = 1) {
     while (ticks > 0) {
@@ -30,7 +30,7 @@ describe("QueuePool", function() {
             // $item: Deferred
         };
         procFn.and.callFake((item) => {
-            itemToDeferMap[item] = new promiseutil.defer();
+            itemToDeferMap[item] = new defer();
             return itemToDeferMap[item].promise;
         });
     });

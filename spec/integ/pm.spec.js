@@ -1,7 +1,7 @@
 /*
  * Contains integration tests for private messages.
  */
-const envBundle = require("../util/env-bundle");
+import envBundle from "../util/env-bundle";
 
 describe("Matrix-to-IRC PMing", () => {
 

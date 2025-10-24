@@ -4,7 +4,7 @@ import { Client as PgClient } from "pg";
 import { ComplementHomeServer, createHS, destroyHS } from "./homerunner";
 import { IrcBridge } from '../../src/bridge/IrcBridge';
 import { IrcServer } from "../../src/irc/IrcServer";
-import { MatrixClient } from "matrix-bot-sdk";
+import { MatrixClient } from "@vector-im/matrix-bot-sdk";
 import { TestIrcServer } from "matrix-org-irc";
 import { IrcConnectionPool } from "../../src/pool-service/IrcConnectionPool";
 import { expect } from "@jest/globals";

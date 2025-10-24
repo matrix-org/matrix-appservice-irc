@@ -389,7 +389,7 @@ export class DebugApi {
                     });
                 result.stages.push("Left notice in room");
             }
-            catch (e) {
+            catch {
                 result.error.push("Failed to send a leave notice");
             }
         }
@@ -400,7 +400,7 @@ export class DebugApi {
                 await this.ircBridge.getAppServiceBridge().getIntent().matrixClient.deleteRoomAlias(roomAlias);
                 result.stages.push("Deleted alias for room");
             }
-            catch (e) {
+            catch {
                 result.error.push("Failed to remove alias");
             }
         }

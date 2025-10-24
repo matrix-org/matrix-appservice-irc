@@ -48,7 +48,8 @@ export function parseCommandFromEvent(event: { content?: { body?: unknown }}, pr
         return null;
     }
     // First line only
-    const body = event.content.body.trim().split(/\n|\000/)[0];
+    // eslint-disable-next-line no-control-regex
+    const body = event.content.body.trim().split(/\n|\x00/)[0];
     if (!body.startsWith(prefix)) {
         return null;
     }

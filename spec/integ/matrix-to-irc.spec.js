@@ -2,7 +2,7 @@
  * Contains integration tests for all Matrix-initiated events.
  */
 
-const envBundle = require("../util/env-bundle");
+import envBundle from "../util/env-bundle";
 const mediaUrl = "http://some-media-repo.com";
 
 

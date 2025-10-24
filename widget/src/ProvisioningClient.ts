@@ -16,7 +16,7 @@ const parseError = async(req: Response) => {
     try {
         errBody = await req.json();
     }
-    catch (e) {
+    catch {
         // Response body may not be JSON
         return new Error('Request failed');
     }

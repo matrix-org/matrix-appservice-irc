@@ -97,7 +97,7 @@ class MockBotSdkClient {
 
         // when we get the connect/join requests, accept them.
         env.ircMock._whenClient(tServer, tBotNick, "join",
-            function(_client, chan, cb) {
+            function(_, chan, cb) {
                 if (chan === tChannel) {
                     if (cb) { cb(); }
                 }
@@ -118,6 +118,8 @@ class MockBotSdkClient {
  * A mock of the https://github.com/turt2live/matrix-bot-sdk/blob/master/src/appservice/Intent.ts class.
  */
 class MockBotSdkIntent {
+    underlyingClient = null;
+
     constructor(config) {
         this.userId = config.userId;
         this.underlyingClient = new MockBotSdkClient(config.userId);
@@ -146,7 +148,7 @@ class MockBotSdkIntent {
  * Get/create the Bot SDK Intent instance for a user ID. Called by the test rig.
  * @return {SdkClient} The Matrix Client SDK
  */
-function _intent(userId) {
+export function _intent(userId) {
     if (!userId) {
         throw new Error("MockClient: User ID must be specified.");
     }
@@ -161,15 +163,13 @@ function _intent(userId) {
 /**
  * Reset the Matrix Client SDK global instance.
  */
-function _reset() {
+export function _reset() {
     Object.keys(mockIntents).forEach((k) => {
         delete mockIntents[k];
     });
 }
 
-module.exports = {
-    _intent,
-    // For legacy reasons
-    _client: (userId) => (_intent(userId).underlyingClient),
-    _reset,
+// For legacy reasons
+export function _client(userId) {
+    return _intent(userId).underlyingClient;
 }

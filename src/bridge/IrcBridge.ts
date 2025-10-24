@@ -1103,7 +1103,7 @@ export class IrcBridge {
                 await client.joinChannel(ircRoom.channel);
                 await new Promise(r => setTimeout(r, ircRoom.server.getMemberListFloodDelayMs()));
             }
-            catch (ex) {
+            catch {
                 if (!kickFailures) {
                     req.log.warn(`Failed to sync ${userId} to IRC channel`);
                     continue;
@@ -1138,7 +1138,7 @@ export class IrcBridge {
                 return matrixUser;
             }
         }
-        catch (e) {
+        catch {
             // user does not exist. Fall through.
         }
 
@@ -1490,7 +1490,7 @@ export class IrcBridge {
         try {
             await client.joinChannel(ircRoom.channel);
         }
-        catch (ex) {
+        catch {
             log.error("Bot failed to join channel %s", ircRoom.channel);
         }
     }
@@ -1582,20 +1582,20 @@ export class IrcBridge {
                 // We may not have permissions to do so, which means we are basically stuffed.
                 log.warn(`Could not send m.room.bridging event to new room: ${ex}`);
             }
-        }
-        if (bridgeInfoEvent) {
-            try {
-                await this.bridge.getIntent().sendStateEvent(
-                    newRoomId,
-                    bridgeInfoEvent.type,
-                    bridgingEvent.state_key,
-                    bridgingEvent.content
-                );
-                log.info("Bridge info event copied to new room");
-            }
-            catch (ex) {
-                // We may not have permissions to do so, which means we are basically stuffed.
-                log.warn(`Could not send bridge info event to new room: ${ex}`);
+            if (bridgeInfoEvent) {
+                try {
+                    await this.bridge.getIntent().sendStateEvent(
+                        newRoomId,
+                        bridgeInfoEvent.type,
+                        bridgingEvent.state_key,
+                        bridgingEvent.content
+                    );
+                    log.info("Bridge info event copied to new room");
+                }
+                catch (ex) {
+                    // We may not have permissions to do so, which means we are basically stuffed.
+                    log.warn(`Could not send bridge info event to new room: ${ex}`);
+                }
             }
         }
         log.info("Migrating ghosts");

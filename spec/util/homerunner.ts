@@ -1,4 +1,4 @@
-import { MatrixClient } from "matrix-bot-sdk";
+import { MatrixClient } from "@vector-im/matrix-bot-sdk";
 import { createHash, createHmac } from "crypto";
 import { Homerunner } from "homerunner-client";
 import { default as crossFetch } from 'cross-fetch';
@@ -42,7 +42,7 @@ async function waitForHomerunner() {
             await homerunner.health();
             break;
         }
-        catch (ex) {
+        catch {
             await new Promise(r => setTimeout(r, 1000));
         }
     } while (attempts < 100)

@@ -1,7 +1,7 @@
 /*
  * Contains integration tests for all IRC-initiated events.
  */
-const envBundle = require("../util/env-bundle");
+import envBundle from "../util/env-bundle";
 
 function checksum(str) {
     let total = 0;

@@ -1,5 +1,5 @@
 "use strict";
-const { renderTemplate } = require("../../lib/util/Template.js");
+import { renderTemplate } from "../../lib/util/Template.js";
 
 describe("renderTemplate", function() {
     it("should replace placeholders with submitted values", () => {

@@ -2,10 +2,10 @@
  * Contains integration tests for all Startup-initiated events.
  */
 
-const envBundle = require("../util/env-bundle");
-const { Ipv6Generator } = require("../../lib/irc/Ipv6Generator");
-const { IrcClientConfig } = require("../../lib/models/IrcClientConfig");
-const { IrcServer } = require("../../lib/irc/IrcServer");
+import envBundle from "../util/env-bundle";
+import { Ipv6Generator } from "../../lib/irc/Ipv6Generator";
+import { IrcClientConfig} from "../../lib/models/IrcClientConfig";
+import { IrcServer } from "../../lib/irc/IrcServer";
 
 describe("Ipv6Generator", () => {
     const {env, roomMapping, test} = envBundle();

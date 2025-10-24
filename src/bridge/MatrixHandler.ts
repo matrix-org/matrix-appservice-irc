@@ -21,7 +21,7 @@ import { trackChannelAndCreateRoom } from "./RoomCreation";
 import { renderTemplate } from "../util/Template";
 import { trimString } from "../util/TrimString";
 import { messageDiff } from "../util/MessageDiff";
-import QuickLRU = require("quick-lru");
+import QuickLRU from "quick-lru";
 
 async function reqHandler(req: BridgeRequest, promise: PromiseLike<unknown>|void) {
     try {
@@ -102,6 +102,22 @@ export interface MatrixSimpleMessage {
     content: {
         body: string;
     };
+}
+
+export interface RelatesToData {
+    "m.in_reply_to": string;
+}
+
+export interface ReplyEventData {
+    "m.relates_to": RelatesToData;
+    body: string;
+}
+
+export interface MatrixReplyMessage extends MatrixSimpleMessage {
+    room_id: string;
+    event_id: string;
+    origin_server_ts: number;
+    content: ReplyEventData;
 }
 
 interface MatrixEventLeave {
@@ -374,7 +390,7 @@ export class MatrixHandler {
                     try {
                         state = await intent.getStateEvent(roomId, "m.room.member", userId);
                     }
-                    catch (ex) {
+                    catch {
                         state = {};
                     }
                     try {
@@ -1098,9 +1114,9 @@ export class MatrixHandler {
                     const eventContent = await intent.getEvent(
                         event.room_id, originalEventId
                     );
-                    originalBody = eventContent.content.body;
+                    originalBody = eventContent.content.body as string;
                 }
-                catch (_err) {
+                catch {
                     req.log.warn("Couldn't find an event being edited, using fallback text");
                 }
             }
@@ -1320,7 +1336,7 @@ export class MatrixHandler {
             try {
                 const eventContent = await bridgeIntent.getEvent(
                     event.room_id, replyEventId
-                );
+                ) as unknown as MatrixReplyMessage;
                 rplName = eventContent.sender;
                 if (typeof(eventContent.content.body) !== "string") {
                     throw Error("'body' was not a string.");
@@ -1336,7 +1352,7 @@ export class MatrixHandler {
                 cachedEvent = {sender: rplName, body: rplSource, timestamp: eventContent.origin_server_ts};
                 this.cacheEvent(eventContent.room_id, eventContent.event_id, cachedEvent);
             }
-            catch (err) {
+            catch {
                 // If we couldn't find the event, then frankly we can't
                 // trust it and we won't treat it as a reply.
                 return {
@@ -1429,8 +1445,11 @@ export class MatrixHandler {
         this.eventCache.set(cacheKey, event);
 
         if (this.eventCache.size > this.config.eventCacheSize) {
-            const delKey = this.eventCache.entries().next().value[0];
-            this.eventCache.delete(delKey);
+            const value = this.eventCache.entries().next().value;
+            if (value) {
+                const delKey = value[0];
+                this.eventCache.delete(delKey);
+            }
         }
     }
 

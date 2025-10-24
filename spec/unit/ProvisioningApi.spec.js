@@ -1,5 +1,5 @@
 "use strict";
-const { isValidQueryLinkBody } = require("../../lib/provisioning/Schema.js");
+import { isValidQueryLinkBody } from "../../lib/provisioning/Schema.js";
 
 describe("isValidQueryLinkBody", function() {
     const bodyWithKey = (key) => ({

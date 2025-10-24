@@ -4,7 +4,7 @@
  */
 
 import { Intent, MatrixUser, WeakStateEvent } from "matrix-appservice-bridge";
-import { MatrixGlob } from "matrix-bot-sdk";
+import { MatrixGlob } from "@vector-im/matrix-bot-sdk";
 import { getLogger } from "../logging";
 
 const log = getLogger("MatrixBanSync");

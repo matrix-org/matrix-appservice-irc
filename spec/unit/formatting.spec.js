@@ -1,5 +1,5 @@
 "use strict";
-const formatting = require("../../lib/irc/formatting.js");
+import * as formatting from "../../lib/irc/formatting.js";
 
 describe("Formatting", function() {
     describe("htmlToIrc", function() {

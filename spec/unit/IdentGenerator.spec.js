@@ -1,8 +1,8 @@
 "use strict";
-const Promise = require("bluebird");
-const { MatrixUser } = require("matrix-appservice-bridge");
-const { IdentGenerator } = require("../../lib/irc/IdentGenerator");
-const { IrcClientConfig } = require("../../lib/models/IrcClientConfig");
+import Promise from "bluebird";
+import { MatrixUser } from "matrix-appservice-bridge";
+import { IdentGenerator } from "../../lib/irc/IdentGenerator";
+import { IrcClientConfig } from "../../lib/models/IrcClientConfig";
 
 const IRC_DOMAIN = "somedomain.com";
 

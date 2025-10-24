@@ -1,7 +1,7 @@
-const envBundle = require("../util/env-bundle");
-const crossFetch = require('cross-fetch');
+import envBundle from "../util/env-bundle";
+import crossFetch from "cross-fetch";
+import { getBridgeVersion } from "matrix-appservice-bridge";
 
-const { getBridgeVersion } = require("matrix-appservice-bridge");
 
 const DEBUG_PORT = 15555;
 let asToken;
