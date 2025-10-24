@@ -1,1 +1,0 @@
-Update required Node version to 22 and Docker image base to use Debian bookworm.

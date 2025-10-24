@@ -11,16 +11,13 @@ projects.
 ### Doing a release
 
 These steps are for the maintainers of the IRC bridge to refer to when doing a release.
-When doing an RC release, suffix a `-rcV` to the tag and version but NOT the branch.
+When doing an RC release, suffix a `-rcV` to the tag.
 
+* Ensure you have a Python3 env and then `pip install towncrier`
 * `git checkout develop`
-* `git pull`
-* `git switch -c release-v0.V.0`
-* update package.json version number
-* `./scripts/changelog-release.sh`
-* `git commit CHANGELOG.md changelog.d package.json package-lock.json -m 'v0.V.0'`
-* `git tag --sign --message 'v0.V.0' '0.V.0'`
-* `git push origin release-v0.V.0`
-* `git push origin 0.V.0`
-* [Make a release on GitHub](https://github.com/matrix-org/matrix-appservice-irc/releases), copying the changelog into the body and marking it as pre-release
-* `yarn publish`
+* Bump the version in `package.json`
+* Run `./scripts/changelog-release.sh`
+* `git commit CHANGELOG.md changelog.d package.json -m 'x.y.z'`
+* `git tag x.y.z`
+* `git push origin develop x.y.z`
+* Create a release in GitHub

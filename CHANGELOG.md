@@ -1,3 +1,14 @@
+# 4.0.0 (2025-10-24)
+
+## Bugfixes
+
+- Update `matrix-appservice-bridge` to fix `IO.ELEMENT.MSC4190.M_APPSERVICE_LOGIN_UNSUPPORTED` error with MSC4190 enabled homeservers. ([\#1858](https://github.com/matrix-org/matrix-appservice-irc/issues/1858))
+
+## Internal Changes
+
+- Update required Node version to 22 and Docker image base to use Debian bookworm. ([\#1858](https://github.com/matrix-org/matrix-appservice-irc/issues/1858))
+
+
 # 3.0.5 (2025-02-25)
 
 ### Internal Changes
