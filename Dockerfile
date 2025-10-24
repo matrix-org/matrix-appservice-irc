@@ -1,5 +1,5 @@
 # Freebind build
-FROM debian:bookworm-slim as freebind
+FROM debian:bookworm-slim AS freebind
 
 RUN apt-get update \
  && apt-get install -y git build-essential
