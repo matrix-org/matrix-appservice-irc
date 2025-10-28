@@ -594,7 +594,7 @@ export class ClientPool {
         clientsByHomeserver.reset();
         // We intentionally limit the number of clients to reduce label bloat.
         Object.entries(homeserverStats)
-            .sort(((a, b) => b[1]["connected"] - a[1]["connnected"]))
+            .sort(((a, b) => b[1]["connected"] - a[1]["connected"]))
             .slice(0, clientsByHomeserverMax-1).forEach(
                 ([homeserver, stateSet]) => {
                     Object.entries(stateSet).forEach(([state, count]) => {
