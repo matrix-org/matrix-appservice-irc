@@ -22,7 +22,7 @@ describe('messageDiff', function() {
             'should only show changes from the line that has changed in multiline messages',
             'in a marmalade forest\nbetween the make-believe trees\nI forgot the third verse, sorry',
             'in a marmalade forest\nbetween the make-believe trees\nin a cottage-cheese cottage...',
-            's/I forgot the third verse, sorry/in a cottage-cheese cottage.../',
+            's/I forgot the third verse, sorry$/in a cottage-cheese cottage.../',
         ],
         [
             'should not use diffs with newlines in them',
@@ -58,6 +58,12 @@ describe('messageDiff', function() {
             'Lorem ipsum dolor sit amet - an arbitrary amount of trailing text will be duplicated in the sed expression, even though it should only include a few words of context',
             undefined,
         ],
+        [
+            'should append to end of string if incomplete',
+            'how many wood would a woodchuck c',
+            'how many wood would a woodchuck chuck if a woodchuck would chuck wood',
+            's/c$/chuck if a woodchuck would chuck wood/'
+        ]
     ].forEach(c => it(c[0], () => {
         const result = messageDiff(c[1], c[2]);
         expect(result).toBe(c[3]);
