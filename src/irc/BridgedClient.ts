@@ -815,9 +815,12 @@ export class BridgedClient extends EventEmitter {
             connInst.client.once("connect", function() {
                 const conn = connInst.client.conn as RedisIrcConnection|Socket;
                 const localPort = conn?.localPort ?? 0;
+                // Pooled connections don't currently report the remote address they
+                // connected to, so ident queries for them won't be answered (see Ident.ts).
+                const remoteAddress = conn instanceof Socket ? conn.remoteAddress : undefined;
                 // Fix horrible ident
                 if (localPort > 0 && nameInfo.username) {
-                    Ident.setMapping(nameInfo.username, localPort);
+                    Ident.setMapping(nameInfo.username, localPort, remoteAddress);
                 }
                 identResolver();
             });
