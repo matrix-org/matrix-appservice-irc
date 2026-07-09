@@ -213,7 +213,10 @@ export class MatrixAction {
                     fileSize = "(" + Math.round(event.content.info.size / 1024) + "KiB)";
                 }
 
-                const url = await mediaProxy.generateMediaUrl(event.content.url);
+                const url = await mediaProxy.generateMediaUrl(event.content.url, {
+                    roomId: event.room_id,
+                    eventId: event.event_id,
+                });
                 if (!filename && event.content.body && /\S*\.[\w\d]{2,4}$/.test(event.content.body)) {
                     // Add filename to url if body is a filename.
                     filename = event.content.body;

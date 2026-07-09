@@ -1,0 +1,1 @@
+The bridge's media proxy no longer serves media whose source Matrix event has since been redacted.
