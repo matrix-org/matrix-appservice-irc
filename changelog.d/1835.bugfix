@@ -1,0 +1,1 @@
+Fix a bug where a long HTML-formatted message could bypass truncation/pastebinning and flood the IRC channel with the full, untruncated message.
