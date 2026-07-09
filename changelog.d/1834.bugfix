@@ -1,0 +1,1 @@
+The built-in ident server now only answers queries from the IRC server address a connection was actually made to, instead of any IP that can reach the ident port.
