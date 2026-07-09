@@ -1207,6 +1207,10 @@ export class MatrixHandler {
 
                 event.content = {
                     ...event.content,
+                    // Clear any HTML formatting so the truncated plain text body above
+                    // isn't overridden by the original, untruncated formatted_body.
+                    format: undefined,
+                    formatted_body: undefined,
                     body: `${messagePreview} ${explanation}`,
                 };
             }
@@ -1228,6 +1232,10 @@ export class MatrixHandler {
             const sendingEvent: MatrixMessageEvent = { ...event,
                 content: {
                     ...event.content,
+                    // Clear any HTML formatting so the truncated plain text body above
+                    // isn't overridden by the original, untruncated formatted_body.
+                    format: undefined,
+                    formatted_body: undefined,
                     body: potentialMessages.splice(0, lineLimit - 1).join('\n') + msg
                 }
             };

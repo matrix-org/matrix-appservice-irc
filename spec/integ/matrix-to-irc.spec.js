@@ -713,6 +713,69 @@ describe("Matrix-to-IRC message bridging", function() {
         });
     });
 
+    it("should not bridge the untruncated HTML body when pastebinning a truncated message", async () => {
+        // formatted_body must survive sanitizeHtml unchanged (only tags from the allow-list,
+        // here: none) or htmlToIrc bails out and falls back to the safe plain-text body,
+        // masking the bug (GH-1835).
+        const tBody = "This\nis\na\nmessage\nwith\nmultiple\nline\nbreaks".split('\n');
+        const sdk = env.clientMock._client(config._botUserId);
+
+        sdk.uploadContent.and.returnValue(Promise.resolve("mxc://deadbeefcafe"));
+
+        const sayTexts = [];
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say", (client, channel, text) => {
+            sayTexts.push(text);
+        });
+
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tBody.join("\n"),
+                formatted_body: tBody.join("\n"),
+                format: "org.matrix.custom.html",
+                msgtype: "m.text"
+            },
+            sender: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+
+        // A single truncated message + pastebin URL should be sent, never the
+        // full HTML-derived body flooding the channel as a wall of separate lines.
+        expect(sayTexts.length).toEqual(1);
+        expect(sayTexts[0].includes(tBody[tBody.length - 1])).toEqual(false);
+        expect(sayTexts[0].includes(config.ircService.mediaProxy.publicUrl)).toEqual(true);
+    });
+
+    it("should not bridge the untruncated HTML body when truncating in-place (upload failure)", async () => {
+        const tBody = "This\nis\na\nmessage\nwith\nmultiple\nline\nbreaks".split('\n');
+        const sdk = env.clientMock._client(config._botUserId);
+
+        sdk.uploadContent.and.callFake(() => Promise.reject(new Error("upload failed")));
+
+        const sayTexts = [];
+        env.ircMock._whenClient(roomMapping.server, testUser.nick, "say", (client, channel, text) => {
+            sayTexts.push(text);
+        });
+
+        await env.mockAppService._trigger("type:m.room.message", {
+            content: {
+                body: tBody.join("\n"),
+                formatted_body: tBody.join("\n"),
+                format: "org.matrix.custom.html",
+                msgtype: "m.text"
+            },
+            sender: testUser.id,
+            room_id: roomMapping.roomId,
+            type: "m.room.message"
+        });
+
+        // A single truncated message should be sent, never the full
+        // HTML-derived body flooding the channel as a wall of separate lines.
+        expect(sayTexts.length).toEqual(1);
+        expect(sayTexts[0].includes(tBody[tBody.length - 1])).toEqual(false);
+        expect(sayTexts[0].includes("truncated")).toEqual(true);
+    });
+
     it("should bridge matrix images as IRC action with a URL", function(done) {
         const tBody = "the_image.jpg";
         const tMxcSegment = "/somecontentid";
