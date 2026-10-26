@@ -1,3 +1,11 @@
+# 4.0.1 (2026-10-26)
+
+## Internal Changes
+
+- Update the base Node.js images to address the following high/medium/low CVE's `CVE-2026-105482`,
+  `CVE-2026-105483`, `CVE-2026-106069`, `CVE-2026-111497`, `CVE-2026-105481`, `CVE-2026-106072`, `CVE-2026-106074`,
+  `CVE-2026-106070`, `CVE-2026-106071` and `CVE-2026-106073`.
+
 # 4.0.0 (2025-10-24)
 
 ## Bugfixes
@@ -7,7 +15,6 @@
 ## Internal Changes
 
 - Update required Node version to 22 and Docker image base to use Debian bookworm. ([\#1858](https://github.com/matrix-org/matrix-appservice-irc/issues/1858))
-
 
 # 3.0.5 (2025-02-25)
 
